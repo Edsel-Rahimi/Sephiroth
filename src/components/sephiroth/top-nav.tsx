@@ -71,6 +71,16 @@ export function TopNav() {
       description: t.common.soonDesc,
     });
 
+  const signOut = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      /* cookie cleared server-side even on network hiccup */
+    }
+    toast({ title: t.auth.loggedOutToast });
+    setTimeout(() => window.location.reload(), 350);
+  };
+
   return (
     <header className="sticky top-0 z-40">
       <div className="glass-strong border-x-0 border-t-0">
@@ -192,7 +202,7 @@ export function TopNav() {
                 <Settings className="mr-2 h-4 w-4" /> {t.topbar.accountSettings}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={soon} className="text-destructive">
+              <DropdownMenuItem onClick={signOut} className="text-destructive">
                 <LogOut className="mr-2 h-4 w-4" /> {t.topbar.signOut}
               </DropdownMenuItem>
             </DropdownMenuContent>

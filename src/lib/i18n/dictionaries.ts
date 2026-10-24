@@ -43,6 +43,47 @@ export interface Dict {
   };
   common: { soon: string; soonDesc: string; backToDash: string; language: string };
   splash: { booting: string };
+  auth: {
+    heroBadge: string;
+    heroTitle: string;
+    heroSub: string;
+    chipCore: string;
+    chipLive: string;
+    chipLangs: string;
+    secureNote: string;
+    welcome: string;
+    welcomeSub: string;
+    username: string;
+    usernamePh: string;
+    password: string;
+    passwordPh: string;
+    remember: string;
+    signIn: string;
+    signingIn: string;
+    lostAccess: string;
+    useRecovery: string;
+    backToLogin: string;
+    recoverTitle: string;
+    recoverSub: string;
+    recoveryKey: string;
+    recoveryKeyPh: string;
+    newPassword: string;
+    newPasswordPh: string;
+    resetPassword: string;
+    resetting: string;
+    previewHint: string;
+    demoLabel: string;
+    demoFill: string;
+    errFields: string;
+    errInvalid: string;
+    errLocked: string;
+    attemptsLeft: string;
+    errBadKey: string;
+    errWeak: string;
+    okRecovered: string;
+    welcomeToast: string;
+    loggedOutToast: string;
+  };
   dash: {
     phaseBadge: string;
     title: string;
@@ -103,6 +144,48 @@ export const dictionaries: Record<Lang, Dict> = {
       language: "Language",
     },
     splash: { booting: "Establishing uplink" },
+    auth: {
+      heroBadge: "SECURE TERMINAL",
+      heroTitle: "Command the orbit.",
+      heroSub:
+        "Every inbound, user and byte — one control deck, wrapped in an encrypted session.",
+      chipCore: "Xray core ready",
+      chipLive: "Realtime telemetry",
+      chipLangs: "6 languages",
+      secureNote: "Encrypted session · local core",
+      welcome: "Welcome back",
+      welcomeSub: "Sign in to the Sephiroth control deck",
+      username: "Username",
+      usernamePh: "Enter username",
+      password: "Password",
+      passwordPh: "Enter password",
+      remember: "Keep me signed in for 30 days",
+      signIn: "Sign in",
+      signingIn: "Authenticating…",
+      lostAccess: "Lost access?",
+      useRecovery: "Use recovery key",
+      backToLogin: "Back to sign in",
+      recoverTitle: "Account recovery",
+      recoverSub: "Set a new password using the recovery key from first setup.",
+      recoveryKey: "Recovery key",
+      recoveryKeyPh: "SEPH-XXXX-XXXX-XXXX",
+      newPassword: "New password",
+      newPasswordPh: "At least 8 characters",
+      resetPassword: "Reset password",
+      resetting: "Resetting…",
+      previewHint: "Preview recovery key: SEPH-ORBIT-2077-NOVA",
+      demoLabel: "Preview credentials",
+      demoFill: "Autofill",
+      errFields: "Please fill in all fields.",
+      errInvalid: "Invalid username or password.",
+      errLocked: "Too many attempts — locked for {s}",
+      attemptsLeft: "{n} attempts left before lockout",
+      errBadKey: "Recovery key not recognized.",
+      errWeak: "Password must be at least 8 characters.",
+      okRecovered: "Password updated. Sign in with your new password.",
+      welcomeToast: "Welcome back, {name}",
+      loggedOutToast: "Signed out safely",
+    },
     dash: {
       phaseBadge: "PHASE 0 · DESIGN SYSTEM",
       title: "Mission Control",
@@ -175,6 +258,48 @@ export const dictionaries: Record<Lang, Dict> = {
       language: "زبان",
     },
     splash: { booting: "برقراری اتصال" },
+    auth: {
+      heroBadge: "پایانه امن",
+      heroTitle: "فرمان مدار را در دست بگیر.",
+      heroSub:
+        "همه کانفیگ‌ها، کاربران و ترافیک — یک مرکز فرمان، در قالب یک نشست رمزنگاری‌شده.",
+      chipCore: "هسته Xray آماده",
+      chipLive: "تله‌متری لحظه‌ای",
+      chipLangs: "۶ زبان",
+      secureNote: "نشست رمزنگاری‌شده · هسته محلی",
+      welcome: "خوش برگشتی",
+      welcomeSub: "برای ورود به مرکز فرمان Sephiroth وارد شو",
+      username: "نام کاربری",
+      usernamePh: "نام کاربری را وارد کن",
+      password: "رمز عبور",
+      passwordPh: "رمز عبور را وارد کن",
+      remember: "۳۰ روز مرا به خاطر بسپار",
+      signIn: "ورود",
+      signingIn: "در حال بررسی…",
+      lostAccess: "دسترسی را گم کردی؟",
+      useRecovery: "از کلید بازیابی استفاده کن",
+      backToLogin: "بازگشت به ورود",
+      recoverTitle: "بازیابی حساب",
+      recoverSub: "با کلید بازیابیِ نصب اولیه، یک رمز تازه تنظیم کن.",
+      recoveryKey: "کلید بازیابی",
+      recoveryKeyPh: "SEPH-XXXX-XXXX-XXXX",
+      newPassword: "رمز تازه",
+      newPasswordPh: "حداقل ۸ کاراکتر",
+      resetPassword: "تغییر رمز",
+      resetting: "در حال تغییر…",
+      previewHint: "کلید بازیابی پیش‌نمایش: SEPH-ORBIT-2077-NOVA",
+      demoLabel: "اطلاعات پیش‌نمایش",
+      demoFill: "پرکردن خودکار",
+      errFields: "لطفاً همه فیلدها را پر کن.",
+      errInvalid: "نام کاربری یا رمز عبور اشتباه است.",
+      errLocked: "تلاش‌های زیاد — قفل تا {s}",
+      attemptsLeft: "{n} تلاش باقی مانده تا قفل",
+      errBadKey: "کلید بازیابی شناسایی نشد.",
+      errWeak: "رمز عبور باید حداقل ۸ کاراکتر باشد.",
+      okRecovered: "رمز به‌روزرسانی شد. با رمز تازه وارد شو.",
+      welcomeToast: "خوش برگشتی، {name}",
+      loggedOutToast: "با خیال راحت خارج شدی",
+    },
     dash: {
       phaseBadge: "فاز ۰ · سیستم طراحی",
       title: "مرکز فرمان",
@@ -244,6 +369,48 @@ export const dictionaries: Record<Lang, Dict> = {
       language: "اللغة",
     },
     splash: { booting: "جارٍ إنشاء الاتصال" },
+    auth: {
+      heroBadge: "الطرفية الآمنة",
+      heroTitle: "قُد المدار.",
+      heroSub:
+        "كل نقاط الدخول والمستخدمين والبايتات — لوحة قيادة واحدة داخل جلسة مشفّرة.",
+      chipCore: "نواة Xray جاهزة",
+      chipLive: "قياس لحظي",
+      chipLangs: "٦ لغات",
+      secureNote: "جلسة مشفّرة · نواة محلية",
+      welcome: "مرحبًا بعودتك",
+      welcomeSub: "سجّل دخولك إلى لوحة قيادة Sephiroth",
+      username: "اسم المستخدم",
+      usernamePh: "أدخل اسم المستخدم",
+      password: "كلمة المرور",
+      passwordPh: "أدخل كلمة المرور",
+      remember: "أبقني مسجلاً لمدة 30 يوماً",
+      signIn: "تسجيل الدخول",
+      signingIn: "جارٍ التحقق…",
+      lostAccess: "فقدت الوصول؟",
+      useRecovery: "استخدم مفتاح الاسترداد",
+      backToLogin: "العودة لتسجيل الدخول",
+      recoverTitle: "استعادة الحساب",
+      recoverSub: "عيّن كلمة مرور جديدة باستخدام مفتاح الاسترداد من الإعداد الأول.",
+      recoveryKey: "مفتاح الاسترداد",
+      recoveryKeyPh: "SEPH-XXXX-XXXX-XXXX",
+      newPassword: "كلمة المرور الجديدة",
+      newPasswordPh: "8 أحرف على الأقل",
+      resetPassword: "إعادة تعيين كلمة المرور",
+      resetting: "جارٍ إعادة التعيين…",
+      previewHint: "مفتاح استرداد المعاينة: SEPH-ORBIT-2077-NOVA",
+      demoLabel: "بيانات المعاينة",
+      demoFill: "تعبئة تلقائية",
+      errFields: "يرجى إكمال جميع الحقول.",
+      errInvalid: "اسم المستخدم أو كلمة المرور غير صحيحة.",
+      errLocked: "محاولات كثيرة — مقفل لمدة {s}",
+      attemptsLeft: "بقيت {n} محاولات قبل القفل",
+      errBadKey: "مفتاح الاسترداد غير معروف.",
+      errWeak: "يجب ألا تقل كلمة المرور عن 8 أحرف.",
+      okRecovered: "تم تحديث كلمة المرور. سجّل دخولك بكلمتك الجديدة.",
+      welcomeToast: "مرحباً بعودتك، {name}",
+      loggedOutToast: "تم تسجيل الخروج بأمان",
+    },
     dash: {
       phaseBadge: "المرحلة ٠ · نظام التصميم",
       title: "مركز القيادة",
@@ -312,6 +479,47 @@ export const dictionaries: Record<Lang, Dict> = {
       language: "语言",
     },
     splash: { booting: "正在建立连接" },
+    auth: {
+      heroBadge: "安全终端",
+      heroTitle: "执掌轨道。",
+      heroSub: "所有入站、用户与流量 — 一块指挥甲板，护以加密会话。",
+      chipCore: "Xray 内核就绪",
+      chipLive: "实时遥测",
+      chipLangs: "6 种语言",
+      secureNote: "加密会话 · 本地内核",
+      welcome: "欢迎回来",
+      welcomeSub: "登录 Sephiroth 指挥甲板",
+      username: "用户名",
+      usernamePh: "输入用户名",
+      password: "密码",
+      passwordPh: "输入密码",
+      remember: "30 天内保持登录",
+      signIn: "登录",
+      signingIn: "正在验证…",
+      lostAccess: "无法访问？",
+      useRecovery: "使用恢复密钥",
+      backToLogin: "返回登录",
+      recoverTitle: "账户恢复",
+      recoverSub: "使用首次安装生成的恢复密钥设置新密码。",
+      recoveryKey: "恢复密钥",
+      recoveryKeyPh: "SEPH-XXXX-XXXX-XXXX",
+      newPassword: "新密码",
+      newPasswordPh: "至少 8 个字符",
+      resetPassword: "重置密码",
+      resetting: "正在重置…",
+      previewHint: "预览恢复密钥：SEPH-ORBIT-2077-NOVA",
+      demoLabel: "预览凭据",
+      demoFill: "自动填充",
+      errFields: "请填写所有字段。",
+      errInvalid: "用户名或密码无效。",
+      errLocked: "尝试过多 — 已锁定 {s}",
+      attemptsLeft: "还剩 {n} 次尝试机会",
+      errBadKey: "恢复密钥无法识别。",
+      errWeak: "密码至少需要 8 个字符。",
+      okRecovered: "密码已更新。请用新密码登录。",
+      welcomeToast: "欢迎回来，{name}",
+      loggedOutToast: "已安全退出",
+    },
     dash: {
       phaseBadge: "阶段 0 · 设计系统",
       title: "指挥中心",
@@ -379,6 +587,48 @@ export const dictionaries: Record<Lang, Dict> = {
       language: "Dil",
     },
     splash: { booting: "Bağlantı kuruluyor" },
+    auth: {
+      heroBadge: "GÜVENLİ TERMİNAL",
+      heroTitle: "Yörüngenin komutanı ol.",
+      heroSub:
+        "Tüm girişler, kullanıcılar ve baytlar — şifreli oturumla korunan tek bir kumanda köprüsü.",
+      chipCore: "Xray çekirdeği hazır",
+      chipLive: "Gerçek zamanlı telemetri",
+      chipLangs: "6 dil",
+      secureNote: "Şifreli oturum · yerel çekirdek",
+      welcome: "Tekrar hoş geldin",
+      welcomeSub: "Sephiroth kumanda köprüsüne giriş yap",
+      username: "Kullanıcı adı",
+      usernamePh: "Kullanıcı adını gir",
+      password: "Şifre",
+      passwordPh: "Şifreni gir",
+      remember: "30 gün hatırla",
+      signIn: "Giriş yap",
+      signingIn: "Doğrulanıyor…",
+      lostAccess: "Erişimi mi kaybettin?",
+      useRecovery: "Kurtarma anahtarını kullan",
+      backToLogin: "Girişe dön",
+      recoverTitle: "Hesap kurtarma",
+      recoverSub: "İlk kurulumdaki kurtarma anahtarıyla yeni bir şifre belirle.",
+      recoveryKey: "Kurtarma anahtarı",
+      recoveryKeyPh: "SEPH-XXXX-XXXX-XXXX",
+      newPassword: "Yeni şifre",
+      newPasswordPh: "En az 8 karakter",
+      resetPassword: "Şifreyi sıfırla",
+      resetting: "Sıfırlanıyor…",
+      previewHint: "Önizleme kurtarma anahtarı: SEPH-ORBIT-2077-NOVA",
+      demoLabel: "Önizleme bilgileri",
+      demoFill: "Otomatik doldur",
+      errFields: "Lütfen tüm alanları doldur.",
+      errInvalid: "Kullanıcı adı veya şifre geçersiz.",
+      errLocked: "Çok fazla deneme — {s} kilitli",
+      attemptsLeft: "Kilitlemeden önce {n} deneme kaldı",
+      errBadKey: "Kurtarma anahtarı tanınmadı.",
+      errWeak: "Şifre en az 8 karakter olmalı.",
+      okRecovered: "Şifre güncellendi. Yeni şifrenle giriş yap.",
+      welcomeToast: "Tekrar hoş geldin, {name}",
+      loggedOutToast: "Güvenle çıkış yapıldı",
+    },
     dash: {
       phaseBadge: "AŞAMA 0 · TASARIM SİSTEMİ",
       title: "Komuta Merkezi",
@@ -448,6 +698,49 @@ export const dictionaries: Record<Lang, Dict> = {
       language: "Язык",
     },
     splash: { booting: "Устанавливаем связь" },
+    auth: {
+      heroBadge: "ЗАЩИЩЁННЫЙ ТЕРМИНАЛ",
+      heroTitle: "Командуй орбитой.",
+      heroSub:
+        "Все подключения, пользователи и трафик — одна командная палуба в шифрованной сессии.",
+      chipCore: "Ядро Xray готово",
+      chipLive: "Телеметрия в реальном времени",
+      chipLangs: "6 языков",
+      secureNote: "Шифрованная сессия · локальное ядро",
+      welcome: "С возвращением",
+      welcomeSub: "Войдите на командную палубу Sephiroth",
+      username: "Имя пользователя",
+      usernamePh: "Введите имя пользователя",
+      password: "Пароль",
+      passwordPh: "Введите пароль",
+      remember: "Запомнить меня на 30 дней",
+      signIn: "Войти",
+      signingIn: "Проверяем…",
+      lostAccess: "Потеряли доступ?",
+      useRecovery: "Использовать ключ восстановления",
+      backToLogin: "Назад ко входу",
+      recoverTitle: "Восстановление аккаунта",
+      recoverSub:
+        "Задайте новый пароль с помощью ключа восстановления из первичной настройки.",
+      recoveryKey: "Ключ восстановления",
+      recoveryKeyPh: "SEPH-XXXX-XXXX-XXXX",
+      newPassword: "Новый пароль",
+      newPasswordPh: "Минимум 8 символов",
+      resetPassword: "Сбросить пароль",
+      resetting: "Сбрасываем…",
+      previewHint: "Ключ восстановления для предпросмотра: SEPH-ORBIT-2077-NOVA",
+      demoLabel: "Демо-данные",
+      demoFill: "Автозаполнение",
+      errFields: "Пожалуйста, заполните все поля.",
+      errInvalid: "Неверное имя пользователя или пароль.",
+      errLocked: "Слишком много попыток — блокировка на {s}",
+      attemptsLeft: "Осталось попыток: {n}",
+      errBadKey: "Ключ восстановления не распознан.",
+      errWeak: "Пароль должен содержать минимум 8 символов.",
+      okRecovered: "Пароль обновлён. Войдите с новым паролем.",
+      welcomeToast: "С возвращением, {name}",
+      loggedOutToast: "Вышли безопасно",
+    },
     dash: {
       phaseBadge: "ФАЗА 0 · ДИЗАЙН-СИСТЕМА",
       title: "Центр управления",

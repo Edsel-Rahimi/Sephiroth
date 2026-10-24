@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { TopNav } from "@/components/sephiroth/top-nav";
 import { Footer } from "@/components/sephiroth/footer";
 import { Splash } from "@/components/sephiroth/splash";
 import { Starfield } from "@/components/sephiroth/starfield";
+import { LoginScene } from "@/components/sephiroth/login-scene";
 import { DashboardView } from "@/components/sephiroth/views/dashboard-view";
 import { PlaceholderView } from "@/components/sephiroth/views/placeholder-view";
 import { useAppStore } from "@/lib/store/app-store";
@@ -22,6 +23,9 @@ export default function Home() {
   const lang = useAppStore((s) => s.lang);
   const view = useAppStore((s) => s.view);
 
+  /* phase 1 — server-backed session gate (null = checking) */
+  const [authed, setAuthed] = useState<boolean | null>(null);
+
   /* apply language + direction to <html> */
   useEffect(() => {
     if (!mounted) return;
@@ -30,7 +34,35 @@ export default function Home() {
     document.documentElement.lang = lang;
   }, [mounted, lang]);
 
-  if (!mounted) return <Splash />;
+  /* verify session cookie against the API once mounted */
+  useEffect(() => {
+    if (!mounted) return;
+    let alive = true;
+    fetch("/api/auth/session")
+      .then((r) => r.json())
+      .then((d: { authenticated?: boolean }) => {
+        if (alive) setAuthed(Boolean(d.authenticated));
+      })
+      .catch(() => {
+        if (alive) setAuthed(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [mounted]);
+
+  if (!mounted || authed === null) return <Splash />;
+
+  /* not signed in → cosmic login terminal */
+  if (!authed) {
+    return (
+      <LoginScene
+        onSuccess={() => {
+          setAuthed(true);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="bg-cosmic flex min-h-screen flex-col">

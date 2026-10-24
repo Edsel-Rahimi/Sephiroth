@@ -328,6 +328,79 @@ html[dir="rtl"] .shine-sweep {
   animation: fade-in-soft 0.7s ease both;
 }
 
+/* ---------- login scene ---------- */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-up {
+  animation: fade-up 0.7s cubic-bezier(0.22, 0.9, 0.3, 1) both;
+}
+.d-1 { animation-delay: 0.06s; }
+.d-2 { animation-delay: 0.14s; }
+.d-3 { animation-delay: 0.22s; }
+.d-4 { animation-delay: 0.32s; }
+.d-5 { animation-delay: 0.42s; }
+.d-6 { animation-delay: 0.55s; }
+
+@keyframes shake {
+  10%, 90% { transform: translateX(-1px); }
+  20%, 80% { transform: translateX(2px); }
+  30%, 50%, 70% { transform: translateX(-4px); }
+  40%, 60% { transform: translateX(4px); }
+}
+.shake {
+  animation: shake 0.5s ease both;
+}
+
+/* planet horizon glowing at the bottom of the login terminal */
+.login-horizon {
+  position: absolute;
+  left: 50%;
+  bottom: -96vw;
+  width: 150vw;
+  height: 150vw;
+  min-width: 1200px;
+  min-height: 1200px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  border-top: 1px solid rgba(34, 216, 238, 0.4);
+  background: radial-gradient(
+    circle at 50% 30%,
+    rgba(34, 216, 238, 0.14),
+    rgba(6, 11, 15, 0) 55%
+  );
+  box-shadow:
+    0 -22px 110px -22px rgba(34, 216, 238, 0.38),
+    inset 0 26px 70px -34px rgba(34, 216, 238, 0.3);
+  pointer-events: none;
+}
+
+/* concentric orbital rings behind the login brand visual */
+.login-ring {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  border-radius: 50%;
+  border: 1px solid rgba(34, 216, 238, 0.14);
+  pointer-events: none;
+}
+.login-ring.dashed {
+  border-style: dashed;
+  border-color: rgba(148, 184, 205, 0.18);
+}
+.login-sat {
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  border-radius: 999px;
+  background: var(--primary);
+  box-shadow: 0 0 14px 2px rgba(34, 216, 238, 0.75);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .logo-pulse,
   .orbit-spin,
@@ -335,10 +408,17 @@ html[dir="rtl"] .shine-sweep {
   .shine-sweep,
   .skeleton-shimmer,
   .line-draw,
-  .fade-in-soft {
+  .fade-in-soft,
+  .fade-up,
+  .shake {
     animation: none;
   }
   .line-draw {
     stroke-dashoffset: 0;
+  }
+  .fade-up,
+  .fade-in-soft {
+    opacity: 1;
+    transform: none;
   }
 }
