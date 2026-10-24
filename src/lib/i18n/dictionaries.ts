@@ -62,6 +62,8 @@ export interface Dict {
     signingIn: string;
     lostAccess: string;
     useRecovery: string;
+    or: string;
+    forgotShort: string;
     backToLogin: string;
     recoverTitle: string;
     recoverSub: string;
@@ -164,6 +166,8 @@ export const dictionaries: Record<Lang, Dict> = {
       signingIn: "Authenticating…",
       lostAccess: "Lost access?",
       useRecovery: "Use recovery key",
+      or: "or",
+      forgotShort: "Forgot?",
       backToLogin: "Back to sign in",
       recoverTitle: "Account recovery",
       recoverSub: "Set a new password using the recovery key from first setup.",
@@ -278,6 +282,8 @@ export const dictionaries: Record<Lang, Dict> = {
       signingIn: "در حال بررسی…",
       lostAccess: "دسترسی را گم کردی؟",
       useRecovery: "از کلید بازیابی استفاده کن",
+      or: "یا",
+      forgotShort: "فراموش کردی؟",
       backToLogin: "بازگشت به ورود",
       recoverTitle: "بازیابی حساب",
       recoverSub: "با کلید بازیابیِ نصب اولیه، یک رمز تازه تنظیم کن.",
@@ -389,6 +395,8 @@ export const dictionaries: Record<Lang, Dict> = {
       signingIn: "جارٍ التحقق…",
       lostAccess: "فقدت الوصول؟",
       useRecovery: "استخدم مفتاح الاسترداد",
+      or: "أو",
+      forgotShort: "نسيت؟",
       backToLogin: "العودة لتسجيل الدخول",
       recoverTitle: "استعادة الحساب",
       recoverSub: "عيّن كلمة مرور جديدة باستخدام مفتاح الاسترداد من الإعداد الأول.",
@@ -498,6 +506,8 @@ export const dictionaries: Record<Lang, Dict> = {
       signingIn: "正在验证…",
       lostAccess: "无法访问？",
       useRecovery: "使用恢复密钥",
+      or: "或",
+      forgotShort: "忘记密码？",
       backToLogin: "返回登录",
       recoverTitle: "账户恢复",
       recoverSub: "使用首次安装生成的恢复密钥设置新密码。",
@@ -607,6 +617,8 @@ export const dictionaries: Record<Lang, Dict> = {
       signingIn: "Doğrulanıyor…",
       lostAccess: "Erişimi mi kaybettin?",
       useRecovery: "Kurtarma anahtarını kullan",
+      or: "veya",
+      forgotShort: "Unuttum",
       backToLogin: "Girişe dön",
       recoverTitle: "Hesap kurtarma",
       recoverSub: "İlk kurulumdaki kurtarma anahtarıyla yeni bir şifre belirle.",
@@ -718,6 +730,8 @@ export const dictionaries: Record<Lang, Dict> = {
       signingIn: "Проверяем…",
       lostAccess: "Потеряли доступ?",
       useRecovery: "Использовать ключ восстановления",
+      or: "или",
+      forgotShort: "Забыли?",
       backToLogin: "Назад ко входу",
       recoverTitle: "Восстановление аккаунта",
       recoverSub:

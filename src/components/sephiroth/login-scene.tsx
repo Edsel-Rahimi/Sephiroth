@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import {
   ArrowLeft,
   Check,
@@ -29,7 +30,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { BrandMark, BrandWord } from "@/components/sephiroth/brand";
 import { Starfield } from "@/components/sephiroth/starfield";
@@ -44,40 +45,11 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 /* ============================================================
-   Sephiroth · Phase 1 — Cosmic Login Terminal
+   Sephiroth · Phase 1 — Secure Terminal (framed showcase)
+   Fusion: Clever split-frame + Ebolt refined form, cosmic DNA
    ============================================================ */
 
 type Mode = "login" | "recover";
-
-/* brand showcase visual — concentric orbital rings + satellites */
-function OrbitVisual() {
-  return (
-    <div className="relative mx-auto aspect-square w-full max-w-[420px]" aria-hidden="true">
-      {/* rings */}
-      <div className="login-ring" style={{ width: "100%", height: "100%" }} />
-      <div className="login-ring dashed" style={{ width: "76%", height: "76%" }} />
-      <div className="login-ring" style={{ width: "52%", height: "52%", borderColor: "rgba(34,216,238,.24)" }} />
-
-      {/* rotating satellites */}
-      <div className="orbit-spin absolute inset-0 [animation-duration:16s]">
-        <span className="login-sat" />
-      </div>
-      <div className="orbit-spin absolute inset-[12%] [animation-duration:26s] [animation-direction:reverse]">
-        <span className="login-sat" style={{ width: 6, height: 6, opacity: 0.8 }} />
-      </div>
-      <div className="orbit-spin absolute inset-[24%] [animation-duration:11s]">
-        <span className="login-sat" style={{ width: 5, height: 5, opacity: 0.65 }} />
-      </div>
-
-      {/* core */}
-      <div className="absolute inset-0 grid place-items-center">
-        <div className="float-y">
-          <BrandMark size={96} pulse />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function LangMenu() {
   const lang = useAppStore((s) => s.lang);
@@ -114,6 +86,77 @@ function LangMenu() {
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+/* left showcase panel — generated obsidian dunes + brand + headline */
+function ShowcasePanel() {
+  const lang = useAppStore((s) => s.lang);
+  const t = useMemo(() => dictionaries[lang].auth, [lang]);
+  const brand = dictionaries[lang];
+
+  return (
+    <div className="relative h-44 sm:h-52 lg:h-auto lg:min-h-[680px]">
+      <Image
+        src="/login-dunes.png"
+        alt="Obsidian dunes under a starry night sky"
+        fill
+        priority
+        sizes="(max-width: 1024px) 100vw, 50vw"
+        className="object-cover"
+      />
+      {/* cinematic grading */}
+      <div className="absolute inset-0 bg-gradient-to-t from-[#04080b] via-[#04080b]/20 to-[#04080b]/10" />
+      <div className="absolute inset-0 bg-gradient-to-l from-transparent via-transparent to-[#04080b]/30" />
+
+      {/* brand top */}
+      <div className="absolute inset-x-0 top-0 flex items-center gap-2.5 p-5 md:p-6">
+        <BrandMark size={34} />
+        <BrandWord tagline={brand.brand.tagline} />
+      </div>
+
+      {/* headline bottom */}
+      <div className="absolute inset-x-0 bottom-0 p-5 md:p-8">
+        <div className="glass mb-4 hidden items-center gap-2 rounded-full px-3 py-1 text-[10px] font-semibold tracking-[0.22em] text-primary lg:inline-flex">
+          <Sparkles className="h-3 w-3" />
+          {t.heroBadge}
+        </div>
+        <h1 className="text-silver max-w-md text-2xl font-bold leading-[1.12] tracking-tight sm:text-3xl lg:text-[2.5rem]">
+          {t.heroTitle}
+        </h1>
+        <p className="mt-2.5 max-w-sm text-[13px] leading-relaxed text-muted-foreground lg:text-sm">
+          {t.heroSub}
+        </p>
+        <div className="mt-4 hidden flex-wrap items-center gap-2 lg:flex">
+          {[
+            { icon: Server, label: t.chipCore },
+            { icon: Activity, label: t.chipLive },
+            { icon: Languages, label: t.chipLangs },
+          ].map(({ icon: Icon, label }) => (
+            <span
+              key={label}
+              className="glass hover-glow flex h-8 items-center gap-2 rounded-full px-3 text-[11px] text-muted-foreground"
+            >
+              <Icon className="h-3 w-3 text-primary" />
+              {label}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* dotted divider with label (Ebolt) */
+function OrDivider({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3" role="separator" aria-label={label}>
+      <span className="flex-1 border-t border-dashed border-border/70" />
+      <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+        {label}
+      </span>
+      <span className="flex-1 border-t border-dashed border-border/70" />
+    </div>
   );
 }
 
@@ -208,7 +251,7 @@ export function LoginScene({ onSuccess }: { onSuccess: (username: string) => voi
       }
       if (res.status === 423 && data.retryAfter) {
         setLockSecs(data.retryAfter);
-        fail(t.errLocked.replace("{s}", String(data.retryAfter)));
+        fail(t.errLocked.replace("{s}", fmt(data.retryAfter)));
         return;
       }
       if (res.status === 401) {
@@ -269,7 +312,7 @@ export function LoginScene({ onSuccess }: { onSuccess: (username: string) => voi
       }
       if (res.status === 423 && data.retryAfter) {
         setLockSecs(data.retryAfter);
-        fail(t.errLocked.replace("{s}", String(data.retryAfter)));
+        fail(t.errLocked.replace("{s}", fmt(data.retryAfter)));
         return;
       }
       if (data.error === "weak") {
@@ -305,6 +348,31 @@ export function LoginScene({ onSuccess }: { onSuccess: (username: string) => voi
 
   const mmss = lockSecs !== null ? fmt(lockSecs) : "";
 
+  const lockBanner = lockSecs !== null && (
+    <div
+      role="alert"
+      className="mt-6 flex items-center gap-2.5 rounded-xl border border-amber-400/30 bg-amber-400/10 px-3.5 py-3 text-[13px] text-amber-300"
+    >
+      <ShieldAlert className="h-4 w-4 shrink-0" />
+      <span>{t.errLocked.replace("{s}", mmss)}</span>
+      <span className="kbd ms-auto border-amber-400/30 bg-amber-400/10 text-amber-200">
+        {mmss}
+      </span>
+    </div>
+  );
+
+  const errorBanner =
+    error && lockSecs === null ? (
+      <div
+        key={error.shakeKey}
+        role="alert"
+        className="shake mt-6 flex items-start gap-2.5 rounded-xl border border-destructive/40 bg-destructive/10 px-3.5 py-3 text-[13px] text-destructive-foreground"
+      >
+        <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+        <span>{error.msg}</span>
+      </div>
+    ) : null;
+
   /* ---------- render ---------- */
 
   return (
@@ -312,113 +380,38 @@ export function LoginScene({ onSuccess }: { onSuccess: (username: string) => voi
       <Starfield />
       <div className="login-horizon" aria-hidden="true" />
 
-      {/* top bar of the terminal */}
-      <header className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-5 py-4 md:px-8">
-        <div className="flex items-center gap-2.5">
-          <BrandMark size={30} />
-          <BrandWord tagline={dictionaries[lang].brand.tagline} className="hidden sm:flex" />
-        </div>
+      {/* floating controls */}
+      <header className="absolute inset-x-0 top-0 z-20 flex items-center justify-end px-5 py-4 md:px-8">
         <LangMenu />
       </header>
 
-      <main className="relative z-10 mx-auto grid min-h-full w-full max-w-6xl items-center gap-10 px-5 pb-14 pt-24 md:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14 lg:pt-16">
-        {/* ── showcase (desktop) ── */}
-        <section className="hidden lg:block">
-          <div className="fade-up d-1 glass inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-semibold tracking-[0.22em] text-primary">
-            <Sparkles className="h-3 w-3" />
-            {t.heroBadge}
-          </div>
-          <h1 className="fade-up d-2 mt-5 text-5xl font-bold leading-[1.08] tracking-tight text-silver xl:text-6xl">
-            {t.heroTitle}
-          </h1>
-          <p className="fade-up d-3 mt-4 max-w-md text-[15px] leading-relaxed text-muted-foreground">
-            {t.heroSub}
-          </p>
+      <main className="relative z-10 mx-auto flex min-h-full w-full max-w-[1120px] flex-col items-center justify-center gap-5 px-4 py-8 md:px-8 lg:py-12">
+        {/* ── framed showcase ── */}
+        <div className="glass-frame fade-up relative w-full rounded-[2.1rem] p-2 md:p-2.5">
+          <div className="grid overflow-hidden rounded-[1.6rem] border border-white/[.06] bg-background-deep/70 lg:grid-cols-[1.04fr_0.96fr]">
+            <ShowcasePanel />
 
-          <div className="fade-up d-4 mt-8">
-            <OrbitVisual />
-          </div>
-
-          <div className="fade-up d-5 mt-8 flex flex-wrap items-center gap-2.5">
-            {[
-              { icon: Server, label: t.chipCore },
-              { icon: Activity, label: t.chipLive },
-              { icon: Languages, label: t.chipLangs },
-            ].map(({ icon: Icon, label }) => (
-              <span
-                key={label}
-                className="glass hover-glow flex h-9 items-center gap-2 rounded-full px-3.5 text-xs text-muted-foreground"
-              >
-                <Icon className="h-3.5 w-3.5 text-primary" />
-                {label}
-              </span>
-            ))}
-          </div>
-        </section>
-
-        {/* ── terminal card ── */}
-        <section className="flex justify-center lg:justify-end">
-          <div className="w-full max-w-[430px]">
-            {/* compact hero for mobile */}
-            <div className="fade-up d-1 mb-6 flex flex-col items-center text-center lg:hidden">
-              <BrandMark size={64} pulse />
-              <h1 className="text-silver mt-3 text-2xl font-bold tracking-tight">
-                {t.welcome}
-              </h1>
-              <p className="mt-1 text-sm text-muted-foreground">{t.welcomeSub}</p>
-            </div>
-
-            <div
-              key={mode}
-              className="fade-up d-2 glass-strong orbit-pill hover-glow relative rounded-3xl p-6 md:p-8"
-            >
+            {/* ── form side ── */}
+            <div className="flex flex-col justify-center px-6 py-9 sm:px-10 md:px-12 md:py-12">
               {mode === "login" ? (
-                <>
+                <div key="login">
                   {/* head */}
-                  <div className="hidden items-center gap-3.5 lg:flex">
-                    <BrandMark size={52} pulse />
-                    <div className="leading-tight">
-                      <h2 className="text-xl font-bold tracking-tight text-foreground">
-                        {t.welcome}
-                      </h2>
-                      <p className="mt-0.5 text-[13px] text-muted-foreground">
-                        {t.welcomeSub}
-                      </p>
-                    </div>
+                  <div className="glass glow-cyan flex h-14 w-14 items-center justify-center rounded-2xl">
+                    <BrandMark size={38} />
                   </div>
+                  <h2 className="mt-5 text-[1.7rem] font-bold leading-tight tracking-tight text-foreground">
+                    {t.welcome}
+                  </h2>
+                  <p className="mt-1.5 text-sm text-muted-foreground">
+                    {t.welcomeSub}
+                  </p>
 
-                  {/* lockout banner */}
-                  {lockSecs !== null && (
-                    <div
-                      role="alert"
-                      className="mt-5 flex items-center gap-2.5 rounded-xl border border-amber-400/30 bg-amber-400/10 px-3.5 py-3 text-[13px] text-amber-300"
-                    >
-                      <ShieldAlert className="h-4 w-4 shrink-0" />
-                      <span>{t.errLocked.replace("{s}", mmss)}</span>
-                      <span className="kbd ms-auto border-amber-400/30 bg-amber-400/10 text-amber-200">
-                        {mmss}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* error (hidden while locked — amber banner takes over) */}
-                  {error && lockSecs === null && (
-                    <div
-                      key={error.shakeKey}
-                      role="alert"
-                      className="shake mt-5 flex items-start gap-2.5 rounded-xl border border-destructive/40 bg-destructive/10 px-3.5 py-3 text-[13px] text-destructive-foreground"
-                    >
-                      <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
-                      <span>{error.msg}</span>
-                    </div>
-                  )}
+                  {lockBanner}
+                  {errorBanner}
 
                   {/* form */}
-                  <form
-                    onSubmit={handleLogin}
-                    className={cn("mt-6 space-y-4", !error && "lg:mt-6")}
-                  >
-                    <div className="space-y-1.5">
+                  <form onSubmit={handleLogin} className="mt-7 space-y-5">
+                    <div className="space-y-2">
                       <Label htmlFor="login-username" className="text-[13px] font-medium">
                         {t.username}
                       </Label>
@@ -436,10 +429,22 @@ export function LoginScene({ onSuccess }: { onSuccess: (username: string) => voi
                       </div>
                     </div>
 
-                    <div className="space-y-1.5">
-                      <Label htmlFor="login-password" className="text-[13px] font-medium">
-                        {t.password}
-                      </Label>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <Label htmlFor="login-password" className="text-[13px] font-medium">
+                          {t.password}
+                        </Label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMode("recover");
+                            setError(null);
+                          }}
+                          className="text-xs font-medium text-primary underline-offset-4 outline-none transition-colors hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          {t.forgotShort}
+                        </button>
+                      </div>
                       <div className="relative">
                         <KeyRound className="pointer-events-none absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
@@ -463,25 +468,24 @@ export function LoginScene({ onSuccess }: { onSuccess: (username: string) => voi
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between gap-3 pt-0.5">
-                      <label
-                        htmlFor="login-remember"
-                        className="flex cursor-pointer items-center gap-2.5 text-[13px] text-muted-foreground"
-                      >
-                        <Switch
-                          id="login-remember"
-                          checked={remember}
-                          onCheckedChange={setRemember}
-                          disabled={busy || lockSecs !== null}
-                        />
-                        {t.remember}
-                      </label>
-                    </div>
+                    <label
+                      htmlFor="login-remember"
+                      className="flex cursor-pointer items-center gap-2.5 text-[13px] text-muted-foreground"
+                    >
+                      <Checkbox
+                        id="login-remember"
+                        checked={remember}
+                        onCheckedChange={(v) => setRemember(v === true)}
+                        disabled={busy || lockSecs !== null}
+                        className="border-border/70"
+                      />
+                      {t.remember}
+                    </label>
 
                     <Button
                       type="submit"
                       disabled={busy || lockSecs !== null}
-                      className="relative mt-1 h-11 w-full overflow-hidden rounded-xl bg-primary text-[15px] font-semibold text-primary-foreground shadow-[0_0_24px_-8px_rgba(34,216,238,0.55)] transition-all hover:bg-primary/90 hover:shadow-[0_0_30px_-6px_rgba(34,216,238,0.65)] disabled:opacity-60"
+                      className="relative mt-1 h-12 w-full overflow-hidden rounded-xl bg-primary text-[15px] font-semibold text-primary-foreground shadow-[0_0_26px_-8px_rgba(34,216,238,0.6)] transition-all hover:bg-primary/90 hover:shadow-[0_0_34px_-6px_rgba(34,216,238,0.7)] disabled:opacity-60"
                     >
                       {busy ? (
                         <>
@@ -503,85 +507,63 @@ export function LoginScene({ onSuccess }: { onSuccess: (username: string) => voi
                     </Button>
                   </form>
 
-                  {/* forgot */}
-                  <div className="mt-5 flex items-center justify-center gap-2 text-[13px]">
-                    <span className="text-muted-foreground">{t.lostAccess}</span>
-                    <button
+                  {/* or divider */}
+                  <div className="mt-6">
+                    <OrDivider label={t.or} />
+                  </div>
+
+                  {/* utility row (in place of social logins) */}
+                  <div className="mt-6 grid grid-cols-2 gap-3">
+                    <Button
                       type="button"
+                      variant="outline"
                       onClick={() => {
                         setMode("recover");
                         setError(null);
                       }}
-                      className="font-medium text-primary underline-offset-4 outline-none transition-colors hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+                      disabled={lockSecs !== null}
+                      className="glass hover-glow h-11 rounded-xl border-border/60 bg-transparent text-[13px] font-medium text-foreground"
                     >
+                      <ShieldCheck className="me-2 h-4 w-4 text-primary" />
                       {t.useRecovery}
-                    </button>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={autofill}
+                      disabled={lockSecs !== null}
+                      className="glass hover-glow h-11 rounded-xl border-border/60 bg-transparent text-[13px] font-medium text-foreground"
+                    >
+                      <WandSparkles className="me-2 h-4 w-4 text-primary" />
+                      {t.demoFill}
+                    </Button>
                   </div>
 
                   {/* preview credentials */}
-                  <div className="mt-5 flex items-center justify-between gap-3 rounded-xl border border-dashed border-border/70 bg-white/[.02] px-3.5 py-2 text-xs text-muted-foreground">
-                    <span className="min-w-0">
-                      <span className="block">{t.demoLabel}</span>
-                      <span className="block truncate font-mono text-foreground/85">
-                        admin / sephiroth
-                      </span>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={autofill}
-                      disabled={lockSecs !== null}
-                      className="flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1.5 font-medium text-primary outline-none transition-colors hover:bg-primary/10 focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40"
-                    >
-                      <WandSparkles className="h-3.5 w-3.5" />
-                      {t.demoFill}
-                    </button>
-                  </div>
-                </>
+                  <p className="mt-5 text-center text-[11px] text-muted-foreground/85">
+                    {t.demoLabel}
+                    <span className="mx-1.5 text-border">·</span>
+                    <span className="font-mono text-foreground/80">admin / sephiroth</span>
+                  </p>
+                </div>
               ) : (
                 /* ── recovery mode ── */
-                <>
-                  <div className="flex items-center gap-3.5">
-                    <span className="glass flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-primary glow-cyan">
-                      <ShieldCheck className="h-6 w-6" />
-                    </span>
-                    <div className="leading-tight">
-                      <h2 className="text-xl font-bold tracking-tight text-foreground">
-                        {t.recoverTitle}
-                      </h2>
-                      <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">
-                        {t.recoverSub}
-                      </p>
-                    </div>
+                <div key="recover">
+                  <div className="glass glow-cyan flex h-14 w-14 items-center justify-center rounded-2xl text-primary">
+                    <ShieldCheck className="h-6 w-6" />
                   </div>
+                  <h2 className="mt-5 text-[1.7rem] font-bold leading-tight tracking-tight text-foreground">
+                    {t.recoverTitle}
+                  </h2>
+                  <p className="mt-1.5 max-w-sm text-sm leading-relaxed text-muted-foreground">
+                    {t.recoverSub}
+                  </p>
 
-                  {/* lockout banner */}
-                  {lockSecs !== null && (
-                    <div
-                      role="alert"
-                      className="mt-5 flex items-center gap-2.5 rounded-xl border border-amber-400/30 bg-amber-400/10 px-3.5 py-3 text-[13px] text-amber-300"
-                    >
-                      <ShieldAlert className="h-4 w-4 shrink-0" />
-                      <span>{t.errLocked.replace("{s}", mmss)}</span>
-                      <span className="kbd ms-auto border-amber-400/30 bg-amber-400/10 text-amber-200">
-                        {mmss}
-                      </span>
-                    </div>
-                  )}
+                  {lockBanner}
+                  {errorBanner}
 
-                  {/* error (hidden while locked — amber banner takes over) */}
-                  {error && lockSecs === null && (
-                    <div
-                      key={error.shakeKey}
-                      role="alert"
-                      className="shake mt-5 flex items-start gap-2.5 rounded-xl border border-destructive/40 bg-destructive/10 px-3.5 py-3 text-[13px] text-destructive-foreground"
-                    >
-                      <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
-                      <span>{error.msg}</span>
-                    </div>
-                  )}
-
-                  <form onSubmit={handleRecover} className="mt-6 space-y-4">
-                    <div className="space-y-1.5">
+                  <form onSubmit={handleRecover} className="mt-7 space-y-5">
+                    <div className="space-y-2">
                       <Label htmlFor="rec-key" className="text-[13px] font-medium">
                         {t.recoveryKey}
                       </Label>
@@ -599,7 +581,7 @@ export function LoginScene({ onSuccess }: { onSuccess: (username: string) => voi
                       </div>
                     </div>
 
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       <Label htmlFor="rec-pw" className="text-[13px] font-medium">
                         {t.newPassword}
                       </Label>
@@ -629,7 +611,7 @@ export function LoginScene({ onSuccess }: { onSuccess: (username: string) => voi
                     <Button
                       type="submit"
                       disabled={recBusy || lockSecs !== null}
-                      className="relative mt-1 h-11 w-full overflow-hidden rounded-xl bg-primary text-[15px] font-semibold text-primary-foreground shadow-[0_0_24px_-8px_rgba(34,216,238,0.55)] transition-all hover:bg-primary/90 disabled:opacity-60"
+                      className="relative mt-1 h-12 w-full overflow-hidden rounded-xl bg-primary text-[15px] font-semibold text-primary-foreground shadow-[0_0_26px_-8px_rgba(34,216,238,0.6)] transition-all hover:bg-primary/90 disabled:opacity-60"
                     >
                       {recBusy ? (
                         <>
@@ -652,7 +634,7 @@ export function LoginScene({ onSuccess }: { onSuccess: (username: string) => voi
                   </form>
 
                   {/* preview key hint */}
-                  <div className="mt-5 flex items-center gap-2 rounded-xl border border-dashed border-primary/25 bg-primary/[.05] px-3.5 py-2.5 text-[11px] leading-relaxed text-muted-foreground">
+                  <div className="mt-6 flex items-center gap-2 rounded-xl border border-dashed border-primary/25 bg-primary/[.05] px-3.5 py-2.5 text-[11px] leading-relaxed text-muted-foreground">
                     <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
                     <span className="font-mono">{t.previewHint}</span>
                   </div>
@@ -663,22 +645,22 @@ export function LoginScene({ onSuccess }: { onSuccess: (username: string) => voi
                       setMode("login");
                       setError(null);
                     }}
-                    className="mt-4 flex w-full items-center justify-center gap-1.5 text-[13px] text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                    className="mt-5 flex w-full items-center justify-center gap-1.5 text-[13px] text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <ArrowLeft className="h-3.5 w-3.5 rtl:rotate-180" />
                     {t.backToLogin}
                   </button>
-                </>
+                </div>
               )}
             </div>
-
-            {/* under-card note */}
-            <p className="fade-up d-3 mt-5 flex items-center justify-center gap-2 text-[11px] text-muted-foreground/80">
-              <Lock className="h-3 w-3" />
-              {t.secureNote}
-            </p>
           </div>
-        </section>
+        </div>
+
+        {/* under-frame note */}
+        <p className="fade-up d-2 flex items-center gap-2 text-[11px] text-muted-foreground/80">
+          <Lock className="h-3 w-3" />
+          {t.secureNote}
+        </p>
       </main>
     </div>
   );
