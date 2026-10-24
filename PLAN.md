@@ -66,12 +66,14 @@
 - Auto direction switching (fa/ar = RTL, others LTR)
 - Fonts: Vazirmatn (fa), Inter/Space Grotesk (latin), Noto Sans SC (zh) + Cyrillic support
 
-## 3.2 Themes ✅ CONFIRMED — multiple unique themes (set TBD in chat)
-Candidates: Sephiroth (obsidian+cyan, default), One-Winged (platinum light), JENOVA (violet neon), Masamune (black+crimson), Terminal (green on black), Pure OLED (absolute black).
+## 3.2 Themes ✅ CONFIRMED — SINGLE theme (user decision)
+- One theme only: **Sephiroth** (obsidian #060b0f + electric cyan #22d8ee + platinum silver). No theme engine needed.
+- Navigation: **TOP orbital nav** (no sidebar) — user decision, implemented in Phase 0.
+- Default language: **English** (user decision); fa/ar auto-RTL; 6 languages total.
 
 ## 4. Design Direction (unique, not a clone)
 - **RTL-first** Persian UI (Vazirmatn font), 6 languages with auto-direction.
-- **Dark-first "Sephiroth Glass"**: obsidian background, cyan aurora glow mesh, glass cards, brand silver accents; full multi-theme engine (6 unique themes).
+- **"Sephiroth Glass"** (single confirmed theme): obsidian background, cyan aurora glow mesh, glass cards, brand silver accents; TOP orbital navigation with satellite-dot active indicator.
 - **Bento-grid dashboard**: asymmetric cards (health ring, live gauge, traffic sparklines, activity pulse).
 - **Command palette (⌘K)** for power admin: jump to user, create config, toggle theme.
 - **Original "Pass Card"** on sub page: layered gradient + shine animation (own design).
