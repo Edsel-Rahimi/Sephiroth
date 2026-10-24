@@ -55,13 +55,23 @@
 | Security: lockout, recovery key, password change, custom paths | SuperJinX |
 | One-click deploy story (Docker / Railway) | all |
 
-## 3. Brand
-- User has a new brand — name TBD in chat. Working codename: **NOVA** (placeholder until user provides real name).
-- Logo: geometric "pulse/shield" mark, gradient accent, dark+light variants, generated with image-generation skill.
+## 3. Brand — Sephiroth ✅ CONFIRMED
+- Name: **Sephiroth** (user's brand)
+- Logo: user-provided app icon (uploaded at /home/z/my-project/upload/pasted_image_1792857410036.png): metallic silver "S" ribbon around a dark planet, cyan rim-glow, orbital ring with small cyan moon, star sparkle on obsidian-black rounded square.
+- Brand color DNA (from logo): obsidian black (~#050B0E), electric cyan (~#22D8EE) glow, platinum silver metallics.
+- TODO: create wordmark "Sephiroth" + monochrome/light variants + favicon set.
+
+## 3.1 Languages ✅ CONFIRMED — 6 languages
+- Persian (default, RTL), English, Arabic (RTL), Chinese, Turkish, Russian
+- Auto direction switching (fa/ar = RTL, others LTR)
+- Fonts: Vazirmatn (fa), Inter/Space Grotesk (latin), Noto Sans SC (zh) + Cyrillic support
+
+## 3.2 Themes ✅ CONFIRMED — multiple unique themes (set TBD in chat)
+Candidates: Sephiroth (obsidian+cyan, default), One-Winged (platinum light), JENOVA (violet neon), Masamune (black+crimson), Terminal (green on black), Pure OLED (absolute black).
 
 ## 4. Design Direction (unique, not a clone)
-- **RTL-first** Persian UI (Vazirmatn font), EN switchable.
-- **Dark-first "Aurora Glass"**: deep graphite background, soft aurora gradient mesh, glass cards, single accent (emerald/violet user-selectable), no blue/indigo default.
+- **RTL-first** Persian UI (Vazirmatn font), 6 languages with auto-direction.
+- **Dark-first "Sephiroth Glass"**: obsidian background, cyan aurora glow mesh, glass cards, brand silver accents; full multi-theme engine (6 unique themes).
 - **Bento-grid dashboard**: asymmetric cards (health ring, live gauge, traffic sparklines, activity pulse).
 - **Command palette (⌘K)** for power admin: jump to user, create config, toggle theme.
 - **Original "Pass Card"** on sub page: layered gradient + shine animation (own design).
