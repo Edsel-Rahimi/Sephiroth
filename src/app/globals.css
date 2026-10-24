@@ -310,12 +310,35 @@ html[dir="rtl"] .shine-sweep {
   animation: skeleton-shimmer 1.8s linear infinite;
 }
 
+/* ---------- line draw (charts) ---------- */
+@keyframes line-draw {
+  to { stroke-dashoffset: 0; }
+}
+.line-draw {
+  stroke-dasharray: 1600;
+  stroke-dashoffset: 1600;
+  animation: line-draw 1.8s ease-out forwards;
+}
+
+@keyframes fade-in-soft {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-in-soft {
+  animation: fade-in-soft 0.7s ease both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .logo-pulse,
   .orbit-spin,
   .float-y,
   .shine-sweep,
-  .skeleton-shimmer {
+  .skeleton-shimmer,
+  .line-draw,
+  .fade-in-soft {
     animation: none;
+  }
+  .line-draw {
+    stroke-dashoffset: 0;
   }
 }

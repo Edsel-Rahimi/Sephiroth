@@ -106,7 +106,7 @@ export const dictionaries: Record<Lang, Dict> = {
     dash: {
       phaseBadge: "PHASE 0 · DESIGN SYSTEM",
       title: "Mission Control",
-      subtitle: "Welcome back, Commander. Here's tonight's orbit.",
+      subtitle: "Here's tonight's orbit — every system, one view.",
       health: "System Health",
       healthNote: "Nominal · 34°C",
       uptime: "Uptime",
@@ -178,7 +178,7 @@ export const dictionaries: Record<Lang, Dict> = {
     dash: {
       phaseBadge: "فاز ۰ · سیستم طراحی",
       title: "مرکز فرمان",
-      subtitle: "خوش برگشتی، فرمانده. این هم وضعیت مدار امشب.",
+      subtitle: "این هم وضعیت مدار امشب — همه سامانه‌ها، یک نگاه.",
       health: "سلامت سامانه",
       healthNote: "پایدار · ۳۴ درجه",
       uptime: "آپ‌تایم",
@@ -247,7 +247,7 @@ export const dictionaries: Record<Lang, Dict> = {
     dash: {
       phaseBadge: "المرحلة ٠ · نظام التصميم",
       title: "مركز القيادة",
-      subtitle: "أهلاً بعودتك أيها القائد. هذه حالة المدار الليلة.",
+      subtitle: "هذه حالة المدار الليلة — كل الأنظمة في نظرة واحدة.",
       health: "صحة النظام",
       healthNote: "مستقر · ٣٤°",
       uptime: "وقت التشغيل",
@@ -315,7 +315,7 @@ export const dictionaries: Record<Lang, Dict> = {
     dash: {
       phaseBadge: "阶段 0 · 设计系统",
       title: "指挥中心",
-      subtitle: "欢迎回来，指挥官。今晚的轨道状态。",
+      subtitle: "今晚的轨道状态 — 所有系统，尽收眼底。",
       health: "系统健康",
       healthNote: "正常 · 34°C",
       uptime: "运行时间",
@@ -382,7 +382,7 @@ export const dictionaries: Record<Lang, Dict> = {
     dash: {
       phaseBadge: "AŞAMA 0 · TASARIM SİSTEMİ",
       title: "Komuta Merkezi",
-      subtitle: "Tekrar hoş geldin Komutan. Bu geceki yörünge durumu.",
+      subtitle: "Bu geceki yörünge durumu — tüm sistemler tek bakışta.",
       health: "Sistem Sağlığı",
       healthNote: "Kararlı · 34°C",
       uptime: "Çalışma Süresi",
@@ -451,7 +451,7 @@ export const dictionaries: Record<Lang, Dict> = {
     dash: {
       phaseBadge: "ФАЗА 0 · ДИЗАЙН-СИСТЕМА",
       title: "Центр управления",
-      subtitle: "С возвращением, Командир. Так выглядит орбита сегодня.",
+      subtitle: "Так выглядит орбита сегодня — все системы одним взглядом.",
       health: "Здоровье системы",
       healthNote: "Норма · 34°C",
       uptime: "Аптайм",
