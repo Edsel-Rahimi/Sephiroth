@@ -5,7 +5,7 @@
  *   core:init      CoreSnapshot        (once per connection)
  *   core:tick      CoreTick            (every 1s)
  *   core:event     { event }           (weighted generator, ~every 2.8-7.5s)
- *   core:inbounds  { inbounds, ... }   (every 10s)
+ *   core:inbounds  { inbounds, ... }   (every 10s + on SQLite config diff)
  *
  * Hard-coded port 3003, socket.io path "/" — the Caddy gateway routes
  * `?XTransformPort=3003` here. DO NOT change the path.
@@ -46,8 +46,6 @@ function emitEvent(event: ActivityEvent): void {
   console.log(`[core-sim] event ${event.kind} (${event.level}) ${JSON.stringify(event.params)}`)
 }
 
-sim.setEventEmitter(emitEvent)
-
 io.on('connection', (socket) => {
   console.log(`[core-sim] client connected: ${socket.id}`)
   socket.emit('core:init', sim.snapshot())
@@ -66,6 +64,16 @@ safeInterval(() => {
 safeInterval(() => {
   io.emit('core:inbounds', sim.inboundsPayload())
 }, 10000)
+
+// Phase 3 — mirror the SQLite Inbound table every 2s; emit only when the
+// diff produced events (config created/updated/deleted or a status flip)
+safeInterval(() => {
+  const events = sim.mirrorDb()
+  if (events.length > 0) {
+    io.emit('core:inbounds', sim.inboundsPayload())
+    for (const e of events) emitEvent(e)
+  }
+}, 2000)
 
 // activity event generator — one weighted event every 2800-7500ms
 function scheduleNextEvent(): void {

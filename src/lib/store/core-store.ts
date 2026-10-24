@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import type {
   ActivityEvent,
+  CoreInbound,
   CoreInboundsPayload,
   CoreSnapshot,
   CoreTick,
@@ -125,6 +126,9 @@ interface CoreState {
   applyTick: (t: CoreTick) => void;
   applyEvent: (e: ActivityEvent) => void;
   applyInbounds: (p: CoreInboundsPayload) => void;
+  /** Phase 3 — optimistic CRUD helpers; the next core:inbounds broadcast reconciles */
+  upsertInboundLocal: (ib: CoreInbound) => void;
+  removeInboundLocal: (tag: string) => void;
 }
 
 export const useCoreStore = create<CoreState>()((set) => ({
@@ -170,5 +174,24 @@ export const useCoreStore = create<CoreState>()((set) => ({
   applyInbounds: (p) =>
     set((st) => ({
       snapshot: { ...st.snapshot, inbounds: p.inbounds, distribution: p.distribution },
+    })),
+
+  upsertInboundLocal: (ib) =>
+    set((st) => {
+      const list = st.snapshot.inbounds;
+      const idx = list.findIndex((x) => x.tag === ib.tag);
+      const next =
+        idx === -1
+          ? [...list, ib]
+          : list.map((x) => (x.tag === ib.tag ? { ...x, ...ib } : x));
+      return { snapshot: { ...st.snapshot, inbounds: next } };
+    }),
+
+  removeInboundLocal: (tag) =>
+    set((st) => ({
+      snapshot: {
+        ...st.snapshot,
+        inbounds: st.snapshot.inbounds.filter((x) => x.tag !== tag),
+      },
     })),
 }));

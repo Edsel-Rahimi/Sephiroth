@@ -31,6 +31,9 @@ export interface L {
   evtSpike: string;
   evtCert: string;
   evtSubFetch: string;
+  evtInboundCreated: string;
+  evtInboundUpdated: string;
+  evtInboundDeleted: string;
 }
 
 export const liveDictionaries: Record<Lang, L> = {
@@ -64,6 +67,9 @@ export const liveDictionaries: Record<Lang, L> = {
     evtSpike: "Traffic spike on {inbound}",
     evtCert: "TLS certificate renewed",
     evtSubFetch: "{user} fetched subscription",
+    evtInboundCreated: "Inbound {inbound} created on port {port}",
+    evtInboundUpdated: "Inbound {inbound} updated · port {port}",
+    evtInboundDeleted: "Inbound {inbound} removed",
   },
   fa: {
     feedTitle: "فعالیت زنده",
@@ -95,6 +101,9 @@ export const liveDictionaries: Record<Lang, L> = {
     evtSpike: "جهش ترافیک روی {inbound}",
     evtCert: "گواهی TLS تمدید شد",
     evtSubFetch: "{user} اشتراک را دریافت کرد",
+    evtInboundCreated: "اینباند {inbound} روی پورت {port} ساخته شد",
+    evtInboundUpdated: "اینباند {inbound} به‌روزرسانی شد · پورت {port}",
+    evtInboundDeleted: "اینباند {inbound} حذف شد",
   },
   ar: {
     feedTitle: "النشاط المباشر",
@@ -126,6 +135,9 @@ export const liveDictionaries: Record<Lang, L> = {
     evtSpike: "ارتفاع مفاجئ في الحركة على {inbound}",
     evtCert: "تم تجديد شهادة TLS",
     evtSubFetch: "جلب {user} للاشتراك",
+    evtInboundCreated: "تم إنشاء المدخل {inbound} على المنفذ {port}",
+    evtInboundUpdated: "تم تحديث المدخل {inbound} · المنفذ {port}",
+    evtInboundDeleted: "تمت إزالة المدخل {inbound}",
   },
   zh: {
     feedTitle: "实时动态",
@@ -157,6 +169,9 @@ export const liveDictionaries: Record<Lang, L> = {
     evtSpike: "{inbound} 检测到流量激增",
     evtCert: "TLS 证书已续期",
     evtSubFetch: "{user} 获取了订阅",
+    evtInboundCreated: "入站 {inbound} 已创建 · 端口 {port}",
+    evtInboundUpdated: "入站 {inbound} 已更新 · 端口 {port}",
+    evtInboundDeleted: "入站 {inbound} 已移除",
   },
   tr: {
     feedTitle: "Canlı Etkinlik",
@@ -188,6 +203,9 @@ export const liveDictionaries: Record<Lang, L> = {
     evtSpike: "{inbound} üzerinde trafik artışı",
     evtCert: "TLS sertifikası yenilendi",
     evtSubFetch: "{user} aboneliği indirdi",
+    evtInboundCreated: "{inbound} girişi {port} portunda oluşturuldu",
+    evtInboundUpdated: "{inbound} girişi güncellendi · port {port}",
+    evtInboundDeleted: "{inbound} girişi kaldırıldı",
   },
   ru: {
     feedTitle: "Активность в реальном времени",
@@ -219,6 +237,9 @@ export const liveDictionaries: Record<Lang, L> = {
     evtSpike: "Всплеск трафика на {inbound}",
     evtCert: "TLS-сертификат продлён",
     evtSubFetch: "{user} получил подписку",
+    evtInboundCreated: "Инбаунд {inbound} создан на порту {port}",
+    evtInboundUpdated: "Инбаунд {inbound} обновлён · порт {port}",
+    evtInboundDeleted: "Инбаунд {inbound} удалён",
   },
 };
 

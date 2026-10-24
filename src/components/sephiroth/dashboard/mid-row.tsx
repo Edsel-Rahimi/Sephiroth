@@ -162,15 +162,16 @@ function ThroughputHero() {
 /* ---------- quick actions (Resq-style assistant card) ---------- */
 function QuickActions() {
   const lang = useAppStore((s) => s.lang);
+  const setView = useAppStore((s) => s.setView);
   const d2 = useMemo(() => d2Dictionaries[lang], [lang]);
   const dict = useMemo(() => dictionaries[lang], [lang]);
   const { toast } = useToast();
 
   const soon = () => toast({ title: dict.common.soon, description: dict.common.soonDesc });
 
-  const actions = [
+  const actions: Array<{ icon: typeof UserPlus; label: string; go?: "inbounds" }> = [
     { icon: UserPlus, label: d2.newClient },
-    { icon: RadioTower, label: d2.newInbound },
+    { icon: RadioTower, label: d2.newInbound, go: "inbounds" },
     { icon: DatabaseBackup, label: d2.backupNow },
     { icon: Bot, label: d2.tgBot },
   ];
@@ -184,7 +185,7 @@ function QuickActions() {
         {actions.map((a) => (
           <button
             key={a.label}
-            onClick={soon}
+            onClick={() => (a.go ? setView(a.go) : soon())}
             className="glass hover-glow flex items-center gap-2.5 rounded-xl px-3.5 py-3 text-left text-xs font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <a.icon className="h-4 w-4 shrink-0 text-primary" />

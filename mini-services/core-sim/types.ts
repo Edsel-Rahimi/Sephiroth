@@ -14,7 +14,7 @@
  */
 
 export type CoreStatus = "running" | "reloading" | "stopped";
-export type InboundStatus = "online" | "maintenance" | "offline";
+export type InboundStatus = "online" | "maintenance" | "disabled";
 export type ActivityLevel = "info" | "success" | "warn" | "error";
 
 export type ActivityKind =
@@ -27,6 +27,9 @@ export type ActivityKind =
   | "auth.failed"
   | "inbound.online"
   | "inbound.offline"
+  | "inbound.created"
+  | "inbound.updated"
+  | "inbound.deleted"
   | "core.reload"
   | "system.backup"
   | "traffic.spike"

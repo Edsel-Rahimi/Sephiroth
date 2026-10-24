@@ -9,11 +9,15 @@
  *   core:init      CoreSnapshot          (once per connection)
  *   core:tick      CoreTick              (every 1s)
  *   core:event     { event: ActivityEvent }
- *   core:inbounds  CoreInboundsPayload   (every 10s)
+ *   core:inbounds  CoreInboundsPayload   (every 10s + on config change)
+ *
+ * Phase 3: the `Inbound` Prisma table is the config source of truth; the
+ * driver mirrors it and emits inbound.created/updated/deleted +
+ * inbound.online/offline events when the config diff detects changes.
  */
 
 export type CoreStatus = "running" | "reloading" | "stopped";
-export type InboundStatus = "online" | "maintenance" | "offline";
+export type InboundStatus = "online" | "maintenance" | "disabled";
 export type ActivityLevel = "info" | "success" | "warn" | "error";
 
 export type ActivityKind =
@@ -26,6 +30,9 @@ export type ActivityKind =
   | "auth.failed"
   | "inbound.online"
   | "inbound.offline"
+  | "inbound.created"
+  | "inbound.updated"
+  | "inbound.deleted"
   | "core.reload"
   | "system.backup"
   | "traffic.spike"

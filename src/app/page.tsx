@@ -8,6 +8,7 @@ import { Starfield } from "@/components/sephiroth/starfield";
 import { LoginScene } from "@/components/sephiroth/login-scene";
 import { CoreConnector } from "@/components/sephiroth/realtime/core-connector";
 import { DashboardView } from "@/components/sephiroth/views/dashboard-view";
+import { InboundsView } from "@/components/sephiroth/views/inbounds-view";
 import { PlaceholderView } from "@/components/sephiroth/views/placeholder-view";
 import { useAppStore } from "@/lib/store/app-store";
 import { RTL_LANGS, type ViewId } from "@/lib/i18n/dictionaries";
@@ -74,8 +75,10 @@ export default function Home() {
       <main className="mx-auto w-full max-w-[1440px] flex-1 px-4 pb-12 pt-4 md:px-6 md:pt-6">
         {view === "dashboard" ? (
           <DashboardView />
+        ) : view === "inbounds" ? (
+          <InboundsView />
         ) : (
-          <PlaceholderView view={view as Exclude<ViewId, "dashboard">} />
+          <PlaceholderView view={view as Exclude<ViewId, "dashboard" | "inbounds">} />
         )}
       </main>
 

@@ -23,3 +23,20 @@ model ServerSetting {
   key   String @id // e.g. "session_secret"
   value String
 }
+
+// ── Sephiroth Panel ─────────────────────────────────────────
+// Phase 3 · Inbounds (config source of truth; core-sim mirrors
+// this table and decorates it with live traffic stats)
+
+model Inbound {
+  id        String   @id @default(cuid())
+  tag       String   @unique // unique Xray inbound tag
+  protocol  String // vless | vmess | trojan | shadowsocks | hysteria2
+  port      Int      @unique // 1-65535
+  transport String   @default("tcp") // tcp | ws | grpc | httpupgrade
+  security  String   @default("none") // none | tls
+  status    String   @default("online") // online | maintenance | disabled
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

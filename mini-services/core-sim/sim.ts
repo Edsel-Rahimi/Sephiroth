@@ -5,6 +5,10 @@
  * spec. `index.ts` drives the timers and socket.io; this file stays free of
  * transport concerns. Every payload handed out is a freshly-built plain
  * object (deep-cloned), so emitting never leaks internal references.
+ *
+ * Phase 3: inbound config is mirrored from the panel's SQLite `Inbound`
+ * table (see db.ts) — `mirrorDb()` diffs it and is the ONLY writer of
+ * inbound statuses; the weighted generator no longer flips them.
  */
 import type {
   ActivityEvent,
@@ -23,6 +27,7 @@ import type {
   HistorySet,
   InboundStatus,
 } from './types'
+import { readInbounds } from './db'
 
 // ---------------------------------------------------------------------------
 // helpers
@@ -93,7 +98,7 @@ const SERIES_LEN = 60
 const MAX_EVENTS = 120
 const SNAPSHOT_EVENTS = 24
 
-/** Weighted activity kinds (total weight 90). */
+/** Weighted activity kinds (total weight 86; inbound flips come from the DB mirror). */
 const EVENT_WEIGHTS: ReadonlyArray<{ kind: ActivityKind; level: ActivityLevel; weight: number }> = [
   { kind: 'user.connected', level: 'info', weight: 22 },
   { kind: 'user.disconnected', level: 'info', weight: 20 },
@@ -102,14 +107,19 @@ const EVENT_WEIGHTS: ReadonlyArray<{ kind: ActivityKind; level: ActivityLevel; w
   { kind: 'auth.success', level: 'info', weight: 5 },
   { kind: 'auth.failed', level: 'error', weight: 4 },
   { kind: 'traffic.spike', level: 'warn', weight: 4 },
-  { kind: 'inbound.offline', level: 'warn', weight: 2 },
-  { kind: 'inbound.online', level: 'success', weight: 2 },
   { kind: 'core.reload', level: 'info', weight: 1 },
   { kind: 'system.backup', level: 'success', weight: 3 },
   { kind: 'user.expired', level: 'warn', weight: 3 },
   { kind: 'user.limit', level: 'warn', weight: 3 },
   { kind: 'system.cert', level: 'success', weight: 1 },
 ]
+
+const INBOUND_STATUSES: readonly string[] = ['online', 'maintenance', 'disabled']
+
+/** DB `status` is a free string — clamp it onto the wire union defensively. */
+function asInboundStatus(value: string, fallback: InboundStatus = 'online'): InboundStatus {
+  return INBOUND_STATUSES.includes(value) ? (value as InboundStatus) : fallback
+}
 
 /** Internal top-user row (`positive` = delta sign tendency, never emitted). */
 interface SimUser {
@@ -180,13 +190,19 @@ export class CoreSim {
 
   // entities
   private readonly topUsers: SimUser[]
-  private readonly inbounds: CoreInbound[]
+  private inbounds: CoreInbound[]
+
+  /** Display labels for the legacy seeds that composeProto cannot reproduce. */
+  private readonly protoOverrides = new Map<string, string>([
+    ['ss-2022', 'Shadowsocks · 2022'],
+    ['hy2-edge', 'Hysteria2 · UDP'],
+    ['legacy-ss', 'Shadowsocks · legacy'],
+  ])
 
   // activity events
   private readonly events: ActivityEvent[] = []
   private eventCounter = 0
   private reloadTimer: ReturnType<typeof setTimeout> | null = null
-  private emitEvent: ((event: ActivityEvent) => void) | null = null
 
   constructor() {
     this.core = {
@@ -230,11 +246,6 @@ export class CoreSim {
   }
 
   // ------------------------------------------------------------------ public
-
-  /** Register the transport callback used for scheduler-generated events. */
-  setEventEmitter(fn: (event: ActivityEvent) => void): void {
-    this.emitEvent = fn
-  }
 
   /** One simulated second — advance state, return the wire tick. */
   tick(): CoreTick {
@@ -292,6 +303,83 @@ export class CoreSim {
   triggerBurst(): void {
     this.burstTicksLeft = 4 + Math.floor(rand() * 5)
     this.burstFactor = 1.6 + rand() * 0.6
+  }
+
+  /**
+   * Phase 3 — diff the SQLite `Inbound` table (via db.ts) against the sim
+   * state and rebuild `this.inbounds` in DB row order. Status flips come
+   * exclusively from here. Returns the emitted events (already pushed into
+   * the ring buffer, so snapshot() includes them); a failed read (null)
+   * keeps the last known state and emits nothing.
+   */
+  mirrorDb(): ActivityEvent[] {
+    const rows = readInbounds()
+    if (rows === null) return []
+
+    const now = Date.now()
+    const emitted: ActivityEvent[] = []
+    const rebuilt: CoreInbound[] = []
+    const seen = new Set<string>()
+
+    for (const row of rows) {
+      seen.add(row.tag)
+      const existing = this.inbounds.find((i) => i.tag === row.tag)
+      const proto = this.protoOverrides.get(row.tag) ?? this.composeProto(row.protocol, row.transport, row.security)
+
+      if (existing) {
+        const nextStatus = asInboundStatus(row.status, existing.status)
+        const statusChanged = existing.status !== nextStatus
+        const portChanged = existing.port !== row.port
+        const protoChanged = existing.proto !== proto
+        if (statusChanged) {
+          // both-changed case intentionally collapses to the status event
+          existing.status = nextStatus
+          existing.port = row.port
+          existing.proto = proto
+          if (nextStatus === 'online') {
+            emitted.push(this.makeEvent('inbound.online', 'success', now, { inbound: row.tag, port: row.port }))
+          } else {
+            emitted.push(this.makeEvent('inbound.offline', 'warn', now, { inbound: row.tag, port: row.port }))
+          }
+        } else if (portChanged || protoChanged) {
+          existing.port = row.port
+          existing.proto = proto
+          emitted.push(this.makeEvent('inbound.updated', 'info', now, { inbound: row.tag, port: row.port }))
+        }
+        rebuilt.push(existing) // users/txGb untouched
+      } else {
+        rebuilt.push({ tag: row.tag, proto, port: row.port, status: asInboundStatus(row.status), users: 0, txGb: 0 })
+        emitted.push(this.makeEvent('inbound.created', 'success', now, { inbound: row.tag, port: row.port }))
+      }
+    }
+
+    // sim inbounds absent from the DB were deleted from the config
+    for (const ib of this.inbounds) {
+      if (!seen.has(ib.tag)) {
+        emitted.push(this.makeEvent('inbound.deleted', 'warn', now, { inbound: ib.tag, port: ib.port }))
+      }
+    }
+
+    this.inbounds = rebuilt
+    for (const e of emitted) this.pushEvent(e)
+    return emitted
+  }
+
+  /** "vless" + "ws" + "tls" → "VLESS · WS · TLS" (tcp transport is omitted). */
+  private composeProto(protocol: string, transport: string, security: string): string {
+    const bases: Record<string, string> = {
+      vless: 'VLESS',
+      vmess: 'VMess',
+      trojan: 'Trojan',
+      shadowsocks: 'Shadowsocks',
+      hysteria2: 'Hysteria2',
+    }
+    const parts = [bases[protocol] ?? protocol]
+    if (transport === 'ws') parts.push('WS')
+    else if (transport === 'grpc') parts.push('gRPC')
+    else if (transport === 'httpupgrade') parts.push('HTTPUpgrade')
+    if (security === 'tls') parts.push('TLS')
+    return parts.join(' · ')
   }
 
   // ------------------------------------------------------------- tick math
@@ -459,19 +547,14 @@ export class CoreSim {
   // ------------------------------------------------------------- event gen
 
   private pickKind(): { kind: ActivityKind; level: ActivityLevel } {
-    const pool = EVENT_WEIGHTS.filter((w) => {
-      if (w.kind === 'inbound.offline') return this.inbounds.some((i) => i.status === 'online')
-      if (w.kind === 'inbound.online') return this.inbounds.some((i) => i.status === 'maintenance')
-      return true
-    })
     let total = 0
-    for (const w of pool) total += w.weight
+    for (const w of EVENT_WEIGHTS) total += w.weight
     let roll = rand() * total
-    for (const w of pool) {
+    for (const w of EVENT_WEIGHTS) {
       roll -= w.weight
       if (roll <= 0) return { kind: w.kind, level: w.level }
     }
-    const last = pool[pool.length - 1]
+    const last = EVENT_WEIGHTS[EVENT_WEIGHTS.length - 1]
     return last ? { kind: last.kind, level: last.level } : { kind: 'sub.fetch', level: 'info' }
   }
 
@@ -509,6 +592,11 @@ export class CoreSim {
         return { inbound: this.tagByStatus('online') ?? this.anyTag() }
       case 'inbound.online':
         return { inbound: this.tagByStatus('maintenance') ?? this.anyTag() }
+      case 'inbound.created':
+      case 'inbound.updated':
+      case 'inbound.deleted':
+        // unreachable from the weighted pool — mirrorDb() passes explicit params
+        return { inbound: this.anyTag(), port: 0 }
       case 'core.reload':
         return { version: this.core.version }
       case 'system.backup':
@@ -518,7 +606,6 @@ export class CoreSim {
   }
 
   private applySideEffects(event: ActivityEvent): void {
-    const tag = event.params.inbound
     switch (event.kind) {
       case 'user.connected':
         this.activeUsers = Math.min(400, this.activeUsers + 1)
@@ -535,19 +622,6 @@ export class CoreSim {
       case 'traffic.spike':
         this.triggerBurst()
         break
-      case 'inbound.offline': {
-        const ib = this.inbounds.find((i) => i.tag === tag)
-        if (ib) {
-          ib.status = 'maintenance'
-          this.scheduleRecovery(ib.tag)
-        }
-        break
-      }
-      case 'inbound.online': {
-        const ib = this.inbounds.find((i) => i.tag === tag)
-        if (ib) ib.status = 'online'
-        break
-      }
       case 'core.reload':
         this.core.status = 'reloading'
         if (this.reloadTimer) clearTimeout(this.reloadTimer)
@@ -562,22 +636,6 @@ export class CoreSim {
       default:
         break
     }
-  }
-
-  /** 30-60s after an inbound goes down, bring it back online with an event. */
-  private scheduleRecovery(tag: string): void {
-    setTimeout(() => {
-      try {
-        const ib = this.inbounds.find((i) => i.tag === tag)
-        if (!ib) return
-        ib.status = 'online'
-        const event = this.makeEvent('inbound.online', 'success', Date.now(), { inbound: tag })
-        this.pushEvent(event)
-        this.emitEvent?.(event)
-      } catch (err) {
-        console.error('[core-sim] recovery timer error:', err)
-      }
-    }, 30000 + rand() * 30000)
   }
 
   private pushEvent(event: ActivityEvent): void {
