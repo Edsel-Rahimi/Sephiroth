@@ -1,0 +1,165 @@
+/**
+ * Sephiroth core-sim — wire contract mirror.
+ *
+ * This is a local copy of `src/lib/realtime/core-types.ts` (single source of
+ * truth lives there). The mini-service stays a self-contained bun project, so
+ * the types are mirrored here instead of imported across package boundaries.
+ * Keep both files in sync.
+ *
+ * Server → client messages:
+ *   core:init      CoreSnapshot          (once per connection)
+ *   core:tick      CoreTick              (every 1s)
+ *   core:event     { event: ActivityEvent }
+ *   core:inbounds  CoreInboundsPayload   (every 10s)
+ */
+
+export type CoreStatus = "running" | "reloading" | "stopped";
+export type InboundStatus = "online" | "maintenance" | "offline";
+export type ActivityLevel = "info" | "success" | "warn" | "error";
+
+export type ActivityKind =
+  | "user.connected"
+  | "user.disconnected"
+  | "user.created"
+  | "user.expired"
+  | "user.limit"
+  | "auth.success"
+  | "auth.failed"
+  | "inbound.online"
+  | "inbound.offline"
+  | "core.reload"
+  | "system.backup"
+  | "traffic.spike"
+  | "system.cert"
+  | "sub.fetch";
+
+export interface CoreInfo {
+  version: string;
+  status: CoreStatus;
+  /** epoch ms — core start time (uptime is derived client-side) */
+  startedAt: number;
+}
+
+export interface CoreMetrics {
+  ts: number;
+  /** percent 0-100 */
+  cpu: number;
+  /** percent 0-100 */
+  ram: number;
+  ramUsedMb: number;
+  ramTotalMb: number;
+  /** percent 0-100 */
+  disk: number;
+  /** MB/s served to clients (ingress of the box) */
+  netIn: number;
+  /** MB/s egress */
+  netOut: number;
+  activeUsers: number;
+  sessions: number;
+  /** total egress this month, TB */
+  monthTxTb: number;
+  /** MB/s — max of (netIn+netOut) today */
+  peakToday: number;
+  /** MB/s — running average today */
+  avgToday: number;
+  errorsToday: number;
+  /** % of today's samples above the saturation line */
+  saturatedPct: number;
+}
+
+export interface CoreUserStat {
+  uid: string;
+  user: string;
+  proto: string;
+  /** consumed this cycle, GB */
+  gb: number;
+  /** signed delta vs yesterday, GB */
+  delta: number;
+  up: boolean;
+  /** last 8 normalized samples 0-100 */
+  spark: number[];
+  /** hours until expiry — null = unlimited */
+  expiresInH: number | null;
+  /** quota used % — null = unlimited */
+  usagePct: number | null;
+}
+
+export interface CoreInbound {
+  tag: string;
+  proto: string;
+  port: number;
+  status: InboundStatus;
+  users: number;
+  txGb: number;
+}
+
+export interface ActivityEvent {
+  id: string;
+  ts: number;
+  level: ActivityLevel;
+  kind: ActivityKind;
+  params: Record<string, string | number>;
+}
+
+export interface HistorySet {
+  /** download-direction series */
+  dl: number[];
+  /** upload-direction series */
+  ul: number[];
+}
+
+export interface CoreSeries {
+  /** rolling 60 samples @1s */
+  cpu: number[];
+  ram: number[];
+  netIn: number[];
+  netOut: number[];
+  /** pre-aggregated history for the frequency chart */
+  hist24: HistorySet;
+  hist7: HistorySet;
+  hist30: HistorySet;
+}
+
+export interface CoreGoal {
+  currentGb: number;
+  targetGb: number;
+  delivered: number;
+  inProg: number;
+  pending: number;
+}
+
+export interface CoreDistribution {
+  connectedPct: number;
+  idlePct: number;
+  limitedPct: number;
+}
+
+export interface CoreSnapshot {
+  ts: number;
+  core: CoreInfo;
+  metrics: CoreMetrics;
+  totals: { users: number; groups: number };
+  series: CoreSeries;
+  topUsers: CoreUserStat[];
+  inbounds: CoreInbound[];
+  events: ActivityEvent[];
+  goal: CoreGoal;
+  distribution: CoreDistribution;
+}
+
+export interface CoreTick {
+  ts: number;
+  metrics: CoreMetrics;
+  topUsers: CoreUserStat[];
+  goal: CoreGoal;
+}
+
+export interface CoreInboundsPayload {
+  ts: number;
+  inbounds: CoreInbound[];
+  distribution: CoreDistribution;
+}
+
+export interface CoreEventPayload {
+  event: ActivityEvent;
+}

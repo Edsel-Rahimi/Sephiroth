@@ -4,15 +4,18 @@ import { useMemo } from "react";
 import { PlayCircle, TriangleAlert, Hourglass } from "lucide-react";
 import { D2Card } from "@/components/sephiroth/dashboard/parts";
 import { useAppStore } from "@/lib/store/app-store";
+import { useCoreStore } from "@/lib/store/core-store";
+import { lfmt, liveDictionaries } from "@/lib/i18n/live-strings";
 import { dictionaries } from "@/lib/i18n/dictionaries";
 import { d2Dictionaries } from "@/lib/i18n/dashboard-strings";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-/* ---------- statistics bubbles (Resq-style overlapping circles) ---------- */
+/* ---------- statistics bubbles (Resq-style overlapping circles, live) ---------- */
 function StatsBubbles() {
   const lang = useAppStore((s) => s.lang);
   const d2 = useMemo(() => d2Dictionaries[lang], [lang]);
+  const dist = useCoreStore((s) => s.snapshot.distribution);
 
   return (
     <D2Card title={d2.stats} className="col-span-12 md:col-span-6 xl:col-span-3">
@@ -29,19 +32,19 @@ function StatsBubbles() {
         {/* big cyan */}
         <div className="float-y absolute left-2 top-8 flex h-36 w-36 flex-col items-center justify-center rounded-full bg-[radial-gradient(circle_at_30%_25%,#4be3f7,#0ea5bf_60%,#087a90)] shadow-[0_0_50px_-10px_rgba(34,216,238,0.6)]">
           <span className="font-mono text-[26px] font-bold tabular-nums leading-none text-[#04161b]">
-            64%
+            {Math.round(dist.connectedPct)}%
           </span>
           <span className="mt-1 text-[10px] font-semibold text-[#04161b]/80">{d2.connected}</span>
         </div>
         {/* medium idle */}
         <div className="absolute right-8 top-0 flex h-28 w-28 flex-col items-center justify-center rounded-full bg-white/8 ring-1 ring-white/15 backdrop-blur-md">
-          <span className="font-mono text-lg font-bold tabular-nums leading-none">26%</span>
+          <span className="font-mono text-lg font-bold tabular-nums leading-none">{Math.round(dist.idlePct)}%</span>
           <span className="mt-1 text-[10px] text-muted-foreground">{d2.idle}</span>
         </div>
         {/* small limited */}
         <div className="absolute bottom-0 right-16 flex h-20 w-20 flex-col items-center justify-center rounded-full bg-chart-4/25 ring-1 ring-chart-4/40">
           <span className="font-mono text-sm font-bold tabular-nums leading-none text-chart-4">
-            10%
+            {Math.round(dist.limitedPct)}%
           </span>
           <span className="mt-0.5 text-[9px] text-muted-foreground">{d2.limitedB}</span>
         </div>
@@ -50,31 +53,53 @@ function StatsBubbles() {
   );
 }
 
-/* ---------- active alerts (Resq-style incident cards) ---------- */
+/* ---------- active alerts (Resq-style incident cards, derived from live users) ---------- */
 function ActiveAlerts() {
   const lang = useAppStore((s) => s.lang);
   const d2 = useMemo(() => d2Dictionaries[lang], [lang]);
+  const L = liveDictionaries[lang];
+  const topUsers = useCoreStore((s) => s.snapshot.topUsers);
+
+  const near =
+    [...topUsers]
+      .filter((u) => (u.usagePct ?? 0) >= 90)
+      .sort((a, b) => (b.usagePct ?? 0) - (a.usagePct ?? 0))[0] ?? null;
+  const expiring =
+    [...topUsers]
+      .filter((u) => u.expiresInH !== null && u.expiresInH <= 48)
+      .sort((a, b) => (a.expiresInH ?? 0) - (b.expiresInH ?? 0))[0] ?? null;
 
   const alerts = [
-    {
+    near && {
       chip: d2.nearLimit,
       chipCls: "bg-chart-4/15 text-chart-4 ring-chart-4/30",
       icon: TriangleAlert,
       title: d2.a1Title,
-      desc: d2.a1Desc,
-      user: "Kaya",
-      id: "USR-0341",
+      desc: lfmt(L.alertNearLimitDesc, { user: near.user, pct: Math.round(near.usagePct ?? 95) }),
+      user: near.user,
+      id: near.uid,
     },
-    {
+    expiring && {
       chip: d2.expiringSoon,
       chipCls: "bg-chart-5/15 text-chart-5 ring-chart-5/30",
       icon: Hourglass,
       title: d2.a2Title,
-      desc: d2.a2Desc,
-      user: "Vega",
-      id: "USR-0287",
+      desc: lfmt(L.alertExpiringDesc, {
+        user: expiring.user,
+        h: Math.max(1, Math.round(expiring.expiresInH ?? 12)),
+      }),
+      user: expiring.user,
+      id: expiring.uid,
     },
-  ];
+  ].filter(Boolean) as {
+    chip: string;
+    chipCls: string;
+    icon: typeof TriangleAlert;
+    title: string;
+    desc: string;
+    user: string;
+    id: string;
+  }[];
 
   return (
     <D2Card title={d2.alertsCard} className="col-span-12 md:col-span-6 xl:col-span-5">
@@ -112,18 +137,36 @@ function ActiveAlerts() {
   );
 }
 
-/* ---------- renewal radar (Donezo-style reminders) ---------- */
+/* ---------- renewal radar (Donezo-style reminders, live) ---------- */
 function RenewalRadar() {
   const lang = useAppStore((s) => s.lang);
   const d2 = useMemo(() => d2Dictionaries[lang], [lang]);
   const dict = useMemo(() => dictionaries[lang], [lang]);
   const { toast } = useToast();
+  const topUsers = useCoreStore((s) => s.snapshot.topUsers);
 
-  const items = [
-    { name: "Vega", initial: "V", inCls: "text-chart-5 bg-chart-5/10", time: "12h" },
-    { name: "Orion", initial: "O", inCls: "text-chart-4 bg-chart-4/10", time: "2d" },
-    { name: "Aria", initial: "A", inCls: "text-chart-3 bg-chart-3/10", time: "5d" },
-  ];
+  const items = useMemo(
+    () =>
+      [...topUsers]
+        .filter((u) => u.expiresInH !== null)
+        .sort((a, b) => (a.expiresInH ?? 0) - (b.expiresInH ?? 0))
+        .slice(0, 3)
+        .map((u) => {
+          const h = u.expiresInH ?? 0;
+          return {
+            name: u.user,
+            initial: u.user[0],
+            inCls:
+              h < 24
+                ? "text-chart-5 bg-chart-5/10"
+                : h < 72
+                  ? "text-chart-4 bg-chart-4/10"
+                  : "text-chart-3 bg-chart-3/10",
+            time: h < 24 ? `${Math.max(1, Math.round(h))}h` : `${Math.round(h / 24)}d`,
+          };
+        }),
+    [topUsers]
+  );
 
   return (
     <D2Card title={d2.radar} className="col-span-12 md:col-span-6 xl:col-span-4">
@@ -151,20 +194,21 @@ function RenewalRadar() {
   );
 }
 
-/* ---------- monthly goal gauge (Donezo-style semicircle, full-width slim) ---------- */
+/* ---------- monthly goal gauge (Donezo-style semicircle, live) ---------- */
 function GoalGauge() {
   const lang = useAppStore((s) => s.lang);
   const d2 = useMemo(() => d2Dictionaries[lang], [lang]);
+  const goal = useCoreStore((s) => s.snapshot.goal);
 
-  const pct = 41;
+  const pct = Math.min(100, Math.round((goal.currentGb / goal.targetGb) * 100));
   const R = 62;
   const C = Math.PI * R; /* semicircle */
   const done = (C * pct) / 100;
 
   const stats = [
-    { dot: "bg-chart-3", label: d2.delivered, val: "120" },
-    { dot: "bg-primary", label: d2.inProg, val: "64" },
-    { dot: "bg-muted-foreground/50", label: d2.pendingG, val: "38" },
+    { dot: "bg-chart-3", label: d2.delivered, val: String(goal.delivered) },
+    { dot: "bg-primary", label: d2.inProg, val: String(goal.inProg) },
+    { dot: "bg-muted-foreground/50", label: d2.pendingG, val: String(goal.pending) },
   ];
 
   return (
@@ -216,12 +260,12 @@ function GoalGauge() {
           <div className="min-w-40 flex-1 sm:max-w-64">
             <div className="h-2 overflow-hidden rounded-full bg-muted">
               <div
-                className="line-draw h-full rounded-full bg-gradient-to-r from-[#0ea5bf] to-[#4be3f7]"
-                style={{ width: `${pct}%`, strokeDasharray: "none", animation: "none", filter: "drop-shadow(0 0 6px rgba(34,216,238,0.4))" }}
+                className="h-full rounded-full bg-gradient-to-r from-[#0ea5bf] to-[#4be3f7] transition-[width] duration-700"
+                style={{ width: `${pct}%`, filter: "drop-shadow(0 0 6px rgba(34,216,238,0.4))" }}
               />
             </div>
             <p className="mt-1.5 text-right font-mono text-[10px] tabular-nums text-muted-foreground">
-              222 / 540 GB
+              {Math.round(goal.currentGb)} / {goal.targetGb} GB
             </p>
           </div>
         </div>

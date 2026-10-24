@@ -15,56 +15,33 @@ import {
 } from "lucide-react";
 import { D2Card, Sparkline, TrendBadge } from "@/components/sephiroth/dashboard/parts";
 import { useAppStore } from "@/lib/store/app-store";
+import { useCoreStore } from "@/lib/store/core-store";
+import { splitUptime } from "@/lib/i18n/live-strings";
 import { dictionaries } from "@/lib/i18n/dictionaries";
 import { d2Dictionaries } from "@/lib/i18n/dashboard-strings";
 import { useToast } from "@/hooks/use-toast";
 
-/* ---------- top consumers (Stakent-style asset cards) ---------- */
-const CONSUMERS = [
-  {
-    name: "Aria",
-    proto: "VLESS · WS",
-    gb: "412.6",
-    up: true,
-    delta: "+18.4",
-    spark: [30, 42, 38, 55, 48, 66, 60, 78],
-  },
-  {
-    name: "Neo",
-    proto: "VMess · gRPC",
-    gb: "356.1",
-    up: true,
-    delta: "+9.2",
-    spark: [25, 30, 44, 40, 52, 49, 62, 58],
-  },
-  {
-    name: "Kaya",
-    proto: "Trojan · TLS",
-    gb: "287.4",
-    up: false,
-    delta: "-6.7",
-    spark: [70, 62, 66, 50, 54, 40, 44, 32],
-  },
-];
-
+/* ---------- top consumers (Stakent-style asset cards, live) ---------- */
 function ConsumerCards() {
   const lang = useAppStore((s) => s.lang);
   const dict = useMemo(() => dictionaries[lang], [lang]);
+  const topUsers = useCoreStore((s) => s.snapshot.topUsers);
+  const top = useMemo(() => topUsers.slice(0, 3), [topUsers]);
 
   return (
     <>
-      {CONSUMERS.map((c) => (
+      {top.map((c) => (
         <section
-          key={c.name}
+          key={c.uid}
           className="glass hover-glow relative col-span-12 overflow-hidden rounded-2xl p-5 md:col-span-4"
         >
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2.5">
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-primary/25 to-chart-2/10 font-mono text-sm font-bold text-primary ring-1 ring-primary/25">
-                {c.name[0]}
+                {c.user[0]}
               </span>
               <div>
-                <p className="text-sm font-semibold leading-none">{c.name}</p>
+                <p className="text-sm font-semibold leading-none">{c.user}</p>
                 <p className="mt-1 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
                   {c.proto}
                 </p>
@@ -77,15 +54,15 @@ function ConsumerCards() {
 
           <div className="mt-3 flex items-center gap-2">
             <span className="font-mono text-[26px] font-bold tabular-nums leading-none">
-              {c.gb}
+              {c.gb.toFixed(1)}
             </span>
             <span className="text-xs text-muted-foreground">GB</span>
-            <TrendBadge up={c.up} val={`${c.up ? "+" : ""}${c.delta}`} />
+            <TrendBadge up={c.up} val={`${c.up ? "+" : ""}${c.delta.toFixed(1)}`} />
           </div>
 
           <div className="mt-3">
             <Sparkline
-              id={c.name.toLowerCase()}
+              id={c.uid}
               values={c.spark}
               tone={c.up ? "up" : "down"}
             />
@@ -97,17 +74,20 @@ function ConsumerCards() {
   );
 }
 
-/* ---------- hero throughput (Stakent-style featured card) ---------- */
+/* ---------- hero throughput (Stakent-style featured card, live) ---------- */
 function ThroughputHero() {
   const lang = useAppStore((s) => s.lang);
   const d2 = useMemo(() => d2Dictionaries[lang], [lang]);
   const dict = useMemo(() => dictionaries[lang], [lang]);
+  const metrics = useCoreStore((s) => s.snapshot.metrics);
+  const total = metrics.netIn + metrics.netOut;
+  const loadPct = Math.min(100, Math.round(total / 4.2));
 
   const strip = [
-    { label: d2.peakToday, val: "210.2" },
-    { label: d2.avgToday, val: "96.7" },
-    { label: d2.errors, val: "3" },
-    { label: d2.saturated, val: "2%" },
+    { label: d2.peakToday, val: metrics.peakToday.toFixed(1) },
+    { label: d2.avgToday, val: metrics.avgToday.toFixed(1) },
+    { label: d2.errors, val: String(metrics.errorsToday) },
+    { label: d2.saturated, val: `${metrics.saturatedPct}%` },
   ];
 
   return (
@@ -125,7 +105,7 @@ function ThroughputHero() {
       <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
         <div>
           <p className="font-mono text-[44px] font-bold leading-none tabular-nums text-glow">
-            128.4
+            {total.toFixed(1)}
             <span className="ml-1.5 align-middle text-sm font-medium text-muted-foreground">
               MB/s
             </span>
@@ -134,21 +114,34 @@ function ThroughputHero() {
         <div className="flex gap-2.5">
           <span className="glass flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs text-muted-foreground">
             <ArrowDown className="h-3.5 w-3.5 text-primary" />
-            <span className="font-mono tabular-nums text-foreground">128.4</span>
+            <span className="font-mono tabular-nums text-foreground">
+              {metrics.netIn.toFixed(1)}
+            </span>
           </span>
           <span className="glass flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs text-muted-foreground">
             <ArrowUp className="h-3.5 w-3.5 text-chart-2" />
-            <span className="font-mono tabular-nums text-foreground">42.1</span>
+            <span className="font-mono tabular-nums text-foreground">
+              {metrics.netOut.toFixed(1)}
+            </span>
           </span>
         </div>
       </div>
 
       {/* decorative load track */}
       <div className="relative mt-6 h-1.5 rounded-full bg-muted">
-        <div className="absolute inset-y-0 left-0 w-[62%] rounded-full bg-gradient-to-r from-chart-2/40 to-primary" />
-        <span className="absolute left-[62%] top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-primary bg-[#0a1218] glow-cyan" />
-        <span className="absolute left-[62%] top-1/2 ml-3 -translate-y-1/2 font-mono text-[10px] tabular-nums text-primary">
-          62%
+        <div
+          className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-chart-2/40 to-primary transition-[width] duration-700"
+          style={{ width: `${Math.max(6, loadPct)}%` }}
+        />
+        <span
+          className="absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-primary bg-[#0a1218] glow-cyan transition-[left] duration-700"
+          style={{ left: `${Math.max(6, loadPct)}%` }}
+        />
+        <span
+          className="absolute top-1/2 ml-3 -translate-y-1/2 font-mono text-[10px] tabular-nums text-primary transition-[left] duration-700"
+          style={{ left: `${Math.max(6, loadPct)}%` }}
+        >
+          {loadPct}%
         </span>
       </div>
 
@@ -219,25 +212,22 @@ function QuickActions() {
   );
 }
 
-/* ---------- uptime tracker (Donezo-style timer card) ---------- */
+/* ---------- uptime tracker (Donezo-style timer card, core-driven) ---------- */
 function UptimeTracker() {
   const lang = useAppStore((s) => s.lang);
   const d2 = useMemo(() => d2Dictionaries[lang], [lang]);
   const dict = useMemo(() => dictionaries[lang], [lang]);
   const { toast } = useToast();
+  const startedAt = useCoreStore((s) => s.snapshot.core.startedAt);
 
-  /* 42d 06:18:44 base + live ticking */
-  const [elapsed, setElapsed] = useState(0);
+  /* re-render each second so the timer keeps ticking even when offline */
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    const id = setInterval(() => setElapsed((e) => e + 1), 1000);
+    const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
 
-  const base = 42 * 86400 + 6 * 3600 + 18 * 60 + 44 + elapsed;
-  const dd = Math.floor(base / 86400);
-  const hh = String(Math.floor((base % 86400) / 3600)).padStart(2, "0");
-  const mm = String(Math.floor((base % 3600) / 60)).padStart(2, "0");
-  const ss = String(base % 60).padStart(2, "0");
+  const { dd, hh, mm, ss } = splitUptime(startedAt, now);
 
   return (
     <section className="relative col-span-12 overflow-hidden rounded-2xl p-5 md:col-span-6 xl:col-span-3 bg-[linear-gradient(160deg,#0a2733_0%,#061218_70%)] ring-1 ring-primary/20">

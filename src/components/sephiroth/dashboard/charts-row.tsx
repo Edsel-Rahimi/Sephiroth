@@ -4,31 +4,17 @@ import { useMemo, useState } from "react";
 import { ArrowUpRight, Info, Radio, Layers } from "lucide-react";
 import { D2Card, smoothLine } from "@/components/sephiroth/dashboard/parts";
 import { useAppStore } from "@/lib/store/app-store";
+import { useCoreStore } from "@/lib/store/core-store";
 import { dictionaries } from "@/lib/i18n/dictionaries";
 import { d2Dictionaries } from "@/lib/i18n/dashboard-strings";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-/* ---------- synthetic datasets per range ---------- */
-const DATASETS: Record<string, { dl: number[]; ul: number[]; labels: string[]; peakIdx: number }> = {
-  "24H": {
-    dl: [95, 140, 110, 388, 205, 160, 130, 175],
-    ul: [40, 70, 55, 120, 80, 60, 50, 65],
-    labels: ["00", "04", "08", "12", "16", "20", "24"],
-    peakIdx: 3,
-  },
-  "7D": {
-    dl: [220, 150, 390, 240, 310, 200, 260],
-    ul: [80, 55, 130, 85, 110, 70, 90],
-    labels: ["1", "2", "3", "4", "5", "6", "7"],
-    peakIdx: 2,
-  },
-  "30D": {
-    dl: [150, 190, 240, 200, 310, 180, 390, 260, 300, 220],
-    ul: [60, 80, 95, 75, 120, 70, 150, 95, 110, 85],
-    labels: ["1", "5", "10", "15", "20", "25", "30"],
-    peakIdx: 6,
-  },
+/* ---------- x-axis labels per range (decorative) ---------- */
+const LABELS: Record<"24H" | "7D" | "30D", string[]> = {
+  "24H": ["00", "04", "08", "12", "16", "20", "24"],
+  "7D": ["1", "2", "3", "4", "5", "6", "7"],
+  "30D": ["1", "5", "10", "15", "20", "25", "30"],
 };
 
 const W = 600;
@@ -38,13 +24,28 @@ const Y_MAX = 420;
 function FrequencyChart() {
   const lang = useAppStore((s) => s.lang);
   const d2 = useMemo(() => d2Dictionaries[lang], [lang]);
+  const series = useCoreStore((s) => s.snapshot.series);
+  const netIn = useCoreStore((s) => s.snapshot.metrics.netIn);
+  const netOut = useCoreStore((s) => s.snapshot.metrics.netOut);
   const [range, setRange] = useState<"24H" | "7D" | "30D">("30D");
-  const data = DATASETS[range];
+  const hist = range === "24H" ? series.hist24 : range === "7D" ? series.hist7 : series.hist30;
+
+  /* the last 24H bucket is welded to the live stream */
+  const data = useMemo(() => {
+    const dl = [...hist.dl];
+    const ul = [...hist.ul];
+    if (range === "24H" && dl.length > 0) {
+      dl[dl.length - 1] = Math.round(Math.min(410, netIn * 2 + netOut));
+      ul[ul.length - 1] = Math.round(Math.min(160, netOut * 2));
+    }
+    const peakIdx = dl.indexOf(Math.max(...dl));
+    return { dl, ul, peakIdx };
+  }, [hist, range, netIn, netOut]);
 
   const dl = useMemo(() => smoothLine(data.dl, W, H, { min: 0, max: Y_MAX }), [data]);
   const ul = useMemo(() => smoothLine(data.ul, W, H, { min: 0, max: Y_MAX }), [data]);
 
-  const peakX = 10 + (data.peakIdx * (W - 20)) / (data.dl.length - 1);
+  const peakX = 10 + (data.peakIdx * (W - 20)) / Math.max(1, data.dl.length - 1);
   const peakY = H - 6 - (data.dl[data.peakIdx] / Y_MAX) * (H - 12);
 
   const yLabels = [400, 300, 200, 100];
@@ -140,7 +141,7 @@ function FrequencyChart() {
 
       {/* x labels */}
       <div className="mt-2 flex justify-between pl-8 font-mono text-[9px] tabular-nums text-muted-foreground/60" dir="ltr">
-        {data.labels.map((l) => (
+        {LABELS[range].map((l) => (
           <span key={l}>{l}</span>
         ))}
       </div>
@@ -151,11 +152,17 @@ function FrequencyChart() {
 function SummaryCard() {
   const lang = useAppStore((s) => s.lang);
   const d2 = useMemo(() => d2Dictionaries[lang], [lang]);
+  const inbounds = useCoreStore((s) => s.snapshot.inbounds);
+  const events = useCoreStore((s) => s.events);
 
   const rows = [
-    { dot: "bg-chart-3", label: d2.nodesOnline, val: "5" },
-    { dot: "bg-chart-2", label: d2.maintenance, val: "1" },
-    { dot: "bg-chart-4", label: d2.alertsOpen, val: "2" },
+    { dot: "bg-chart-3", label: d2.nodesOnline, val: String(inbounds.filter((i) => i.status === "online").length) },
+    { dot: "bg-chart-2", label: d2.maintenance, val: String(inbounds.filter((i) => i.status === "maintenance").length) },
+    {
+      dot: "bg-chart-4",
+      label: d2.alertsOpen,
+      val: String(Math.min(99, events.filter((e) => e.level === "warn" || e.level === "error").length)),
+    },
   ];
 
   return (
@@ -189,6 +196,8 @@ function PassCard() {
   const d2 = useMemo(() => d2Dictionaries[lang], [lang]);
   const { toast } = useToast();
   const dict = useMemo(() => dictionaries[lang], [lang]);
+  const activeUsers = useCoreStore((s) => s.snapshot.metrics.activeUsers);
+  const groups = useCoreStore((s) => s.snapshot.totals.groups);
 
   return (
     <section className="relative col-span-12 overflow-hidden rounded-2xl p-5 md:col-span-6 xl:col-span-3 bg-[linear-gradient(150deg,#35e2f6_0%,#17b6cf_45%,#0a7f95_100%)]">
@@ -220,13 +229,13 @@ function PassCard() {
             <span className="flex items-center gap-2 text-[11px] font-semibold text-[#04161b]">
               <Radio className="h-3.5 w-3.5 text-[#0a7f95]" /> {d2.subs}
             </span>
-            <span className="font-mono text-sm font-bold tabular-nums text-[#04161b]">312</span>
+            <span className="font-mono text-sm font-bold tabular-nums text-[#04161b]">{Math.round(activeUsers)}</span>
           </div>
           <div className="flex items-center justify-between rounded-xl bg-white/60 px-3.5 py-2.5 shadow-md shadow-black/15 backdrop-blur-sm">
             <span className="flex items-center gap-2 text-[11px] font-semibold text-[#04161b]">
               <Layers className="h-3.5 w-3.5 text-[#0a7f95]" /> {d2.groups}
             </span>
-            <span className="font-mono text-sm font-bold tabular-nums text-[#04161b]">12</span>
+            <span className="font-mono text-sm font-bold tabular-nums text-[#04161b]">{groups}</span>
           </div>
         </div>
       </div>

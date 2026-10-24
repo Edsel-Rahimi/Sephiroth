@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 import { BrandMark } from "@/components/sephiroth/brand";
 import { useAppStore } from "@/lib/store/app-store";
+import { useCoreStore } from "@/lib/store/core-store";
+import { liveDictionaries } from "@/lib/i18n/live-strings";
 import { dictionaries } from "@/lib/i18n/dictionaries";
+import { cn } from "@/lib/utils";
 
 function ClientClock() {
   const [time, setTime] = useState<string>("");
@@ -28,6 +31,14 @@ function ClientClock() {
 export function Footer() {
   const lang = useAppStore((s) => s.lang);
   const t = dictionaries[lang];
+  const L = liveDictionaries[lang];
+  const status = useCoreStore((s) => s.status);
+
+  const statusMap = {
+    live: { label: L.liveChip, cls: "text-chart-3", dot: "bg-chart-3" },
+    connecting: { label: L.connecting, cls: "text-chart-4", dot: "bg-chart-4" },
+    offline: { label: L.offline, cls: "text-chart-5", dot: "bg-chart-5" },
+  }[status];
 
   return (
     <footer className="mt-auto border-t border-border/60 bg-background-deep/60 backdrop-blur-sm">
@@ -43,12 +54,12 @@ export function Footer() {
         {/* center : core status */}
         <div className="flex items-center gap-2 order-last w-full sm:order-none sm:w-auto">
           <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            <span className={cn("absolute inline-flex h-full w-full animate-ping rounded-full opacity-60", statusMap.dot)} />
+            <span className={cn("relative inline-flex h-1.5 w-1.5 rounded-full", statusMap.dot)} />
           </span>
           <span>
             {t.status.core}: {t.status.simulator} ·{" "}
-            <span className="text-emerald-400">{t.status.online}</span>
+            <span className={statusMap.cls}>{statusMap.label}</span>
           </span>
         </div>
 
