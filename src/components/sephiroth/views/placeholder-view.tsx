@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Boxes,
+  FlaskConical,
   RadioTower,
   Settings,
   Store,
@@ -23,6 +24,7 @@ const PHASE_MAP: Record<Exclude<ViewId, "dashboard">, { phase: number; icon: Luc
   resellers: { phase: 6, icon: Store },
   activity: { phase: 2, icon: Activity },
   settings: { phase: 7, icon: Settings },
+  panels: { phase: 9, icon: FlaskConical },
 };
 
 export function PlaceholderView({ view }: { view: Exclude<ViewId, "dashboard"> }) {

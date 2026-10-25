@@ -6,6 +6,7 @@ import {
   Bell,
   Check,
   CircleUser,
+  FlaskConical,
   Globe,
   LayoutDashboard,
   LogOut,
@@ -44,6 +45,7 @@ const NAV_ICONS: Record<ViewId, React.ComponentType<{ className?: string }>> = {
   resellers: Store,
   activity: Activity,
   settings: Settings,
+  panels: FlaskConical,
 };
 
 const NAV_ORDER: ViewId[] = [
@@ -53,6 +55,7 @@ const NAV_ORDER: ViewId[] = [
   "subgroups",
   "resellers",
   "activity",
+  "panels",
   "settings",
 ];
 

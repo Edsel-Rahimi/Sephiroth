@@ -9,6 +9,7 @@ import { LoginScene } from "@/components/sephiroth/login-scene";
 import { CoreConnector } from "@/components/sephiroth/realtime/core-connector";
 import { DashboardView } from "@/components/sephiroth/views/dashboard-view";
 import { InboundsView } from "@/components/sephiroth/views/inbounds-view";
+import { PanelsView } from "@/components/sephiroth/views/panels-view";
 import { PlaceholderView } from "@/components/sephiroth/views/placeholder-view";
 import { useAppStore } from "@/lib/store/app-store";
 import { RTL_LANGS, type ViewId } from "@/lib/i18n/dictionaries";
@@ -77,8 +78,10 @@ export default function Home() {
           <DashboardView />
         ) : view === "inbounds" ? (
           <InboundsView />
+        ) : view === "panels" ? (
+          <PanelsView />
         ) : (
-          <PlaceholderView view={view as Exclude<ViewId, "dashboard" | "inbounds">} />
+          <PlaceholderView view={view as Exclude<ViewId, "dashboard" | "inbounds" | "panels">} />
         )}
       </main>
 

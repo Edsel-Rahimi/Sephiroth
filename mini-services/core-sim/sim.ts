@@ -379,6 +379,7 @@ export class CoreSim {
     else if (transport === 'grpc') parts.push('gRPC')
     else if (transport === 'httpupgrade') parts.push('HTTPUpgrade')
     if (security === 'tls') parts.push('TLS')
+    else if (security === 'reality') parts.push('REALITY')
     return parts.join(' · ')
   }
 

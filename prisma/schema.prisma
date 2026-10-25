@@ -33,10 +33,18 @@ model Inbound {
   tag       String   @unique // unique Xray inbound tag
   protocol  String // vless | vmess | trojan | shadowsocks | hysteria2
   port      Int      @unique // 1-65535
+  listen    String   @default("") // "" = all interfaces (0.0.0.0)
   transport String   @default("tcp") // tcp | ws | grpc | httpupgrade
-  security  String   @default("none") // none | tls
+  security  String   @default("none") // none | tls | reality
   status    String   @default("online") // online | maintenance | disabled
   note      String?
+  // limits
+  trafficLimitGb Float? // null = unlimited
+  expiryDays     Int? // null = never expires
+  // complex config stored as JSON strings (validated on write)
+  clientsJson  String  @default("[]") // [{email,key,subId,flow,ipLimit,trafficLimitGb,expiryDays,enabled}]
+  sniffingJson String  @default("{}") // {enabled,destOverride[],routeOnly}
+  streamJson   String  @default("{}") // transport/security-specific settings
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
