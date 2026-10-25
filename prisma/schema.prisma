@@ -70,6 +70,7 @@ model ClientUser {
   // Phase 6 hook: owning reseller, null = admin-created
   resellerId     String?
   accesses       UserInboundAccess[]
+  groupMembers   SubGroupMember[]
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
@@ -86,5 +87,34 @@ model UserInboundAccess {
 
   @@unique([userId, inboundId])
   @@unique([inboundId, email])
+  @@index([userId])
+}
+
+// ── Sephiroth Panel ─────────────────────────────────────────
+// Phase 5 · Subscription — public /sub/[token] pages.
+// A token resolves to either a ClientUser.subId (single user)
+// or a SubGroup.token (multi-user group, optionally password
+// protected). Members are unioned into one public page.
+
+model SubGroup {
+  id           String   @id @default(cuid())
+  name         String // 1-48 chars
+  token        String   @unique // 24 hex chars — public token
+  passwordHash String? // scrypt "salt:hash", null = open page
+  infoLine     String? // custom line rendered on the pass card
+  enabled      Boolean  @default(true)
+  members      SubGroupMember[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model SubGroupMember {
+  id      String     @id @default(cuid())
+  groupId String
+  userId  String
+  group   SubGroup   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user    ClientUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
   @@index([userId])
 }

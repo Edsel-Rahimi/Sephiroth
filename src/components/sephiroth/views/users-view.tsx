@@ -7,6 +7,7 @@ import {
   Check,
   CheckCircle2,
   Copy,
+  ExternalLink,
   Eye,
   Fingerprint,
   Gauge,
@@ -62,7 +63,7 @@ import { useAppStore } from "@/lib/store/app-store";
 import { dictionaries } from "@/lib/i18n/dictionaries";
 import { lfmt } from "@/lib/i18n/live-strings";
 import { daysLeft, type AccessDTO, type UserDTO, type UserStatus } from "@/lib/user-types";
-import { buildShareLink } from "@/components/sephiroth/views/inbounds-view";
+import { buildShareLink } from "@/lib/share-links";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -1123,6 +1124,16 @@ export function UsersView() {
                     <code className="min-w-0 flex-1 truncate font-mono text-xs" dir="ltr">
                       {drawerUser.subId}
                     </code>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      onClick={() => window.open(`/sub/${drawerUser.subId}`, "_blank")}
+                      aria-label={u.openPage}
+                      title={u.openPage}
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                    </Button>
                     <Button
                       size="icon"
                       variant="ghost"

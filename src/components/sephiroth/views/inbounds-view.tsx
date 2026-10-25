@@ -75,6 +75,11 @@ import { dictionaries } from "@/lib/i18n/dictionaries";
 import { lfmt } from "@/lib/i18n/live-strings";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { buildDokoSummary, buildShareLink, buildWgConf } from "@/lib/share-links";
+
+// moved to lib/share-links.ts (shared with the public sub API) — re-exported for older import paths
+export { buildDokoSummary, buildShareLink, buildWgConf };
+
 
 /* ============================================================
    Sephiroth · Phase 3R — Inbounds management (redesigned)
@@ -453,153 +458,6 @@ function buildQuickStream(proto: string): Record<string, string | number | boole
     return { wgSecretKey: pair.priv, wgPublicKey: pair.pub, wgMtu: 1420 };
   }
   return {};
-}
-
-/* ---------- share-link builders (protocol-correct) ---------- */
-
-function b64utf8(s: string): string {
-  return btoa(String.fromCharCode(...new TextEncoder().encode(s)));
-}
-
-function hostOf(row: { listen: string }): string {
-  return row.listen && row.listen !== "0.0.0.0" ? row.listen : "0.0.0.0";
-}
-
-/** Placeholder identity when an inbound has no client yet — the link stays
- *  structurally valid; regenerate after adding a real client. */
-const KEY_FALLBACK: Record<string, string> = {
-  vless: "00000000-0000-0000-0000-000000000000",
-  vmess: "00000000-0000-0000-0000-000000000000",
-  trojan: "password",
-  shadowsocks: "password",
-  hysteria2: "password",
-};
-
-/**
- * Builds the standard share URI for an inbound + first client.
- * Returns null for protocols without a URI scheme (dokodemo-door, wireguard)
- * — the caller falls back to a text summary.
- */
-export function buildShareLink(
-  row: InboundDTO,
-  first?: InboundClientDTO
-): string | null {
-  const st = row.stream ?? {};
-  const host = hostOf(row);
-  const port = String(row.port);
-  const label = first?.email ? `${row.tag} · ${first.email}` : row.tag;
-  const q = new URLSearchParams();
-
-  const commonParams = () => {
-    q.set("type", row.transport);
-    if (row.security !== "none") q.set("security", row.security);
-    if (row.security === "tls") {
-      if (st.sni) q.set("sni", String(st.sni));
-      if (st.fingerprint) q.set("fp", String(st.fingerprint));
-      if (st.alpn) q.set("alpn", String(st.alpn));
-    }
-    if (row.security === "reality") {
-      if (st.serverNames) q.set("sni", String(st.serverNames).split(",")[0].trim());
-      if (st.fingerprint) q.set("fp", String(st.fingerprint));
-      if (st.publicKey) q.set("pbk", String(st.publicKey));
-      if (st.shortIds) q.set("sid", String(st.shortIds).split(",")[0].trim());
-      if (st.spiderX) q.set("spx", String(st.spiderX));
-    }
-    if (row.transport === "ws" || row.transport === "xhttp" || row.transport === "httpupgrade") {
-      if (st.path) q.set("path", String(st.path));
-      if (st.host) q.set("host", String(st.host));
-    }
-    if (row.transport === "xhttp" && st.mode) q.set("mode", String(st.mode));
-    if (row.transport === "grpc") {
-      if (st.serviceName) q.set("serviceName", String(st.serviceName));
-      if (st.multiMode === true) q.set("mode", "multi");
-    }
-    if (row.transport === "tcp" && st.headerType === "http") q.set("headerType", "http");
-  };
-
-  switch (row.protocol) {
-    case "vless": {
-      const key = first?.key || KEY_FALLBACK.vless;
-      commonParams();
-      if (first?.flow) q.set("flow", first.flow);
-      return `vless://${key}@${host}:${port}?${q.toString()}#${encodeURIComponent(label)}`;
-    }
-    case "vmess": {
-      const key = first?.key || KEY_FALLBACK.vmess;
-      const json = {
-        v: "2",
-        ps: label,
-        add: host,
-        port,
-        id: key,
-        aid: "0",
-        scy: "auto",
-        net: row.transport,
-        type: row.transport === "tcp" && st.headerType === "http" ? "http" : "none",
-        host: String(st.host ?? ""),
-        path: String(st.path ?? ""),
-        tls: row.security === "none" ? "" : row.security,
-        sni: String(st.sni ?? st.serverNames ?? ""),
-        alpn: String(st.alpn ?? ""),
-        fp: String(st.fingerprint ?? ""),
-      };
-      return `vmess://${b64utf8(JSON.stringify(json))}`;
-    }
-    case "trojan": {
-      const key = first?.key || KEY_FALLBACK.trojan;
-      commonParams();
-      return `trojan://${encodeURIComponent(key)}@${host}:${port}?${q.toString()}#${encodeURIComponent(label)}`;
-    }
-    case "shadowsocks": {
-      const key = first?.key || KEY_FALLBACK.shadowsocks;
-      const method = String(st.method || "2022-blake3-aes-128-gcm");
-      const userinfo = b64utf8(`${method}:${key}`);
-      return `ss://${userinfo}@${host}:${port}#${encodeURIComponent(label)}`;
-    }
-    case "hysteria2": {
-      const key = first?.key || KEY_FALLBACK.hysteria2;
-      if (st.sni) q.set("sni", String(st.sni));
-      if (st.allowInsecure === true || row.security === "none") q.set("insecure", "1");
-      return `hy2://${encodeURIComponent(key)}@${host}:${port}?${q.toString()}#${encodeURIComponent(label)}`;
-    }
-    case "socks":
-    case "http": {
-      const auth = first ? `${encodeURIComponent(first.email)}:${encodeURIComponent(first.key)}@` : "";
-      return `${row.protocol}://${auth}${host}:${port}#${encodeURIComponent(label)}`;
-    }
-    default:
-      return null; // dokodemo-door / wireguard → caller uses text fallback
-  }
-}
-
-/** Preview-grade WireGuard .conf text for the copy button. */
-function buildWgConf(row: InboundDTO, first?: InboundClientDTO): string {
-  const st = row.stream ?? {};
-  const host = hostOf(row);
-  return [
-    "[Interface]",
-    `PrivateKey = ${st.wgSecretKey ?? "<private-key>"}`,
-    "Address = 10.0.0.2/32",
-    "DNS = 1.1.1.1",
-    `MTU = ${st.wgMtu ?? 1420}`,
-    "",
-    "[Peer]",
-    `PublicKey = ${first?.key ?? st.wgPublicKey ?? "<peer-public-key>"}`,
-    "AllowedIPs = 0.0.0.0/0, ::/0",
-    `Endpoint = ${host}:${row.port}`,
-    "PersistentKeepalive = 25",
-  ].join("\n");
-}
-
-/** Text summary for dokodemo-door (no URI scheme exists). */
-function buildDokoSummary(row: InboundDTO): string {
-  const st = row.stream ?? {};
-  return [
-    `dokodemo-door · ${row.tag}`,
-    `listen: ${hostOf(row)}:${row.port}`,
-    `target: ${st.dokoAddress ?? "?"}:${st.dokoPort ?? "?"}`,
-    `network: ${st.dokoNetwork ?? "tcp"}`,
-  ].join("\n");
 }
 
 function buildStream(form: FormState): Record<string, string | number | boolean> {

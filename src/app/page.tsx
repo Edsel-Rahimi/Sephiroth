@@ -10,6 +10,7 @@ import { CoreConnector } from "@/components/sephiroth/realtime/core-connector";
 import { DashboardView } from "@/components/sephiroth/views/dashboard-view";
 import { InboundsView } from "@/components/sephiroth/views/inbounds-view";
 import { UsersView } from "@/components/sephiroth/views/users-view";
+import { SubGroupsView } from "@/components/sephiroth/views/subgroups-view";
 import { PanelsView } from "@/components/sephiroth/views/panels-view";
 import { PlaceholderView } from "@/components/sephiroth/views/placeholder-view";
 import { useAppStore } from "@/lib/store/app-store";
@@ -81,13 +82,15 @@ export default function Home() {
           <InboundsView />
         ) : view === "users" ? (
           <UsersView />
+        ) : view === "subgroups" ? (
+          <SubGroupsView />
         ) : view === "panels" ? (
           <PanelsView />
         ) : (
           <PlaceholderView
             view={view as Exclude<
               ViewId,
-              "dashboard" | "inbounds" | "users" | "panels"
+              "dashboard" | "inbounds" | "users" | "subgroups" | "panels"
             >}
           />
         )}
