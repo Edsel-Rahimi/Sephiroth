@@ -288,6 +288,10 @@ export interface Dict {
     fbAlpn: string;
     fbPath: string;
     errConfig: string;
+    trendWeek: string;
+    trendUptime: string;
+    trendUsers: string;
+    trendTraffic: string;
   };
   panelLab: {
     all: string;
@@ -299,6 +303,11 @@ export interface Dict {
     openRepo: string;
     stealTitle: string;
     disclaimer: string;
+    plOpenLive: string;
+    plCreds: string;
+    plNewTab: string;
+    plBack: string;
+    plLiveHint: string;
     i3x1: string;
     i3x2: string;
     i3x3: string;
@@ -598,6 +607,10 @@ export const dictionaries: Record<Lang, Dict> = {
       fbAlpn: "ALPN",
       fbPath: "Path",
       errConfig: "Advanced configuration is invalid",
+      trendWeek: "+1 this week",
+      trendUptime: "83% uptime",
+      trendUsers: "+12.4%",
+      trendTraffic: "+6.1%",
     },
     panelLab: {
       all: "All",
@@ -609,6 +622,11 @@ export const dictionaries: Record<Lang, Dict> = {
       openRepo: "GitHub",
       stealTitle: "Worth stealing",
       disclaimer: "Faithful recreations for research — not the real software.",
+      plOpenLive: "Open live",
+      plCreds: "Login",
+      plNewTab: "New tab",
+      plBack: "Back",
+      plLiveHint: "All six panels are deployed live on this server — log in and explore freely.",
       i3x1: "Mature multi-protocol inbounds with per-client traffic accounting",
       i3x2: "Dense config table with QR + subscription export one click away",
       i3x3: "The deep TLS / REALITY form our own dialog is benchmarked against",
@@ -922,6 +940,10 @@ export const dictionaries: Record<Lang, Dict> = {
       fbAlpn: "ALPN",
       fbPath: "مسیر",
       errConfig: "پیکربندی پیشرفته نامعتبر است",
+      trendWeek: "+۱ این هفته",
+      trendUptime: "۸۳٪ آپ‌تایم",
+      trendUsers: "+۱۲٫۴٪",
+      trendTraffic: "+۶٫۱٪",
     },
     panelLab: {
       all: "همه",
@@ -933,6 +955,11 @@ export const dictionaries: Record<Lang, Dict> = {
       openRepo: "گیت‌هاب",
       stealTitle: "ارزش دزدیدن دارد",
       disclaimer: "بازسازی وفادار برای پژوهش — نرم‌افزار واقعی نیست.",
+      plOpenLive: "اجرای زنده",
+      plCreds: "ورود",
+      plNewTab: "تب جدید",
+      plBack: "بازگشت",
+      plLiveHint: "هر شش پنل روی همین سرور به‌صورت زنده اجرا شده‌اند — وارد شو و آزادانه بگرد.",
       i3x1: "اینباند چندپروتکلی بالغ با حساب ترافیک برای هر کلاینت",
       i3x2: "جدول کانفیگ متراکم با QR و خروجی اشتراک در یک کلیک",
       i3x3: "فرم عمیق TLS / REALITY که فرم ما به آن معیار سنجیده می‌شود",
@@ -1242,6 +1269,10 @@ export const dictionaries: Record<Lang, Dict> = {
       fbAlpn: "ALPN",
       fbPath: "المسار",
       errConfig: "التكوين المتقدم غير صالح",
+      trendWeek: "+1 هذا الأسبوع",
+      trendUptime: "جاهزية 83%",
+      trendUsers: "+12.4%",
+      trendTraffic: "+6.1%",
     },
     panelLab: {
       all: "الكل",
@@ -1253,6 +1284,11 @@ export const dictionaries: Record<Lang, Dict> = {
       openRepo: "GitHub",
       stealTitle: "تستحق الاقتباس",
       disclaimer: "إعادة إنشاء أمينة لأغراض البحث — ليست البرنامج الحقيقي.",
+      plOpenLive: "تشغيل حي",
+      plCreds: "الدخول",
+      plNewTab: "تبويب جديد",
+      plBack: "رجوع",
+      plLiveHint: "اللوحات الست تعمل حيًا على هذا الخادم — سجّل دخولك واستكشف بحرية.",
       i3x1: "نقاط دخول متعددة البروتوكولات ناضجة مع حساب حركة لكل عميل",
       i3x2: "جدول تكوين كثيف مع تصدير QR والاشتراك على بُعد نقرة واحدة",
       i3x3: "نموذج TLS / REALITY العميق الذي يُقاس عليه حوارنا الخاص",
@@ -1560,6 +1596,10 @@ export const dictionaries: Record<Lang, Dict> = {
       fbAlpn: "ALPN",
       fbPath: "路径",
       errConfig: "高级配置无效",
+      trendWeek: "本周 +1",
+      trendUptime: "83% 在线率",
+      trendUsers: "+12.4%",
+      trendTraffic: "+6.1%",
     },
     panelLab: {
       all: "全部",
@@ -1571,6 +1611,11 @@ export const dictionaries: Record<Lang, Dict> = {
       openRepo: "GitHub",
       stealTitle: "值得借鉴",
       disclaimer: "忠实还原，仅供研究 — 并非真实软件。",
+      plOpenLive: "打开实况",
+      plCreds: "账号",
+      plNewTab: "新标签页",
+      plBack: "返回",
+      plLiveHint: "六个参考面板已在此服务器上实况运行——登录后自由探索。",
       i3x1: "成熟的多协议入站，支持按客户端统计流量",
       i3x2: "高密度配置表格，QR 码与订阅导出一键直达",
       i3x3: "我们自己的对话框所对标的那份深度 TLS / REALITY 表单",
@@ -1878,6 +1923,10 @@ export const dictionaries: Record<Lang, Dict> = {
       fbAlpn: "ALPN",
       fbPath: "Yol",
       errConfig: "Gelişmiş yapılandırma geçersiz",
+      trendWeek: "bu hafta +1",
+      trendUptime: "%83 uptime",
+      trendUsers: "+%12,4",
+      trendTraffic: "+%6,1",
     },
     panelLab: {
       all: "Tümü",
@@ -1889,6 +1938,11 @@ export const dictionaries: Record<Lang, Dict> = {
       openRepo: "GitHub",
       stealTitle: "Çalmaya değer",
       disclaimer: "Araştırma için sadık yeniden yaratımlar — gerçek yazılım değildir.",
+      plOpenLive: "Canlı aç",
+      plCreds: "Giriş",
+      plNewTab: "Yeni sekme",
+      plBack: "Geri",
+      plLiveHint: "Altı panel de bu sunucuda canlı çalışıyor — giriş yapıp özgürce inceleyin.",
       i3x1: "İstemci başına trafik muhasebesiyle olgun çok protokollü girişler",
       i3x2: "Tek tıkla QR + abonelik dışa aktarma sunan yoğun yapılandırma tablosu",
       i3x3: "Kendi iletişim kutumuzun kıyaslandığı derin TLS / REALITY formu",
@@ -2199,6 +2253,10 @@ export const dictionaries: Record<Lang, Dict> = {
       fbAlpn: "ALPN",
       fbPath: "Путь",
       errConfig: "Расширенная конфигурация некорректна",
+      trendWeek: "+1 за неделю",
+      trendUptime: "83% аптайм",
+      trendUsers: "+12,4%",
+      trendTraffic: "+6,1%",
     },
     panelLab: {
       all: "Все",
@@ -2210,6 +2268,11 @@ export const dictionaries: Record<Lang, Dict> = {
       openRepo: "GitHub",
       stealTitle: "Стоит позаимствовать",
       disclaimer: "Точные копии для исследования — не настоящий софт.",
+      plOpenLive: "Открыть вживую",
+      plCreds: "Вход",
+      plNewTab: "Новая вкладка",
+      plBack: "Назад",
+      plLiveHint: "Все шесть панелей запущены на этом сервере — входите и исследуйте.",
       i3x1: "Зрелые мультипротокольные инбаунды с учётом трафика по каждому клиенту",
       i3x2: "Плотная таблица конфигов: QR и экспорт подписки в один клик",
       i3x3: "Глубокая форма TLS / REALITY, с которой сверяется наш диалог",

@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   reactStrictMode: false,
+  // /ref/<panel>/… proxies must keep their trailing slashes so the
+  // reference panels' base paths resolve correctly (no 308 rewrite).
+  skipTrailingSlashRedirect: true,
 };
 
 export default nextConfig;

@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ExternalLink,
   FlaskConical,
   Github,
+  Play,
   Sparkles,
   Star,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { useAppStore } from "@/lib/store/app-store";
 import { dictionaries } from "@/lib/i18n/dictionaries";
+import { REF_PANELS } from "@/lib/reference-panels";
 import { cn } from "@/lib/utils";
 
 /* ============================================================
@@ -34,6 +37,8 @@ type PanelId = "3x" | "pg" | "sj" | "ny" | "jx" | "vw";
 
 interface PanelMeta {
   id: PanelId;
+  /** id of the deployed instance in reference-panels.ts */
+  liveId: string;
   name: string;
   tagline: Record<string, string>;
   repo: string;
@@ -61,6 +66,7 @@ const IMG = {
 const PANELS: PanelMeta[] = [
   {
     id: "3x",
+    liveId: "3xui",
     name: "3x-ui",
     tagline: { en: "The mature backbone", fa: "ستون فقرات بالغ", ar: "العمود الفقري الناضج", zh: "成熟的主干", tr: "Olgun omurga", ru: "Зрелый фундамент" },
     repo: "https://github.com/MHSanaei/3x-ui",
@@ -75,6 +81,7 @@ const PANELS: PanelMeta[] = [
   },
   {
     id: "pg",
+    liveId: "pasarguard",
     name: "PasarGuard",
     tagline: { en: "The engine", fa: "موتور", ar: "المحرك", zh: "引擎", tr: "Motor", ru: "Двигатель" },
     repo: "https://github.com/PasarGuard/panel",
@@ -89,6 +96,7 @@ const PANELS: PanelMeta[] = [
   },
   {
     id: "sj",
+    liveId: "superjinx",
     name: "SuperJinX",
     tagline: { en: "Reseller & pass-card UX", fa: "تجربه ریسلر و پاس کارت", ar: "تجربة الموزع وبطاقة التمرير", zh: "分销与通行卡体验", tr: "Bayi & kart deneyimi", ru: "UX реселлеров и карт" },
     repo: "https://github.com/x4gpanell/SuperJinX",
@@ -103,6 +111,7 @@ const PANELS: PanelMeta[] = [
   },
   {
     id: "ny",
+    liveId: "newyork",
     name: "NewYork · Gateway",
     tagline: { en: "Live limits & sub groups", fa: "محدودیت زنده و گروه‌ها", ar: "حدود حية ومجموعات", zh: "实时限制与分组", tr: "Canlı limitler & gruplar", ru: "Живые лимиты и группы" },
     repo: "https://github.com/x4gpanell/NewYork",
@@ -117,6 +126,7 @@ const PANELS: PanelMeta[] = [
   },
   {
     id: "jx",
+    liveId: "jinx-x4g",
     name: "JinX-X4G",
     tagline: { en: "Subscription page delight", fa: "صفحه اشتراک دلپذیر", ar: "بهجة صفحة الاشتراك", zh: "订阅页的愉悦", tr: "Abonelik sayfası zarafeti", ru: "Восторг страницы подписки" },
     repo: "https://github.com/x4gpanell/JinX-X4G",
@@ -131,6 +141,7 @@ const PANELS: PanelMeta[] = [
   },
   {
     id: "vw",
+    liveId: "vodiwalker",
     name: "VodiWalker Kata",
     tagline: { en: "Sales & bots", fa: "فروش و ربات‌ها", ar: "المبيعات والبوتات", zh: "销售与机器人", tr: "Satış & botlar", ru: "Продажи и боты" },
     repo: "https://github.com/Vodiwalker/vodiwalker_kata",
@@ -212,6 +223,7 @@ function VodiWalkerMock() {
 }
 
 function PanelVisual({ panel, large = false }: { panel: PanelMeta; large?: boolean }) {
+  const deployed = REF_PANELS.find((p) => p.id === panel.liveId);
   return (
     <div
       className={cn(
@@ -219,6 +231,12 @@ function PanelVisual({ panel, large = false }: { panel: PanelMeta; large?: boole
         large ? "h-64 md:h-80" : "h-44"
       )}
     >
+      {deployed?.status === "running" && (
+        <span className="absolute start-3 top-3 z-10 flex items-center gap-1.5 rounded-full border border-chart-3/30 bg-black/60 px-2.5 py-1 font-mono text-[9px] font-bold tracking-[0.14em] text-chart-3 backdrop-blur-sm">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-chart-3" />
+          LIVE
+        </span>
+      )}
       {panel.images.length > 0 ? (
         <div className="no-scrollbar flex h-full w-full snap-x snap-mandatory overflow-x-auto">
           {panel.images.map((src, i) => (
@@ -255,6 +273,19 @@ export function PanelsView() {
   const t = useMemo(() => dictionaries[lang], [lang]);
   const [filter, setFilter] = useState<"all" | PanelId>("all");
   const [detail, setDetail] = useState<PanelMeta | null>(null);
+  const [live, setLive] = useState<PanelMeta | null>(null);
+
+  const liveOf = (panel: PanelMeta) => REF_PANELS.find((p) => p.id === panel.liveId);
+
+  /* ESC closes the live viewer */
+  useEffect(() => {
+    if (!live) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLive(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [live]);
 
   const visible = useMemo(
     () => (filter === "all" ? PANELS : PANELS.filter((p) => p.id === filter)),
@@ -283,6 +314,10 @@ export function PanelsView() {
         <p className="glass mt-3 inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[11px] text-muted-foreground">
           <Sparkles className="h-3 w-3 text-primary" />
           {t.panelLab.hint}
+        </p>
+        <p className="glass mt-3 ms-2 inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[11px] text-chart-3">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-chart-3" />
+          {t.panelLab.plLiveHint}
         </p>
       </div>
 
@@ -363,12 +398,23 @@ export function PanelsView() {
               </div>
 
               <div className="mt-auto flex items-center gap-2 pt-2">
+                {liveOf(panel)?.status === "running" && (
+                  <Button
+                    size="sm"
+                    onClick={() => setLive(panel)}
+                    className="glow-cyan h-8 flex-1 gap-1.5 rounded-full px-3 text-[11px] font-semibold"
+                  >
+                    <Play className="h-3 w-3" />
+                    {t.panelLab.plOpenLive}
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setDetail(panel)}
                   className={cn(
-                    "h-8 flex-1 gap-1.5 rounded-full border-white/10 bg-white/[0.03] text-[11px] hover:bg-white/[0.06]"
+                    "h-8 gap-1.5 rounded-full border-white/10 bg-white/[0.03] text-[11px] hover:bg-white/[0.06]",
+                    liveOf(panel)?.status === "running" ? "shrink-0" : "flex-1"
                   )}
                 >
                   <ExternalLink className="h-3 w-3" />
@@ -379,7 +425,7 @@ export function PanelsView() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className={cn(
-                    "glass flex h-8 items-center gap-1.5 rounded-full px-3 text-[11px] text-muted-foreground transition-colors hover:text-foreground",
+                    "glass flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[11px] text-muted-foreground transition-colors hover:text-foreground",
                     "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                   )}
                   aria-label={`${panel.name} GitHub`}
@@ -426,11 +472,23 @@ export function PanelsView() {
                   ))}
                 </div>
                 <div className="flex items-center gap-2">
+                  {liveOf(detail)?.status === "running" && (
+                    <Button
+                      onClick={() => {
+                        setDetail(null);
+                        setLive(detail);
+                      }}
+                      className="glow-cyan h-9 gap-2 rounded-full px-4 text-xs font-semibold"
+                    >
+                      <Play className="h-3.5 w-3.5" />
+                      {t.panelLab.plOpenLive}
+                    </Button>
+                  )}
                   <a
                     href={detail.repo}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="glow-cyan flex h-9 flex-1 items-center justify-center gap-2 rounded-full bg-primary/15 text-xs font-semibold text-primary ring-1 ring-primary/30 transition-colors hover:bg-primary/25"
+                    className="flex h-9 flex-1 items-center justify-center gap-2 rounded-full bg-primary/15 text-xs font-semibold text-primary ring-1 ring-primary/30 transition-colors hover:bg-primary/25"
                   >
                     <Github className="h-3.5 w-3.5" />
                     {detail.repo.replace("https://github.com/", "")}
@@ -449,6 +507,66 @@ export function PanelsView() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* ── live viewer: the REAL deployed panel, embedded ── */}
+      {live &&
+        (() => {
+          const info = liveOf(live);
+          if (!info) return null;
+          const statusCls =
+            info.status === "running"
+              ? "border-chart-3/30 bg-chart-3/10 text-chart-3"
+              : info.status === "partial"
+                ? "border-chart-4/30 bg-chart-4/10 text-chart-4"
+                : "border-chart-5/30 bg-chart-5/10 text-chart-5";
+          return (
+            <div className="fixed inset-0 z-[90] flex flex-col bg-background">
+              <header className="flex flex-wrap items-center gap-2 border-b border-white/10 bg-black/50 px-3 py-2 sm:gap-3 sm:px-4 sm:py-2.5">
+                <span className={cn("text-sm font-bold", live.accent)}>{live.name}</span>
+                <span
+                  className={cn(
+                    "rounded-full border px-2 py-0.5 font-mono text-[10px] font-bold tracking-wider",
+                    statusCls
+                  )}
+                >
+                  {info.status === "running" ? "LIVE" : info.status.toUpperCase()}
+                </span>
+                <span className="hidden rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 font-mono text-[10px] text-muted-foreground sm:inline">
+                  {t.panelLab.plCreds}: {info.creds}
+                </span>
+                <span className="hidden font-mono text-[10px] text-muted-foreground/60 md:inline">
+                  {info.version} · :{info.port}
+                </span>
+                <div className="ms-auto flex items-center gap-2">
+                  <a
+                    href={info.entry}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="glass flex h-8 items-center gap-1.5 rounded-full px-3 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    {t.panelLab.plNewTab}
+                  </a>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setLive(null)}
+                    className="h-8 gap-1.5 rounded-full border-white/10 bg-white/[0.03] text-[11px] hover:bg-white/[0.06]"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                    {t.panelLab.plBack}
+                  </Button>
+                </div>
+              </header>
+              <iframe
+                src={info.entry}
+                title={`${live.name} — live panel`}
+                className="min-h-0 w-full flex-1 border-0 bg-[#0a0e13]"
+                allow="clipboard-write"
+              />
+            </div>
+          );
+        })()}
     </div>
   );
 }

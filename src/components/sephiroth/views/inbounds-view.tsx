@@ -19,8 +19,11 @@ import {
   RefreshCcw,
   Search,
   ShieldCheck,
+  LayoutGrid,
+  Rows3,
   SlidersHorizontal,
   Trash2,
+  TrendingUp,
   Users,
   Wifi,
   type LucideIcon,
@@ -176,10 +179,40 @@ const PROTO_LABEL: Record<string, string> = {
 
 const PROTO_CLS: Record<string, string> = {
   vless: "bg-primary/10 text-primary ring-primary/30",
-  vmess: "bg-chart-2/10 text-chart-2 ring-chart-2/30",
+  vmess: "bg-[#8b8cf8]/10 text-[#8b8cf8] ring-[#8b8cf8]/30",
   trojan: "bg-chart-4/10 text-chart-4 ring-chart-4/30",
-  shadowsocks: "bg-white/5 text-silver ring-white/15",
+  shadowsocks: "bg-chart-3/10 text-chart-3 ring-chart-3/30",
   hysteria2: "bg-chart-5/10 text-chart-5 ring-chart-5/30",
+};
+
+/* Lovable-design per-protocol accents (solid bar / spark color / hover glow) */
+const PROTO_BAR: Record<string, string> = {
+  vless: "bg-primary",
+  vmess: "bg-[#8b8cf8]",
+  trojan: "bg-chart-4",
+  shadowsocks: "bg-chart-3",
+  hysteria2: "bg-chart-5",
+};
+
+const PROTO_VAR: Record<string, string> = {
+  vless: "var(--primary)",
+  vmess: "#8b8cf8",
+  trojan: "var(--chart-4)",
+  shadowsocks: "var(--chart-3)",
+  hysteria2: "var(--chart-5)",
+};
+
+const PROTO_HOVER: Record<string, string> = {
+  vless:
+    "hover:border-primary/50 hover:shadow-[0_0_38px_-12px_var(--primary)]",
+  vmess:
+    "hover:border-[#8b8cf8]/50 hover:shadow-[0_0_38px_-12px_#8b8cf8]",
+  trojan:
+    "hover:border-chart-4/50 hover:shadow-[0_0_38px_-12px_var(--chart-4)]",
+  shadowsocks:
+    "hover:border-chart-3/50 hover:shadow-[0_0_38px_-12px_var(--chart-3)]",
+  hysteria2:
+    "hover:border-chart-5/50 hover:shadow-[0_0_38px_-12px_var(--chart-5)]",
 };
 
 const SCHEME: Record<string, string> = {
@@ -216,6 +249,81 @@ function composeProto(protocol: string, transport: string, security: string): st
 function fmtTraffic(gb: number): string {
   if (gb >= 1000) return `${(gb / 1000).toFixed(2)} TB`;
   return `${Math.round(gb)} GB`;
+}
+
+/* ---------- deterministic sparkline (Lovable-style card art) ---------- */
+
+function hashSeed(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function mulberry32(a: number): () => number {
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function Sparkline({
+  seed,
+  color,
+  className,
+}: {
+  seed: string;
+  color: string;
+  className?: string;
+}) {
+  const pts = useMemo(() => {
+    const rnd = mulberry32(hashSeed(seed));
+    const n = 26;
+    const arr: number[] = [];
+    let v = 0.45 + rnd() * 0.2;
+    for (let i = 0; i < n; i++) {
+      v += (rnd() - 0.48) * 0.16;
+      v = Math.min(0.95, Math.max(0.12, v));
+      arr.push(v);
+    }
+    return arr;
+  }, [seed]);
+  const W = 120;
+  const H = 40;
+  const step = W / (pts.length - 1);
+  const line = pts
+    .map((p, i) => `${(i * step).toFixed(1)},${(H - p * H).toFixed(1)}`)
+    .join(" ");
+  const gid = `sp-${hashSeed(seed).toString(36)}`;
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      className={cn("h-9 w-24 shrink-0", className)}
+      preserveAspectRatio="none"
+      aria-hidden="true"
+    >
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" style={{ stopColor: color, stopOpacity: 0.34 }} />
+          <stop offset="100%" style={{ stopColor: color, stopOpacity: 0 }} />
+        </linearGradient>
+      </defs>
+      <polygon points={`0,${H} ${line} ${W},${H}`} fill={`url(#${gid})`} />
+      <polyline
+        points={line}
+        fill="none"
+        style={{ stroke: color }}
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
 }
 
 /* ---------- id generators (client-side, preview-grade) ---------- */
@@ -497,7 +605,6 @@ export function InboundsView() {
   /* toolbar */
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [protoFilter, setProtoFilter] = useState("all");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
 
   /* create / edit dialog */
@@ -620,10 +727,14 @@ export function InboundsView() {
     return merged.filter(
       (r) =>
         (statusFilter === "all" || r.status === statusFilter) &&
-        (protoFilter === "all" || r.protocol === protoFilter) &&
         (!needle || r.tag.toLowerCase().includes(needle))
     );
-  }, [merged, q, statusFilter, protoFilter]);
+  }, [merged, q, statusFilter]);
+
+  const maxTx = useMemo(
+    () => Math.max(1, ...merged.map((r) => r.txGb)),
+    [merged]
+  );
 
   /* ---------- mutations ---------- */
 
@@ -897,21 +1008,27 @@ export function InboundsView() {
     icon: Icon,
     value,
     label,
+    trend,
   }: {
     icon: LucideIcon;
     value: string;
     label: string;
+    trend: string;
   }) => (
-    <div className="glass hover-glow group relative flex items-center gap-3.5 overflow-hidden rounded-2xl px-4 py-3.5">
-      <span className="glass flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
-        <Icon className="h-4.5 w-4.5 text-primary" />
-      </span>
-      <div className="min-w-0">
-        <p className="truncate font-mono text-lg font-bold leading-tight text-silver tabular-nums">
-          {value}
-        </p>
-        <p className="truncate text-[11px] text-muted-foreground">{label}</p>
+    <div className="glass hover-glow group relative overflow-hidden rounded-2xl px-4 py-4">
+      <div className="flex items-start justify-between gap-2">
+        <span className="glass flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
+          <Icon className="h-4.5 w-4.5 text-primary" />
+        </span>
+        <span className="flex items-center gap-1 text-[11px] font-medium text-chart-3">
+          <TrendingUp className="h-3 w-3" />
+          {trend}
+        </span>
       </div>
+      <p className="mt-3 truncate font-mono text-2xl font-bold leading-none text-silver tabular-nums md:text-3xl">
+        {value}
+      </p>
+      <p className="mt-1.5 truncate text-xs text-muted-foreground">{label}</p>
     </div>
   );
 
@@ -2011,67 +2128,41 @@ export function InboundsView() {
       {/* ── header ─────────────────────────────────────────── */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <span className="inline-block rounded-full border border-primary/25 bg-primary/8 px-3 py-1 text-[10px] font-bold tracking-[0.18em] text-primary">
+          <span className="inline-block rounded-full border border-primary/25 bg-primary/8 px-3 py-1 text-[10px] font-bold tracking-[0.18em] text-primary shadow-[0_0_18px_-8px_var(--primary)]">
             {t.inbounds.badge}
           </span>
-          <h1 className="text-silver mt-3 text-2xl font-bold md:text-3xl">{t.nav.inbounds}</h1>
-          <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-muted-foreground">
+          <h1 className="text-silver mt-4 text-4xl font-bold tracking-tight md:text-5xl">
+            {t.nav.inbounds}
+          </h1>
+          <p className="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
             {t.inbounds.subtitle}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <div
-            className="glass flex items-center rounded-full p-1"
-            role="group"
-            aria-label={t.inbounds.viewGrid}
-          >
-            {(
-              [
-                ["grid", t.inbounds.viewGrid, RadioTower],
-                ["table", t.inbounds.viewTable, Layers],
-              ] as const
-            ).map(([mode, label, Icon]) => (
-              <button
-                key={mode}
-                onClick={() => setViewMode(mode)}
-                aria-pressed={viewMode === mode}
-                aria-label={label}
-                className={cn(
-                  "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
-                  viewMode === mode
-                    ? "bg-primary/15 text-primary ring-1 ring-primary/30"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <Icon className="h-3.5 w-3.5" />
-              </button>
-            ))}
-          </div>
-          <Button
-            onClick={openCreate}
-            className="glow-cyan gap-2 rounded-full px-5 font-semibold shadow-lg shadow-primary/20"
-          >
-            <Plus className="h-4 w-4" />
-            {t.inbounds.new}
-          </Button>
-        </div>
+        <Button
+          onClick={openCreate}
+          className="glow-cyan gap-2 rounded-xl px-5 font-semibold shadow-lg shadow-primary/25"
+        >
+          <Plus className="h-4 w-4" />
+          {t.inbounds.new}
+        </Button>
       </div>
 
       {/* ── KPI strip ──────────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
-        <KPI icon={RadioTower} value={String(counts.all)} label={t.inbounds.kpiTotal} />
-        <KPI icon={Wifi} value={String(counts.online)} label={t.inbounds.kpiOnline} />
-        <KPI icon={Users} value={String(totals.users)} label={t.inbounds.kpiUsers} />
+        <KPI icon={RadioTower} value={String(counts.all)} label={t.inbounds.kpiTotal} trend={t.inbounds.trendWeek} />
+        <KPI icon={Wifi} value={String(counts.online)} label={t.inbounds.kpiOnline} trend={t.inbounds.trendUptime} />
+        <KPI icon={Users} value={String(totals.users)} label={t.inbounds.kpiUsers} trend={t.inbounds.trendUsers} />
         <KPI
           icon={ArrowLeftRight}
           value={fmtTraffic(totals.traffic)}
           label={t.inbounds.kpiTraffic}
+          trend={t.inbounds.trendTraffic}
         />
       </div>
 
       {/* ── toolbar ────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="glass relative h-10 min-w-0 flex-1 sm:max-w-72">
+        <div className="glass relative h-10 min-w-0 flex-1 rounded-xl sm:max-w-72">
           <Search className="pointer-events-none absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <input
             value={q}
@@ -2082,7 +2173,7 @@ export function InboundsView() {
           />
         </div>
         <div
-          className="glass flex flex-wrap items-center rounded-full p-1"
+          className="flex flex-wrap items-center gap-2"
           role="group"
           aria-label={t.nav.inbounds}
         >
@@ -2093,41 +2184,67 @@ export function InboundsView() {
               ["maintenance", t.inbounds.fMaint, counts.maintenance],
               ["disabled", t.inbounds.fDisabled, counts.disabled],
             ] as const
-          ).map(([key, label, count]) => (
+          ).map(([key, label, count]) => {
+            const active = statusFilter === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setStatusFilter(key)}
+                aria-pressed={active}
+                className={cn(
+                  "flex h-9 items-center gap-2 rounded-full border px-3.5 text-[12px] font-medium transition-all",
+                  active
+                    ? "border-primary/40 bg-primary/10 text-primary shadow-[0_0_16px_-6px_var(--primary)]"
+                    : "border-white/10 bg-white/[0.03] text-muted-foreground hover:border-white/20 hover:text-foreground"
+                )}
+              >
+                <span
+                  className={cn(
+                    "h-1.5 w-1.5 rounded-full",
+                    key === "all" ? "bg-primary" : STATUS_DOT[key]
+                  )}
+                  aria-hidden="true"
+                />
+                {label}
+                <span
+                  className={cn(
+                    "rounded-full px-1.5 py-px font-mono text-[10px] tabular-nums",
+                    active ? "bg-primary/15" : "bg-white/5"
+                  )}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <div
+          className="glass ms-auto flex items-center rounded-full p-1"
+          role="group"
+          aria-label={t.inbounds.viewGrid}
+        >
+          {(
+            [
+              ["grid", t.inbounds.viewGrid, LayoutGrid],
+              ["table", t.inbounds.viewTable, Rows3],
+            ] as const
+          ).map(([mode, label, Icon]) => (
             <button
-              key={key}
-              onClick={() => setStatusFilter(key)}
-              aria-pressed={statusFilter === key}
+              key={mode}
+              onClick={() => setViewMode(mode)}
+              aria-pressed={viewMode === mode}
+              aria-label={label}
               className={cn(
-                "flex h-8 items-center gap-1.5 rounded-full px-3 text-[12px] font-medium transition-colors",
-                statusFilter === key
+                "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
+                viewMode === mode
                   ? "bg-primary/15 text-primary ring-1 ring-primary/30"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              {key !== "all" && (
-                <span className={cn("h-1.5 w-1.5 rounded-full", STATUS_DOT[key])} aria-hidden="true" />
-              )}
-              {label}
-              <span className="font-mono text-[10px] tabular-nums opacity-70">{count}</span>
+              <Icon className="h-3.5 w-3.5" />
             </button>
           ))}
         </div>
-        <Select value={protoFilter} onValueChange={setProtoFilter}>
-          <SelectTrigger className="h-10 w-40 rounded-full border-white/10 bg-white/[0.04] text-xs" aria-label={t.inbounds.fieldProtocol}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="glass-strong">
-            <SelectItem value="all" className="text-xs">
-              {t.inbounds.protocolAll}
-            </SelectItem>
-            {PROTOCOLS.map((p) => (
-              <SelectItem key={p} value={p} className="font-mono text-xs">
-                {PROTO_LABEL[p]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
 
       {/* ── load error ─────────────────────────────────────── */}
@@ -2176,37 +2293,33 @@ export function InboundsView() {
           </p>
         )
       ) : viewMode === "grid" ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {visible.map((row) => (
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          {visible.map((row, i) => (
             <article
               key={row.id}
-              className="glass hover-glow fade-up group relative flex flex-col gap-3.5 overflow-hidden rounded-2xl p-5"
+              style={{ animationDelay: `${(i % 6) * 70}ms` }}
+              className={cn(
+                "fade-up group relative flex flex-col gap-3.5 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur-xl transition-all duration-300",
+                PROTO_HOVER[row.protocol] ?? PROTO_HOVER.vless
+              )}
             >
               <span
                 aria-hidden="true"
-                className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+                className={cn(
+                  "absolute inset-x-0 top-0 h-[3px] opacity-80",
+                  PROTO_BAR[row.protocol] ?? PROTO_BAR.vless
+                )}
               />
-              {/* proto + status */}
+              {/* proto badge + status */}
               <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2.5">
-                  <ProtoOrb protocol={row.protocol} />
-                  <span
-                    className={cn(
-                      "font-mono text-[11px] font-bold tracking-wider",
-                      row.protocol === "vless"
-                        ? "text-primary"
-                        : row.protocol === "vmess"
-                          ? "text-chart-2"
-                          : row.protocol === "trojan"
-                            ? "text-chart-4"
-                            : row.protocol === "hysteria2"
-                              ? "text-chart-5"
-                              : "text-silver"
-                    )}
-                  >
-                    {PROTO_LABEL[row.protocol] ?? row.protocol.toUpperCase()}
-                  </span>
-                </div>
+                <span
+                  className={cn(
+                    "rounded-lg px-2.5 py-1 font-mono text-[10px] font-bold tracking-wide ring-1",
+                    PROTO_CLS[row.protocol] ?? PROTO_CLS.vless
+                  )}
+                >
+                  {PROTO_LABEL[row.protocol] ?? row.protocol.toUpperCase()}
+                </span>
                 <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                   <span
                     className={cn(
@@ -2220,25 +2333,31 @@ export function InboundsView() {
                 </span>
               </div>
 
-              {/* tag + port */}
-              <div className="min-w-0">
-                <h3 className="truncate font-mono text-sm font-semibold text-silver" title={row.tag}>
+              {/* tag + sparkline */}
+              <div className="flex items-end justify-between gap-3">
+                <h3
+                  className="min-w-0 truncate font-mono text-sm font-semibold text-silver"
+                  title={row.tag}
+                >
                   {row.tag}
                 </h3>
-                <p className="mt-1 flex items-baseline gap-2">
-                  <span className="font-mono text-2xl font-bold leading-none text-silver tabular-nums">
-                    {row.port}
-                  </span>
-                  <span className="text-[10px] font-medium tracking-[0.16em] text-muted-foreground">
-                    PORT
-                  </span>
-                  {row.listen && row.listen !== "0.0.0.0" && (
-                    <span className="font-mono text-[10px] text-muted-foreground/70">
-                      @ {row.listen}
-                    </span>
-                  )}
-                </p>
+                <Sparkline seed={row.tag} color={PROTO_VAR[row.protocol] ?? PROTO_VAR.vless} />
               </div>
+
+              {/* port */}
+              <p className="flex items-baseline gap-2">
+                <span className="font-mono text-3xl font-bold leading-none tracking-tight text-silver tabular-nums md:text-4xl">
+                  {row.port}
+                </span>
+                <span className="text-[10px] font-semibold tracking-[0.18em] text-muted-foreground/80">
+                  PORT
+                </span>
+                {row.listen && row.listen !== "0.0.0.0" && (
+                  <span className="font-mono text-[10px] text-muted-foreground/70">
+                    @ {row.listen}
+                  </span>
+                )}
+              </p>
 
               {/* chips */}
               <div className="flex flex-wrap gap-1.5">
@@ -2265,23 +2384,36 @@ export function InboundsView() {
                 )}
               </div>
 
-              {/* live stats */}
-              <div className="mt-auto grid grid-cols-2 gap-3 border-t border-white/5 pt-3.5">
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                    {t.inbounds.usersLabel}
-                  </p>
-                  <p className="font-mono text-base font-bold text-silver tabular-nums">
-                    {row.users}
-                  </p>
+              {/* live stats (inset panel) */}
+              <div className="mt-auto rounded-xl border border-white/[0.07] bg-black/25 px-4 py-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                      {t.inbounds.usersLabel}
+                    </p>
+                    <p className="mt-1 font-mono text-lg font-bold leading-none text-silver tabular-nums">
+                      {row.users}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                      {t.inbounds.trafficLabel}
+                    </p>
+                    <p className="mt-1 font-mono text-lg font-bold leading-none text-silver tabular-nums">
+                      {fmtTraffic(row.txGb)}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                    {t.inbounds.trafficLabel}
-                  </p>
-                  <p className="font-mono text-base font-bold text-silver tabular-nums">
-                    {fmtTraffic(row.txGb)}
-                  </p>
+                <div className="mt-3 h-1 overflow-hidden rounded-full bg-white/[0.06]">
+                  <span
+                    className={cn(
+                      "block h-full rounded-full transition-all duration-700",
+                      PROTO_BAR[row.protocol] ?? PROTO_BAR.vless
+                    )}
+                    style={{
+                      width: `${Math.min(100, Math.max(2, Math.round((row.txGb / maxTx) * 100)))}%`,
+                    }}
+                  />
                 </div>
               </div>
 
