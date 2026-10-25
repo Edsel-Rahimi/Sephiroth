@@ -41,8 +41,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "fields" }, { status: 400 });
   }
 
+  /* Phase 6 — dual lookup: admin first (authoritative), then reseller */
   const admin = await db.adminUser.findUnique({ where: { username } });
-  if (!admin || !verifyPassword(password, admin.passwordHash)) {
+  let okUser: string | null = null;
+  let role: "admin" | "reseller" | null = null;
+
+  if (admin && verifyPassword(password, admin.passwordHash)) {
+    okUser = admin.username;
+    role = "admin";
+  } else {
+    const reseller = await db.reseller.findUnique({ where: { username } });
+    if (reseller && reseller.enabled && verifyPassword(password, reseller.passwordHash)) {
+      okUser = reseller.username;
+      role = "reseller";
+    }
+  }
+
+  if (!okUser || !role) {
     const fail = registerFailure(ip);
     if (fail.locked) {
       return NextResponse.json(
@@ -59,9 +74,9 @@ export async function POST(req: Request) {
   clearFailures(ip);
 
   const ttl = remember ? SESSION_TTL_LONG : SESSION_TTL_SHORT;
-  const token = await signToken(admin.username, ttl);
+  const token = await signToken(okUser, ttl);
 
-  const res = NextResponse.json({ ok: true, username: admin.username });
+  const res = NextResponse.json({ ok: true, username: okUser, role });
   res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions(Math.floor(ttl / 1000)));
   return res;
 }

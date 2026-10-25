@@ -69,6 +69,7 @@ model ClientUser {
   usedTrafficGb  Float    @default(0)
   // Phase 6 hook: owning reseller, null = admin-created
   resellerId     String?
+  reseller       Reseller? @relation(fields: [resellerId], references: [id], onDelete: SetNull)
   accesses       UserInboundAccess[]
   groupMembers   SubGroupMember[]
   createdAt      DateTime @default(now())
@@ -117,4 +118,42 @@ model SubGroupMember {
 
   @@unique([groupId, userId])
   @@index([userId])
+}
+
+// ------------------------------------------------------------
+// Phase 6 — Reseller system.
+// A Reseller is a second login type (scoped operator): it can
+// only see/manage the ClientUsers it owns (ClientUser.resellerId).
+// Quotas cap how many users it may create (maxUsers) and how much
+// traffic it may allocate across them (trafficQuotaGb, null =
+// unlimited; while a quota is set, unlimited-traffic users are
+// forbidden so the allocation stays finite). Deleting a reseller
+// releases its users (resellerId → null), never deletes them.
+// ------------------------------------------------------------
+
+model Reseller {
+  id             String       @id @default(cuid())
+  username       String       @unique // 3-32 chars [a-zA-Z0-9_-]
+  passwordHash   String // scrypt "salt:hash"
+  note           String?
+  enabled        Boolean      @default(true)
+  maxUsers       Int? // null = unlimited user quota
+  trafficQuotaGb Float? // null = unlimited traffic allocation
+  users          ClientUser[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+// Sale templates — named presets (traffic/expiry/ipLimit) that
+// appear as one-click chips in the user create dialog. Admin
+// manages them; resellers consume the enabled ones.
+model SaleTemplate {
+  id             String   @id @default(cuid())
+  name           String // 1-48 chars
+  trafficLimitGb Float? // null = unlimited
+  expiryDays     Int? // null = never expires
+  ipLimit        Int      @default(0) // 0 = unlimited
+  enabled        Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }

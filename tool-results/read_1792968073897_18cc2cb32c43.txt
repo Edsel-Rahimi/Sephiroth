@@ -1,0 +1,754 @@
+     1→"use client";
+     2→
+     3→import { useCallback, useEffect, useMemo, useState } from "react";
+     4→import {
+     5→  CalendarDays,
+     6→  Check,
+     7→  Copy,
+     8→  FolderPlus,
+     9→  KeyRound,
+    10→  Layers,
+    11→  Lightbulb,
+    12→  Link2,
+    13→  LockOpen,
+    14→  Search,
+    15→  SquarePen,
+    16→  Trash2,
+    17→  Users as UsersIcon,
+    18→} from "lucide-react";
+    19→import { Button } from "@/components/ui/button";
+    20→import { Input } from "@/components/ui/input";
+    21→import { Label } from "@/components/ui/label";
+    22→import { Skeleton } from "@/components/ui/skeleton";
+    23→import { Switch } from "@/components/ui/switch";
+    24→import { Checkbox } from "@/components/ui/checkbox";
+    25→import {
+    26→  Dialog,
+    27→  DialogContent,
+    28→  DialogDescription,
+    29→  DialogHeader,
+    30→  DialogTitle,
+    31→} from "@/components/ui/dialog";
+    32→import {
+    33→  AlertDialog,
+    34→  AlertDialogAction,
+    35→  AlertDialogCancel,
+    36→  AlertDialogContent,
+    37→  AlertDialogDescription,
+    38→  AlertDialogFooter,
+    39→  AlertDialogHeader,
+    40→  AlertDialogTitle,
+    41→} from "@/components/ui/alert-dialog";
+    42→import { useAppStore } from "@/lib/store/app-store";
+    43→import { dictionaries } from "@/lib/i18n/dictionaries";
+    44→import type { GroupDTO } from "@/lib/sub-groups";
+    45→import type { UserDTO } from "@/lib/user-types";
+    46→import { useToast } from "@/hooks/use-toast";
+    47→import { cn } from "@/lib/utils";
+    48→
+    49→/* ============================================================
+    50→   Sephiroth · Phase 5 — Sub Groups view (admin)
+    51→   Bundles panel users onto one public /sub/[token] page.
+    52→   Cards carry token copy + public-link preview; the dialog edits
+    53→   identity (name/info line/password) and the member set. Every
+    54→   section carries a plain-language tip; all strings come from
+    55→   the 6-language dictionary (subgroups section).
+    56→   ============================================================ */
+    57→
+    58→interface GrpForm {
+    59→  name: string;
+    60→  infoLine: string;
+    61→  password: string;
+    62→  clearPassword: boolean;
+    63→  enabled: boolean;
+    64→  memberIds: Set<string>;
+    65→}
+    66→
+    67→const EMPTY_FORM: GrpForm = {
+    68→  name: "",
+    69→  infoLine: "",
+    70→  password: "",
+    71→  clearPassword: false,
+    72→  enabled: true,
+    73→  memberIds: new Set<string>(),
+    74→};
+    75→
+    76→function Tip({ children, className }: { children: React.ReactNode; className?: string }) {
+    77→  return (
+    78→    <p
+    79→      className={cn(
+    80→        "flex items-start gap-1.5 rounded-lg bg-primary/[0.04] px-2.5 py-2 text-[11px] leading-relaxed text-muted-foreground ring-1 ring-primary/10",
+    81→        className
+    82→      )}
+    83→    >
+    84→      <Lightbulb className="mt-0.5 h-3 w-3 shrink-0 text-primary/80" aria-hidden="true" />
+    85→      <span>{children}</span>
+    86→    </p>
+    87→  );
+    88→}
+    89→
+    90→function avatarColor(seed: string): string {
+    91→  const palette = [
+    92→    "bg-primary/20 text-primary",
+    93→    "bg-[#8b8cf8]/20 text-[#8b8cf8]",
+    94→    "bg-chart-3/20 text-chart-3",
+    95→    "bg-chart-4/20 text-chart-4",
+    96→    "bg-[#c084fc]/20 text-[#c084fc]",
+    97→    "bg-[#f472b6]/20 text-[#f472b6]",
+    98→  ];
+    99→  let h = 0;
+   100→  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+   101→  return palette[h % palette.length];
+   102→}
+   103→
+   104→/* ============================================================ */
+   105→
+   106→export function SubGroupsView() {
+   107→  const lang = useAppStore((s) => s.lang);
+   108→  const t = useMemo(() => dictionaries[lang], [lang]);
+   109→  const u = t.subgroups;
+   110→
+   111→  const { toast } = useToast();
+   112→
+   113→  const [groups, setGroups] = useState<GroupDTO[] | null>(null);
+   114→  const [users, setUsers] = useState<UserDTO[]>([]);
+   115→  const [loadErr, setLoadErr] = useState(false);
+   116→  const [origin, setOrigin] = useState("");
+   117→
+   118→  /* toolbar */
+   119→  const [q, setQ] = useState("");
+   120→
+   121→  /* dialog */
+   122→  const [dlgOpen, setDlgOpen] = useState(false);
+   123→  const [editing, setEditing] = useState<GroupDTO | null>(null);
+   124→  const [form, setForm] = useState<GrpForm>(EMPTY_FORM);
+   125→  const [fieldErr, setFieldErr] = useState<Partial<Record<string, string>>>({});
+   126→  const [saving, setSaving] = useState(false);
+   127→  const [memberQ, setMemberQ] = useState("");
+   128→
+   129→  /* delete */
+   130→  const [deleting, setDeleting] = useState<GroupDTO | null>(null);
+   131→  const [deleteBusy, setDeleteBusy] = useState(false);
+   132→
+   133→  useEffect(() => {
+   134→    setOrigin(window.location.origin);
+   135→  }, []);
+   136→
+   137→  const load = useCallback(async () => {
+   138→    try {
+   139→      const [gr, ur] = await Promise.all([
+   140→        fetch("/api/sub/groups", { cache: "no-store" }),
+   141→        fetch("/api/users", { cache: "no-store" }),
+   142→      ]);
+   143→      if (!gr.ok || !ur.ok) throw new Error("load");
+   144→      const gj = (await gr.json()) as { groups: GroupDTO[] };
+   145→      const uj = (await ur.json()) as { users: UserDTO[] };
+   146→      setGroups(gj.groups);
+   147→      setUsers(uj.users);
+   148→      setLoadErr(false);
+   149→    } catch {
+   150→      setGroups([]);
+   151→      setLoadErr(true);
+   152→    }
+   153→  }, []);
+   154→
+   155→  useEffect(() => {
+   156→    void load();
+   157→  }, [load]);
+   158→
+   159→  /* ---------- derived ---------- */
+   160→
+   161→  const userById = useMemo(() => {
+   162→    const m = new Map<string, UserDTO>();
+   163→    for (const x of users) m.set(x.id, x);
+   164→    return m;
+   165→  }, [users]);
+   166→
+   167→  const kpis = useMemo(() => {
+   168→    const list = groups ?? [];
+   169→    const members = new Set<string>();
+   170→    for (const g of list) for (const id of g.memberIds) members.add(id);
+   171→    return {
+   172→      groups: list.length,
+   173→      members: members.size,
+   174→      protected: list.filter((g) => g.hasPassword).length,
+   175→    };
+   176→  }, [groups]);
+   177→
+   178→  const filtered = useMemo(() => {
+   179→    const needle = q.trim().toLowerCase();
+   180→    let list = [...(groups ?? [])];
+   181→    if (needle) {
+   182→      list = list.filter(
+   183→        (g) =>
+   184→          g.name.toLowerCase().includes(needle) ||
+   185→          g.token.includes(needle) ||
+   186→          g.memberIds.some((id) => (userById.get(id)?.username ?? "").toLowerCase().includes(needle))
+   187→      );
+   188→    }
+   189→    list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+   190→    return list;
+   191→  }, [groups, q, userById]);
+   192→
+   193→  const memberCandidates = useMemo(() => {
+   194→    const needle = memberQ.trim().toLowerCase();
+   195→    return users.filter((x) => !needle || x.username.toLowerCase().includes(needle));
+   196→  }, [users, memberQ]);
+   197→
+   198→  /* ---------- actions ---------- */
+   199→
+   200→  const openCreate = () => {
+   201→    setEditing(null);
+   202→    setForm(EMPTY_FORM);
+   203→    setMemberQ("");
+   204→    setFieldErr({});
+   205→    setDlgOpen(true);
+   206→  };
+   207→
+   208→  const openEdit = (g: GroupDTO) => {
+   209→    setEditing(g);
+   210→    setForm({
+   211→      name: g.name,
+   212→      infoLine: g.infoLine ?? "",
+   213→      password: "",
+   214→      clearPassword: false,
+   215→      enabled: g.enabled,
+   216→      memberIds: new Set(g.memberIds),
+   217→    });
+   218→    setMemberQ("");
+   219→    setFieldErr({});
+   220→    setDlgOpen(true);
+   221→  };
+   222→
+   223→  const toggleMember = (id: string) => {
+   224→    setForm((f) => {
+   225→      const next = new Set(f.memberIds);
+   226→      if (next.has(id)) next.delete(id);
+   227→      else next.add(id);
+   228→      return { ...f, memberIds: next };
+   229→    });
+   230→  };
+   231→
+   232→  const save = async () => {
+   233→    setSaving(true);
+   234→    setFieldErr({});
+   235→    const name = form.name.trim();
+   236→    if (name.length < 1 || name.length > 48) {
+   237→      setFieldErr({ name: u.errName });
+   238→      setSaving(false);
+   239→      return;
+   240→    }
+   241→    if (form.password && form.password.length < 4) {
+   242→      setFieldErr({ password: u.pwShort });
+   243→      setSaving(false);
+   244→      return;
+   245→    }
+   246→    try {
+   247→      const payload: Record<string, unknown> = {
+   248→        name,
+   249→        infoLine: form.infoLine.trim(),
+   250→        enabled: form.enabled,
+   251→        memberIds: [...form.memberIds],
+   252→      };
+   253→      if (form.clearPassword) payload.clearPassword = true;
+   254→      else if (form.password) payload.password = form.password;
+   255→
+   256→      const res = await fetch(editing ? `/api/sub/groups/${editing.id}` : "/api/sub/groups", {
+   257→        method: editing ? "PATCH" : "POST",
+   258→        headers: { "Content-Type": "application/json" },
+   259→        body: JSON.stringify(payload),
+   260→      });
+   261→      if (res.status === 400) {
+   262→        const j = (await res.json()) as { fields?: { field: string; code: string }[] };
+   263→        const map: Partial<Record<string, string>> = {};
+   264→        for (const f of j.fields ?? []) map[f.field] = f.code === "short" ? u.pwShort : u.errName;
+   265→        setFieldErr(map);
+   266→        setSaving(false);
+   267→        return;
+   268→      }
+   269→      if (!res.ok) throw new Error("save");
+   270→      await load();
+   271→      setDlgOpen(false);
+   272→      toast({
+   273→        description: editing ? u.toastUpdated : `${u.toastCreated} · ${name}`,
+   274→      });
+   275→    } catch {
+   276→      setFieldErr({ name: u.errName });
+   277→    }
+   278→    setSaving(false);
+   279→  };
+   280→
+   281→  const destroy = async (g: GroupDTO) => {
+   282→    setDeleteBusy(true);
+   283→    try {
+   284→      const res = await fetch(`/api/sub/groups/${g.id}`, { method: "DELETE" });
+   285→      if (!res.ok) throw new Error("delete");
+   286→      setGroups((prev) => (prev ?? []).filter((x) => x.id !== g.id));
+   287→      setDeleting(null);
+   288→      toast({ description: `${u.toastDeleted} · ${g.name}` });
+   289→    } catch {
+   290→      setDeleting(null);
+   291→    }
+   292→    setDeleteBusy(false);
+   293→  };
+   294→
+   295→  const toggleEnabled = async (g: GroupDTO, enabled: boolean) => {
+   296→    setGroups((prev) => (prev ?? []).map((x) => (x.id === g.id ? { ...x, enabled } : x)));
+   297→    try {
+   298→      await fetch(`/api/sub/groups/${g.id}`, {
+   299→        method: "PATCH",
+   300→        headers: { "Content-Type": "application/json" },
+   301→        body: JSON.stringify({ enabled }),
+   302→      });
+   303→    } catch {
+   304→      setGroups((prev) => (prev ?? []).map((x) => (x.id === g.id ? { ...x, enabled: !enabled } : x)));
+   305→    }
+   306→  };
+   307→
+   308→  const copyText = async (text: string, label: string) => {
+   309→    try {
+   310→      await navigator.clipboard.writeText(text);
+   311→    } catch {
+   312→      /* noop */
+   313→    }
+   314→    toast({ description: label });
+   315→  };
+   316→
+   317→  const publicLinkOf = (g: GroupDTO) => `${origin}/sub/${g.token}`;
+   318→
+   319→  const loading = groups === null;
+   320→
+   321→  /* ---------- render ---------- */
+   322→
+   323→  return (
+   324→    <div className="fade-up space-y-6">
+   325→      {/* header */}
+   326→      <section className="space-y-2">
+   327→        <span className="glass inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-semibold tracking-[0.22em] text-primary/90 ring-1 ring-primary/20">
+   328→          <Layers className="h-3 w-3" aria-hidden="true" />
+   329→          {u.badge}
+   330→        </span>
+   331→        <div className="flex flex-wrap items-end justify-between gap-3">
+   332→          <div>
+   333→            <h1 className="text-silver text-3xl font-bold tracking-tight md:text-4xl">{t.nav.subgroups}</h1>
+   334→            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{u.subtitle}</p>
+   335→          </div>
+   336→          <Button onClick={openCreate} className="glow-cyan gap-2" aria-label={u.new}>
+   337→            <FolderPlus className="h-4 w-4" aria-hidden="true" />
+   338→            {u.new}
+   339→          </Button>
+   340→        </div>
+   341→      </section>
+   342→
+   343→      {/* KPI row */}
+   344→      <section className="grid grid-cols-3 gap-3" aria-label={u.kpiGroups}>
+   345→        {[
+   346→          { label: u.kpiGroups, value: kpis.groups, icon: Layers, cls: "text-primary" },
+   347→          { label: u.kpiMembers, value: kpis.members, icon: UsersIcon, cls: "text-chart-3" },
+   348→          { label: u.kpiProtected, value: kpis.protected, icon: KeyRound, cls: "text-chart-4" },
+   349→        ].map(({ label, value, icon: Icon, cls }) => (
+   350→          <div key={label} className="glass rounded-2xl p-4">
+   351→            <div className="flex items-center justify-between gap-2">
+   352→              <span className="text-[11px] font-medium text-muted-foreground">{label}</span>
+   353→              <span className={cn("glass flex h-7 w-7 items-center justify-center rounded-lg ring-1 ring-white/10", cls)}>
+   354→                <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+   355→              </span>
+   356→            </div>
+   357→            <p className="mt-1.5 font-mono text-2xl font-bold text-foreground md:text-3xl">{value}</p>
+   358→          </div>
+   359→        ))}
+   360→      </section>
+   361→
+   362→      {/* search */}
+   363→      <section className="relative max-w-md">
+   364→        <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+   365→        <Input
+   366→          value={q}
+   367→          onChange={(e) => setQ(e.target.value)}
+   368→          placeholder={u.searchPh}
+   369→          className="h-10 ps-9"
+   370→          aria-label={u.searchPh}
+   371→        />
+   372→      </section>
+   373→      <Tip>{u.tipGroups}</Tip>
+   374→
+   375→      {/* list */}
+   376→      {loading ? (
+   377→        <div className="grid gap-4 md:grid-cols-2">
+   378→          {Array.from({ length: 2 }).map((_, i) => (
+   379→            <Skeleton key={i} className="h-52 rounded-2xl" />
+   380→          ))}
+   381→        </div>
+   382→      ) : filtered.length === 0 ? (
+   383→        <div className="glass rounded-2xl p-12 text-center ring-1 ring-white/10">
+   384→          <Layers className="mx-auto h-10 w-10 text-muted-foreground/50" aria-hidden="true" />
+   385→          <p className="mt-4 text-sm font-semibold text-foreground">{u.empty}</p>
+   386→          <p className="mt-1 text-xs text-muted-foreground">{u.emptyDesc}</p>
+   387→        </div>
+   388→      ) : (
+   389→        <ul className="grid gap-4 md:grid-cols-2">
+   390→          {filtered.map((g) => (
+   391→            <li
+   392→              key={g.id}
+   393→              className={cn(
+   394→                "glass hover-glow relative overflow-hidden rounded-2xl p-5 ring-1 ring-white/10",
+   395→                !g.enabled && "opacity-60"
+   396→              )}
+   397→            >
+   398→              <span className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+   399→              {/* name + protection */}
+   400→              <div className="flex items-start justify-between gap-3">
+   401→                <div className="flex min-w-0 items-center gap-2.5">
+   402→                  <span
+   403→                    className={cn(
+   404→                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ring-white/10",
+   405→                      avatarColor(g.token)
+   406→                    )}
+   407→                  >
+   408→                    <Layers className="h-4 w-4" aria-hidden="true" />
+   409→                  </span>
+   410→                  <div className="min-w-0">
+   411→                    <p className="truncate text-sm font-bold text-foreground">{g.name}</p>
+   412→                    <p className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+   413→                      <CalendarDays className="h-3 w-3" aria-hidden="true" />
+   414→                      {u.memberSince} {new Date(g.createdAt).toLocaleDateString(lang)}
+   415→                    </p>
+   416→                  </div>
+   417→                </div>
+   418→                <span
+   419→                  className={cn(
+   420→                    "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1",
+   421→                    g.hasPassword
+   422→                      ? "ring-chart-4/40 bg-chart-4/10 text-chart-4"
+   423→                      : "ring-chart-3/40 bg-chart-3/10 text-chart-3"
+   424→                  )}
+   425→                >
+   426→                  <KeyRound className="h-3 w-3" aria-hidden="true" />
+   427→                  {g.hasPassword ? u.pwProtected : u.pwOpen}
+   428→                </span>
+   429→              </div>
+   430→
+   431→              {/* token */}
+   432→              <div className="mt-3.5">
+   433→                <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">{u.colToken}</p>
+   434→                <div className="mt-1.5 flex items-center gap-2">
+   435→                  <code className="flex-1 truncate rounded-lg bg-black/30 px-2.5 py-1.5 font-mono text-[11px] text-primary/90 ring-1 ring-white/10">
+   436→                    {g.token}
+   437→                  </code>
+   438→                  <Button
+   439→                    variant="outline"
+   440→                    size="sm"
+   441→                    onClick={() => void copyText(g.token, u.colToken)}
+   442→                    aria-label={u.colToken}
+   443→                    className="h-8 border-white/10 bg-white/[0.03] px-2 text-muted-foreground hover:text-foreground"
+   444→                  >
+   445→                    <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+   446→                  </Button>
+   447→                </div>
+   448→              </div>
+   449→
+   450→              {/* members */}
+   451→              <div className="mt-3.5">
+   452→                <p className="flex items-center justify-between text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+   453→                  <span>{u.colMembers}</span>
+   454→                  <span className="font-mono text-primary">{g.memberIds.length}</span>
+   455→                </p>
+   456→                <div className="mt-1.5 flex flex-wrap items-center gap-1">
+   457→                  {g.memberIds.length === 0 ? (
+   458→                    <span className="text-[11px] text-muted-foreground/70">{u.noMembers}</span>
+   459→                  ) : (
+   460→                    g.memberIds.slice(0, 6).map((id) => {
+   461→                      const usr = userById.get(id);
+   462→                      return (
+   463→                        <span
+   464→                          key={id}
+   465→                          className={cn(
+   466→                            "flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ring-1",
+   467→                            usr
+   468→                              ? usr.enabled
+   469→                                ? "ring-chart-3/30 bg-chart-3/10 text-chart-3"
+   470→                                : "ring-border bg-muted/40 text-muted-foreground"
+   471→                              : "ring-border bg-muted/40 text-muted-foreground"
+   472→                          )}
+   473→                        >
+   474→                          {usr?.username ?? id.slice(0, 8)}
+   475→                        </span>
+   476→                      );
+   477→                    })
+   478→                  )}
+   479→                  {g.memberIds.length > 6 && (
+   480→                    <span className="rounded-full bg-white/5 px-2 py-0.5 font-mono text-[10px] text-muted-foreground ring-1 ring-white/10">
+   481→                      +{g.memberIds.length - 6}
+   482→                    </span>
+   483→                  )}
+   484→                </div>
+   485→              </div>
+   486→
+   487→              {/* info line */}
+   488→              {g.infoLine && (
+   489→                <p className="mt-3 truncate rounded-lg bg-primary/[0.06] px-2.5 py-1.5 text-[11px] text-primary/85 ring-1 ring-primary/15">
+   490→                  {g.infoLine}
+   491→                </p>
+   492→              )}
+   493→
+   494→              {/* actions */}
+   495→              <div className="mt-4 flex items-center justify-between gap-2 border-t border-white/5 pt-3.5">
+   496→                <label className="flex cursor-pointer items-center gap-2 text-[11px] text-muted-foreground">
+   497→                  <Switch checked={g.enabled} onCheckedChange={(v) => void toggleEnabled(g, v)} aria-label={u.enabled} />
+   498→                  {u.enabled}
+   499→                </label>
+   500→                <div className="flex items-center gap-1">
+   501→                  <Button
+   502→                    variant="outline"
+   503→                    size="sm"
+   504→                    onClick={() => window.open(publicLinkOf(g), "_blank")}
+   505→                    aria-label={u.preview}
+   506→                    title={u.preview}
+   507→                    className="h-8 gap-1.5 border-primary/25 bg-primary/10 px-2.5 text-[11px] text-primary hover:bg-primary/15 hover:text-primary"
+   508→                  >
+   509→                    <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
+   510→                    <span className="hidden sm:inline">{u.preview}</span>
+   511→                  </Button>
+   512→                  <Button
+   513→                    variant="outline"
+   514→                    size="sm"
+   515→                    onClick={() => void copyText(publicLinkOf(g), u.copyLink)}
+   516→                    aria-label={u.copyLink}
+   517→                    className="h-8 border-white/10 bg-white/[0.03] px-2 text-muted-foreground hover:text-foreground"
+   518→                  >
+   519→                    <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+   520→                  </Button>
+   521→                  <Button
+   522→                    variant="outline"
+   523→                    size="sm"
+   524→                    onClick={() => openEdit(g)}
+   525→                    aria-label={u.dlgEdit}
+   526→                    className="h-8 border-white/10 bg-white/[0.03] px-2 text-muted-foreground hover:text-foreground"
+   527→                  >
+   528→                    <SquarePen className="h-3.5 w-3.5" aria-hidden="true" />
+   529→                  </Button>
+   530→                  <Button
+   531→                    variant="outline"
+   532→                    size="sm"
+   533→                    onClick={() => setDeleting(g)}
+   534→                    aria-label={u.delTitle}
+   535→                    className="h-8 border-chart-5/25 bg-chart-5/10 px-2 text-chart-5 hover:bg-chart-5/15 hover:text-chart-5"
+   536→                  >
+   537→                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+   538→                  </Button>
+   539→                </div>
+   540→              </div>
+   541→            </li>
+   542→          ))}
+   543→        </ul>
+   544→      )}
+   545→
+   546→      {/* ---------------- create / edit dialog ---------------- */}
+   547→      <Dialog open={dlgOpen} onOpenChange={setDlgOpen}>
+   548→        <DialogContent className="glass-strong max-h-[85vh] max-w-lg overflow-y-auto border-white/10">
+   549→          <DialogHeader>
+   550→            <DialogTitle className="text-silver text-lg font-bold">
+   551→              {editing ? u.dlgEdit : u.dlgCreate}
+   552→            </DialogTitle>
+   553→            <DialogDescription className="text-xs text-muted-foreground">
+   554→              {u.membersHint}
+   555→            </DialogDescription>
+   556→          </DialogHeader>
+   557→
+   558→          <div className="space-y-5">
+   559→            {/* identity */}
+   560→            <div className="space-y-3">
+   561→              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-primary/90">{u.secIdentity}</p>
+   562→              <div className="space-y-1.5">
+   563→                <Label htmlFor="grp-name" className="text-xs text-muted-foreground">
+   564→                  {u.fieldGroup}
+   565→                </Label>
+   566→                <Input
+   567→                  id="grp-name"
+   568→                  value={form.name}
+   569→                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+   570→                  placeholder={u.phGroup}
+   571→                  maxLength={48}
+   572→                  className="h-10"
+   573→                />
+   574→                {fieldErr.name && <p className="text-[11px] text-chart-5">{fieldErr.name}</p>}
+   575→              </div>
+   576→              <div className="space-y-1.5">
+   577→                <Label htmlFor="grp-info" className="text-xs text-muted-foreground">
+   578→                  {u.fieldInfo}
+   579→                </Label>
+   580→                <Input
+   581→                  id="grp-info"
+   582→                  value={form.infoLine}
+   583→                  onChange={(e) => setForm((f) => ({ ...f, infoLine: e.target.value }))}
+   584→                  placeholder={u.phInfo}
+   585→                  maxLength={200}
+   586→                  className="h-10"
+   587→                />
+   588→              </div>
+   589→              <div className="space-y-1.5">
+   590→                <Label htmlFor="grp-pw" className="text-xs text-muted-foreground">
+   591→                  {u.fieldPassword}
+   592→                </Label>
+   593→                <div className="flex items-center gap-2">
+   594→                  <Input
+   595→                    id="grp-pw"
+   596→                    type="password"
+   597→                    value={form.password}
+   598→                    onChange={(e) => setForm((f) => ({ ...f, password: e.target.value, clearPassword: false }))}
+   599→                    placeholder={editing && editing.hasPassword ? u.pwKeep : u.phPassword}
+   600→                    className="h-10"
+   601→                    autoComplete="new-password"
+   602→                  />
+   603→                  {editing && editing.hasPassword && (
+   604→                    <Button
+   605→                      type="button"
+   606→                      variant="outline"
+   607→                      onClick={() =>
+   608→                        setForm((f) => ({ ...f, password: "", clearPassword: !f.clearPassword }))
+   609→                      }
+   610→                      aria-pressed={form.clearPassword}
+   611→                      className={cn(
+   612→                        "h-10 shrink-0 gap-1.5 text-[11px]",
+   613→                        form.clearPassword
+   614→                          ? "border-chart-5/40 bg-chart-5/10 text-chart-5"
+   615→                          : "border-white/10 bg-white/[0.03] text-muted-foreground"
+   616→                      )}
+   617→                    >
+   618→                      <LockOpen className="h-3.5 w-3.5" aria-hidden="true" />
+   619→                      {u.pwClear}
+   620→                    </Button>
+   621→                  )}
+   622→                </div>
+   623→                {fieldErr.password && <p className="text-[11px] text-chart-5">{fieldErr.password}</p>}
+   624→              </div>
+   625→              <Tip>{u.tipIdentity}</Tip>
+   626→            </div>
+   627→
+   628→            {/* members */}
+   629→            <div className="space-y-2.5">
+   630→              <div className="flex items-center justify-between">
+   631→                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-primary/90">{u.secMembers}</p>
+   632→                <div className="flex items-center gap-1">
+   633→                  <Button
+   634→                    type="button"
+   635→                    variant="ghost"
+   636→                    size="sm"
+   637→                    onClick={() => setForm((f) => ({ ...f, memberIds: new Set(users.map((x) => x.id)) }))}
+   638→                    className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground"
+   639→                  >
+   640→                    {u.selectAll}
+   641→                  </Button>
+   642→                  <Button
+   643→                    type="button"
+   644→                    variant="ghost"
+   645→                    size="sm"
+   646→                    onClick={() => setForm((f) => ({ ...f, memberIds: new Set() }))}
+   647→                    className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground"
+   648→                  >
+   649→                    {u.clearAll}
+   650→                  </Button>
+   651→                </div>
+   652→              </div>
+   653→              <div className="relative">
+   654→                <Search className="absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+   655→                <Input
+   656→                  value={memberQ}
+   657→                  onChange={(e) => setMemberQ(e.target.value)}
+   658→                  placeholder={u.searchPh}
+   659→                  className="h-9 ps-9 text-xs"
+   660→                  aria-label={u.searchPh}
+   661→                />
+   662→              </div>
+   663→              <Tip>{u.tipMembers}</Tip>
+   664→              <div className="max-h-56 space-y-1 overflow-y-auto rounded-xl bg-black/20 p-2 ring-1 ring-white/10">
+   665→                {memberCandidates.length === 0 ? (
+   666→                  <p className="px-2 py-6 text-center text-[11px] text-muted-foreground">{u.noMembers}</p>
+   667→                ) : (
+   668→                  memberCandidates.map((usr) => (
+   669→                    <div
+   670→                      key={usr.id}
+   671→                      role="button"
+   672→                      tabIndex={0}
+   673→                      onClick={() => toggleMember(usr.id)}
+   674→                      onKeyDown={(e) => {
+   675→                        if (e.key === "Enter" || e.key === " ") {
+   676→                          e.preventDefault();
+   677→                          toggleMember(usr.id);
+   678→                        }
+   679→                      }}
+   680→                      className={cn(
+   681→                        "flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 transition-colors",
+   682→                        form.memberIds.has(usr.id) ? "bg-primary/10 ring-1 ring-primary/30" : "hover:bg-white/5"
+   683→                      )}
+   684→                    >
+   685→                      <Checkbox checked={form.memberIds.has(usr.id)} aria-hidden="true" tabIndex={-1} className="pointer-events-none" />
+   686→                      <span
+   687→                        className={cn(
+   688→                          "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[9px] font-bold",
+   689→                          avatarColor(usr.username)
+   690→                        )}
+   691→                      >
+   692→                        {usr.username.slice(0, 2).toUpperCase()}
+   693→                      </span>
+   694→                      <span className="min-w-0 flex-1">
+   695→                        <span className="block truncate text-xs font-medium text-foreground">{usr.username}</span>
+   696→                        <span className="block font-mono text-[9px] text-muted-foreground">
+   697→                          {usr.accesses.length} · {usr.subId.slice(0, 8)}
+   698→                        </span>
+   699→                      </span>
+   700→                      {form.memberIds.has(usr.id) && (
+   701→                        <Check className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />
+   702→                      )}
+   703→                    </div>
+   704→                  ))
+   705→                )}
+   706→              </div>
+   707→              <p className="font-mono text-[10px] text-muted-foreground">
+   708→                {form.memberIds.size} {u.colMembers.toLowerCase()}
+   709→              </p>
+   710→            </div>
+   711→
+   712→            {/* token tip */}
+   713→            {editing && <Tip>{u.tipToken}</Tip>}
+   714→
+   715→            {/* actions */}
+   716→            <div className="flex items-center justify-end gap-2 pt-1">
+   717→              <Button variant="outline" onClick={() => setDlgOpen(false)} className="h-10 border-white/10 bg-white/[0.03]">
+   718→                {u.cancel}
+   719→              </Button>
+   720→              <Button onClick={() => void save()} disabled={saving} className="glow-cyan h-10 gap-2 bg-primary/90 font-semibold text-black hover:bg-primary">
+   721→                {saving ? <Check className="h-4 w-4 animate-pulse" aria-hidden="true" /> : <FolderPlus className="h-4 w-4" aria-hidden="true" />}
+   722→                {u.save}
+   723→              </Button>
+   724→            </div>
+   725→          </div>
+   726→        </DialogContent>
+   727→      </Dialog>
+   728→
+   729→      {/* delete confirm */}
+   730→      <AlertDialog open={deleting !== null} onOpenChange={(open) => !open && setDeleting(null)}>
+   731→        <AlertDialogContent className="glass-strong border-white/10">
+   732→          <AlertDialogHeader>
+   733→            <AlertDialogTitle className="text-silver">{u.delTitle}</AlertDialogTitle>
+   734→            <AlertDialogDescription className="text-xs leading-relaxed text-muted-foreground">
+   735→              {u.delDesc}
+   736→              {deleting && <span className="mt-2 block font-mono text-[11px] text-primary/80">· {deleting.name}</span>}
+   737→            </AlertDialogDescription>
+   738→          </AlertDialogHeader>
+   739→          <AlertDialogFooter>
+   740→            <AlertDialogCancel className="border-white/10 bg-white/[0.03]">{u.cancel}</AlertDialogCancel>
+   741→            <AlertDialogAction
+   742→              onClick={() => deleting && void destroy(deleting)}
+   743→              disabled={deleteBusy}
+   744→              className="bg-chart-5/90 text-white hover:bg-chart-5"
+   745→            >
+   746→              <Trash2 className="h-4 w-4" aria-hidden="true" />
+   747→            </AlertDialogAction>
+   748→          </AlertDialogFooter>
+   749→        </AlertDialogContent>
+   750→      </AlertDialog>
+   751→    </div>
+   752→  );
+   753→}
+   754→

@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { requireAdmin } from "@/lib/inbounds";
+import { getSession } from "@/lib/auth";
 import { emailFor, flowFor, genKey, toUserDTO } from "@/lib/users";
 import { parseClients, validateUser } from "@/lib/user-types";
 import { stripUserEverywhere, syncUserProjection } from "@/lib/user-sync";
 
 /* ============================================================
    Sephiroth · Phase 4 — Users item API
+   Phase 6 — role-scoped: resellers may only touch users they
+   own (resellerId mismatch → 404, no existence leak).
    PATCH  /api/users/:id → { user: UserDTO }
      body: { note?, enabled?, trafficLimitGb?, expiryDays?, ipLimit?,
              inboundIds? (replaces the full link set) }
@@ -21,8 +23,8 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const admin = await requireAdmin(req);
-    if (!admin) {
+    const actor = await getSession(req);
+    if (!actor) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
 
@@ -49,6 +51,9 @@ export async function PATCH(
       include: { accesses: true },
     });
     if (!existing) {
+      return NextResponse.json({ error: "not_found" }, { status: 404 });
+    }
+    if (actor.role === "reseller" && existing.resellerId !== actor.id) {
       return NextResponse.json({ error: "not_found" }, { status: 404 });
     }
 
@@ -142,8 +147,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const admin = await requireAdmin(req);
-    if (!admin) {
+    const actor = await getSession(req);
+    if (!actor) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
 
@@ -151,9 +156,12 @@ export async function DELETE(
 
     const existing = await db.clientUser.findUnique({
       where: { id },
-      select: { id: true },
+      select: { id: true, resellerId: true },
     });
     if (!existing) {
+      return NextResponse.json({ error: "not_found" }, { status: 404 });
+    }
+    if (actor.role === "reseller" && existing.resellerId !== actor.id) {
       return NextResponse.json({ error: "not_found" }, { status: 404 });
     }
 

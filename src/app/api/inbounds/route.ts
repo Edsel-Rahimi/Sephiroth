@@ -7,6 +7,7 @@ import {
   toDTO,
   validateInbound,
 } from "@/lib/inbounds";
+import { getSession } from "@/lib/auth";
 
 /* ============================================================
    Sephiroth · Phase 3 — Inbounds collection API
@@ -16,8 +17,10 @@ import {
 
 export async function GET(req: Request) {
   try {
-    const admin = await requireAdmin(req);
-    if (!admin) {
+    /* Phase 6 — any signed-in role may list inbounds (resellers
+       need the tag list for the user create dialog); mutations stay admin. */
+    const actor = await getSession(req);
+    if (!actor) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
 

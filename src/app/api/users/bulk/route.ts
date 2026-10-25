@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { requireAdmin } from "@/lib/inbounds";
+import { getSession } from "@/lib/auth";
 import { stripUserEverywhere, syncUserProjection } from "@/lib/user-sync";
 
 /* ============================================================
    Sephiroth · Phase 4 — Users bulk API
+   Phase 6 — role-scoped: resellers may only bulk-act on their
+   own users (id set is intersected with resellerId).
    POST /api/users/bulk
      body: { action: "enable" | "disable" | "delete" | "resetTraffic",
              ids: string[] }
@@ -15,8 +17,8 @@ const ACTIONS = new Set(["enable", "disable", "delete", "resetTraffic"]);
 
 export async function POST(req: Request) {
   try {
-    const admin = await requireAdmin(req);
-    if (!admin) {
+    const actor = await getSession(req);
+    if (!actor) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
 
@@ -36,7 +38,10 @@ export async function POST(req: Request) {
     }
 
     const rows = await db.clientUser.findMany({
-      where: { id: { in: ids } },
+      where: {
+        id: { in: ids },
+        ...(actor.role === "reseller" ? { resellerId: actor.id } : {}),
+      },
       select: {
         id: true,
         trafficLimitGb: true,

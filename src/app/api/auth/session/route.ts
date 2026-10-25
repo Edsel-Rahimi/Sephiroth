@@ -1,15 +1,22 @@
 import { NextResponse } from "next/server";
-import { parseSessionCookie, verifyToken } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { getSession } from "@/lib/auth";
 
 export async function GET(req: Request) {
-  const username = await verifyToken(parseSessionCookie(req));
-  if (!username) {
+  const actor = await getSession(req);
+  if (!actor) {
     return NextResponse.json({ authenticated: false });
   }
-  const admin = await db.adminUser.findUnique({ where: { username } });
-  if (!admin) {
-    return NextResponse.json({ authenticated: false });
+  if (actor.role === "admin") {
+    return NextResponse.json({
+      authenticated: true,
+      username: actor.username,
+      role: "admin",
+    });
   }
-  return NextResponse.json({ authenticated: true, username: admin.username });
+  return NextResponse.json({
+    authenticated: true,
+    username: actor.username,
+    role: "reseller",
+    resellerId: actor.id,
+  });
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { requireAdmin } from "@/lib/inbounds";
+import { getSession } from "@/lib/auth";
 import {
   emailFor,
   flowFor,
@@ -10,9 +10,14 @@ import {
   toUserDTO,
 } from "@/lib/users";
 import { parseClients, seededUsage, validateUser } from "@/lib/user-types";
+import { resellerQuota } from "@/lib/resellers";
 
 /* ============================================================
    Sephiroth · Phase 4 — Users collection API
+   Phase 6 — role-scoped: resellers only see/manage their own
+   users (ClientUser.resellerId) and are gated by quotas
+   (maxUsers / trafficQuotaGb; unlimited traffic is forbidden
+   while a traffic quota is set).
    GET  /api/users  → { users: UserDTO[] }
    POST /api/users  → { user: UserDTO } (201)
       body: { username, note?, enabled?, trafficLimitGb?, expiryDays?,
@@ -23,12 +28,13 @@ import { parseClients, seededUsage, validateUser } from "@/lib/user-types";
 
 export async function GET(req: Request) {
   try {
-    const admin = await requireAdmin(req);
-    if (!admin) {
+    const actor = await getSession(req);
+    if (!actor) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
 
     const rows = await db.clientUser.findMany({
+      where: actor.role === "reseller" ? { resellerId: actor.id } : {},
       orderBy: [{ createdAt: "desc" }, { username: "asc" }],
       include: { accesses: { include: { inbound: true } } },
     });
@@ -41,8 +47,8 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const admin = await requireAdmin(req);
-    if (!admin) {
+    const actor = await getSession(req);
+    if (!actor) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
 
@@ -62,7 +68,25 @@ export async function POST(req: Request) {
     }
     const data = parsed.data;
 
-    // friendly uniqueness check before sqlite constraints
+    /* Phase 6 — reseller ownership + quota gates */
+    let resellerId: string | null = null;
+    if (actor.role === "reseller") {
+      resellerId = actor.id;
+      const quota = await resellerQuota(actor.id);
+      if (quota.maxUsers !== null && quota.usersCount >= quota.maxUsers) {
+        return NextResponse.json({ error: "quota_users" }, { status: 403 });
+      }
+      if (quota.trafficQuotaGb !== null) {
+        if (data.trafficLimitGb === null) {
+          return NextResponse.json({ error: "quota_unlimited" }, { status: 403 });
+        }
+        const nextAllocated =
+          Math.round((quota.allocatedGb + (data.trafficLimitGb ?? 0)) * 10) / 10;
+        if (nextAllocated > quota.trafficQuotaGb) {
+          return NextResponse.json({ error: "quota_traffic" }, { status: 403 });
+        }
+      }
+    }
     const nameOwner = await db.clientUser.findUnique({
       where: { username: data.username },
       select: { id: true },
@@ -96,6 +120,7 @@ export async function POST(req: Request) {
           expiryDays: data.expiryDays,
           ipLimit: data.ipLimit,
           usedTrafficGb: 0,
+          resellerId,
         },
       });
       await tx.clientUser.update({

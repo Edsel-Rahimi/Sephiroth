@@ -172,6 +172,16 @@ function ProtoBadge({ protocol }: { protocol: string }) {
 
 /* ---------- form state ---------- */
 
+/* sale template lite — Phase 6 one-click presets in the create dialog */
+interface TplLite {
+  id: string;
+  name: string;
+  trafficLimitGb: number | null;
+  expiryDays: number | null;
+  ipLimit: number;
+  enabled: boolean;
+}
+
 interface UsrForm {
   username: string;
   note: string;
@@ -248,6 +258,7 @@ export function UsersView() {
   /* data — null = first load */
   const [users, setUsers] = useState<UserDTO[] | null>(null);
   const [inbounds, setInbounds] = useState<InboundLite[] | null>(null);
+  const [templates, setTemplates] = useState<TplLite[]>([]);
   const [loadErr, setLoadErr] = useState(false);
 
   /* toolbar */
@@ -275,15 +286,22 @@ export function UsersView() {
 
   const load = useCallback(async () => {
     try {
-      const [ur, ir] = await Promise.all([
+      const [ur, ir, tr] = await Promise.all([
         fetch("/api/users", { cache: "no-store" }),
         fetch("/api/inbounds", { cache: "no-store" }),
+        fetch("/api/sale-templates", { cache: "no-store" }).catch(() => null),
       ]);
       if (!ur.ok || !ir.ok) throw new Error("load");
       const uj = (await ur.json()) as { users: UserDTO[] };
       const ij = (await ir.json()) as { inbounds: InboundLite[] };
       setUsers(uj.users);
       setInbounds(ij.inbounds);
+      if (tr && tr.ok) {
+        const tj = (await tr.json()) as { templates: TplLite[] };
+        setTemplates(tj.templates.filter((x) => x.enabled));
+      } else {
+        setTemplates([]);
+      }
       setLoadErr(false);
     } catch {
       setUsers([]);
@@ -415,6 +433,20 @@ export function UsersView() {
         const map: Partial<Record<string, string>> = {};
         for (const f of j.fields ?? []) map[f.field] = FIELD_ERR[f.code] ?? u.errNameFormat;
         setFieldErr(map);
+        setSaving(false);
+        return;
+      }
+      /* Phase 6 — reseller quota gates (403) */
+      if (res.status === 403) {
+        const j = (await res.json().catch(() => ({}))) as { error?: string };
+        const msg =
+          j.error === "quota_users"
+            ? t.resellers.quotaUsers
+            : j.error === "quota_unlimited"
+              ? t.resellers.quotaUnlimited
+              : t.resellers.quotaTraffic;
+        setTopErr(msg);
+        toast({ description: msg });
         setSaving(false);
         return;
       }
@@ -899,6 +931,35 @@ export function UsersView() {
               <h3 className="text-[11px] font-semibold uppercase tracking-wider text-primary/80">
                 {u.secLimits}
               </h3>
+              {templates.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-[11px] font-medium text-muted-foreground">
+                    {t.resellers.chipsLabel}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {templates.map((tpl) => (
+                      <button
+                        key={tpl.id}
+                        type="button"
+                        onClick={() =>
+                          setForm((f) => ({
+                            ...f,
+                            trafficLimitGb:
+                              tpl.trafficLimitGb !== null ? String(tpl.trafficLimitGb) : "",
+                            expiryDays: tpl.expiryDays !== null ? String(tpl.expiryDays) : "",
+                            ipLimit: String(tpl.ipLimit ?? 0),
+                          }))
+                        }
+                        className="glass hover-glow rounded-full px-3 py-1.5 text-xs font-medium text-foreground outline-none transition-all focus-visible:ring-2 focus-visible:ring-ring"
+                        title={`${tpl.trafficLimitGb !== null ? `${tpl.trafficLimitGb} GB` : "\u221e"} \u00b7 ${tpl.expiryDays !== null ? `${tpl.expiryDays}d` : "\u221e"} \u00b7 ip ${tpl.ipLimit || "\u221e"}`}
+                      >
+                        <span className="text-primary">{"\u2726"}</span> {tpl.name}
+                      </button>
+                    ))}
+                  </div>
+                  <Tip>{t.resellers.tipTemplates}</Tip>
+                </div>
+              )}
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="u-traffic">{u.fieldTraffic}</Label>

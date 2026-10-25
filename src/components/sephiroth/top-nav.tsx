@@ -62,11 +62,18 @@ const NAV_ORDER: ViewId[] = [
 export function TopNav() {
   const lang = useAppStore((s) => s.lang);
   const view = useAppStore((s) => s.view);
+  const role = useAppStore((s) => s.role);
   const setLang = useAppStore((s) => s.setLang);
   const setView = useAppStore((s) => s.setView);
   const { toast } = useToast();
 
   const t = useMemo(() => dictionaries[lang], [lang]);
+
+  /* Phase 6 — resellers only get their users workspace */
+  const navIds = useMemo(
+    () => (role === "reseller" ? NAV_ORDER.filter((id) => id === "users") : NAV_ORDER),
+    [role]
+  );
 
   const soon = () =>
     toast({
@@ -91,12 +98,17 @@ export function TopNav() {
         <div className="mx-auto flex h-16 max-w-[1440px] items-center gap-3 px-4 md:px-6">
           {/* brand */}
           <button
-            onClick={() => setView("dashboard")}
+            onClick={() => setView(role === "reseller" ? "users" : "dashboard")}
             className="flex items-center gap-3 rounded-xl px-1 py-1 outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Sephiroth home"
           >
             <BrandMark size={38} />
             <BrandWord tagline={t.brand.tagline} className="hidden sm:block" />
+            {role === "reseller" && (
+              <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary ring-1 ring-primary/30">
+                {t.resellers.modeBadge}
+              </span>
+            )}
           </button>
 
           <div className="flex-1" />
@@ -197,6 +209,13 @@ export function TopNav() {
                   <span className="block text-[11px] text-muted-foreground">admin@sephiroth</span>
                 </span>
               </div>
+              {role === "reseller" && (
+                <div className="px-3 pb-1.5">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary ring-1 ring-primary/30">
+                    <Store className="h-3 w-3" /> {t.resellers.modeBadge}
+                  </span>
+                </div>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={soon}>
                 <CircleUser className="mr-2 h-4 w-4" /> {t.topbar.profile}
@@ -223,7 +242,7 @@ export function TopNav() {
               "lg:mx-auto lg:w-fit"
             )}
           >
-            {NAV_ORDER.map((id) => {
+            {navIds.map((id) => {
               const Icon = NAV_ICONS[id];
               const active = view === id;
               return (

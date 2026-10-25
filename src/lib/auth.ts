@@ -212,3 +212,29 @@ export function sessionCookieOptions(maxAgeSec: number) {
     secure: process.env.NODE_ENV === "production",
   };
 }
+
+/* ---------- Phase 6 — dual-role session ---------- */
+
+export type Actor =
+  | { role: "admin"; username: string }
+  | { role: "reseller"; id: string; username: string };
+
+/**
+ * Resolve the session cookie into an admin OR reseller actor.
+ * Admin table is authoritative first (a username existing in both
+ * tables always resolves to the admin). Disabled resellers are
+ * rejected. Returns null for anonymous/invalid sessions.
+ */
+export async function getSession(req: Request): Promise<Actor | null> {
+  const username = await verifyToken(parseSessionCookie(req));
+  if (!username) return null;
+
+  const admin = await db.adminUser.findUnique({ where: { username } });
+  if (admin) return { role: "admin", username };
+
+  const reseller = await db.reseller.findUnique({ where: { username } });
+  if (reseller && reseller.enabled) {
+    return { role: "reseller", id: reseller.id, username };
+  }
+  return null;
+}
