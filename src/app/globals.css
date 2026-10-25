@@ -488,3 +488,43 @@ html[dir="rtl"] .shine-sweep {
 @media (prefers-reduced-motion: reduce) {
   .pass-shine { animation: none; }
 }
+
+/* ---------- Phase 7 — appearance preferences ---------- */
+/* applied on the authenticated shell root via app-store prefs */
+
+/* glow = "soft" */
+.glow-soft .glow-cyan {
+  box-shadow: 0 0 14px -8px rgba(34, 216, 238, 0.26);
+}
+.glow-soft .hover-glow:hover {
+  border-color: rgba(34, 216, 238, 0.24);
+  box-shadow: 0 0 16px -12px rgba(34, 216, 238, 0.18);
+}
+.glow-soft .text-glow {
+  text-shadow: 0 0 10px rgba(34, 216, 238, 0.22);
+}
+.glow-soft .qr-glow {
+  box-shadow: 0 0 20px -8px rgba(34, 216, 238, 0.3);
+}
+
+/* glow = "off" */
+.glow-off .glow-cyan,
+.glow-off .hover-glow:hover,
+.glow-off .text-glow,
+.glow-off .qr-glow {
+  box-shadow: none;
+  text-shadow: none;
+}
+.glow-off .hover-glow:hover {
+  border-color: rgba(34, 216, 238, 0.3);
+}
+
+/* reduce motion — freezes every animation/transition inside the shell */
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}

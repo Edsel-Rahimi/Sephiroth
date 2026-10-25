@@ -92,3 +92,37 @@ export function readInbounds(): DbInboundRow[] | null {
     return null
   }
 }
+
+// ---------------------------------------------------------------------------
+// Phase 7 — live tick interval, panel-configurable via ServerSetting
+// (`set_core_tick_seconds`, 1-5). Read at most every 3s; any failure keeps
+// the previous value so a broken mirror never disturbs the feed.
+// ---------------------------------------------------------------------------
+
+const TICK_DEFAULT_MS = 1000
+let tickMs = TICK_DEFAULT_MS
+let lastTickRead = 0
+
+export function getTickMs(): number {
+  return tickMs
+}
+
+export function refreshTickMs(): void {
+  if (!db) return
+  const now = Date.now()
+  if (now - lastTickRead < 3000) return
+  lastTickRead = now
+  try {
+    const row = db
+      .prepare("SELECT value FROM ServerSetting WHERE key = 'set_core_tick_seconds'")
+      .get() as { value?: string } | undefined
+    const sec = Number(row?.value)
+    if (Number.isInteger(sec) && sec >= 1 && sec <= 5) {
+      tickMs = sec * 1000
+    } else {
+      tickMs = TICK_DEFAULT_MS
+    }
+  } catch (err) {
+    logErrorThrottled('[core-sim/db] refreshTickMs failed (keeping current):', err)
+  }
+}

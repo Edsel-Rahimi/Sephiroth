@@ -12,9 +12,11 @@ import { InboundsView } from "@/components/sephiroth/views/inbounds-view";
 import { UsersView } from "@/components/sephiroth/views/users-view";
 import { SubGroupsView } from "@/components/sephiroth/views/subgroups-view";
 import { ResellersView } from "@/components/sephiroth/views/resellers-view";
+import { SettingsView } from "@/components/sephiroth/views/settings-view";
 import { PanelsView } from "@/components/sephiroth/views/panels-view";
 import { PlaceholderView } from "@/components/sephiroth/views/placeholder-view";
 import { useAppStore } from "@/lib/store/app-store";
+import { cn } from "@/lib/utils";
 import { RTL_LANGS, type ViewId } from "@/lib/i18n/dictionaries";
 
 const emptySubscribe = () => () => {};
@@ -30,6 +32,9 @@ export default function Home() {
   const view = useAppStore((s) => s.view);
   const role = useAppStore((s) => s.role);
   const setRole = useAppStore((s) => s.setRole);
+  const starfield = useAppStore((s) => s.starfield);
+  const glow = useAppStore((s) => s.glow);
+  const reduceMotion = useAppStore((s) => s.reduceMotion);
 
   /* phase 1 — server-backed session gate (null = checking) */
   const [authed, setAuthed] = useState<boolean | null>(null);
@@ -101,8 +106,15 @@ export default function Home() {
   const effectiveView: ViewId = role === "reseller" && view !== "users" ? "users" : view;
 
   return (
-    <div className="bg-cosmic flex min-h-screen flex-col">
-      <Starfield />
+    <div
+      className={cn(
+        "bg-cosmic flex min-h-screen flex-col",
+        glow === "soft" && "glow-soft",
+        glow === "off" && "glow-off",
+        reduceMotion && "reduce-motion"
+      )}
+    >
+      {starfield && <Starfield />}
       <CoreConnector />
       <TopNav />
 
@@ -119,13 +131,15 @@ export default function Home() {
           <SubGroupsView />
         ) : effectiveView === "resellers" ? (
           <ResellersView />
+        ) : effectiveView === "settings" ? (
+          <SettingsView />
         ) : effectiveView === "panels" ? (
           <PanelsView />
         ) : (
           <PlaceholderView
             view={effectiveView as Exclude<
               ViewId,
-              "dashboard" | "inbounds" | "users" | "subgroups" | "resellers" | "panels"
+              "dashboard" | "inbounds" | "users" | "subgroups" | "resellers" | "settings" | "panels"
             >}
           />
         )}

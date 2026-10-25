@@ -13,6 +13,7 @@
 import { createServer } from 'node:http'
 import { Server } from 'socket.io'
 import { CoreSim } from './sim'
+import { getTickMs, refreshTickMs } from './db'
 import type { ActivityEvent } from './types'
 
 const PORT = 3003
@@ -57,10 +58,18 @@ io.on('connection', (socket) => {
   })
 })
 
-// live telemetry — 1s ticks + 10s inbound/distribution refresh
-safeInterval(() => {
-  io.emit('core:tick', sim.tick())
-}, 1000)
+// live telemetry — panel-configurable tick (1-5s via ServerSetting,
+// re-read every loop; ticks emit the same shape regardless of cadence)
+function tickLoop(): void {
+  refreshTickMs()
+  try {
+    io.emit('core:tick', sim.tick())
+  } catch (err) {
+    console.error('[core-sim] tick error:', err)
+  }
+  setTimeout(tickLoop, getTickMs())
+}
+tickLoop()
 safeInterval(() => {
   io.emit('core:inbounds', sim.inboundsPayload())
 }, 10000)
