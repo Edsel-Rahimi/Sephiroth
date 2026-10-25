@@ -11,6 +11,7 @@ import {
   Globe,
   KeyRound,
   Layers,
+  Lightbulb,
   Loader2,
   Pencil,
   Plus,
@@ -26,6 +27,7 @@ import {
   TrendingUp,
   Users,
   Wifi,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -151,8 +153,18 @@ interface FormState {
   stream: Record<string, string>;
 }
 
-const PROTOCOLS = ["vless", "vmess", "trojan", "shadowsocks", "hysteria2"] as const;
-const TRANSPORTS = ["tcp", "ws", "grpc", "httpupgrade"] as const;
+const PROTOCOLS = [
+  "vless",
+  "vmess",
+  "trojan",
+  "shadowsocks",
+  "hysteria2",
+  "wireguard",
+  "dokodemo-door",
+  "socks",
+  "http",
+] as const;
+const TRANSPORTS = ["tcp", "ws", "grpc", "httpupgrade", "xhttp"] as const;
 const STATUSES = ["online", "maintenance", "disabled"] as const;
 const FLOWS = ["", "xtls-rprx-vision"] as const;
 const SNIFF_DESTS = ["http", "tls", "quic", "fakerd"] as const;
@@ -175,6 +187,10 @@ const PROTO_LABEL: Record<string, string> = {
   trojan: "Trojan",
   shadowsocks: "Shadowsocks",
   hysteria2: "Hysteria2",
+  wireguard: "WireGuard",
+  "dokodemo-door": "Dokodemo",
+  socks: "SOCKS",
+  http: "HTTP",
 };
 
 const PROTO_CLS: Record<string, string> = {
@@ -183,6 +199,10 @@ const PROTO_CLS: Record<string, string> = {
   trojan: "bg-chart-4/10 text-chart-4 ring-chart-4/30",
   shadowsocks: "bg-chart-3/10 text-chart-3 ring-chart-3/30",
   hysteria2: "bg-chart-5/10 text-chart-5 ring-chart-5/30",
+  wireguard: "bg-[#c084fc]/10 text-[#c084fc] ring-[#c084fc]/30",
+  "dokodemo-door": "bg-[#f472b6]/10 text-[#f472b6] ring-[#f472b6]/30",
+  socks: "bg-[#fde047]/10 text-[#fde047] ring-[#fde047]/30",
+  http: "bg-[#fb923c]/10 text-[#fb923c] ring-[#fb923c]/30",
 };
 
 /* Lovable-design per-protocol accents (solid bar / spark color / hover glow) */
@@ -192,6 +212,10 @@ const PROTO_BAR: Record<string, string> = {
   trojan: "bg-chart-4",
   shadowsocks: "bg-chart-3",
   hysteria2: "bg-chart-5",
+  wireguard: "bg-[#c084fc]",
+  "dokodemo-door": "bg-[#f472b6]",
+  socks: "bg-[#fde047]",
+  http: "bg-[#fb923c]",
 };
 
 const PROTO_VAR: Record<string, string> = {
@@ -200,6 +224,10 @@ const PROTO_VAR: Record<string, string> = {
   trojan: "var(--chart-4)",
   shadowsocks: "var(--chart-3)",
   hysteria2: "var(--chart-5)",
+  wireguard: "#c084fc",
+  "dokodemo-door": "#f472b6",
+  socks: "#fde047",
+  http: "#fb923c",
 };
 
 const PROTO_HOVER: Record<string, string> = {
@@ -213,14 +241,14 @@ const PROTO_HOVER: Record<string, string> = {
     "hover:border-chart-3/50 hover:shadow-[0_0_38px_-12px_var(--chart-3)]",
   hysteria2:
     "hover:border-chart-5/50 hover:shadow-[0_0_38px_-12px_var(--chart-5)]",
-};
-
-const SCHEME: Record<string, string> = {
-  vless: "vless",
-  vmess: "vmess",
-  trojan: "trojan",
-  shadowsocks: "ss",
-  hysteria2: "hy2",
+  wireguard:
+    "hover:border-[#c084fc]/50 hover:shadow-[0_0_38px_-12px_#c084fc]",
+  "dokodemo-door":
+    "hover:border-[#f472b6]/50 hover:shadow-[0_0_38px_-12px_#f472b6]",
+  socks:
+    "hover:border-[#fde047]/50 hover:shadow-[0_0_38px_-12px_#fde047]",
+  http:
+    "hover:border-[#fb923c]/50 hover:shadow-[0_0_38px_-12px_#fb923c]",
 };
 
 const STATUS_DOT: Record<string, string> = {
@@ -234,6 +262,7 @@ const TRANSPORT_SHORT: Record<string, string> = {
   ws: "WS",
   grpc: "gRPC",
   httpupgrade: "HTTPUpgrade",
+  xhttp: "XHTTP",
 };
 
 /** Same composition the core driver uses for its wire `proto` label. */
@@ -336,11 +365,29 @@ function b64url(bytes: number): string {
   return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
+/** Standard base64 with padding — the WireGuard key format. */
+function b64std(bytes: number): string {
+  const arr = new Uint8Array(bytes);
+  crypto.getRandomValues(arr);
+  let bin = "";
+  for (const b of arr) bin += String.fromCharCode(b);
+  return btoa(bin);
+}
+
+/** Readable password for socks / http auth (no lookalike characters). */
+function genReadableKey(): string {
+  const alphabet = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  const arr = crypto.getRandomValues(new Uint8Array(12));
+  return Array.from(arr, (b) => alphabet[b % alphabet.length]).join("");
+}
+
 function genClientKey(protocol: string): string {
   if (protocol === "vless" || protocol === "vmess") {
     if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
     return b64url(16);
   }
+  if (protocol === "wireguard") return b64std(32); // peer public key (44-char base64)
+  if (protocol === "socks" || protocol === "http") return genReadableKey();
   return b64url(18); // trojan / shadowsocks / hysteria2 password
 }
 
@@ -363,10 +410,197 @@ function genRealityPair(): { priv: string; pub: string; shortIds: string } {
   };
 }
 
+/** Preview-grade WireGuard key pair (44-char standard base64). */
+function genWgPair(): { priv: string; pub: string } {
+  return { priv: b64std(32), pub: b64std(32) };
+}
+
 /* ---------- form <-> payload ---------- */
 
-const NUM_STREAM_KEYS = new Set(["maxEarlyData"]);
-const BOOL_STREAM_KEYS = new Set(["multiMode", "mux", "allowInsecure"]);
+const NUM_STREAM_KEYS = new Set(["maxEarlyData", "dokoPort", "wgMtu"]);
+const BOOL_STREAM_KEYS = new Set(["multiMode", "mux", "allowInsecure", "socksUdp"]);
+
+const SS_METHODS = [
+  "2022-blake3-aes-128-gcm",
+  "2022-blake3-aes-256-gcm",
+  "2022-blake3-chacha20-poly1305",
+  "aes-128-gcm",
+  "aes-256-gcm",
+  "chacha20-ietf-poly1305",
+] as const;
+
+/** One-click presets for Quick Create (simple-panel style defaults). */
+const QUICK_PRESET: Record<string, { transport: string; security: string }> = {
+  vless: { transport: "tcp", security: "none" },
+  vmess: { transport: "ws", security: "none" },
+  trojan: { transport: "tcp", security: "tls" },
+  shadowsocks: { transport: "tcp", security: "none" },
+  hysteria2: { transport: "tcp", security: "none" },
+  wireguard: { transport: "tcp", security: "none" },
+  "dokodemo-door": { transport: "tcp", security: "none" },
+  socks: { transport: "tcp", security: "none" },
+  http: { transport: "tcp", security: "none" },
+};
+
+/** Sensible default stream values for Quick Create, per protocol. */
+function buildQuickStream(proto: string): Record<string, string | number | boolean> {
+  if (proto === "shadowsocks") return { method: "2022-blake3-aes-128-gcm" };
+  if (proto === "socks") return { socksUdp: true };
+  if (proto === "dokodemo-door")
+    return { dokoAddress: "one.one.one.one", dokoPort: 53, dokoNetwork: "tcp,udp" };
+  if (proto === "wireguard") {
+    const pair = genWgPair();
+    return { wgSecretKey: pair.priv, wgPublicKey: pair.pub, wgMtu: 1420 };
+  }
+  return {};
+}
+
+/* ---------- share-link builders (protocol-correct) ---------- */
+
+function b64utf8(s: string): string {
+  return btoa(String.fromCharCode(...new TextEncoder().encode(s)));
+}
+
+function hostOf(row: { listen: string }): string {
+  return row.listen && row.listen !== "0.0.0.0" ? row.listen : "0.0.0.0";
+}
+
+/** Placeholder identity when an inbound has no client yet — the link stays
+ *  structurally valid; regenerate after adding a real client. */
+const KEY_FALLBACK: Record<string, string> = {
+  vless: "00000000-0000-0000-0000-000000000000",
+  vmess: "00000000-0000-0000-0000-000000000000",
+  trojan: "password",
+  shadowsocks: "password",
+  hysteria2: "password",
+};
+
+/**
+ * Builds the standard share URI for an inbound + first client.
+ * Returns null for protocols without a URI scheme (dokodemo-door, wireguard)
+ * — the caller falls back to a text summary.
+ */
+export function buildShareLink(
+  row: InboundDTO,
+  first?: InboundClientDTO
+): string | null {
+  const st = row.stream ?? {};
+  const host = hostOf(row);
+  const port = String(row.port);
+  const label = first?.email ? `${row.tag} · ${first.email}` : row.tag;
+  const q = new URLSearchParams();
+
+  const commonParams = () => {
+    q.set("type", row.transport);
+    if (row.security !== "none") q.set("security", row.security);
+    if (row.security === "tls") {
+      if (st.sni) q.set("sni", String(st.sni));
+      if (st.fingerprint) q.set("fp", String(st.fingerprint));
+      if (st.alpn) q.set("alpn", String(st.alpn));
+    }
+    if (row.security === "reality") {
+      if (st.serverNames) q.set("sni", String(st.serverNames).split(",")[0].trim());
+      if (st.fingerprint) q.set("fp", String(st.fingerprint));
+      if (st.publicKey) q.set("pbk", String(st.publicKey));
+      if (st.shortIds) q.set("sid", String(st.shortIds).split(",")[0].trim());
+      if (st.spiderX) q.set("spx", String(st.spiderX));
+    }
+    if (row.transport === "ws" || row.transport === "xhttp" || row.transport === "httpupgrade") {
+      if (st.path) q.set("path", String(st.path));
+      if (st.host) q.set("host", String(st.host));
+    }
+    if (row.transport === "xhttp" && st.mode) q.set("mode", String(st.mode));
+    if (row.transport === "grpc") {
+      if (st.serviceName) q.set("serviceName", String(st.serviceName));
+      if (st.multiMode === true) q.set("mode", "multi");
+    }
+    if (row.transport === "tcp" && st.headerType === "http") q.set("headerType", "http");
+  };
+
+  switch (row.protocol) {
+    case "vless": {
+      const key = first?.key || KEY_FALLBACK.vless;
+      commonParams();
+      if (first?.flow) q.set("flow", first.flow);
+      return `vless://${key}@${host}:${port}?${q.toString()}#${encodeURIComponent(label)}`;
+    }
+    case "vmess": {
+      const key = first?.key || KEY_FALLBACK.vmess;
+      const json = {
+        v: "2",
+        ps: label,
+        add: host,
+        port,
+        id: key,
+        aid: "0",
+        scy: "auto",
+        net: row.transport,
+        type: row.transport === "tcp" && st.headerType === "http" ? "http" : "none",
+        host: String(st.host ?? ""),
+        path: String(st.path ?? ""),
+        tls: row.security === "none" ? "" : row.security,
+        sni: String(st.sni ?? st.serverNames ?? ""),
+        alpn: String(st.alpn ?? ""),
+        fp: String(st.fingerprint ?? ""),
+      };
+      return `vmess://${b64utf8(JSON.stringify(json))}`;
+    }
+    case "trojan": {
+      const key = first?.key || KEY_FALLBACK.trojan;
+      commonParams();
+      return `trojan://${encodeURIComponent(key)}@${host}:${port}?${q.toString()}#${encodeURIComponent(label)}`;
+    }
+    case "shadowsocks": {
+      const key = first?.key || KEY_FALLBACK.shadowsocks;
+      const method = String(st.method || "2022-blake3-aes-128-gcm");
+      const userinfo = b64utf8(`${method}:${key}`);
+      return `ss://${userinfo}@${host}:${port}#${encodeURIComponent(label)}`;
+    }
+    case "hysteria2": {
+      const key = first?.key || KEY_FALLBACK.hysteria2;
+      if (st.sni) q.set("sni", String(st.sni));
+      if (st.allowInsecure === true || row.security === "none") q.set("insecure", "1");
+      return `hy2://${encodeURIComponent(key)}@${host}:${port}?${q.toString()}#${encodeURIComponent(label)}`;
+    }
+    case "socks":
+    case "http": {
+      const auth = first ? `${encodeURIComponent(first.email)}:${encodeURIComponent(first.key)}@` : "";
+      return `${row.protocol}://${auth}${host}:${port}#${encodeURIComponent(label)}`;
+    }
+    default:
+      return null; // dokodemo-door / wireguard → caller uses text fallback
+  }
+}
+
+/** Preview-grade WireGuard .conf text for the copy button. */
+function buildWgConf(row: InboundDTO, first?: InboundClientDTO): string {
+  const st = row.stream ?? {};
+  const host = hostOf(row);
+  return [
+    "[Interface]",
+    `PrivateKey = ${st.wgSecretKey ?? "<private-key>"}`,
+    "Address = 10.0.0.2/32",
+    "DNS = 1.1.1.1",
+    `MTU = ${st.wgMtu ?? 1420}`,
+    "",
+    "[Peer]",
+    `PublicKey = ${first?.key ?? st.wgPublicKey ?? "<peer-public-key>"}`,
+    "AllowedIPs = 0.0.0.0/0, ::/0",
+    `Endpoint = ${host}:${row.port}`,
+    "PersistentKeepalive = 25",
+  ].join("\n");
+}
+
+/** Text summary for dokodemo-door (no URI scheme exists). */
+function buildDokoSummary(row: InboundDTO): string {
+  const st = row.stream ?? {};
+  return [
+    `dokodemo-door · ${row.tag}`,
+    `listen: ${hostOf(row)}:${row.port}`,
+    `target: ${st.dokoAddress ?? "?"}:${st.dokoPort ?? "?"}`,
+    `network: ${st.dokoNetwork ?? "tcp"}`,
+  ].join("\n");
+}
 
 function buildStream(form: FormState): Record<string, string | number | boolean> {
   const out: Record<string, string | number | boolean> = {};
@@ -396,6 +630,7 @@ function buildStream(form: FormState): Record<string, string | number | boolean>
 }
 
 function buildPayload(form: FormState) {
+  const isDoko = form.protocol === "dokodemo-door";
   return {
     tag: form.tag.trim(),
     protocol: form.protocol,
@@ -407,16 +642,18 @@ function buildPayload(form: FormState) {
     note: form.note.trim(),
     trafficLimitGb: form.trafficLimitGb.trim() === "" ? null : Number(form.trafficLimitGb),
     expiryDays: form.expiryDays.trim() === "" ? null : Number(form.expiryDays),
-    clients: form.clients.map((c) => ({
-      email: c.email.trim(),
-      key: c.key.trim(),
-      subId: c.subId.trim(),
-      flow: form.protocol === "vless" && form.security === "reality" ? c.flow : "",
-      ipLimit: c.ipLimit.trim() === "" ? 0 : Number(c.ipLimit),
-      trafficLimitGb: c.trafficLimitGb.trim() === "" ? null : Number(c.trafficLimitGb),
-      expiryDays: c.expiryDays.trim() === "" ? null : Number(c.expiryDays),
-      enabled: c.enabled,
-    })),
+    clients: isDoko
+      ? [] // dokodemo-door has no client accounts
+      : form.clients.map((c) => ({
+          email: c.email.trim(),
+          key: c.key.trim(),
+          subId: c.subId.trim(),
+          flow: form.protocol === "vless" && form.security === "reality" ? c.flow : "",
+          ipLimit: c.ipLimit.trim() === "" ? 0 : Number(c.ipLimit),
+          trafficLimitGb: c.trafficLimitGb.trim() === "" ? null : Number(c.trafficLimitGb),
+          expiryDays: c.expiryDays.trim() === "" ? null : Number(c.expiryDays),
+          enabled: c.enabled,
+        })),
     sniffing: form.sniffing,
     stream: buildStream(form),
   };
@@ -537,6 +774,21 @@ function MiniField({
   );
 }
 
+/** Plain-language helper line — one per section (user-requested guidance). */
+function Tip({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <p
+      className={cn(
+        "flex items-start gap-1.5 rounded-lg bg-primary/[0.04] px-2.5 py-2 text-[11px] leading-relaxed text-muted-foreground ring-1 ring-primary/10",
+        className
+      )}
+    >
+      <Lightbulb className="mt-0.5 h-3 w-3 shrink-0 text-primary/80" aria-hidden="true" />
+      <span>{children}</span>
+    </p>
+  );
+}
+
 function SecPicker({
   value,
   onChange,
@@ -633,6 +885,18 @@ export function InboundsView() {
   const [topErr, setTopErr] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
+  /* quick create (simple-panel mode) */
+  const [quickOpen, setQuickOpen] = useState(false);
+  const [quickProto, setQuickProto] = useState<string>("vless");
+  const [quickDraft, setQuickDraft] = useState({
+    tag: "",
+    port: 0,
+    email: "",
+    key: "",
+    subId: "",
+  });
+  const [quickBusy, setQuickBusy] = useState(false);
+
   /* delete confirm */
   const [deleting, setDeleting] = useState<InboundDTO | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
@@ -660,9 +924,13 @@ export function InboundsView() {
     note: "general",
     trafficLimitGb: "general",
     expiryDays: "general",
-    clients: "clients",
+    clients: form.protocol === "dokodemo-door" ? "general" : "clients",
     transport: "transport",
-    stream: "transport",
+    // per-protocol connection fields (socks/http auth, doko target, wg keys)
+    // live in the General tab for those protocols, otherwise Transport
+    stream: ["dokodemo-door", "wireguard", "socks", "http"].includes(form.protocol)
+      ? "general"
+      : "transport",
     security: "security",
     sniffing: "advanced",
   };
@@ -778,6 +1046,101 @@ export function InboundsView() {
     setDialogOpen(true);
   };
 
+  /* ---------- quick create (Marzban-simple) ---------- */
+
+  const makeQuickDraft = useCallback(
+    (proto: string) => {
+      const used = new Set((rows ?? []).map((r) => r.port));
+      let port = 10000;
+      while (used.has(port)) port++;
+      setQuickDraft({
+        tag: `${proto}-${port}`,
+        port,
+        email: proto === "dokodemo-door" ? "—" : `user-${port}`,
+        key: proto === "dokodemo-door" ? "—" : genClientKey(proto),
+        subId: proto === "dokodemo-door" ? "—" : genSubId(),
+      });
+      setQuickProto(proto);
+    },
+    [rows]
+  );
+
+  const openQuick = () => {
+    makeQuickDraft("vless");
+    setQuickOpen(true);
+  };
+
+  const runQuickCreate = async () => {
+    if (quickBusy) return;
+    const preset = QUICK_PRESET[quickProto] ?? QUICK_PRESET.vless;
+    setQuickBusy(true);
+    try {
+      const payload = {
+        tag: quickDraft.tag,
+        protocol: quickProto,
+        port: quickDraft.port,
+        listen: "",
+        transport: preset.transport,
+        security: preset.security,
+        status: "online",
+        note: "",
+        trafficLimitGb: null,
+        expiryDays: null,
+        clients:
+          quickProto === "dokodemo-door"
+            ? []
+            : [
+                {
+                  email: quickDraft.email,
+                  key: quickDraft.key,
+                  subId: quickDraft.subId,
+                  flow: "",
+                  ipLimit: 0,
+                  trafficLimitGb: null,
+                  expiryDays: null,
+                  enabled: true,
+                },
+              ],
+        sniffing: { enabled: false, destOverride: ["http", "tls"], routeOnly: false },
+        stream: buildQuickStream(quickProto),
+      };
+      const res = await fetch("/api/inbounds", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        inbound?: InboundDTO;
+        error?: string;
+      };
+      if (res.ok && data.inbound) {
+        const dto = data.inbound;
+        upsertInboundLocal({
+          tag: dto.tag,
+          proto: composeProto(dto.protocol, dto.transport, dto.security),
+          port: dto.port,
+          status: "online",
+          users: 0,
+          txGb: 0,
+        });
+        setRows((prev) => [...(prev ?? []), dto]);
+        setQuickOpen(false);
+        toast({ title: lfmt(t.inbounds.toastQuick, { tag: dto.tag }) });
+        void load();
+      } else if (res.status === 409) {
+        // port raced — re-draft and let the user retry
+        makeQuickDraft(quickProto);
+        toast({ title: t.inbounds.errPortUsed, variant: "destructive" });
+      } else {
+        toast({ title: t.inbounds.toastFail, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: t.inbounds.toastFail, variant: "destructive" });
+    } finally {
+      setQuickBusy(false);
+    }
+  };
+
   const openEdit = (row: InboundDTO) => {
     setEditing(row);
     setTab("general");
@@ -801,14 +1164,17 @@ export function InboundsView() {
     else if (!Number.isInteger(portNum) || portNum < 1 || portNum > 65535)
       localErrs.port = FIELD_ERR.portRange;
 
+    const isDoko = form.protocol === "dokodemo-door";
     const dupSet = new Set<number>();
     const seenEmails = new Set<string>();
-    form.clients.forEach((c, i) => {
-      const email = c.email.trim();
-      if (!email || seenEmails.has(email)) dupSet.add(i);
-      seenEmails.add(email);
-      if (!c.key.trim()) localErrs[`client-${i}-key`] = FIELD_ERR.required;
-    });
+    if (!isDoko) {
+      form.clients.forEach((c, i) => {
+        const email = c.email.trim();
+        if (!email || seenEmails.has(email)) dupSet.add(i);
+        seenEmails.add(email);
+        if (!c.key.trim()) localErrs[`client-${i}-key`] = FIELD_ERR.required;
+      });
+    }
     setDupEmails(dupSet);
 
     if (Object.keys(localErrs).length > 0 || dupSet.size > 0) {
@@ -960,23 +1326,21 @@ export function InboundsView() {
   };
 
   const copyLink = async (row: InboundDTO) => {
-    const scheme = SCHEME[row.protocol] ?? row.protocol;
     const first = (row.clients ?? []).find((c) => c.enabled) ?? row.clients?.[0];
-    const userPart = first?.key ? `${first.key}@` : "user@";
-    const host = row.listen && row.listen !== "0.0.0.0" ? row.listen : "0.0.0.0";
-    const params = new URLSearchParams();
-    params.set("type", row.transport);
-    params.set("security", row.security);
-    if (row.stream?.path) params.set("path", String(row.stream.path));
-    if (row.stream?.host) params.set("host", String(row.stream.host));
-    if (row.stream?.serviceName) params.set("serviceName", String(row.stream.serviceName));
-    if (row.stream?.sni) params.set("sni", String(row.stream.sni));
-    if (row.stream?.fingerprint) params.set("fp", String(row.stream.fingerprint));
-    if (first?.flow) params.set("flow", first.flow);
-    const label = first?.email ? `${row.tag} · ${first.email}` : row.tag;
-    const link = `${scheme}://${userPart}${host}:${row.port}?${params.toString()}#${encodeURIComponent(label)}`;
+    let text: string | null = null;
+    if (row.protocol === "wireguard") {
+      text = buildWgConf(row, first);
+    } else if (row.protocol === "dokodemo-door") {
+      text = buildDokoSummary(row);
+    } else {
+      text = buildShareLink(row, first);
+    }
+    if (!text) {
+      toast({ title: t.inbounds.toastFail, variant: "destructive" });
+      return;
+    }
     try {
-      await navigator.clipboard.writeText(link);
+      await navigator.clipboard.writeText(text);
       toast({ title: t.inbounds.toastCopied });
     } catch {
       toast({ title: t.inbounds.toastFail, variant: "destructive" });
@@ -1043,21 +1407,57 @@ export function InboundsView() {
       {/* protocol picker */}
       <div className="space-y-2">
         <Label className="text-xs text-muted-foreground">{t.inbounds.fieldProtocol}</Label>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
           {PROTOCOLS.map((p) => (
             <button
               key={p}
               type="button"
               onClick={() => {
-                setS({ protocol: p });
-                setForm((f) => ({
-                  ...f,
-                  clients: f.clients.map((c) => ({
-                    ...c,
-                    key: genClientKey(p),
-                    flow: p === "vless" ? c.flow : "",
-                  })),
-                }));
+                setForm((f) => {
+                  const stream = { ...f.stream };
+                  if (p === "shadowsocks" && !stream.method)
+                    stream.method = "2022-blake3-aes-128-gcm";
+                  if (p === "wireguard" && !stream.wgSecretKey) {
+                    const pair = genWgPair();
+                    stream.wgSecretKey = pair.priv;
+                    stream.wgPublicKey = pair.pub;
+                    if (!stream.wgMtu) stream.wgMtu = "1420";
+                  }
+                  if (p === "dokodemo-door" && !stream.dokoAddress) {
+                    stream.dokoAddress = "one.one.one.one";
+                    if (!stream.dokoPort) stream.dokoPort = "53";
+                    if (!stream.dokoNetwork) stream.dokoNetwork = "tcp,udp";
+                  }
+                  return {
+                    ...f,
+                    protocol: p,
+                    stream,
+                    clients:
+                      p === "dokodemo-door"
+                        ? []
+                        : f.clients.length === 0
+                          ? [
+                              {
+                                email: "",
+                                key: genClientKey(p),
+                                subId: genSubId(),
+                                flow: "",
+                                ipLimit: "0",
+                                trafficLimitGb: "",
+                                expiryDays: "",
+                                enabled: true,
+                              },
+                            ]
+                          : f.clients.map((c) => ({
+                              ...c,
+                              key: genClientKey(p),
+                              flow: p === "vless" ? c.flow : "",
+                            })),
+                  };
+                });
+                if (p === "dokodemo-door") {
+                  setTab((cur) => (cur === "clients" ? "general" : cur));
+                }
               }}
               className={cn(
                 "flex h-14 flex-col items-center justify-center gap-1 rounded-xl border transition-all",
@@ -1079,7 +1479,181 @@ export function InboundsView() {
             </button>
           ))}
         </div>
+        <Tip>{t.inbounds.tipProtocol}</Tip>
       </div>
+
+      {/* shadowsocks cipher */}
+      {form.protocol === "shadowsocks" && (
+        <div className="space-y-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <MiniField id="ss-method" label={t.inbounds.ssMethod} hint={t.inbounds.tipSs}>
+              <Select
+                value={form.stream.method || "2022-blake3-aes-128-gcm"}
+                onValueChange={(v) => setStream("method", v)}
+              >
+                <SelectTrigger id="ss-method" className="w-full font-mono text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="glass-strong">
+                  {SS_METHODS.map((m) => (
+                    <SelectItem key={m} value={m} className="font-mono text-xs">
+                      {m}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </MiniField>
+          </div>
+        </div>
+      )}
+
+      {/* socks / http auth */}
+      {(form.protocol === "socks" || form.protocol === "http") && (
+        <div className="space-y-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="flex items-center gap-2 text-xs font-semibold text-silver">
+            <Users className="h-3.5 w-3.5 text-primary" />
+            {PROTO_LABEL[form.protocol]}
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <MiniField id="pa-user" label={t.inbounds.authUser} hint={t.inbounds.tipAuth}>
+              <Input
+                id="pa-user"
+                value={form.stream.authUser ?? ""}
+                onChange={(e) => setStream("authUser", e.target.value)}
+                className="font-mono text-xs"
+                autoComplete="off"
+              />
+            </MiniField>
+            <MiniField id="pa-pass" label={t.inbounds.authPass}>
+              <Input
+                id="pa-pass"
+                value={form.stream.authPass ?? ""}
+                onChange={(e) => setStream("authPass", e.target.value)}
+                className="font-mono text-xs"
+                autoComplete="off"
+              />
+            </MiniField>
+            {form.protocol === "socks" && (
+              <label className="flex cursor-pointer items-center gap-2.5 text-xs text-muted-foreground sm:col-span-2">
+                <Switch
+                  checked={form.stream.socksUdp === "true"}
+                  onCheckedChange={(v) => setStream("socksUdp", String(v))}
+                  aria-label={t.inbounds.udpOn}
+                />
+                {t.inbounds.udpOn}
+              </label>
+            )}
+          </div>
+          <Tip>{t.inbounds.tipAuth}</Tip>
+        </div>
+      )}
+
+      {/* dokodemo-door target */}
+      {form.protocol === "dokodemo-door" && (
+        <div className="space-y-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="flex items-center gap-2 text-xs font-semibold text-silver">
+            <Globe className="h-3.5 w-3.5 text-primary" />
+            {PROTO_LABEL["dokodemo-door"]}
+          </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <MiniField id="dk-addr" label={t.inbounds.dokoAddr}>
+              <Input
+                id="dk-addr"
+                value={form.stream.dokoAddress ?? ""}
+                onChange={(e) => setStream("dokoAddress", e.target.value)}
+                placeholder="one.one.one.one"
+                className="font-mono text-xs"
+                autoComplete="off"
+              />
+            </MiniField>
+            <MiniField id="dk-port" label={t.inbounds.dokoPortL}>
+              <Input
+                id="dk-port"
+                value={form.stream.dokoPort ?? ""}
+                onChange={(e) => setStream("dokoPort", e.target.value)}
+                placeholder="53"
+                inputMode="numeric"
+                className="font-mono text-xs"
+              />
+            </MiniField>
+            <MiniField id="dk-net" label={t.inbounds.dokoNet}>
+              <Select
+                value={form.stream.dokoNetwork || "tcp,udp"}
+                onValueChange={(v) => setStream("dokoNetwork", v)}
+              >
+                <SelectTrigger id="dk-net" className="w-full text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="glass-strong">
+                  <SelectItem value="tcp">{t.inbounds.dokoTcp}</SelectItem>
+                  <SelectItem value="udp">{t.inbounds.dokoUdp}</SelectItem>
+                  <SelectItem value="tcp,udp">{t.inbounds.dokoBoth}</SelectItem>
+                </SelectContent>
+              </Select>
+            </MiniField>
+          </div>
+          <Tip>{t.inbounds.tipDoko}</Tip>
+        </div>
+      )}
+
+      {/* wireguard keys */}
+      {form.protocol === "wireguard" && (
+        <div className="space-y-3 rounded-xl border border-[#c084fc]/20 bg-[#c084fc]/[0.04] p-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-xs font-semibold text-silver">
+              <KeyRound className="h-3.5 w-3.5 text-[#c084fc]" />
+              {PROTO_LABEL["wireguard"]}
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const pair = genWgPair();
+                setForm((f) => ({
+                  ...f,
+                  stream: { ...f.stream, wgSecretKey: pair.priv, wgPublicKey: pair.pub },
+                }));
+              }}
+              className="h-7 gap-1.5 rounded-full border-[#c084fc]/30 bg-[#c084fc]/10 px-3 text-[11px] text-[#c084fc] hover:bg-[#c084fc]/20"
+            >
+              <RefreshCcw className="h-3 w-3" />
+              {t.inbounds.wgGen}
+            </Button>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <MiniField id="wg-priv" label={t.inbounds.wgSecret}>
+              <Input
+                id="wg-priv"
+                value={form.stream.wgSecretKey ?? ""}
+                onChange={(e) => setStream("wgSecretKey", e.target.value)}
+                className="font-mono text-[11px]"
+                autoComplete="off"
+              />
+            </MiniField>
+            <MiniField id="wg-pub" label={t.inbounds.wgPublic}>
+              <Input
+                id="wg-pub"
+                value={form.stream.wgPublicKey ?? ""}
+                onChange={(e) => setStream("wgPublicKey", e.target.value)}
+                className="font-mono text-[11px]"
+                autoComplete="off"
+              />
+            </MiniField>
+            <MiniField id="wg-mtu" label={t.inbounds.wgMtu}>
+              <Input
+                id="wg-mtu"
+                value={form.stream.wgMtu ?? ""}
+                onChange={(e) => setStream("wgMtu", e.target.value)}
+                placeholder="1420"
+                inputMode="numeric"
+                className="font-mono text-xs"
+              />
+            </MiniField>
+          </div>
+          <Tip>{t.inbounds.tipWg}</Tip>
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <MiniField
@@ -1098,7 +1672,12 @@ export function InboundsView() {
           />
         </MiniField>
 
-        <MiniField id="ib-port" label={t.inbounds.fieldPort} error={fieldErr.port}>
+        <MiniField
+          id="ib-port"
+          label={t.inbounds.fieldPort}
+          error={fieldErr.port}
+          hint={t.inbounds.tipPort}
+        >
           <div className="flex gap-2">
             <Input
               id="ib-port"
@@ -1142,7 +1721,7 @@ export function InboundsView() {
           />
         </MiniField>
 
-        <MiniField id="ib-status" label={t.inbounds.fieldStatus}>
+        <MiniField id="ib-status" label={t.inbounds.fieldStatus} hint={t.inbounds.tipStatus}>
           <Select value={form.status} onValueChange={(v) => setS({ status: v })}>
             <SelectTrigger id="ib-status" className="w-full">
               <SelectValue />
@@ -1159,7 +1738,7 @@ export function InboundsView() {
           id="ib-total"
           label={t.inbounds.fieldTotal}
           error={fieldErr.trafficLimitGb}
-          hint={t.inbounds.phTotal}
+          hint={t.inbounds.tipTotal}
         >
           <Input
             id="ib-total"
@@ -1175,7 +1754,7 @@ export function InboundsView() {
           id="ib-expiry"
           label={t.inbounds.fieldExpiry}
           error={fieldErr.expiryDays}
-          hint={t.inbounds.phExpiry}
+          hint={t.inbounds.tipExpiry}
         >
           <Input
             id="ib-expiry"
@@ -1188,7 +1767,7 @@ export function InboundsView() {
         </MiniField>
       </div>
 
-      <MiniField id="ib-note" label={t.inbounds.fieldNote} error={fieldErr.note}>
+      <MiniField id="ib-note" label={t.inbounds.fieldNote} error={fieldErr.note} hint={t.inbounds.tipNote}>
         <Textarea
           id="ib-note"
           value={form.note}
@@ -1237,6 +1816,8 @@ export function InboundsView() {
         </Button>
       </div>
 
+      <Tip>{t.inbounds.tipClients}</Tip>
+
       {form.clients.length === 0 && (
         <div className="rounded-xl border border-dashed border-white/10 px-4 py-8 text-center text-xs text-muted-foreground">
           {t.inbounds.errGeneric}
@@ -1256,6 +1837,7 @@ export function InboundsView() {
               <MiniField
                 id={`c-email-${i}`}
                 label={t.inbounds.cEmail}
+                hint={t.inbounds.tipEmail}
                 error={emailDup || emailBad ? t.inbounds.errBadValue : undefined}
               >
                 <Input
@@ -1282,6 +1864,7 @@ export function InboundsView() {
               <MiniField
                 id={`c-key-${i}`}
                 label={t.inbounds.cId}
+                hint={t.inbounds.tipKey}
                 error={keyErr}
               >
                 <div className="flex gap-1.5">
@@ -1321,7 +1904,7 @@ export function InboundsView() {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-4">
-              <MiniField id={`c-sub-${i}`} label={t.inbounds.cSubId}>
+              <MiniField id={`c-sub-${i}`} label={t.inbounds.cSubId} hint={t.inbounds.tipSub}>
                 <Input
                   id={`c-sub-${i}`}
                   value={c.subId}
@@ -1339,7 +1922,7 @@ export function InboundsView() {
               </MiniField>
 
               {form.protocol === "vless" ? (
-                <MiniField id={`c-flow-${i}`} label={t.inbounds.cFlow}>
+                <MiniField id={`c-flow-${i}`} label={t.inbounds.cFlow} hint={t.inbounds.tipFlow}>
                   <Select
                     value={c.flow || "none"}
                     onValueChange={(v) =>
@@ -1381,6 +1964,7 @@ export function InboundsView() {
               <MiniField
                 id={`c-tx-${i}`}
                 label={t.inbounds.cTraffic}
+                hint={t.inbounds.tipCTraffic}
               >
                 <Input
                   id={`c-tx-${i}`}
@@ -1398,7 +1982,7 @@ export function InboundsView() {
                 />
               </MiniField>
 
-              <MiniField id={`c-exp-${i}`} label={t.inbounds.cExpiry}>
+              <MiniField id={`c-exp-${i}`} label={t.inbounds.cExpiry} hint={t.inbounds.tipCExpiry}>
                 <Input
                   id={`c-exp-${i}`}
                   value={c.expiryDays}
@@ -1495,6 +2079,47 @@ export function InboundsView() {
         ))}
       </div>
       <p className="text-[11px] text-muted-foreground/70">{t.inbounds.transportHint}</p>
+
+      {form.transport === "xhttp" && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <MiniField id="st-xhpath" label={t.inbounds.wsPath}>
+            <Input
+              id="st-xhpath"
+              value={form.stream.path ?? ""}
+              onChange={(e) => setStream("path", e.target.value)}
+              placeholder={t.inbounds.phWsPath}
+              className="font-mono text-xs"
+              autoComplete="off"
+            />
+          </MiniField>
+          <MiniField id="st-xhhost" label={t.inbounds.wsHost}>
+            <Input
+              id="st-xhhost"
+              value={form.stream.host ?? ""}
+              onChange={(e) => setStream("host", e.target.value)}
+              placeholder={t.inbounds.phHost}
+              className="font-mono text-xs"
+              autoComplete="off"
+            />
+          </MiniField>
+          <MiniField id="st-xhmode" label={t.inbounds.xhMode}>
+            <Select
+              value={form.stream.mode || "auto"}
+              onValueChange={(v) => setStream("mode", v)}
+            >
+              <SelectTrigger id="st-xhmode" className="w-full text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="glass-strong">
+                <SelectItem value="auto">{t.inbounds.xhAuto}</SelectItem>
+                <SelectItem value="packet-up">{t.inbounds.xhPacket}</SelectItem>
+                <SelectItem value="stream-up">{t.inbounds.xhStream}</SelectItem>
+                <SelectItem value="stream-one">{t.inbounds.xhOne}</SelectItem>
+              </SelectContent>
+            </Select>
+          </MiniField>
+        </div>
+      )}
 
       {form.transport === "tcp" && (
         <div className="grid gap-4 sm:grid-cols-2">
@@ -1638,6 +2263,17 @@ export function InboundsView() {
           </MiniField>
         </div>
       )}
+      <Tip>
+        {form.transport === "tcp"
+          ? t.inbounds.tipTcp
+          : form.transport === "ws"
+            ? t.inbounds.tipWs
+            : form.transport === "grpc"
+              ? t.inbounds.tipGrpc
+              : form.transport === "httpupgrade"
+                ? t.inbounds.tipHttpUp
+                : t.inbounds.tipXhttp}
+      </Tip>
     </div>
   );
 
@@ -1658,6 +2294,7 @@ export function InboundsView() {
             <ShieldCheck className="h-3.5 w-3.5 text-primary" />
             TLS
           </div>
+          <Tip>{t.inbounds.tipTls}</Tip>
           <div className="grid gap-4 sm:grid-cols-2">
             <MiniField id="tls-sni" label={t.inbounds.tlsServerName}>
               <Input
@@ -1872,6 +2509,7 @@ export function InboundsView() {
               />
             </MiniField>
           </div>
+          <Tip>{t.inbounds.tipReality}</Tip>
         </div>
       )}
 
@@ -2082,6 +2720,7 @@ export function InboundsView() {
       </div>
 
       {/* live JSON preview */}
+      <Tip>{t.inbounds.tipJson}</Tip>
       <details className="group rounded-xl border border-white/10 bg-black/30">
         <summary className="cursor-pointer px-4 py-3 text-[11px] font-semibold tracking-wide text-muted-foreground transition-colors hover:text-foreground">
           Xray JSON · preview
@@ -2110,13 +2749,17 @@ export function InboundsView() {
     </div>
   );
 
-  const TABS: { id: TabId; label: string; icon: LucideIcon }[] = [
+  const ALL_TABS: { id: TabId; label: string; icon: LucideIcon }[] = [
     { id: "general", label: t.inbounds.tabGeneral, icon: RadioTower },
     { id: "clients", label: t.inbounds.tabClients, icon: Users },
     { id: "transport", label: t.inbounds.tabTransport, icon: Layers },
     { id: "security", label: t.inbounds.tabSecurity, icon: ShieldCheck },
     { id: "advanced", label: t.inbounds.tabAdvanced, icon: SlidersHorizontal },
   ];
+  // dokodemo-door has no client accounts → hide the Clients tab
+  const TABS = ALL_TABS.filter(
+    (x) => form.protocol !== "dokodemo-door" || x.id !== "clients"
+  );
 
   const tabHasError = (id: TabId): boolean =>
     Object.keys(fieldErr).some(
@@ -2138,13 +2781,24 @@ export function InboundsView() {
             {t.inbounds.subtitle}
           </p>
         </div>
-        <Button
-          onClick={openCreate}
-          className="glow-cyan gap-2 rounded-xl px-5 font-semibold shadow-lg shadow-primary/25"
-        >
-          <Plus className="h-4 w-4" />
-          {t.inbounds.new}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Button
+            onClick={openQuick}
+            variant="outline"
+            className="gap-2 rounded-xl border-primary/30 bg-primary/10 px-4 font-semibold text-primary hover:bg-primary/15"
+            title={t.inbounds.quickSub}
+          >
+            <Zap className="h-4 w-4" />
+            {t.inbounds.quickCreate}
+          </Button>
+          <Button
+            onClick={openCreate}
+            className="glow-cyan gap-2 rounded-xl px-5 font-semibold shadow-lg shadow-primary/25"
+          >
+            <Plus className="h-4 w-4" />
+            {t.inbounds.new}
+          </Button>
+        </div>
       </div>
 
       {/* ── KPI strip ──────────────────────────────────────── */}
@@ -2279,13 +2933,23 @@ export function InboundsView() {
             </span>
             <h3 className="text-silver text-lg font-bold">{t.inbounds.emptyTitle}</h3>
             <p className="mt-2 max-w-sm text-sm text-muted-foreground">{t.inbounds.emptyDesc}</p>
-            <Button
-              onClick={openCreate}
-              className="glow-cyan mt-6 gap-2 rounded-full px-5 font-semibold"
-            >
-              <Plus className="h-4 w-4" />
-              {t.inbounds.new}
-            </Button>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
+              <Button
+                onClick={openQuick}
+                variant="outline"
+                className="gap-2 rounded-full border-primary/30 bg-primary/10 px-4 font-semibold text-primary hover:bg-primary/15"
+              >
+                <Zap className="h-4 w-4" />
+                {t.inbounds.quickCreate}
+              </Button>
+              <Button
+                onClick={openCreate}
+                className="glow-cyan gap-2 rounded-full px-5 font-semibold"
+              >
+                <Plus className="h-4 w-4" />
+                {t.inbounds.new}
+              </Button>
+            </div>
           </div>
         ) : (
           <p className="glass rounded-2xl px-5 py-6 text-center text-sm text-muted-foreground">
@@ -2705,6 +3369,120 @@ export function InboundsView() {
                 >
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <BadgeCheck className="h-4 w-4" />}
                   {saving ? t.inbounds.saving : t.inbounds.save}
+                </Button>
+              </div>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── quick create dialog (simple-panel mode) ─────────── */}
+      <Dialog open={quickOpen} onOpenChange={setQuickOpen}>
+        <DialogContent className="glass-strong border-white/10 p-0 sm:max-w-[560px]">
+          <DialogHeader className="border-b border-white/5 px-5 py-4 text-start">
+            <DialogTitle className="flex items-center gap-3 text-silver">
+              <span className="glass flex h-9 w-9 items-center justify-center rounded-xl">
+                <Zap className="h-4 w-4 text-primary" />
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-base">{t.inbounds.quickTitle}</span>
+                <DialogDescription className="mt-0.5 block text-[11px] font-normal text-muted-foreground">
+                  {t.inbounds.quickSub}
+                </DialogDescription>
+              </span>
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 px-5 py-4">
+            {/* protocol tiles */}
+            <div className="grid grid-cols-3 gap-2">
+              {PROTOCOLS.map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => makeQuickDraft(p)}
+                  aria-pressed={quickProto === p}
+                  className={cn(
+                    "flex h-12 items-center justify-center gap-2 rounded-xl border text-[11px] font-semibold transition-all",
+                    quickProto === p
+                      ? "border-primary/40 bg-primary/10 text-primary shadow-[0_0_18px_-6px] shadow-primary/40"
+                      : "border-white/10 bg-white/[0.03] text-muted-foreground hover:border-white/20 hover:text-foreground"
+                  )}
+                >
+                  <Zap className="h-3 w-3" />
+                  {PROTO_LABEL[p]}
+                </button>
+              ))}
+            </div>
+            <Tip>{t.inbounds.tipProtocol}</Tip>
+
+            {/* what will be created */}
+            <div className="rounded-xl border border-white/10 bg-black/25 p-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                {t.inbounds.quickWill}
+              </p>
+              <dl className="mt-3 space-y-2 text-xs">
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-muted-foreground">{t.inbounds.quickTag}</dt>
+                  <dd className="font-mono text-silver">{quickDraft.tag}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-muted-foreground">{t.inbounds.quickPort}</dt>
+                  <dd className="font-mono text-silver tabular-nums">{quickDraft.port}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-muted-foreground">
+                    {t.inbounds.fieldTransport} · {t.inbounds.fieldSecurity}
+                  </dt>
+                  <dd className="font-mono text-silver">
+                    {composeProto(
+                      quickProto,
+                      QUICK_PRESET[quickProto]?.transport ?? "tcp",
+                      QUICK_PRESET[quickProto]?.security ?? "none"
+                    )}
+                  </dd>
+                </div>
+                {quickProto !== "dokodemo-door" && (
+                  <>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-muted-foreground">{t.inbounds.quickClient}</dt>
+                      <dd className="font-mono text-silver">{quickDraft.email}</dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-muted-foreground">{t.inbounds.cId}</dt>
+                      <dd
+                        className="max-w-56 truncate font-mono text-xs text-muted-foreground"
+                        title={quickDraft.key}
+                      >
+                        {quickDraft.key}
+                      </dd>
+                    </div>
+                  </>
+                )}
+              </dl>
+            </div>
+          </div>
+
+          <DialogFooter className="border-t border-white/5 px-5 py-3.5">
+            <div className="flex w-full items-center justify-between gap-3">
+              <p className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">
+                {quickBusy ? t.inbounds.saving : ""}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setQuickOpen(false)}
+                  className="rounded-full border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"
+                >
+                  {t.inbounds.cancel}
+                </Button>
+                <Button
+                  onClick={() => void runQuickCreate()}
+                  disabled={quickBusy}
+                  className="glow-cyan min-w-32 gap-2 rounded-full font-semibold"
+                >
+                  {quickBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                  {quickBusy ? t.inbounds.saving : t.inbounds.quickBtn}
                 </Button>
               </div>
             </div>

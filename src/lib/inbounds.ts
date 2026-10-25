@@ -19,9 +19,13 @@ export const IN_PROTOCOLS = [
   "trojan",
   "shadowsocks",
   "hysteria2",
+  "wireguard",
+  "dokodemo-door",
+  "socks",
+  "http",
 ] as const;
 
-export const IN_TRANSPORTS = ["tcp", "ws", "grpc", "httpupgrade"] as const;
+export const IN_TRANSPORTS = ["tcp", "ws", "grpc", "httpupgrade", "xhttp"] as const;
 
 export const IN_SECURITIES = ["none", "tls", "reality"] as const;
 
@@ -73,12 +77,17 @@ const STREAM_KEYS: Record<string, { str?: string[]; num?: string[]; bool?: strin
   transport: {
     str: [
       "headerType", "requestPath", "requestHost", // tcp/http
-      "path", "host", "earlyDataHeaderName", // ws / httpupgrade
+      "path", "host", "earlyDataHeaderName", // ws / httpupgrade / xhttp
       "serviceName", "authority", // grpc
+      "mode", // xhttp mode (auto/packet-up/stream-up/stream-one)
+      "method", // shadowsocks cipher
+      "authUser", "authPass", // socks / http proxy auth
+      "dokoAddress", "dokoNetwork", // dokodemo-door target
+      "wgSecretKey", "wgPublicKey", // wireguard keys
       "fallbacksJson", // serialized fallbacks array
     ],
-    num: ["maxEarlyData"],
-    bool: ["multiMode", "mux"],
+    num: ["maxEarlyData", "dokoPort", "wgMtu"],
+    bool: ["multiMode", "mux", "socksUdp"],
   },
   tls: {
     str: ["sni", "alpn", "fingerprint", "minVer", "maxVer", "certPublic", "certPrivate"],
@@ -165,7 +174,7 @@ export async function requireAdmin(req: Request): Promise<string | null> {
 
 /* ---------- idempotent seed (flag-guarded) ---------- */
 
-const SEED_FLAG_KEY = "inbounds_seeded_v1";
+const SEED_FLAG_KEY = "inbounds_seeded_v2";
 
 const SEED_INBOUNDS = [
   {
@@ -216,22 +225,65 @@ const SEED_INBOUNDS = [
     security: "none",
     status: "maintenance",
   },
+  {
+    tag: "wg-lab",
+    protocol: "wireguard",
+    port: 51820,
+    transport: "tcp",
+    security: "none",
+    status: "online",
+    streamJson: JSON.stringify({ wgSecretKey: "YH2xJl1cVz8Kk3B4dQ9wPzRmN7tGhUyS5aOvLcXeD2I=", wgPublicKey: "Bd0mSv3qJp6Rk9TzW2yHc8NgFu4AjE7iLoXqPbVrC1U=", wgMtu: 1420 }),
+  },
+  {
+    tag: "socks-local",
+    protocol: "socks",
+    port: 1080,
+    transport: "tcp",
+    security: "none",
+    status: "online",
+    streamJson: JSON.stringify({ socksUdp: true }),
+  },
+  {
+    tag: "doko-relay",
+    protocol: "dokodemo-door",
+    port: 9000,
+    transport: "tcp",
+    security: "none",
+    status: "online",
+    clientsJson: "[]",
+    streamJson: JSON.stringify({ dokoAddress: "one.one.one.one", dokoPort: 53, dokoNetwork: "udp" }),
+  },
+  {
+    tag: "http-proxy",
+    protocol: "http",
+    port: 8080,
+    transport: "tcp",
+    security: "none",
+    status: "disabled",
+  },
 ] as const;
 
+/**
+ * Idempotent seed: inserts any seed rows that are missing (matched by tag),
+ * never touching rows the admin already edited. Port collisions with
+ * user-created inbounds are tolerated (row skipped).
+ */
 export async function ensureInboundSeed(): Promise<void> {
   const flag = await db.serverSetting.findUnique({
     where: { key: SEED_FLAG_KEY },
   });
   if (flag?.value === "1") return;
 
-  const count = await db.inbound.count();
-  if (count === 0) {
-    // deterministic ordering: explicit createdAt offsets
-    for (let i = 0; i < SEED_INBOUNDS.length; i++) {
-      const row = SEED_INBOUNDS[i];
-      await db.inbound.create({
-        data: { ...row, createdAt: new Date(Date.now() + i * 1000) },
+  for (let i = 0; i < SEED_INBOUNDS.length; i++) {
+    const row = SEED_INBOUNDS[i];
+    try {
+      await db.inbound.upsert({
+        where: { tag: row.tag },
+        update: {}, // leave admin-edited rows untouched
+        create: { ...row, createdAt: new Date(Date.now() + i * 1000) },
       });
+    } catch {
+      // duplicate port against a user-created inbound → skip this seed
     }
   }
 

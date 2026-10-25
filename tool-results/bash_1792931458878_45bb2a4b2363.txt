@@ -1,0 +1,691 @@
+              className="h-9 w-9 rounded-lg text-muted-foreground hover:bg-chart-5/10 hover:text-chart-5"
+              aria-label={t.inbounds.removeClient}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        ))}
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() =>
+            setForm((f) => ({
+              ...f,
+              fallbacks: [...f.fallbacks, { name: "", dest: "", alpn: "", path: "" }],
+            }))
+          }
+          className="gap-1.5 rounded-full border-white/10 bg-white/[0.03] text-xs hover:bg-white/[0.06]"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          {t.inbounds.addFallback}
+        </Button>
+      </div>
+
+      {/* live JSON preview */}
+      <details className="group rounded-xl border border-white/10 bg-black/30">
+        <summary className="cursor-pointer px-4 py-3 text-[11px] font-semibold tracking-wide text-muted-foreground transition-colors hover:text-foreground">
+          Xray JSON · preview
+        </summary>
+        <pre className="max-h-56 overflow-auto border-t border-white/5 px-4 py-3 font-mono text-[10px] leading-relaxed text-muted-foreground">
+          {JSON.stringify(
+            {
+              protocol: form.protocol,
+              port: Number(form.port) || 0,
+              listen: form.listen || "0.0.0.0",
+              settings: {
+                clients: form.clients.map((c) => ({ email: c.email, id: c.key, flow: c.flow })),
+              },
+              streamSettings: {
+                network: form.transport,
+                security: form.security,
+                ...buildStream(form),
+              },
+              sniffing: form.sniffing,
+            },
+            null,
+            2
+          )}
+        </pre>
+      </details>
+    </div>
+  );
+
+  const TABS: { id: TabId; label: string; icon: LucideIcon }[] = [
+    { id: "general", label: t.inbounds.tabGeneral, icon: RadioTower },
+    { id: "clients", label: t.inbounds.tabClients, icon: Users },
+    { id: "transport", label: t.inbounds.tabTransport, icon: Layers },
+    { id: "security", label: t.inbounds.tabSecurity, icon: ShieldCheck },
+    { id: "advanced", label: t.inbounds.tabAdvanced, icon: SlidersHorizontal },
+  ];
+
+  const tabHasError = (id: TabId): boolean =>
+    Object.keys(fieldErr).some(
+      (k) => FIELD_TAB[k.replace(/-\d+$/, "")] === id || FIELD_TAB[k] === id
+    ) || (id === "clients" && dupEmails.size > 0);
+
+  return (
+    <div className="space-y-6">
+      {/* ── header ─────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <span className="inline-block rounded-full border border-primary/25 bg-primary/8 px-3 py-1 text-[10px] font-bold tracking-[0.18em] text-primary shadow-[0_0_18px_-8px_var(--primary)]">
+            {t.inbounds.badge}
+          </span>
+          <h1 className="text-silver mt-4 text-4xl font-bold tracking-tight md:text-5xl">
+            {t.nav.inbounds}
+          </h1>
+          <p className="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
+            {t.inbounds.subtitle}
+          </p>
+        </div>
+        <Button
+          onClick={openCreate}
+          className="glow-cyan gap-2 rounded-xl px-5 font-semibold shadow-lg shadow-primary/25"
+        >
+          <Plus className="h-4 w-4" />
+          {t.inbounds.new}
+        </Button>
+      </div>
+
+      {/* ── KPI strip ──────────────────────────────────────── */}
+      <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
+        <KPI icon={RadioTower} value={String(counts.all)} label={t.inbounds.kpiTotal} trend={t.inbounds.trendWeek} />
+        <KPI icon={Wifi} value={String(counts.online)} label={t.inbounds.kpiOnline} trend={t.inbounds.trendUptime} />
+        <KPI icon={Users} value={String(totals.users)} label={t.inbounds.kpiUsers} trend={t.inbounds.trendUsers} />
+        <KPI
+          icon={ArrowLeftRight}
+          value={fmtTraffic(totals.traffic)}
+          label={t.inbounds.kpiTraffic}
+          trend={t.inbounds.trendTraffic}
+        />
+      </div>
+
+      {/* ── toolbar ────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="glass relative h-10 min-w-0 flex-1 rounded-xl sm:max-w-72">
+          <Search className="pointer-events-none absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder={t.inbounds.searchPh}
+            aria-label={t.inbounds.searchPh}
+            className="h-full w-full bg-transparent ps-9 pe-3 text-sm outline-none placeholder:text-muted-foreground"
+          />
+        </div>
+        <div
+          className="flex flex-wrap items-center gap-2"
+          role="group"
+          aria-label={t.nav.inbounds}
+        >
+          {(
+            [
+              ["all", t.inbounds.fAll, counts.all],
+              ["online", t.inbounds.fOnline, counts.online],
+              ["maintenance", t.inbounds.fMaint, counts.maintenance],
+              ["disabled", t.inbounds.fDisabled, counts.disabled],
+            ] as const
+          ).map(([key, label, count]) => {
+            const active = statusFilter === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setStatusFilter(key)}
+                aria-pressed={active}
+                className={cn(
+                  "flex h-9 items-center gap-2 rounded-full border px-3.5 text-[12px] font-medium transition-all",
+                  active
+                    ? "border-primary/40 bg-primary/10 text-primary shadow-[0_0_16px_-6px_var(--primary)]"
+                    : "border-white/10 bg-white/[0.03] text-muted-foreground hover:border-white/20 hover:text-foreground"
+                )}
+              >
+                <span
+                  className={cn(
+                    "h-1.5 w-1.5 rounded-full",
+                    key === "all" ? "bg-primary" : STATUS_DOT[key]
+                  )}
+                  aria-hidden="true"
+                />
+                {label}
+                <span
+                  className={cn(
+                    "rounded-full px-1.5 py-px font-mono text-[10px] tabular-nums",
+                    active ? "bg-primary/15" : "bg-white/5"
+                  )}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <div
+          className="glass ms-auto flex items-center rounded-full p-1"
+          role="group"
+          aria-label={t.inbounds.viewGrid}
+        >
+          {(
+            [
+              ["grid", t.inbounds.viewGrid, LayoutGrid],
+              ["table", t.inbounds.viewTable, Rows3],
+            ] as const
+          ).map((ode, label, Icon]) => (
+            <button
+              key={mode}
+              onClick={() => setViewMode(mode)}
+              aria-pressed={viewMode === mode}
+              aria-label={label}
+              className={cn(
+                "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
+                viewMode === mode
+                  ? "bg-primary/15 text-primary ring-1 ring-primary/30"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Icon className="h-3.5 w-3.5" />
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── load error ─────────────────────────────────────── */}
+      {loadErr && rows === null && (
+        <div className="glass flex items-center gap-3 rounded-2xl border-chart-5/30 px-5 py-4 text-sm text-chart-5">
+          <RadioTower className="h-4 w-4 shrink-0" />
+          {t.inbounds.loadFail}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void load()}
+            className="ms-auto rounded-full"
+            aria-label="retry"
+          >
+            ↻
+          </Button>
+        </div>
+      )}
+
+      {/* ── grid / table / empty / loading ─────────────────── */}
+      {rows === null ? (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="glass h-60 rounded-2xl" />
+          ))}
+        </div>
+      ) : visible.length === 0 ? (
+        counts.all === 0 ? (
+          <div className="glass hover-glow flex flex-col items-center rounded-3xl px-8 py-14 text-center">
+            <span className="glass glow-cyan mb-5 flex h-16 w-16 items-center justify-center rounded-2xl">
+              <RadioTower className="h-7 w-7 text-primary" />
+            </span>
+            <h3 className="text-silver text-lg font-bold">{t.inbounds.emptyTitle}</h3>
+            <p className="mt-2 max-w-sm text-sm text-muted-foreground">{t.inbounds.emptyDesc}</p>
+            <Button
+              onClick={openCreate}
+              className="glow-cyan mt-6 gap-2 rounded-full px-5 font-semibold"
+            >
+              <Plus className="h-4 w-4" />
+              {t.inbounds.new}
+            </Button>
+          </div>
+        ) : (
+          <p className="glass rounded-2xl px-5 py-6 text-center text-sm text-muted-foreground">
+            {t.inbounds.noMatch}
+          </p>
+        )
+      ) : viewMode === "grid" ? (
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          {visible.map((row, i) => (
+            <article
+              key={row.id}
+              style={{ animationDelay: `${(i % 6) * 70}ms` }}
+              className={cn(
+                "fade-up group relative flex flex-col gap-3.5 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur-xl transition-all duration-300",
+                PROTO_HOVER[row.protocol] ?? PROTO_HOVER.vless
+              )}
+            >
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "absolute inset-x-0 top-0 h-[3px] opacity-80",
+                  PROTO_BAR[row.protocol] ?? PROTO_BAR.vless
+                )}
+              />
+              {/* proto badge + status */}
+              <div className="flex items-center justify-between gap-2">
+                <span
+                  className={cn(
+                    "rounded-lg px-2.5 py-1 font-mono text-[10px] font-bold tracking-wide ring-1",
+                    PROTO_CLS[row.protocol] ?? PROTO_CLS.vless
+                  )}
+                >
+                  {PROTO_LABEL[row.protocol] ?? row.protocol.toUpperCase()}
+                </span>
+                <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <span
+                    className={cn(
+                      "h-1.5 w-1.5 rounded-full",
+                      STATUS_DOT[row.status] ?? "bg-muted-foreground",
+                      row.status === "online" && "animate-pulse"
+                    )}
+                    aria-hidden="true"
+                  />
+                  {StatusText[row.status] ?? row.status}
+                </span>
+              </div>
+
+              {/* tag + sparkline */}
+              <div className="flex items-end justify-between gap-3">
+                <h3
+                  className="min-w-0 truncate font-mono text-sm font-semibold text-silver"
+                  title={row.tag}
+                >
+                  {row.tag}
+                </h3>
+                <Sparkline seed={row.tag} color={PROTO_VAR[row.protocol] ?? PROTO_VAR.vless} />
+              </div>
+
+              {/* port */}
+              <p className="flex items-baseline gap-2">
+                <span className="font-mono text-3xl font-bold leading-none tracking-tight text-silver tabular-nums md:text-4xl">
+                  {row.port}
+                </span>
+                <span className="text-[10px] font-semibold tracking-[0.18em] text-muted-foreground/80">
+                  PORT
+                </span>
+                {row.listen && row.listen !== "0.0.0.0" && (
+                  <span className="font-mono text-[10px] text-muted-foreground/70">
+                    @ {row.listen}
+                  </span>
+                )}
+              </p>
+
+              {/* chips */}
+              <div className="flex flex-wrap gap-1.5">
+                <Chip>{TransportText[row.transport] ?? row.transport}</Chip>
+                <Chip accent={row.security !== "none"}>
+                  {SecurityText[row.security] ?? row.security}
+                </Chip>
+                {(row.clients?.length ?? 0) > 0 && (
+                  <Chip>
+                    <span className="inline-flex items-center gap-1">
+                      <Users className="h-2.5 w-2.5" />
+                      {row.clients.length}
+                    </span>
+                  </Chip>
+                )}
+                {row.trafficLimitGb !== null && <Chip>≤ {fmtTraffic(row.trafficLimitGb)}</Chip>}
+                {row.expiryDays !== null && <Chip>{row.expiryDays}d</Chip>}
+                {row.note && (
+                  <Chip accent>
+                    <span className="max-w-40 truncate" title={row.note}>
+                      {row.note}
+                    </span>
+                  </Chip>
+                )}
+              </div>
+
+              {/* live stats (inset panel) */}
+              <div className="mt-auto rounded-xl border border-white/[0.07] bg-black/25 px-4 py-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                      {t.inbounds.usersLabel}
+                    </p>
+                    <p className="mt-1 font-mono text-lg font-bold leading-none text-silver tabular-nums">
+                      {row.users}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                      {t.inbounds.trafficLabel}
+                    </p>
+                    <p className="mt-1 font-mono text-lg font-bold leading-none text-silver tabular-nums">
+                      {fmtTraffic(row.txGb)}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-3 h-1 overflow-hidden rounded-full bg-white/[0.06]">
+                  <span
+                    className={cn(
+                      "block h-full rounded-full transition-all duration-700",
+                      PROTO_BAR[row.protocol] ?? PROTO_BAR.vless
+                    )}
+                    style={{
+                      width: `${Math.min(100, Math.max(2, Math.round((row.txGb / maxTx) * 100)))}%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* actions */}
+              <div className="flex items-center justify-between gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => void copyLink(row)}
+                  className="h-8 gap-1.5 rounded-full px-3 text-[11px] text-muted-foreground hover:text-foreground"
+                  aria-label={t.inbounds.copyLink}
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">{t.inbounds.copyLink}</span>
+                </Button>
+
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => openEdit(row)}
+                    className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
+                    aria-label={t.inbounds.edit}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
+                        aria-label={t.inbounds.setStatus}
+                      >
+                        <EllipsisVertical className="h-3.5 w-3.5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="glass-strong min-w-44">
+                      <DropdownMenuLabel className="text-xs text-muted-foreground">
+                        {t.inbounds.setStatus}
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {STATUSES.map((s) => (
+                        <DropdownMenuItem
+                          key={s}
+                          onClick={() => void setStatus(row, s)}
+                          className="flex items-center justify-between gap-2"
+                        >
+                          <span className="flex items-center gap-2">
+                            <span className={cn("h-1.5 w-1.5 rounded-full", STATUS_DOT[s])} />
+                            {StatusText[s]}
+                          </span>
+                          {row.status === s && <CircleCheck className="h-3.5 w-3.5 text-primary" />}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setDeleting(row)}
+                    className="h-8 w-8 rounded-full text-muted-foreground hover:bg-chart-5/10 hover:text-chart-5"
+                    aria-label={t.inbounds.deleteAction}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : (
+        /* ── table view ── */
+        <div className="glass overflow-x-auto rounded-2xl">
+          <table className="w-full min-w-[760px] text-sm">
+            <thead>
+              <tr className="border-b border-white/5 text-start text-[10px] uppercase tracking-wider text-muted-foreground">
+                <th className="px-4 py-3 text-start font-medium">{t.inbounds.tblTag}</th>
+                <th className="px-4 py-3 text-start font-medium">{t.inbounds.tblProto}</th>
+                <th className="px-4 py-3 text-start font-medium">{t.inbounds.tblPort}</th>
+                <th className="px-4 py-3 text-start font-medium">{t.inbounds.tblSec}</th>
+                <th className="px-4 py-3 text-start font-medium">{t.inbounds.tblClients}</th>
+                <th className="px-4 py-3 text-start font-medium">{t.inbounds.tblTraffic}</th>
+                <th className="px-4 py-3 text-start font-medium">{t.inbounds.tblStatus}</th>
+                <th className="px-4 py-3 text-end font-medium">{t.inbounds.tblActions}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visible.map((row) => (
+                <tr
+                  key={row.id}
+                  className="border-b border-white/[0.04] transition-colors last:border-0 hover:bg-white/[0.03]"
+                >
+                  <td className="max-w-44 px-4 py-3">
+                    <p className="truncate font-mono text-xs font-semibold text-silver">{row.tag}</p>
+                    {row.note && (
+                      <p className="truncate text-[10px] text-muted-foreground">{row.note}</p>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={cn(
+                        "rounded-full px-2 py-0.5 font-mono text-[10px] font-bold ring-1",
+                        PROTO_CLS[row.protocol] ?? PROTO_CLS.vless
+                      )}
+                    >
+                      {PROTO_LABEL[row.protocol] ?? row.protocol.toUpperCase()}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 font-mono text-xs tabular-nums text-silver">{row.port}</td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground">
+                    {TransportText[row.transport]} · {SecurityText[row.security]}
+                  </td>
+                  <td className="px-4 py-3 font-mono text-xs tabular-nums">
+                    {row.clients?.length ?? 0}
+                  </td>
+                  <td className="px-4 py-3 font-mono text-xs tabular-nums text-silver">
+                    {fmtTraffic(row.txGb)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <span
+                        className={cn(
+                          "h-1.5 w-1.5 rounded-full",
+                          STATUS_DOT[row.status],
+                          row.status === "online" && "animate-pulse"
+                        )}
+                      />
+                      {StatusText[row.status]}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => void copyLink(row)}
+                        className="h-7 w-7 rounded-full text-muted-foreground hover:text-foreground"
+                        aria-label={t.inbounds.copyLink}
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEdit(row)}
+                        className="h-7 w-7 rounded-full text-muted-foreground hover:text-foreground"
+                        aria-label={t.inbounds.edit}
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setDeleting(row)}
+                        className="h-7 w-7 rounded-full text-muted-foreground hover:bg-chart-5/10 hover:text-chart-5"
+                        aria-label={t.inbounds.deleteAction}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* ── create / edit dialog (Xray-grade) ──────────────── */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="glass-strong flex max-h-[90vh] flex-col gap-0 overflow-hidden border-white/10 p-0 sm:max-w-[920px]">
+          <DialogHeader className="border-b border-white/5 px-5 py-4 text-start md:px-6">
+            <DialogTitle className="flex items-center gap-3 text-silver">
+              <span className="glass flex h-9 w-9 items-center justify-center rounded-xl">
+                <RadioTower className="h-4 w-4 text-primary" />
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-base">
+                  {editing ? t.inbounds.dialogEdit : t.inbounds.dialogCreate}
+                </span>
+                <DialogDescription className="mt-0.5 block truncate text-[11px] font-normal text-muted-foreground">
+                  {t.inbounds.dlgSub}
+                </DialogDescription>
+              </span>
+              <span
+                className={cn(
+                  "ms-auto hidden shrink-0 rounded-full px-2.5 py-1 font-mono text-[10px] font-bold ring-1 sm:block",
+                  PROTO_CLS[form.protocol] ?? PROTO_CLS.vless
+                )}
+              >
+                {composeProto(form.protocol, form.transport, form.security)}
+              </span>
+            </DialogTitle>
+          </DialogHeader>
+
+          {/* mobile tab chips */}
+          <div className="flex gap-1.5 overflow-x-auto px-4 pt-3 md:hidden" role="tablist">
+            {TABS.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                role="tab"
+                aria-selected={tab === id}
+                onClick={() => setTab(id)}
+                className={cn(
+                  "relative flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[11px] font-medium transition-colors",
+                  tab === id
+                    ? "bg-primary/15 text-primary ring-1 ring-primary/30"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Icon className="h-3 w-3" />
+                {label}
+                {tabHasError(id) && (
+                  <span className="absolute end-1.5 top-1 h-1.5 w-1.5 rounded-full bg-chart-5" />
+                )}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex min-h-0 flex-1">
+            {/* desktop tab rail */}
+            <div className="hidden w-48 shrink-0 flex-col gap-1 border-e border-white/5 p-3 md:flex" role="tablist">
+              {TABS.map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  role="tab"
+                  aria-selected={tab === id}
+                  onClick={() => setTab(id)}
+                  className={cn(
+                    "relative flex h-10 items-center gap-2.5 rounded-xl px-3 text-[12px] font-medium transition-colors",
+                    tab === id
+                      ? "bg-primary/12 text-primary ring-1 ring-primary/25"
+                      : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground"
+                  )}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {label}
+                  {tabHasError(id) && (
+                    <span className="absolute end-2 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-chart-5" />
+                  )}
+                </button>
+              ))}
+
+              <div className="mt-auto space-y-2 px-2 pb-1">
+                {editing && (
+                  <p className="text-[10px] leading-relaxed text-muted-foreground/70">
+                    <BadgeCheck className="me-1 inline h-3 w-3 text-primary" />
+                    {editing.tag} · {editing.updatedAt.slice(0, 10)}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* content */}
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 md:px-6">
+              {topErr && (
+                <p className="mb-4 rounded-xl bg-chart-5/10 px-3.5 py-2.5 text-xs font-medium text-chart-5 ring-1 ring-chart-5/30">
+                  {topErr}
+                </p>
+              )}
+              {tab === "general" && renderGeneral()}
+              {tab === "clients" && renderClients()}
+              {tab === "transport" && renderTransport()}
+              {tab === "security" && renderSecurity()}
+              {tab === "advanced" && renderAdvanced()}
+            </div>
+          </div>
+
+          <DialogFooter className="border-t border-white/5 px-5 py-3.5 md:px-6">
+            <div className="flex w-full items-center justify-between gap-3">
+              <p className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">
+                {saving ? t.inbounds.saving : ""}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setDialogOpen(false)}
+                  className="rounded-full border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"
+                >
+                  {t.inbounds.cancel}
+                </Button>
+                <Button
+                  onClick={() => void save()}
+                  disabled={saving}
+                  className="glow-cyan min-w-32 gap-2 rounded-full font-semibold"
+                >
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <BadgeCheck className="h-4 w-4" />}
+                  {saving ? t.inbounds.saving : t.inbounds.save}
+                </Button>
+              </div>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── delete confirm ─────────────────────────────────── */}
+      <AlertDialog open={deleting !== null} onOpenChange={(v) => !v && setDeleting(null)}>
+        <AlertDialogContent className="glass-strong border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-silver">{t.inbounds.delTitle}</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              {lfmt(t.inbounds.delDesc, {
+                tag: deleting?.tag ?? "",
+                port: String(deleting?.port ?? ""),
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-full border-white/10 bg-white/[0.03]">
+              {t.inbounds.cancel}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                void confirmDelete();
+              }}
+              disabled={deleteBusy}
+              className="rounded-full bg-chart-5 text-white hover:bg-chart-5/90"
+            >
+              {deleteBusy ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                t.inbounds.delete
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
