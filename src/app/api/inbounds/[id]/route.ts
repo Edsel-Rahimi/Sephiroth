@@ -7,6 +7,7 @@ import {
   toDTO,
   validateInbound,
 } from "@/lib/inbounds";
+import { reprojectInbound } from "@/lib/user-sync";
 
 /* ============================================================
    Sephiroth · Phase 3 — Inbounds item API
@@ -67,7 +68,11 @@ export async function PATCH(
         where: { id },
         data: parsed.data,
       });
-      return NextResponse.json({ inbound: toDTO(updated) });
+      // the Phase-3 editor serializes clients without ownerId — re-merge
+      // every ClientUser's projected entries so user configs survive
+      await reprojectInbound(id);
+      const fresh = await db.inbound.findUnique({ where: { id } });
+      return NextResponse.json({ inbound: toDTO(fresh ?? updated) });
     } catch (err) {
       const kind = mapInboundWriteError(err); // Prisma P2002 race
       if (kind === "duplicate_tag") {

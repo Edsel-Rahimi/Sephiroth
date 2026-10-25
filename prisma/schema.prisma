@@ -31,10 +31,10 @@ model ServerSetting {
 model Inbound {
   id        String   @id @default(cuid())
   tag       String   @unique // unique Xray inbound tag
-  protocol  String // vless | vmess | trojan | shadowsocks | hysteria2
+  protocol  String // vless | vmess | trojan | shadowsocks | hysteria2 | ...
   port      Int      @unique // 1-65535
   listen    String   @default("") // "" = all interfaces (0.0.0.0)
-  transport String   @default("tcp") // tcp | ws | grpc | httpupgrade
+  transport String   @default("tcp") // tcp | ws | grpc | httpupgrade | xhttp
   security  String   @default("none") // none | tls | reality
   status    String   @default("online") // online | maintenance | disabled
   note      String?
@@ -42,9 +42,49 @@ model Inbound {
   trafficLimitGb Float? // null = unlimited
   expiryDays     Int? // null = never expires
   // complex config stored as JSON strings (validated on write)
-  clientsJson  String  @default("[]") // [{email,key,subId,flow,ipLimit,trafficLimitGb,expiryDays,enabled}]
+  clientsJson  String  @default("[]") // [{email,key,subId,flow,ipLimit,trafficLimitGb,expiryDays,enabled,ownerId?}]
   sniffingJson String  @default("{}") // {enabled,destOverride[],routeOnly}
   streamJson   String  @default("{}") // transport/security-specific settings
+  accesses UserInboundAccess[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ── Sephiroth Panel ─────────────────────────────────────────
+// Phase 4 · Users (panel-level clients owning entries across
+// inbounds; entries are projected into Inbound.clientsJson
+// with ownerId so the core-facing config stays the same shape)
+
+model ClientUser {
+  id             String   @id @default(cuid())
+  username       String   @unique // 2-32 chars [a-zA-Z0-9_-]
+  subId          String   @unique // subscription token (hex)
+  note           String?
+  enabled        Boolean  @default(true)
+  // limits apply to every linked config
+  trafficLimitGb Float? // null = unlimited
+  expiryDays     Int? // null = never expires
+  ipLimit        Int      @default(0) // 0 = unlimited
+  // simulated usage (decorated / resettable)
+  usedTrafficGb  Float    @default(0)
+  // Phase 6 hook: owning reseller, null = admin-created
+  resellerId     String?
+  accesses       UserInboundAccess[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model UserInboundAccess {
+  id        String     @id @default(cuid())
+  userId    String
+  inboundId String
+  email     String // identity inside the inbound (unique per inbound)
+  key       String // uuid (vless/vmess) or password (trojan/ss/hy2/...)
+  flow      String     @default("") // "" | xtls-rprx-vision (reality vless)
+  user      ClientUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inbound   Inbound    @relation(fields: [inboundId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, inboundId])
+  @@unique([inboundId, email])
+  @@index([userId])
 }
