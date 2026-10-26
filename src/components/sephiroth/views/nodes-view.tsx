@@ -58,6 +58,7 @@ import { useAppStore } from "@/lib/store/app-store";
 import { dictionaries } from "@/lib/i18n/dictionaries";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { RelayTunnelsPanel } from "@/components/sephiroth/views/relay-tunnels-panel";
 
 /* ============================================================
    Sephiroth · Phase 8 — Nodes (remote fleet mirrors)
@@ -937,6 +938,9 @@ export function NodesView() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Multi-Node Relay Tunnels & Load Balancing */}
+      <RelayTunnelsPanel />
     </div>
   );
 }

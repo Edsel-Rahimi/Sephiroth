@@ -1,5 +1,3 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
 # dependencies
 node_modules
 /.pnp
@@ -13,43 +11,45 @@ node_modules
 # testing
 /coverage
 
-# next.js
-/.next/
-/out/
-
-# production
+# build output
+/dist/
 /build
+server.js
 
 # misc
 .DS_Store
 *.pem
 
-# debug
+# debug logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.log
+dev.log
+dev.out.log
+server.log
 
-# env files (can opt-in for committing if needed)
+# env files (opt-in via .env.example)
 .env*
 !.env.example
-
-# vercel
-.vercel
-
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local
 local-*
 .claude
 .z-ai-config
-*.log
-dev.log
-dev.out.log
 test
 prompt
 
-server.log
 # Skills directory
 /skills/
+
+# local delivery artifacts
+download/
+
+# stale next.js artifacts (removed stack, keep ignored just in case)
+/.next/

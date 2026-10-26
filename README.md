@@ -6,9 +6,10 @@
 
 <a href="https://github.com/Edsel-Rahimi/Sephiroth/stargazers"><img src="https://img.shields.io/github/stars/Edsel-Rahimi/Sephiroth?style=for-the-badge&logo=github&logoColor=22d8ee&color=22d8ee&labelColor=05080f&label=Stars" alt="GitHub Stars"></a>
 <a href="https://github.com/Edsel-Rahimi/Sephiroth/issues"><img src="https://img.shields.io/github/issues/Edsel-Rahimi/Sephiroth?style=for-the-badge&logo=github&logoColor=22d8ee&color=cfd9e2&labelColor=05080f&label=Issues" alt="Issues"></a>
-<a href="https://nextjs.org"><img src="https://img.shields.io/badge/Next.js-16-e8eef6?style=for-the-badge&logo=next.js&logoColor=e8eef6&labelColor=05080f" alt="Next.js 16"></a>
+<a href="https://react.dev"><img src="https://img.shields.io/badge/React-19-e8eef6?style=for-the-badge&logo=react&logoColor=e8eef6&labelColor=05080f" alt="React 19"></a>
+<a href="https://vite.dev"><img src="https://img.shields.io/badge/Vite-8-a855f7?style=for-the-badge&logo=vite&logoColor=a855f7&labelColor=05080f" alt="Vite 8"></a>
 <a href="https://www.typescriptlang.org"><img src="https://img.shields.io/badge/TypeScript-5-3178c6?style=for-the-badge&logo=typescript&logoColor=3178c6&labelColor=05080f" alt="TypeScript 5"></a>
-<a href="https://bun.sh"><img src="https://img.shields.io/badge/Bun-runtime-f472b6?style=for-the-badge&logo=bun&logoColor=f472b6&labelColor=05080f" alt="Bun"></a>
+<a href="https://expressjs.com"><img src="https://img.shields.io/badge/Express-single_process-f472b6?style=for-the-badge&logo=express&logoColor=f472b6&labelColor=05080f" alt="Express"></a>
 
 <br><br>
 
@@ -44,9 +45,17 @@
 | **🧭 روتینگ هوشمند** | قوانین ترتیبی با ماچرهای کامل geosite/geoip + **پریست‌های آماده** (بلاک تبلیغات، بلاک پورن، بلاک بدافزار، ایران→مستقیم، بلاک QUIC، تلگرام→پروکسی) |
 | **📈 اتاق فرمان زنده** | داشبورد بلوکی با نمودار ترافیک، فید فعالیت زنده‌ی سوکت‌محور، تاریخچه‌ی جستجوپذیر و خروجی JSON |
 | **🧑‍🏫 راهنمای میدانی** | ۱۳ فصل آموزشی؛ برای هر فیلد می‌گوید «یعنی چی» و «چه وارد کنی» — با زبانِ صفرِ شبکه |
+| **📦 سابسکریپشن چندفرمتی** | یک لینک، سه خروجی: لیست خام (`raw`)، **Clash Meta / Mihomo (YAML)** و **Sing-Box v1.10+ (JSON)** + هدر `Subscription-Userinfo` برای گیج مصرف کلاینت‌ها |
+| **🤖 ترمینال ربات تلگرام** | کنسول تعاملی تست ربات در تنظیمات — `/status`، `/users`، `/create_trial` و `/backup_now` با صدور آنی لینک اشتراک |
+| **💳 درگاه‌های ریسلر** | زرین‌پال، تتر TRC20، شبکه‌ی TON و کارت‌به‌کارت + شارژ آنی سهمیه با محاسبه‌ی خودکار حجم و سقف کاربر |
+| **🌐 تانل ایران→خارج** | تانل‌های معکوس xhttp-reverse و grpc-mux برای اختلالات شدید + تست زنده‌ی Latency |
+| **🛡 WARP+ یک‌کلیکی** | پریست اوت‌باند WireGuard WARP و هدایت دامنه‌های تحریمی و هوش مصنوعی در روتینگ |
+| **🎨 موتور ۶ تم کهکشانی** | Sephiroth Cosmic، Jenova Violet، Masamune Crimson، Matrix Terminal، OLED Void Gold، One-Winged Angel |
+| **⌘K پرش سریع** | Command Palette برای پرش میان صفحات، اینباندها و تنظیمات |
 | **🌐 شش زبان، راست‌چین از جنس اول** | فارسی، عربی، انگلیسی، چینی، ترکی و روسی با RTL منطقی و فونت‌های لوکال |
 | **🎛 تنظیمات دو‌لایه** | تب **General** برای همه و تب **Expert** برای حرفه‌ای‌ها + ماژول‌های نوار بالا (Hosts/Nodes/Outbounds/Routing) با یک کلید روشن/خاموش می‌شوند |
 | **🌙 اتمسفر سفیروت** | شیشه‌ی مات، درخشش سایان، ستاره‌های پس‌زمینه و حرکت‌های نرم — همه با احترام به `prefers-reduced-motion` |
+| **⚙️ تک‌فرایندی، بدون دیتابیس خارجی** | UI + API + سوکت تله‌متری + نگهدارنده‌ی خودکار سهمیه‌ها روی **یک پورت**؛ دیتابیس JSON اتمی لوکال با seed خودکار |
 
 <div align="center">
 <img src="docs/divider.svg" width="100%">
@@ -78,15 +87,22 @@
 
 ```bash
 git clone https://github.com/Edsel-Rahimi/Sephiroth.git
-cd Sephiroth && bun install
+cd Sephiroth && npm install     # یا: bun install
 
-cp .env.example .env      # DATABASE_URL="file:./db/custom.db"
-bunx prisma db push       # ساخت دیتابیس
+npm run dev                     # → http://localhost:3000
+```
 
-bun run dev               # → http://localhost:3000
+همین. دیتابیس JSON لوکال (`db/sephiroth-store.json`) در اولین اجرا خودش seed می‌شود — نیازی به هیچ سرویس خارجی نیست.
+
+یا با داکر:
+
+```bash
+docker compose up -d --build
 ```
 
 **ورود پیش‌فرض:** `admin` / `sephiroth` — و بعد از اولین ورود، از **Profile → Security** پسورد و کلید بازیابی را عوض کنید.
+
+> 🔐 نکته‌ی امنیتی: حالت پیش‌نمایش داخل iframe (مثلاً sandbox ها) با متغیر محیطی `SEPH_PREVIEW_AUTH=1` فعال می‌شود؛ در استقرار واقعی این متغیر را **ست نکنید** تا پنل فقط با کوکیِ لاگین قابل دسترس باشد.
 
 <div align="center">
 <img src="docs/flow.svg" alt="مسیر طلایی — از اینباند تا مانیتور" width="100%">
@@ -107,9 +123,11 @@ bun run dev               # → http://localhost:3000
 - [x] فعالیت زنده + تاریخچه + خروجی
 - [x] تنظیمات General/Expert + سوییچ ماژول‌های نوار بالا
 - [x] نشان «Sephiroth» روی هر کانفیگ خروجی
+- [x] سابسکریپشن چندفرمتی — Clash Meta و Sing-Box + هدر userinfo
+- [x] ترمینال ربات تلگرام + درگاه‌های پرداخت ریسلر + تانل‌های ایران→خارج
+- [x] موتور ۶ تم کهکشانی + ⌘K پرش سریع
 - [ ] 🧠 درایور هسته‌ی واقعی Xray (فعلاً شبیه‌ساز زنده)
-- [ ] 🤖 ربات تلگرام
-- [ ] 📱 PWA و تم‌های فصلی
+- [ ] 📱 PWA
 
 ## ⚠️ سلب مسئولیت
 
@@ -139,7 +157,7 @@ TWdqYu5H6emRHd6jFfkHjfG8Yg2285DFmT
 
 <div dir="ltr" align="center">
 
-**Sephiroth** is an open-source Xray control panel built with Next.js 16, TypeScript 5, Prisma and Bun — 9 inbound protocols, subscription pages with password-locked groups, hosts/nodes/outbounds/routing with one-click presets (block ads, block porn, Iran→direct…), a realtime activity cockpit, a 13-chapter field manual that explains every field in plain language, and 6 languages with first-class RTL. Every generated config is branded with the **Sephiroth** tag.
+**Sephiroth** is an open-source Xray control panel — a single-process full-stack app (React 19 + Vite + Express + Socket.IO, atomic local JSON store, zero external DB). 9 inbound protocols, multi-format subscriptions (raw list, Clash Meta YAML, Sing-Box JSON with `Subscription-Userinfo`), password-locked sub groups, hosts/nodes/outbounds/routing with one-click presets (block ads, block porn, Iran→direct…), Iran→foreign relay tunnels, a Telegram bot terminal, reseller payment gateways, a realtime telemetry cockpit, a 13-chapter field manual, 6 languages with first-class RTL and 6 cosmic themes. Every generated config is branded with the **Sephiroth** tag.
 
 </div>
 

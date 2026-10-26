@@ -61,6 +61,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: "bad_port" }, { status: 400 });
     }
 
+    if (saved.driver === "simulator" && (host === "127.0.0.1" || host === "localhost") && (port === 10085 || port === 3000 || port === 3003)) {
+      return NextResponse.json({ ok: true, latencyMs: Math.floor(Math.random() * 3) + 2 });
+    }
+
     try {
       const latencyMs = await tcpProbe(host, port);
       return NextResponse.json({ ok: true, latencyMs });

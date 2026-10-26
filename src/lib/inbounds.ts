@@ -1,6 +1,5 @@
-import { Prisma, type Inbound } from "@prisma/client";
-import { parseSessionCookie, verifyToken } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { getSession } from "@/lib/auth";
+import { db, Prisma, type Inbound } from "@/lib/db";
 
 /* ============================================================
    Sephiroth · Phase 3 — Inbounds (server-side helpers)
@@ -166,10 +165,9 @@ export function toDTO(row: InboundRow): InboundDTO {
 
 /** Returns the admin username for a valid session, else null. */
 export async function requireAdmin(req: Request): Promise<string | null> {
-  const username = await verifyToken(parseSessionCookie(req));
-  if (!username) return null;
-  const admin = await db.adminUser.findUnique({ where: { username } });
-  return admin ? username : null;
+  const actor = await getSession(req);
+  if (actor && actor.role === "admin") return actor.username;
+  return null;
 }
 
 /* ---------- idempotent seed (flag-guarded) ---------- */

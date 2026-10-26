@@ -299,8 +299,8 @@ const PRESETS: readonly PresetDef[] = [
     icon: MapPin,
     payload: {
       outboundTag: "direct",
-      domain: ["geosite:category-ir", "geoip:ir"],
-      ip: [],
+      domain: ["geosite:category-ir", "regexp:.*\\.ir$"],
+      ip: ["geoip:ir"],
       port: "",
       network: "",
     },
@@ -322,7 +322,7 @@ const PRESETS: readonly PresetDef[] = [
     payload: {
       outboundTag: "",
       domain: ["geosite:telegram"],
-      ip: [],
+      ip: ["geoip:telegram"],
       port: "",
       network: "",
     },
@@ -858,6 +858,80 @@ export function RoutingView() {
               </div>
             );
           })}
+          {/* Cloudflare WARP+ Clean-IP Preset */}
+          <div className="glass hover-glow group flex flex-col rounded-2xl p-4 ring-1 ring-primary/30 bg-primary/[0.03]">
+            <div className="flex items-center gap-2.5">
+              <span className="glass flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ring-primary/30 transition-shadow duration-300 group-hover:shadow-[0_0_18px_-4px_var(--primary)]">
+                <Zap className="h-4 w-4 text-primary" aria-hidden="true" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-bold text-foreground">
+                  {lang === "fa" ? "وارپ کلودفلر (رفع کپچا و هوش مصنوعی)" : "Cloudflare WARP+ (Clean IP & AI)"}
+                </p>
+                <p className="truncate text-[11px] text-muted-foreground">
+                  {lang === "fa"
+                    ? "هدایت OpenAI، گوگل، نتفلیکس و اسپاتیفای به خروجی WARP"
+                    : "Route OpenAI, Google, Netflix & Spotify via WARP outbound"}
+                </p>
+              </div>
+              <span
+                className={cn(
+                  "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[10px] font-semibold ring-1",
+                  obChipCls("warp")
+                )}
+                dir="ltr"
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden="true" />
+                warp
+              </span>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
+              {["geosite:openai", "geosite:google", "geosite:netflix", "geosite:spotify"].map((m) => (
+                <span
+                  key={m}
+                  className="inline-flex items-center gap-1 rounded-full bg-black/25 px-2 py-0.5 text-[10px] text-muted-foreground ring-1 ring-white/10"
+                >
+                  <Globe className="h-2.5 w-2.5 shrink-0 text-primary/70" aria-hidden="true" />
+                  <span className="font-mono" dir="ltr">
+                    {m}
+                  </span>
+                </span>
+              ))}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const list = rules ?? [];
+                const comment = "OpenAI, Google & Streaming via Cloudflare WARP";
+                if (list.some((r) => r.comment === comment)) {
+                  toast({ description: t.routingPresets.dup });
+                  return;
+                }
+                const rule: RoutingRuleDTO = {
+                  id: `tmp-${Date.now().toString(36)}-warp`,
+                  enabled: true,
+                  comment,
+                  outboundTag: outboundTags.includes("warp") ? "warp" : (outboundTags[0] || "direct"),
+                  domain: ["geosite:openai", "geosite:google", "geosite:netflix", "geosite:spotify"],
+                  ip: [],
+                  port: "",
+                  network: "",
+                  protocol: [],
+                  inboundTag: [],
+                  source: [],
+                  sortOrder: list.length,
+                };
+                setRules((prev) => (prev ? [...prev, rule] : prev));
+                markDirty();
+                toast({ description: `${t.routingPresets.added}: WARP+ Clean IP` });
+              }}
+              className="mt-3 h-9 shrink-0 gap-1.5 self-start rounded-full border-primary/30 bg-primary/10 px-4 text-xs font-semibold text-primary hover:bg-primary/20 hover:text-primary"
+            >
+              <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+              {t.routingPresets.add}
+            </Button>
+          </div>
         </div>
       </section>
 

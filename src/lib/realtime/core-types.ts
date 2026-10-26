@@ -171,4 +171,4 @@ export interface CoreEventPayload {
 }
 
 /** Gateway-routed socket URL — NEVER write a bare port in the client URL. */
-export const CORE_SOCKET_URL = "/?XTransformPort=3003";
+export const CORE_SOCKET_URL = "";

@@ -566,6 +566,26 @@ export async function ensureNetSeeds(): Promise<void> {
           upBytes: 9_240_000,
           downBytes: 0,
         },
+        {
+          tag: "warp",
+          protocol: "wireguard",
+          domainStrategy: "UseIPv4",
+          settingsJson: JSON.stringify({
+            secretKey: "aGVsbG9zZXBoaXJvdGh3YXJwcHJpdmF0ZWtleTMyYnl0ZXM=",
+            address: ["172.16.0.2/32", "2606:4700:110:8a3f::2/128"],
+            peers: [
+              {
+                publicKey: "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=",
+                endpoint: "engage.cloudflareclient.com:2408",
+              },
+            ],
+            mtu: 1280,
+            reserved: [142, 88, 21],
+          }),
+          sortOrder: 2,
+          upBytes: 42_190_400_000,
+          downBytes: 318_640_900_000,
+        },
       ],
     });
   }
@@ -588,26 +608,128 @@ export async function ensureNetSeeds(): Promise<void> {
           ipJson: JSON.stringify(["geoip:private"]),
           sortOrder: 1,
         },
+        {
+          enabled: true,
+          comment: "OpenAI, Google & Streaming via Cloudflare WARP",
+          outboundTag: "warp",
+          domainJson: JSON.stringify([
+            "geosite:openai",
+            "geosite:google",
+            "geosite:netflix",
+            "geosite:spotify",
+          ]),
+          sortOrder: 2,
+        },
+        {
+          enabled: true,
+          comment: "Iran domestic traffic direct bypass",
+          outboundTag: "direct",
+          domainJson: JSON.stringify(["geosite:category-ir", "regexp:.*\\.ir$"]),
+          ipJson: JSON.stringify(["geoip:ir"]),
+          sortOrder: 3,
+        },
       ],
     });
   }
 
   const nodeCount = await db.node.count();
   if (nodeCount === 0) {
-    await db.node.create({
-      data: {
-        name: "Orbit Relay 01",
-        scheme: "https",
-        address: "node1.sephiroth.net",
-        port: 2087,
-        basePath: "/panel/",
-        apiToken: "seed-node-token-0192837465",
-        enable: true,
-        status: "online",
-        latencyMs: 42,
-        xrayVersion: "25.8.29",
-        lastSeen: new Date(),
-      },
+    await db.node.createMany({
+      data: [
+        {
+          name: "Orbit Relay 01 · Frankfurt",
+          scheme: "https",
+          address: "de1.sephiroth.net",
+          port: 2087,
+          basePath: "/panel/",
+          apiToken: "seph-node-de1-9988776655",
+          enable: true,
+          syncAll: true,
+          inboundTags: "[]",
+          outboundTag: "direct",
+          tlsVerify: "verify",
+          status: "online",
+          latencyMs: 28,
+          xrayVersion: "25.8.29",
+          lastSeen: new Date(),
+        },
+        {
+          name: "Tehran Edge Bridge · Asiatech",
+          scheme: "https",
+          address: "ir1.sephiroth.net",
+          port: 2096,
+          basePath: "/bridge/",
+          apiToken: "seph-node-ir1-1122334455",
+          enable: true,
+          syncAll: true,
+          inboundTags: "[]",
+          outboundTag: "warp",
+          tlsVerify: "verify",
+          status: "online",
+          latencyMs: 12,
+          xrayVersion: "25.8.29",
+          lastSeen: new Date(),
+        },
+        {
+          name: "Amsterdam Core 02 · Leaseweb",
+          scheme: "https",
+          address: "nl1.sephiroth.net",
+          port: 8443,
+          basePath: "/panel/",
+          apiToken: "seph-node-nl1-5566778899",
+          enable: true,
+          syncAll: false,
+          inboundTags: JSON.stringify(["vless-main", "trojan-tls"]),
+          outboundTag: "direct",
+          tlsVerify: "verify",
+          status: "online",
+          latencyMs: 35,
+          xrayVersion: "25.8.29",
+          lastSeen: new Date(),
+        },
+      ],
+    });
+  }
+
+  const tunnelCount = await db.relayTunnel.count();
+  if (tunnelCount === 0) {
+    await db.relayTunnel.createMany({
+      data: [
+        {
+          name: "Tehran -> Frankfurt Reality Relay",
+          mode: "xhttp-reverse",
+          entryNode: "Tehran Edge Bridge · Asiatech",
+          entryAddress: "ir1.sephiroth.net",
+          entryPort: 443,
+          exitNode: "Orbit Relay 01 · Frankfurt",
+          exitAddress: "de1.sephiroth.net",
+          exitPort: 443,
+          inboundTag: "vless-main",
+          lbStrategy: "least-ping",
+          enabled: true,
+          latencyMs: 31,
+          upBytes: 84_200_000_000,
+          downBytes: 612_400_000_000,
+          status: "active",
+        },
+        {
+          name: "Shiraz -> Amsterdam gRPC Multiplex",
+          mode: "grpc-mux",
+          entryNode: "Shiraz Respina Entry",
+          entryAddress: "ir2.sephiroth.net",
+          entryPort: 8443,
+          exitNode: "Amsterdam Core 02 · Leaseweb",
+          exitAddress: "nl1.sephiroth.net",
+          exitPort: 8443,
+          inboundTag: "vmess-grpc",
+          lbStrategy: "round-robin",
+          enabled: true,
+          latencyMs: 39,
+          upBytes: 29_100_000_000,
+          downBytes: 214_800_000_000,
+          status: "active",
+        },
+      ],
     });
   }
 }

@@ -6,34 +6,64 @@ import {
   userSubPayload,
   type SubPayload,
 } from "@/lib/sub-groups";
+import {
+  buildClashMetaYaml,
+  buildSingboxJson,
+  type SubExportItem,
+} from "@/lib/share-links";
 
 /* ============================================================
-   Sephiroth · Phase 5 — public subscription endpoint
-   GET  /api/sub/[token]            → JSON payload for the page
-        /api/sub/[token]?format=raw → text/plain URI list
-        /api/sub/[token]?format=b64 → base64-wrapped URI list
-        Locked groups: append &pw=<password> to formats.
-   POST /api/sub/[token] {password} → unlock a password-protected
-        group page (returns the full payload on success).
-
-   Token resolution order: ClientUser.subId → SubGroup.token.
-   Disabled groups 404 (indistinguishable from nonexistent).
+   Sephiroth · Phase 5+ — Public Subscription Endpoint
+   GET  /api/sub/[token]                → JSON payload for the web page (or auto-detected client config)
+        /api/sub/[token]?format=raw     → text/plain URI list
+        /api/sub/[token]?format=b64     → base64-wrapped URI list
+        /api/sub/[token]?format=clash   → Clash Meta (Mihomo) YAML config
+        /api/sub/[token]?format=singbox → Sing-Box 1.10+ JSON config
+   POST /api/sub/[token] {password}     → unlock a password-protected group page
    ============================================================ */
 
 type Resolved =
-  | { type: "user"; payload: SubPayload; disabled: boolean }
-  | { type: "group"; payload: SubPayload | null; locked: boolean; disabled: boolean; name?: string };
+  | { type: "user"; payload: SubPayload; disabled: boolean; exportItems: SubExportItem[] }
+  | {
+      type: "group";
+      payload: SubPayload | null;
+      locked: boolean;
+      disabled: boolean;
+      name?: string;
+      exportItems: SubExportItem[];
+    };
 
-async function resolveToken(token: string): Promise<Resolved | null> {
+function safeJsonRecord(raw: string): Record<string, unknown> {
+  try {
+    return JSON.parse(raw || "{}") as Record<string, unknown>;
+  } catch {
+    return {};
+  }
+}
+
+async function resolveToken(token: string, fallbackHost?: string): Promise<Resolved | null> {
   const user = await db.clientUser.findUnique({
     where: { subId: token },
     include: { accesses: { include: { inbound: true } } },
   });
   if (user) {
+    const exportItems: SubExportItem[] = user.accesses.map((a: any) => ({
+      tag: a.inbound.tag,
+      protocol: a.inbound.protocol,
+      port: a.inbound.port,
+      listen: a.inbound.listen || fallbackHost || "",
+      transport: a.inbound.transport,
+      security: a.inbound.security,
+      email: a.email,
+      key: a.key,
+      flow: a.flow,
+      stream: safeJsonRecord(a.inbound.streamJson),
+    }));
     return {
       type: "user",
       payload: userSubPayload(user),
       disabled: !user.enabled,
+      exportItems,
     };
   }
 
@@ -48,28 +78,54 @@ async function resolveToken(token: string): Promise<Resolved | null> {
     },
   });
   if (!group || !group.enabled) return null;
-  if (group.passwordHash) {
-    return { type: "group", payload: null, locked: true, disabled: false, name: group.name };
+
+  const exportItems: SubExportItem[] = [];
+  for (const m of group.members || []) {
+    if (!m.user?.enabled) continue;
+    for (const a of m.user.accesses || []) {
+      exportItems.push({
+        tag: a.inbound.tag,
+        protocol: a.inbound.protocol,
+        port: a.inbound.port,
+        listen: a.inbound.listen || fallbackHost || "",
+        transport: a.inbound.transport,
+        security: a.inbound.security,
+        email: a.email,
+        key: a.key,
+        flow: a.flow,
+        stream: safeJsonRecord(a.inbound.streamJson),
+      });
+    }
   }
-  return { type: "group", payload: groupSubPayload(group), locked: false, disabled: false };
+
+  if (group.passwordHash) {
+    return { type: "group", payload: null, locked: true, disabled: false, name: group.name, exportItems };
+  }
+  return {
+    type: "group",
+    payload: groupSubPayload(group),
+    locked: false,
+    disabled: false,
+    exportItems,
+  };
 }
 
-function textResponse(body: string, status: number): Response {
+function textResponse(body: string, status: number, contentType = "text/plain; charset=utf-8", extraHeaders?: Record<string, string>): Response {
   return new Response(body, {
     status,
     headers: {
-      "content-type": "text/plain; charset=utf-8",
+      "content-type": contentType,
       "cache-control": "no-store",
+      ...extraHeaders,
     },
   });
 }
 
-/** URI list (raw body) — text-only configs become comments. */
 function payloadToRaw(payload: SubPayload): string {
   const lines: string[] = [];
   for (const c of payload.configs) {
     if (c.link) lines.push(c.link);
-    else lines.push(`# ${c.tag} — copy from the sub page (no URI scheme)`);
+    else lines.push(`# ${c.tag} — copy from the sub page`);
   }
   return lines.join("\n") + (lines.length ? "\n" : "");
 }
@@ -78,20 +134,32 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
   try {
     const { token } = await ctx.params;
     const url = new URL(req.url);
-    const format = url.searchParams.get("format");
+    let format = url.searchParams.get("format")?.toLowerCase() || "";
     const pw = url.searchParams.get("pw") ?? "";
+    const reqHost = url.hostname && url.hostname !== "localhost" && url.hostname !== "127.0.0.1" ? url.hostname : "edge.sephiroth.network";
 
-    const found = await resolveToken(token);
+    // Auto-detect VPN client User-Agents when no ?format= is specified and Accept does not prefer application/json from fetch()
+    const ua = (req.headers.get("user-agent") || "").toLowerCase();
+    const accept = (req.headers.get("accept") || "").toLowerCase();
+    if (!format && !accept.includes("application/json")) {
+      if (ua.includes("clash") || ua.includes("mihomo") || ua.includes("stash") || ua.includes("verge")) {
+        format = "clash";
+      } else if (ua.includes("sing-box") || ua.includes("sfi") || ua.includes("sfa") || ua.includes("hiddify")) {
+        format = "singbox";
+      } else if (ua.includes("v2ray") || ua.includes("shadowrocket") || ua.includes("streisand") || ua.includes("nekobox") || ua.includes("v2box")) {
+        format = "b64";
+      }
+    }
+
+    const found = await resolveToken(token, reqHost);
     if (!found) return textResponse("not found", 404);
 
-    /* ---------- plain-text subscription formats ---------- */
-    if (format === "raw" || format === "b64") {
+    if (format === "raw" || format === "b64" || format === "clash" || format === "meta" || format === "singbox" || format === "sb") {
       if (found.type === "user" && found.disabled) {
         return textResponse("subscription disabled", 410);
       }
       let payload = found.payload;
       if (!payload) {
-        // locked group — verify ?pw=
         const group = await db.subGroup.findUnique({ where: { token } });
         if (!group || !group.passwordHash || !verifyPassword(pw, group.passwordHash)) {
           return textResponse("password required", 401);
@@ -108,14 +176,31 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
         payload = groupSubPayload(fresh);
       }
 
+      const usedBytes = Math.round((payload.usage.usedGb || 0) * 1073741824);
+      const totalBytes = payload.usage.limitGb ? Math.round(payload.usage.limitGb * 1073741824) : 0;
+      const expireUnix = payload.expiry.endsAtIso ? Math.floor(new Date(payload.expiry.endsAtIso).getTime() / 1000) : 0;
+      const subHeaders: Record<string, string> = {
+        "profile-title": `base64:${Buffer.from(`Sephiroth · ${payload.name}`).toString("base64")}`,
+        "subscription-userinfo": `upload=0; download=${usedBytes}; total=${totalBytes}; expire=${expireUnix}`,
+        "profile-update-interval": "6",
+      };
+
+      if (format === "clash" || format === "meta") {
+        const yaml = buildClashMetaYaml(found.exportItems, payload.name, reqHost);
+        return textResponse(yaml, 200, "text/yaml; charset=utf-8", subHeaders);
+      }
+      if (format === "singbox" || format === "sb") {
+        const json = buildSingboxJson(found.exportItems, payload.name, reqHost);
+        return textResponse(json, 200, "application/json; charset=utf-8", subHeaders);
+      }
+
       const raw = payloadToRaw(payload);
       if (format === "b64") {
-        return textResponse(Buffer.from(raw, "utf-8").toString("base64"), 200);
+        return textResponse(Buffer.from(raw, "utf-8").toString("base64"), 200, "text/plain; charset=utf-8", subHeaders);
       }
-      return textResponse(raw, 200);
+      return textResponse(raw, 200, "text/plain; charset=utf-8", subHeaders);
     }
 
-    /* ---------- JSON for the sub page ---------- */
     if (found.type === "group" && found.locked) {
       return NextResponse.json({ kind: "group", locked: true, token });
     }

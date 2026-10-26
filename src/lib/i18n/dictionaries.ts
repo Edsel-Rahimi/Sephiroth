@@ -44,6 +44,7 @@ export interface Dict {
     guide: string;
     settings: string;
     panels: string;
+    profile?: string;
   };
   status: { online: string; core: string; simulator: string };
   topbar: {

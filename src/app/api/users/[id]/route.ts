@@ -99,7 +99,7 @@ export async function PATCH(
 
         // added links → new access rows with fresh material
         for (const inboundId of nextInboundIds) {
-          if (existing.accesses.some((a) => a.inboundId === inboundId)) continue;
+          if (existing.accesses.some((a: any) => a.inboundId === inboundId)) continue;
           const inbound = await tx.inbound.findUnique({ where: { id: inboundId } });
           if (!inbound) continue;
           const existingClients = parseClients(inbound.clientsJson);

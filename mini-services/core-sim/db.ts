@@ -1,162 +1,50 @@
 /**
- * Sephiroth core-sim — SQLite config mirror reader.
- *
- * Phase 3: the `Inbound` table in the panel's Prisma SQLite DB is the config
- * source of truth. This module opens that file read-only-ish (WAL allows a
- * concurrent writer) and exposes `readInbounds()` for the simulator's diff
- * loop. Any read failure (missing table, locked file, DB absent) is logged
- * at most once every few seconds and surfaces as `null` — the caller keeps
- * its last known state, so a broken mirror never wipes the sim.
+ * Sephiroth core-sim — direct in-memory/persistent DB mirror reader.
+ * Bridges the panel's `Inbound` and `ServerSetting` tables directly into CoreSim
+ * with zero SQLite file-locking or Bun-only native dependency issues.
  */
-import { existsSync } from 'node:fs'
-import { resolve } from 'node:path'
-import { Database } from 'bun:sqlite'
+import { db } from "../../src/lib/db";
 
-/** One row of the Prisma `Inbound` table (config view, no runtime state). */
 export interface DbInboundRow {
-  tag: string
-  protocol: string
-  port: number
-  transport: string
-  security: string
-  status: string
-  /** REAL client count parsed from clientsJson */
-  users: number
-  /** REAL client identities (emails) parsed from clientsJson */
-  clients: string[]
+  tag: string;
+  protocol: string;
+  port: number;
+  transport: string;
+  security: string;
+  status: string;
 }
 
-// ---------------------------------------------------------------------------
-// path resolution (once at import)
-// ---------------------------------------------------------------------------
-
-function resolveDbPath(): string | null {
-  const envPath = process.env.CORE_DB_PATH
-  if (envPath && envPath.length > 0) return envPath
-
-  // import.meta.dir = mini-services/core-sim → repo root is two levels up
-  const candidates = ['../../db/custom.db', '../db/custom.db']
-  for (const rel of candidates) {
-    const abs = resolve(import.meta.dir, rel)
-    if (existsSync(abs)) return abs
-  }
-  return null
-}
-
-const DB_PATH = resolveDbPath()
-
-let db: Database | null = null
-if (DB_PATH) {
-  try {
-    db = new Database(DB_PATH)
-    // WAL is already set on the file; re-asserting is harmless and keeps the
-    // mirror on the same concurrency contract as the Prisma writer.
-    db.exec('PRAGMA journal_mode=WAL')
-    db.exec('PRAGMA busy_timeout=3000')
-  } catch (err) {
-    console.error('[core-sim/db] failed to open SQLite mirror:', err)
-    db = null
-  }
-} else {
-  console.error('[core-sim/db] no SQLite DB found (looked for ../../db/custom.db and ../db/custom.db; set CORE_DB_PATH to override)')
-}
-
-console.log(`[core-sim/db] inbound mirror DB: ${DB_PATH ?? 'NOT FOUND (mirror disabled)'}`)
-
-// ---------------------------------------------------------------------------
-// error-throttled logging
-// ---------------------------------------------------------------------------
-
-const LOG_THROTTLE_MS = 4000
-let lastErrorLog = 0
-
-function logErrorThrottled(message: string, err: unknown): void {
-  const now = Date.now()
-  if (now - lastErrorLog < LOG_THROTTLE_MS) return
-  lastErrorLog = now
-  console.error(message, err)
-}
-
-// ---------------------------------------------------------------------------
-// reader
-// ---------------------------------------------------------------------------
-
-/** Read the mirrored inbounds, DB order = createdAt ASC, tag ASC. */
 export function readInbounds(): DbInboundRow[] | null {
-  if (!db) return null
   try {
-    const rows = db
-      .prepare(
-        'SELECT tag, protocol, port, transport, security, status, clientsJson FROM Inbound ORDER BY createdAt ASC, tag ASC',
-      )
-      .all() as Array<{
-      tag: string
-      protocol: string
-      port: number | bigint
-      transport: string
-      security: string
-      status: string
-      clientsJson: string | null
-    }>
-    return rows.map((r) => {
-      let clients: string[] = []
-      try {
-        const parsed = JSON.parse(r.clientsJson ?? '[]')
-        if (Array.isArray(parsed)) {
-          clients = parsed
-            .map((c) => (c && typeof c === 'object' ? String((c as { email?: unknown }).email ?? '') : ''))
-            .filter((e) => e.length > 0)
-        }
-      } catch {
-        clients = []
-      }
-      return {
-        tag: r.tag,
-        protocol: r.protocol,
-        port: Number(r.port),
-        transport: r.transport,
-        security: r.security,
-        status: r.status,
-        users: clients.length,
-        clients,
-      }
-    })
+    const rows = db._syncReadInbounds();
+    return rows.length > 0 ? rows : null;
   } catch (err) {
-    logErrorThrottled('[core-sim/db] readInbounds failed (keeping last state):', err)
-    return null
+    console.error("[core-sim/db] readInbounds error:", err);
+    return null;
   }
 }
 
-// ---------------------------------------------------------------------------
-// Phase 7 — live tick interval, panel-configurable via ServerSetting
-// (`set_core_tick_seconds`, 1-5). Read at most every 3s; any failure keeps
-// the previous value so a broken mirror never disturbs the feed.
-// ---------------------------------------------------------------------------
-
-const TICK_DEFAULT_MS = 1000
-let tickMs = TICK_DEFAULT_MS
-let lastTickRead = 0
+const TICK_DEFAULT_MS = 1000;
+let tickMs = TICK_DEFAULT_MS;
+let lastTickRead = 0;
 
 export function getTickMs(): number {
-  return tickMs
+  return tickMs;
 }
 
 export function refreshTickMs(): void {
-  if (!db) return
-  const now = Date.now()
-  if (now - lastTickRead < 3000) return
-  lastTickRead = now
+  const now = Date.now();
+  if (now - lastTickRead < 3000) return;
+  lastTickRead = now;
   try {
-    const row = db
-      .prepare("SELECT value FROM ServerSetting WHERE key = 'set_core_tick_seconds'")
-      .get() as { value?: string } | undefined
-    const sec = Number(row?.value)
+    const val = db._syncReadSetting("set_core_tick_seconds");
+    const sec = Number(val);
     if (Number.isInteger(sec) && sec >= 1 && sec <= 5) {
-      tickMs = sec * 1000
+      tickMs = sec * 1000;
     } else {
-      tickMs = TICK_DEFAULT_MS
+      tickMs = TICK_DEFAULT_MS;
     }
-  } catch (err) {
-    logErrorThrottled('[core-sim/db] refreshTickMs failed (keeping current):', err)
+  } catch {
+    tickMs = TICK_DEFAULT_MS;
   }
 }

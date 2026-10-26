@@ -6,6 +6,8 @@ import type { Lang, ViewId } from "@/lib/i18n/dictionaries";
 
 export type Role = "admin" | "reseller";
 export type GlowPref = "on" | "soft" | "off";
+export type ThemeId = "sephiroth" | "jenova" | "masamune" | "terminal" | "oled" | "one-winged";
+export type ThemePreset = ThemeId;
 
 /* Phase 8 — top-bar module visibility (persisted + synced to server) */
 export interface ModuleVisibility {
@@ -25,6 +27,7 @@ const MODULES_DEFAULT: ModuleVisibility = {
 interface AppState {
   lang: Lang;
   view: ViewId;
+  theme: ThemeId;
   /* Phase 6 — session role; set from /api/auth/session, not persisted */
   role: Role;
   /* Phase 7 — appearance preferences (persisted per browser) */
@@ -35,6 +38,7 @@ interface AppState {
   modules: ModuleVisibility;
   setLang: (lang: Lang) => void;
   setView: (view: ViewId) => void;
+  setTheme: (theme: ThemeId) => void;
   setRole: (role: Role) => void;
   setStarfield: (v: boolean) => void;
   setGlow: (v: GlowPref) => void;
@@ -46,8 +50,9 @@ interface AppState {
 export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
-      lang: "en",
+      lang: "fa",
       view: "dashboard",
+      theme: "sephiroth",
       role: "admin",
       starfield: true,
       glow: "on",
@@ -55,6 +60,12 @@ export const useAppStore = create<AppState>()(
       modules: MODULES_DEFAULT,
       setLang: (lang) => set({ lang }),
       setView: (view) => set({ view }),
+      setTheme: (theme) => {
+        if (typeof document !== "undefined") {
+          document.documentElement.dataset.theme = theme;
+        }
+        set({ theme });
+      },
       setRole: (role) => set({ role }),
       setStarfield: (starfield) => set({ starfield }),
       setGlow: (glow) => set({ glow }),
@@ -66,11 +77,11 @@ export const useAppStore = create<AppState>()(
     {
       name: "sephiroth-ui",
       storage: createJSONStorage(() => localStorage),
-      /* role is session-derived — UI prefs + language + modules persist */
       partialize: (s) =>
         ({
           lang: s.lang,
           view: s.view,
+          theme: s.theme,
           starfield: s.starfield,
           glow: s.glow,
           reduceMotion: s.reduceMotion,

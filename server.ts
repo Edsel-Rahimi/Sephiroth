@@ -1,0 +1,314 @@
+import http from "node:http";
+import path from "node:path";
+import express, { type Request as ExpressRequest, type Response as ExpressResponse } from "express";
+import { Server as SocketIOServer } from "socket.io";
+import { createServer as createViteServer } from "vite";
+
+import { CoreSim } from "./mini-services/core-sim/sim";
+import { getTickMs, refreshTickMs } from "./mini-services/core-sim/db";
+import type { ActivityEvent } from "./mini-services/core-sim/types";
+import { ensureSeed } from "./src/lib/auth";
+import { ensureNetSeeds } from "./src/lib/net-objects";
+import { db } from "./src/lib/db";
+
+// Import all Next-style route handlers
+import * as apiRoot from "./src/app/api/route";
+import * as apiActivity from "./src/app/api/activity/route";
+import * as apiAuthChangePassword from "./src/app/api/auth/change-password/route";
+import * as apiAuthLogin from "./src/app/api/auth/login/route";
+import * as apiAuthLogout from "./src/app/api/auth/logout/route";
+import * as apiAuthRecover from "./src/app/api/auth/recover/route";
+import * as apiAuthRecoveryRotate from "./src/app/api/auth/recovery/rotate/route";
+import * as apiAuthRevokeSessions from "./src/app/api/auth/revoke-sessions/route";
+import * as apiAuthSession from "./src/app/api/auth/session/route";
+import * as apiHosts from "./src/app/api/hosts/route";
+import * as apiHostsId from "./src/app/api/hosts/[id]/route";
+import * as apiInbounds from "./src/app/api/inbounds/route";
+import * as apiInboundsId from "./src/app/api/inbounds/[id]/route";
+import * as apiNodes from "./src/app/api/nodes/route";
+import * as apiNodesId from "./src/app/api/nodes/[id]/route";
+import * as apiNodesIdProbe from "./src/app/api/nodes/[id]/probe/route";
+import * as apiOutbounds from "./src/app/api/outbounds/route";
+import * as apiOutboundsTrafficReset from "./src/app/api/outbounds/traffic-reset/route";
+import * as apiOutboundsId from "./src/app/api/outbounds/[id]/route";
+import * as apiProfile from "./src/app/api/profile/route";
+import * as apiResellers from "./src/app/api/resellers/route";
+import * as apiResellersId from "./src/app/api/resellers/[id]/route";
+import * as apiRouting from "./src/app/api/routing/route";
+import * as apiSaleTemplates from "./src/app/api/sale-templates/route";
+import * as apiSaleTemplatesId from "./src/app/api/sale-templates/[id]/route";
+import * as apiSettings from "./src/app/api/settings/route";
+import * as apiSettingsBackup from "./src/app/api/settings/backup/route";
+import * as apiSettingsRestore from "./src/app/api/settings/restore/route";
+import * as apiSettingsTestCore from "./src/app/api/settings/test-core/route";
+import * as apiSettingsTestTelegram from "./src/app/api/settings/test-telegram/route";
+import * as apiSubGroups from "./src/app/api/sub/groups/route";
+import * as apiSubGroupsId from "./src/app/api/sub/groups/[id]/route";
+import * as apiSubToken from "./src/app/api/sub/[token]/route";
+import * as apiTelegramBotAction from "./src/app/api/telegram/bot-action/route";
+import * as apiTunnels from "./src/app/api/tunnels/route";
+import * as apiUsers from "./src/app/api/users/route";
+import * as apiUsersBulk from "./src/app/api/users/bulk/route";
+import * as apiUsersId from "./src/app/api/users/[id]/route";
+
+type RouteHandler = (req: Request, ctx: { params: Promise<any> }) => Promise<Response> | Response;
+
+function mountRoute(app: express.Express, expressPath: string, mod: unknown) {
+  const handlers = mod as Record<string, RouteHandler | undefined>;
+  app.all(expressPath, async (req: ExpressRequest, res: ExpressResponse) => {
+    try {
+      const method = req.method.toUpperCase();
+      const handler = handlers[method];
+      if (!handler) {
+        res.status(405).json({ error: `Method ${method} Not Allowed` });
+        return;
+      }
+
+      const proto = (req.headers["x-forwarded-proto"] as string) || req.protocol || "http";
+      const host = req.headers.host || "localhost:3000";
+      const fullUrl = `${proto}://${host}${req.originalUrl}`;
+
+      const headers = new Headers();
+      for (const [k, v] of Object.entries(req.headers)) {
+        if (Array.isArray(v)) {
+          for (const item of v) headers.append(k, item);
+        } else if (typeof v === "string") {
+          headers.set(k, v);
+        }
+      }
+
+      const hasBody = method !== "GET" && method !== "HEAD";
+      const rawBody = hasBody && Buffer.isBuffer(req.body) && req.body.length > 0 ? req.body : undefined;
+
+      const webReq = new Request(fullUrl, {
+        method,
+        headers,
+        body: rawBody ? new Uint8Array(rawBody) : undefined,
+      });
+
+      const paramsObj: Record<string, string> = {};
+      for (const [k, v] of Object.entries(req.params)) {
+        if (typeof v === "string") paramsObj[k] = v;
+      }
+
+      const webRes = await handler(webReq, {
+        params: Promise.resolve(paramsObj),
+      });
+
+      res.status(webRes.status);
+
+      webRes.headers.forEach((value, key) => {
+        if (key.toLowerCase() === "set-cookie") return;
+        res.setHeader(key, value);
+      });
+
+      const setCookies =
+        typeof (webRes.headers as unknown as { getSetCookie?: () => string[] }).getSetCookie === "function"
+          ? (webRes.headers as unknown as { getSetCookie: () => string[] }).getSetCookie()
+          : [];
+      if (setCookies.length > 0) {
+        res.setHeader("set-cookie", setCookies);
+      } else {
+        const singleCookie = webRes.headers.get("set-cookie");
+        if (singleCookie) res.setHeader("set-cookie", singleCookie);
+      }
+
+      const buf = Buffer.from(await webRes.arrayBuffer());
+      res.send(buf);
+    } catch (err) {
+      console.error(`[api] Error in ${expressPath}:`, err);
+      if (!res.headersSent) {
+        res.status(500).json({
+          error: err instanceof Error ? err.message : "Internal Server Error",
+        });
+      }
+    }
+  });
+}
+
+async function runPeriodicUserMaintenance() {
+  try {
+    const outbounds = await db.outbound.findMany();
+    const now = Date.now();
+    for (const ob of outbounds) {
+      if (ob.resetPeriod && ob.resetPeriod !== "none") {
+        const refTime = ob.lastResetAt ? new Date(ob.lastResetAt).getTime() : new Date(ob.createdAt).getTime();
+        const periodMs =
+          ob.resetPeriod === "daily"
+            ? 86_400_000
+            : ob.resetPeriod === "weekly"
+              ? 7 * 86_400_000
+              : 30 * 86_400_000;
+        if (now - refTime >= periodMs) {
+          await db.outbound.update({
+            where: { id: ob.id },
+            data: { usedTrafficGb: 0, lastResetAt: new Date(now) },
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.error("[cron] user maintenance error:", err);
+  }
+}
+
+async function startServer() {
+  // Ensure database seeds exist before starting simulator or serving requests
+  await ensureSeed();
+  await ensureNetSeeds();
+  await runPeriodicUserMaintenance();
+
+  const app = express();
+  const httpServer = http.createServer(app);
+
+  // Raw body parser for /api/* so Web Request can consume body stream directly
+  app.use("/api", express.raw({ type: "*/*", limit: "25mb" }));
+
+  // Mount specific routes before parameterized routes
+  mountRoute(app, "/api", apiRoot);
+  mountRoute(app, "/api/activity", apiActivity);
+  mountRoute(app, "/api/auth/change-password", apiAuthChangePassword);
+  mountRoute(app, "/api/auth/login", apiAuthLogin);
+  mountRoute(app, "/api/auth/logout", apiAuthLogout);
+  mountRoute(app, "/api/auth/recover", apiAuthRecover);
+  mountRoute(app, "/api/auth/recovery/rotate", apiAuthRecoveryRotate);
+  mountRoute(app, "/api/auth/revoke-sessions", apiAuthRevokeSessions);
+  mountRoute(app, "/api/auth/session", apiAuthSession);
+
+  mountRoute(app, "/api/hosts", apiHosts);
+  mountRoute(app, "/api/hosts/:id", apiHostsId);
+
+  mountRoute(app, "/api/inbounds", apiInbounds);
+  mountRoute(app, "/api/inbounds/:id", apiInboundsId);
+
+  mountRoute(app, "/api/nodes", apiNodes);
+  mountRoute(app, "/api/nodes/:id/probe", apiNodesIdProbe);
+  mountRoute(app, "/api/nodes/:id", apiNodesId);
+
+  mountRoute(app, "/api/outbounds/traffic-reset", apiOutboundsTrafficReset);
+  mountRoute(app, "/api/outbounds", apiOutbounds);
+  mountRoute(app, "/api/outbounds/:id", apiOutboundsId);
+
+  mountRoute(app, "/api/profile", apiProfile);
+
+  mountRoute(app, "/api/resellers", apiResellers);
+  mountRoute(app, "/api/resellers/:id", apiResellersId);
+
+  mountRoute(app, "/api/routing", apiRouting);
+
+  mountRoute(app, "/api/sale-templates", apiSaleTemplates);
+  mountRoute(app, "/api/sale-templates/:id", apiSaleTemplatesId);
+
+  mountRoute(app, "/api/settings/backup", apiSettingsBackup);
+  mountRoute(app, "/api/settings/restore", apiSettingsRestore);
+  mountRoute(app, "/api/settings/test-core", apiSettingsTestCore);
+  mountRoute(app, "/api/settings/test-telegram", apiSettingsTestTelegram);
+  mountRoute(app, "/api/settings", apiSettings);
+
+  mountRoute(app, "/api/sub/groups", apiSubGroups);
+  mountRoute(app, "/api/sub/groups/:id", apiSubGroupsId);
+  mountRoute(app, "/api/sub/:token", apiSubToken);
+
+  mountRoute(app, "/api/telegram/bot-action", apiTelegramBotAction);
+  mountRoute(app, "/api/tunnels", apiTunnels);
+
+  mountRoute(app, "/api/users/bulk", apiUsersBulk);
+  mountRoute(app, "/api/users", apiUsers);
+  mountRoute(app, "/api/users/:id", apiUsersId);
+
+  // Attach Socket.IO live Xray-core telemetry simulator
+  const io = new SocketIOServer(httpServer, {
+    cors: {
+      origin: "*",
+      methods: ["GET", "POST"],
+    },
+    pingTimeout: 60000,
+    pingInterval: 25000,
+  });
+
+  const sim = new CoreSim();
+  // Mirror initial DB state into simulator
+  sim.mirrorDb();
+
+  function emitEvent(event: ActivityEvent): void {
+    io.emit("core:event", { event });
+  }
+
+  io.on("connection", (socket) => {
+    socket.emit("core:init", sim.snapshot());
+  });
+
+  function tickLoop(): void {
+    refreshTickMs();
+    try {
+      io.emit("core:tick", sim.tick());
+    } catch (err) {
+      console.error("[core-sim] tick error:", err);
+    }
+    setTimeout(tickLoop, getTickMs());
+  }
+  tickLoop();
+
+  setInterval(() => {
+    try {
+      io.emit("core:inbounds", sim.inboundsPayload());
+    } catch (err) {
+      console.error("[core-sim] inbounds broadcast error:", err);
+    }
+  }, 10000);
+
+  setInterval(() => {
+    try {
+      const events = sim.mirrorDb();
+      if (events.length > 0) {
+        io.emit("core:inbounds", sim.inboundsPayload());
+        for (const e of events) emitEvent(e);
+      }
+    } catch (err) {
+      console.error("[core-sim] mirrorDb error:", err);
+    }
+  }, 2000);
+
+  function scheduleNextEvent(): void {
+    setTimeout(() => {
+      try {
+        emitEvent(sim.nextEvent());
+      } catch (err) {
+        console.error("[core-sim] event generator error:", err);
+      } finally {
+        scheduleNextEvent();
+      }
+    }, 3200 + Math.random() * 4500);
+  }
+  scheduleNextEvent();
+
+  // Periodic user traffic reset & expiry check
+  setInterval(() => {
+    void runPeriodicUserMaintenance();
+  }, 60_000);
+
+  // Mount Vite middleware in development or static dist in production
+  if (process.env.NODE_ENV !== "production") {
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: "spa",
+    });
+    app.use(vite.middlewares);
+  } else {
+    const distPath = path.join(process.cwd(), "dist");
+    app.use(express.static(distPath));
+    app.get("*", (_req, res) => {
+      res.sendFile(path.join(distPath, "index.html"));
+    });
+  }
+
+  const PORT = Number(process.env.PORT) || 3000;
+  httpServer.listen(PORT, "0.0.0.0", () => {
+    console.log(`[sephiroth] Full-stack panel + Xray core simulator listening on http://0.0.0.0:${PORT}`);
+  });
+}
+
+startServer().catch((err) => {
+  console.error("[sephiroth] Failed to start server:", err);
+  process.exit(1);
+});

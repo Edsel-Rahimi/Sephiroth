@@ -38,6 +38,7 @@ export default function Home() {
   const lang = useAppStore((s) => s.lang);
   const view = useAppStore((s) => s.view);
   const role = useAppStore((s) => s.role);
+  const theme = useAppStore((s) => s.theme);
   const setRole = useAppStore((s) => s.setRole);
   const starfield = useAppStore((s) => s.starfield);
   const glow = useAppStore((s) => s.glow);
@@ -46,13 +47,14 @@ export default function Home() {
   /* phase 1 — server-backed session gate (null = checking) */
   const [authed, setAuthed] = useState<boolean | null>(null);
 
-  /* apply language + direction to <html> */
+  /* apply language + direction + theme to <html> */
   useEffect(() => {
     if (!mounted) return;
     const dir = RTL_LANGS.has(lang) ? "rtl" : "ltr";
     document.documentElement.dir = dir;
     document.documentElement.lang = lang;
-  }, [mounted, lang]);
+    document.documentElement.dataset.theme = theme;
+  }, [mounted, lang, theme]);
 
   /* verify session cookie against the API — sets authed + role.
      Runs on mount and after every successful login. */

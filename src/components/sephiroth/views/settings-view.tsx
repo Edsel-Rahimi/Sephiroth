@@ -65,6 +65,7 @@ import { dictionaries, LANGS, LANG_META, type Lang } from "@/lib/i18n/dictionari
 import { sfmt } from "@/lib/i18n/sub-dictionary";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { TelegramBotPanel } from "@/components/sephiroth/views/telegram-bot-panel";
 
 /* ============================================================
    Sephiroth · Phase 8 — Settings & System (admin)
@@ -1847,6 +1848,9 @@ export function SettingsView() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Interactive Telegram Bot & Automated Backup Scheduler */}
+      <TelegramBotPanel />
     </div>
   );
 }

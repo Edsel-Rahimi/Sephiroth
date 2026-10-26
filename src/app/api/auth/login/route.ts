@@ -9,6 +9,7 @@ import {
   lockState,
   registerFailure,
   sessionCookieOptions,
+  setServerFallbackActor,
   signToken,
   verifyPassword,
 } from "@/lib/auth";
@@ -42,10 +43,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "fields" }, { status: 400 });
   }
 
-  /* Phase 6 — dual lookup: admin first (authoritative), then reseller */
   const admin = await db.adminUser.findUnique({ where: { username } });
   let okUser: string | null = null;
   let role: "admin" | "reseller" | null = null;
+  let resellerId: string | null = null;
 
   if (admin && verifyPassword(password, admin.passwordHash)) {
     okUser = admin.username;
@@ -55,6 +56,7 @@ export async function POST(req: Request) {
     if (reseller && reseller.enabled && verifyPassword(password, reseller.passwordHash)) {
       okUser = reseller.username;
       role = "reseller";
+      resellerId = reseller.id;
     }
   }
 
@@ -83,6 +85,12 @@ export async function POST(req: Request) {
 
   const ttl = remember ? SESSION_TTL_LONG : SESSION_TTL_SHORT;
   const token = await signToken(okUser, ttl);
+
+  setServerFallbackActor(
+    role === "admin"
+      ? { role: "admin", username: okUser }
+      : { role: "reseller", id: resellerId!, username: okUser }
+  );
 
   await logActivity({
     kind: "auth.login",

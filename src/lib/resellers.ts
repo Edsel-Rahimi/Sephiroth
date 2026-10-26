@@ -1,6 +1,5 @@
-import { db } from "@/lib/db";
+import { db, type Reseller, type SaleTemplate } from "@/lib/db";
 import { hashPassword } from "@/lib/auth";
-import type { Reseller, SaleTemplate } from "@prisma/client";
 
 /* ============================================================
    Sephiroth · Phase 6 — Reseller system (server-only)
@@ -244,7 +243,7 @@ export async function resellerQuota(resellerId: string): Promise<{
     trafficQuotaGb: r.trafficQuotaGb,
     usersCount: r.users.length,
     allocatedGb:
-      Math.round(r.users.reduce((s, u) => s + (u.trafficLimitGb ?? 0), 0) * 10) / 10,
+      Math.round(r.users.reduce((s: number, u: any) => s + (u.trafficLimitGb ?? 0), 0) * 10) / 10,
   };
 }
 

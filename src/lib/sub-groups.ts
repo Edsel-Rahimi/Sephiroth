@@ -1,6 +1,5 @@
 import { randomBytes } from "node:crypto";
-import type { ClientUser, Inbound, SubGroup, SubGroupMember, UserInboundAccess } from "@prisma/client"; // SubGroup/SubGroupMember re-exported via db client
-import { db } from "@/lib/db";
+import { db, type ClientUser, type Inbound, type SubGroup, type SubGroupMember, type UserInboundAccess } from "@/lib/db";
 import { hashPassword } from "@/lib/auth";
 import { deriveStatus, type UserStatus } from "@/lib/user-types";
 import { buildShareMaterial } from "@/lib/share-links";

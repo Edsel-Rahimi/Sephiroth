@@ -525,7 +525,7 @@ export default function SubPage() {
                     onClick={() => void copy(subUrl, "sub")}
                   />
                 </div>
-                <div className="mt-2.5 flex items-center gap-2">
+                <div className="mt-2.5 flex flex-wrap items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -534,6 +534,36 @@ export default function SubPage() {
                   >
                     <ListChecks className="h-3.5 w-3.5" aria-hidden="true" />
                     {copiedKey === "raw" ? t.copied : t.copyRaw}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      void copy(rawUrl.replace("format=raw", "format=clash"), "clash")
+                    }
+                    className="h-8 gap-1.5 border-primary/25 bg-primary/10 text-[11px] text-primary hover:bg-primary/20"
+                  >
+                    <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+                    {copiedKey === "clash"
+                      ? t.copied
+                      : lang === "fa"
+                        ? "کپی لینک Clash Meta"
+                        : "Copy Clash Meta URL"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      void copy(rawUrl.replace("format=raw", "format=singbox"), "singbox")
+                    }
+                    className="h-8 gap-1.5 border-chart-3/25 bg-chart-3/10 text-[11px] text-chart-3 hover:bg-chart-3/20"
+                  >
+                    <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+                    {copiedKey === "singbox"
+                      ? t.copied
+                      : lang === "fa"
+                        ? "کپی لینک Sing-Box"
+                        : "Copy Sing-Box URL"}
                   </Button>
                 </div>
               </div>

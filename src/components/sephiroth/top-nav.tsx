@@ -14,6 +14,7 @@ import {
   LayoutDashboard,
   LogOut,
   Network,
+  Palette,
   RadioTower,
   Route,
   Search,
@@ -31,9 +32,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { BrandMark, BrandWord } from "@/components/sephiroth/brand";
 import { DonateDialog } from "@/components/sephiroth/donate-dialog";
-import { useAppStore } from "@/lib/store/app-store";
+import { useAppStore, type ThemePreset } from "@/lib/store/app-store";
 import {
   dictionaries,
   LANGS,
@@ -43,6 +51,15 @@ import {
 } from "@/lib/i18n/dictionaries";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+
+const THEME_PRESETS: Array<{ id: ThemePreset; label: string; color: string; sub: string }> = [
+  { id: "sephiroth", label: "Sephiroth Cosmic", color: "#22d3ee", sub: "3x-ui + PasarGuard" },
+  { id: "jenova", label: "Jenova Violet", color: "#a855f7", sub: "SuperJinX Inspired" },
+  { id: "masamune", label: "Masamune Crimson", color: "#f43f5e", sub: "JinX-X4G Blade" },
+  { id: "terminal", label: "Matrix Terminal", color: "#10b981", sub: "vodiwalker_kata CLI" },
+  { id: "oled", label: "OLED Void Gold", color: "#fbbf24", sub: "NewYork Minimal" },
+  { id: "one-winged", label: "One-Winged Angel", color: "#fb923c", sub: "Solar Flare" },
+];
 
 const NAV_ICONS: Record<ViewId, React.ComponentType<{ className?: string }>> = {
   dashboard: LayoutDashboard,
@@ -84,16 +101,31 @@ export function TopNav() {
   const lang = useAppStore((s) => s.lang);
   const view = useAppStore((s) => s.view);
   const role = useAppStore((s) => s.role);
+  const theme = useAppStore((s) => s.theme);
+  const setTheme = useAppStore((s) => s.setTheme);
   const modules = useAppStore((s) => s.modules);
   const setModules = useAppStore((s) => s.setModules);
   const setLang = useAppStore((s) => s.setLang);
   const setView = useAppStore((s) => s.setView);
   const { toast } = useToast();
 
-  /* donate dialog (top-bar heart) */
+  /* donate dialog (top-bar heart) & quick command search */
   const [donateOpen, setDonateOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const t = useMemo(() => dictionaries[lang], [lang]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearchOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   /* Phase 8 — pull module visibility from the server (admin only) */
   useEffect(() => {
@@ -115,12 +147,6 @@ export function TopNav() {
     if (role === "reseller") return ["users"];
     return NAV_ORDER.filter((id) => !MODULE_VIEWS.has(id) || modules[id as keyof typeof modules]);
   }, [role, modules]);
-
-  const soon = () =>
-    toast({
-      title: t.common.soon,
-      description: t.common.soonDesc,
-    });
 
   const signOut = async () => {
     try {
@@ -167,9 +193,9 @@ export function TopNav() {
             <span className="text-emerald-400">· {t.status.online}</span>
           </div>
 
-          {/* search (visual) */}
+          {/* search (command palette) */}
           <button
-            onClick={soon}
+            onClick={() => setSearchOpen(true)}
             className="glass hidden h-9 items-center gap-2.5 rounded-full px-3.5 text-sm text-muted-foreground transition-colors hover:text-foreground xl:flex"
             aria-label={t.topbar.search}
           >
@@ -192,6 +218,42 @@ export function TopNav() {
               className="absolute end-2 top-2 h-1.5 w-1.5 animate-pulse rounded-full bg-rose-400"
             />
           </button>
+
+          {/* 6-theme switcher */}
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label="Theme Engine"
+              className="glass flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-medium text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Palette className="h-3.5 w-3.5 text-primary" />
+              <span className="hidden sm:inline capitalize">{theme}</span>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="glass-strong min-w-56">
+              <DropdownMenuLabel className="text-xs text-muted-foreground">
+                Theme Engine (6 Presets)
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {THEME_PRESETS.map((preset) => (
+                <DropdownMenuItem
+                  key={preset.id}
+                  onClick={() => setTheme(preset.id)}
+                  className="flex items-center justify-between gap-2 py-2"
+                >
+                  <span className="flex items-center gap-2.5">
+                    <span
+                      className="h-3 w-3 rounded-full ring-1 ring-white/20"
+                      style={{ backgroundColor: preset.color }}
+                    />
+                    <span className="flex flex-col">
+                      <span className="text-xs font-medium">{preset.label}</span>
+                      <span className="text-[10px] text-muted-foreground">{preset.sub}</span>
+                    </span>
+                  </span>
+                  {theme === preset.id && <Check className="h-3.5 w-3.5 text-primary" />}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* language */}
           <DropdownMenu>
@@ -334,6 +396,57 @@ export function TopNav() {
       />
 
       <DonateDialog open={donateOpen} onOpenChange={setDonateOpen} />
+
+      <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
+        <DialogContent className="glass-strong max-w-md border-white/10">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-sm">
+              <Search className="h-4 w-4 text-primary" />
+              {t.topbar.search}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input
+              autoFocus
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Jump to workspace, theme, or module…"
+              className="glass border-white/10"
+            />
+            <div className="max-h-64 space-y-1 overflow-y-auto">
+              {navIds
+                .filter((id) => {
+                  if (!searchQuery.trim()) return true;
+                  const q = searchQuery.toLowerCase();
+                  return id.includes(q) || (t.nav[id] ?? id).toLowerCase().includes(q);
+                })
+                .map((id) => {
+                  const Icon = NAV_ICONS[id];
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => {
+                        setView(id);
+                        setSearchOpen(false);
+                        setSearchQuery("");
+                      }}
+                      className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs transition-colors hover:bg-primary/15"
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <Icon className="h-4 w-4 text-primary" />
+                        <span className="font-medium">{t.nav[id]}</span>
+                      </span>
+                      <span className="font-mono text-[10px] text-muted-foreground uppercase">
+                        /{id}
+                      </span>
+                    </button>
+                  );
+                })}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 }

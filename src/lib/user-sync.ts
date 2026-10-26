@@ -30,8 +30,8 @@ export async function syncUserProjection(userId: string, limits: UserLimits): Pr
   const inbounds = await db.inbound.findMany({ select: { id: true, clientsJson: true } });
   for (const inbound of inbounds) {
     const desired: EmbeddedClient[] = user.accesses
-      .filter((a) => a.inboundId === inbound.id)
-      .map((a) => ({
+      .filter((a: any) => a.inboundId === inbound.id)
+      .map((a: any) => ({
         email: a.email,
         key: a.key,
         subId: user.subId,

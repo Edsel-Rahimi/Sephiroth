@@ -1,5 +1,5 @@
 import { randomBytes, randomUUID } from "node:crypto";
-import type { ClientUser, Inbound, UserInboundAccess } from "@prisma/client";
+import type { ClientUser, Inbound, UserInboundAccess } from "@/lib/db";
 import {
   type AccessDTO,
   type EmbeddedClient,

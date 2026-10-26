@@ -1,9 +1,13 @@
 # clean public exports via `git archive` — internals stay out of the public repo
+db/sephiroth-store.json export-ignore
 db/custom.db export-ignore
 db/custom.db-shm export-ignore
 db/custom.db-wal export-ignore
+.aistudio/ export-ignore
 worklog.md export-ignore
 tool-results/ export-ignore
 .zscripts/ export-ignore
 upload/ export-ignore
+download/ export-ignore
 dev.log export-ignore
+dist/ export-ignore

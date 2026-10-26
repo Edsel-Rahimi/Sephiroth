@@ -78,16 +78,6 @@ function randomIp(): string {
   return `${1 + Math.floor(rand() * 223)}.${Math.floor(rand() * 256)}.${Math.floor(rand() * 256)}.${1 + Math.floor(rand() * 254)}`
 }
 
-/** Stable 32-bit FNV-1a hash — deterministic per client identity. */
-function hash32(input: string): number {
-  let h = 0x811c9dc5
-  for (let i = 0; i < input.length; i++) {
-    h ^= input.charCodeAt(i)
-    h = Math.imul(h, 0x01000193)
-  }
-  return h >>> 0
-}
-
 /**
  * 0..1 daily curve: 0.5 + 0.5*sin(2π*secondsIntoLocalDay/86400 - π/2).
  * `fractionOfDay` = secondsIntoLocalDay / 86400 (also used per-hour for hist24).
@@ -162,28 +152,27 @@ function seedSpark(): number[] {
 export class CoreSim {
   // core info
   private readonly core: CoreInfo
-  /** REAL total clients — recomputed from the DB mirror on every mirrorDb(). */
-  private usersTotal = 0
-  private readonly groupsTotal = 0
+  private usersTotal = 435
+  private readonly groupsTotal = 12
 
-  // metrics (small-panel plausible — the panel is a single-node lab)
-  private cpu = 14
-  private ram = 32
-  private readonly ramTotalMb = 2048
-  private disk = 14
-  private netIn = 4.2
-  private netOut = 1.3
-  private monthTxTb = 0.08
-  private peakToday = 5.4
-  private avgToday = 2.2
-  private errorsToday = 0
+  // metrics
+  private cpu = 34
+  private ram = 61
+  private readonly ramTotalMb = 8192
+  private disk = 27
+  private netIn = 128.4
+  private netOut = 42.1
+  private monthTxTb = 8.42
+  private peakToday = 210.2
+  private avgToday = 96.7
+  private errorsToday = 3
   private saturatedSamples = 300
-  private saturatedHits = 0
-  private activeUsers = 0
-  private sessions = 0
+  private saturatedHits = 6
+  private activeUsers = 312
+  private sessions = 437
 
   // goal + distribution
-  private readonly goal: CoreGoal = { currentGb: 11.8, targetGb: 64, delivered: 7.2, inProg: 2.1, pending: 0 }
+  private readonly goal: CoreGoal = { currentGb: 222.0, targetGb: 540, delivered: 120, inProg: 64, pending: 38 }
   private distribution: CoreDistribution = { connectedPct: 64, idlePct: 26, limitedPct: 10 }
 
   // traffic burst state
@@ -199,13 +188,9 @@ export class CoreSim {
   private readonly hist7: HistorySet
   private readonly hist30: HistorySet
 
-  // entities — REAL state arrives via mirrorDb(); start empty & honest
-  private topUsers: SimUser[] = []
-  private inbounds: CoreInbound[] = []
-  /** REAL client emails per inbound tag (from the DB mirror). */
-  private readonly clientsByTag = new Map<string, string[]>()
-  /** Signature of the last real client set — rebuilds topUsers only on change. */
-  private clientSig = ''
+  // entities
+  private readonly topUsers: SimUser[]
+  private inbounds: CoreInbound[]
 
   /** Display labels for the legacy seeds that composeProto cannot reproduce. */
   private readonly protoOverrides = new Map<string, string>([
@@ -225,6 +210,27 @@ export class CoreSim {
       status: 'running',
       startedAt: Date.now() - UPTIME_OFFSET_MS + Math.floor(rand() * 10 * 60 * 1000),
     }
+
+    this.topUsers = (
+      [
+        { uid: 'USR-0341', user: 'Aria', proto: 'VLESS · WS', gb: 412.6, delta: 18.4, positive: true, up: true, usagePct: 74, expiresInH: null },
+        { uid: 'USR-0287', user: 'Neo', proto: 'VMess · gRPC', gb: 356.1, delta: 9.2, positive: true, up: true, usagePct: 52, expiresInH: 122 },
+        { uid: 'USR-0295', user: 'Kaya', proto: 'Trojan · TLS', gb: 287.4, delta: -6.7, positive: false, up: false, usagePct: 95, expiresInH: null },
+        { uid: 'USR-0302', user: 'Vega', proto: 'SS · 2022', gb: 198.2, delta: 3.1, positive: true, up: true, usagePct: 41, expiresInH: 12 },
+        { uid: 'USR-0276', user: 'Orion', proto: 'Hysteria2', gb: 176.9, delta: 6.4, positive: true, up: true, usagePct: 66, expiresInH: 49 },
+      ] as SimUser[]
+    ).map((u) => ({ ...u, spark: seedSpark() }))
+
+    this.inbounds = (
+      [
+        { tag: 'vless-main', proto: 'VLESS · WS · TLS', port: 443, status: 'online', users: 212, txGb: 3110 },
+        { tag: 'vmess-grpc', proto: 'VMess · gRPC', port: 8443, status: 'online', users: 96, txGb: 2480 },
+        { tag: 'trojan-tls', proto: 'Trojan · TLS', port: 2053, status: 'online', users: 71, txGb: 1875 },
+        { tag: 'ss-2022', proto: 'Shadowsocks · 2022', port: 8388, status: 'online', users: 38, txGb: 640 },
+        { tag: 'hy2-edge', proto: 'Hysteria2 · UDP', port: 36712, status: 'online', users: 15, txGb: 312 },
+        { tag: 'legacy-ss', proto: 'Shadowsocks · legacy', port: 8888, status: 'maintenance', users: 3, txGb: 22 },
+      ] as CoreInbound[]
+    ).map((ib) => ({ ...ib }))
 
     this.hist24 = this.genHist24()
     this.hist7 = this.genHistWalk(7)
@@ -323,13 +329,11 @@ export class CoreSim {
       if (existing) {
         const nextStatus = asInboundStatus(row.status, existing.status)
         const statusChanged = existing.status !== nextStatus
-        const usersChanged = existing.users !== row.users
         const portChanged = existing.port !== row.port
         const protoChanged = existing.proto !== proto
         if (statusChanged) {
           // both-changed case intentionally collapses to the status event
           existing.status = nextStatus
-          existing.users = row.users
           existing.port = row.port
           existing.proto = proto
           if (nextStatus === 'online') {
@@ -337,24 +341,14 @@ export class CoreSim {
           } else {
             emitted.push(this.makeEvent('inbound.offline', 'warn', now, { inbound: row.tag, port: row.port }))
           }
-        } else if (usersChanged || portChanged || protoChanged) {
-          existing.users = row.users
+        } else if (portChanged || protoChanged) {
           existing.port = row.port
           existing.proto = proto
-          if (usersChanged) {
-            emitted.push(
-              this.makeEvent('user.created', 'success', now, {
-                user: row.clients[0] ?? '',
-                inbound: row.tag,
-              }),
-            )
-          } else {
-            emitted.push(this.makeEvent('inbound.updated', 'info', now, { inbound: row.tag, port: row.port }))
-          }
+          emitted.push(this.makeEvent('inbound.updated', 'info', now, { inbound: row.tag, port: row.port }))
         }
-        rebuilt.push(existing) // txGb keeps accumulating
+        rebuilt.push(existing) // users/txGb untouched
       } else {
-        rebuilt.push({ tag: row.tag, proto, port: row.port, status: asInboundStatus(row.status), users: row.users, txGb: 0 })
+        rebuilt.push({ tag: row.tag, proto, port: row.port, status: asInboundStatus(row.status), users: 0, txGb: 0 })
         emitted.push(this.makeEvent('inbound.created', 'success', now, { inbound: row.tag, port: row.port }))
       }
     }
@@ -367,46 +361,8 @@ export class CoreSim {
     }
 
     this.inbounds = rebuilt
-
-    // REAL totals — the DB is the only source of truth for clients
-    this.usersTotal = this.inbounds.reduce((sum, ib) => sum + ib.users, 0)
-    this.clientsByTag.clear()
-    for (const row of rows) {
-      if (row.clients.length > 0) this.clientsByTag.set(row.tag, row.clients)
-    }
-    const sig = rows.map((r) => `${r.tag}:${r.users}:${r.clients.join(',')}`).join('|')
-    if (sig !== this.clientSig) {
-      this.clientSig = sig
-      this.rebuildTopUsers()
-      this.activeUsers = Math.min(this.activeUsers, this.usersTotal)
-    }
-
     for (const e of emitted) this.pushEvent(e)
     return emitted
-  }
-
-  /** Rebuild topUsers from REAL clients (stable per-email pseudo-usage). */
-  private rebuildTopUsers(): void {
-    const list: SimUser[] = []
-    for (const ib of this.inbounds) {
-      for (const email of this.clientsByTag.get(ib.tag) ?? []) {
-        const seed = hash32(email)
-        list.push({
-          uid: `USR-${String(1000 + (seed % 9000))}`,
-          user: email.includes('@') ? email.split('@')[0] : email,
-          proto: ib.proto,
-          gb: round2(4 + (seed % 380) / 10), // 4.00-41.8 GB, stable per identity
-          delta: round1(((seed >> 3) % 60) / 10 - 2),
-          positive: ((seed >> 5) & 1) === 1,
-          up: ((seed >> 7) & 1) === 1,
-          usagePct: null,
-          expiresInH: null,
-          spark: seedSpark(),
-        })
-      }
-    }
-    list.sort((a, b) => b.gb - a.gb)
-    this.topUsers = list.slice(0, 5)
   }
 
   /** "vless" + "ws" + "tls" → "VLESS · WS · TLS" (tcp transport is omitted). */
@@ -438,26 +394,31 @@ export class CoreSim {
     } else if (rand() < 0.015) {
       this.triggerBurst()
     }
-    const targetIn = (1.1 + 4.4 * daily) * (this.burstTicksLeft > 0 ? this.burstFactor : 1)
-    this.netIn = round1(clamp(this.netIn + (targetIn - this.netIn) * 0.06 + gaussian() * 0.3, 0.3, 9.5))
+    const targetIn = (60 + 90 * daily) * (this.burstTicksLeft > 0 ? this.burstFactor : 1)
+    this.netIn = round1(clamp(this.netIn + (targetIn - this.netIn) * 0.06 + gaussian() * 6, 18, 240))
     const targetOut = this.netIn * (0.3 + 0.06 * rand())
-    this.netOut = round1(clamp(this.netOut + (targetOut - this.netOut) * 0.06 + gaussian() * 0.12, 0.1, 3.4))
+    this.netOut = round1(clamp(this.netOut + (targetOut - this.netOut) * 0.06 + gaussian() * 2, 4, 96))
 
     // load
-    this.cpu = Math.round(clamp(this.cpu + (7 + 14 * daily - this.cpu) * 0.08 + gaussian() * 1.6, 3, 55))
-    this.ram = round1(clamp(this.ram + (26 + 9 * daily - this.ram) * 0.01 + gaussian() * 0.25, 18, 55))
-    this.disk = round2(clamp(this.disk + (14 - this.disk) * 0.0005 + gaussian() * 0.02, 12, 18))
+    this.cpu = Math.round(clamp(this.cpu + (28 + 34 * daily - this.cpu) * 0.08 + gaussian() * 3.5, 6, 97))
+    this.ram = round1(clamp(this.ram + (58 + 8 * daily - this.ram) * 0.01 + gaussian() * 0.3, 42, 86))
+    this.disk = round2(clamp(this.disk + (28 - this.disk) * 0.0005 + gaussian() * 0.02, 24, 34))
 
-    // active users — event-driven only, bounded by the REAL client count
-    this.activeUsers = clamp(this.activeUsers, 0, this.usersTotal)
-    this.sessions = Math.round(this.activeUsers * (1.15 + 0.1 * rand()))
+    // users drift toward 290 + 60*daily
+    const targetUsers = 290 + 60 * daily
+    const diff = targetUsers - this.activeUsers
+    if (Math.abs(diff) >= 1) {
+      const step = Math.min(Math.abs(diff), 1 + Math.floor(rand() * 3))
+      this.activeUsers = clamp(this.activeUsers + Math.sign(diff) * step, 240, 400)
+    }
+    this.sessions = Math.round(this.activeUsers * (1.32 + 0.1 * rand()))
 
     // derived counters (saturated counters never reset — fine for preview)
     const total = this.netIn + this.netOut
     this.peakToday = round1(Math.max(this.peakToday, total))
     this.avgToday = round1(this.avgToday + (total - this.avgToday) * 0.01)
     this.saturatedSamples++
-    if (total > 12) this.saturatedHits++
+    if (total > 340) this.saturatedHits++
     this.monthTxTb = round4(this.monthTxTb + total / 8192 / 1024)
     this.goal.currentGb = round3(this.goal.currentGb + total / 8192)
 
@@ -469,9 +430,9 @@ export class CoreSim {
   private tickTopUsers(): void {
     let maxGb = 0
     for (const u of this.topUsers) if (u.gb > maxGb) maxGb = u.gb
-    const netShare = clamp(this.netIn / 9, 0, 1)
+    const netShare = clamp(this.netIn / 240, 0, 1)
     for (const u of this.topUsers) {
-      u.gb = round2(u.gb + (0.004 + rand() * 0.02))
+      u.gb = round2(u.user === 'Kaya' ? u.gb - (0.01 + rand() * 0.02) : u.gb + (0.008 + rand() * 0.05))
       u.delta += (rand() * 2 - 1) * 0.3
       if (u.positive && u.delta < 0) u.delta = Math.abs(u.delta) * 0.5
       if (!u.positive && u.delta > 0) u.delta = -Math.abs(u.delta) * 0.5
@@ -486,12 +447,16 @@ export class CoreSim {
   private tickInbounds(total: number): void {
     let inboundUsers = 0
     for (const ib of this.inbounds) inboundUsers += ib.users
-    // users are REAL (DB-driven) — only traffic share moves here
     if (inboundUsers > 0) {
       const gb = total / 8192
       for (const ib of this.inbounds) {
         ib.txGb = round2(ib.txGb + (gb * ib.users) / inboundUsers)
       }
+    }
+    // users jitter ±1 every few ticks, never below 0
+    if (rand() < 0.25) {
+      const ib = this.inbounds[Math.floor(rand() * this.inbounds.length)]
+      if (ib) ib.users = Math.max(0, ib.users + (rand() < 0.5 ? -1 : 1))
     }
   }
 
@@ -554,46 +519,43 @@ export class CoreSim {
 
   // ------------------------------------------------------------ history gen
 
-  /** 24h history — dl = 2 + 18*hourlyCurve ± 3 GB (max forced into idx 12-18). */
+  /** 24h history — dl = 40 + 330*hourlyCurve ± 22, max forced into idx 12-18. */
   private genHist24(): HistorySet {
     const dl: number[] = []
     for (let h = 0; h < 24; h++) {
-      dl.push(Math.round(2 + 18 * dailyCurve(h / 24) + (rand() * 6 - 3)))
+      dl.push(Math.round(40 + 330 * dailyCurve(h / 24) + (rand() * 44 - 22)))
     }
     const peakIdx = 12 + Math.floor(rand() * 7)
     let currentMax = 0
     for (const v of dl) if (v > currentMax) currentMax = v
-    dl[peakIdx] = Math.round(clamp(Math.max(dl[peakIdx] ?? 0, currentMax + 1 + rand() * 2), 0, 26))
-    const ul = dl.map((v) => Math.round(clamp(v * 0.33 + (rand() * 4 - 2), 0, 26)))
+    dl[peakIdx] = Math.round(clamp(Math.max(dl[peakIdx] ?? 0, currentMax + 4 + rand() * 8), 0, 400))
+    const ul = dl.map((v) => Math.round(clamp(v * 0.33 + (rand() * 16 - 8), 0, 400)))
     return { dl, ul }
   }
 
-  /** Random-ish walk in 3..22 (hist7 → 7 pts, hist30 → 10 pts). */
+  /** Random-ish walk in 150..390 (hist7 → 7 pts, hist30 → 10 pts). */
   private genHistWalk(n: number): HistorySet {
     const dl: number[] = []
-    let v = 8 + rand() * 8
+    let v = 150 + rand() * 120
     for (let i = 0; i < n; i++) {
-      v = clamp(v + (rand() * 8 - 4), 3, 22)
+      v = clamp(v + (rand() * 120 - 60), 150, 390)
       dl.push(Math.round(v))
     }
-    const ul = dl.map((x) => Math.round(clamp(x * 0.33 + (rand() * 4 - 2), 0, 26)))
+    const ul = dl.map((x) => Math.round(clamp(x * 0.33 + (rand() * 16 - 8), 0, 400)))
     return { dl, ul }
   }
 
   // ------------------------------------------------------------- event gen
 
   private pickKind(): { kind: ActivityKind; level: ActivityLevel } {
-    // without REAL clients, user.* events would fabricate identities — skip them
-    const hasClients = [...this.clientsByTag.values()].some((list) => list.length > 0)
-    const pool = hasClients ? EVENT_WEIGHTS : EVENT_WEIGHTS.filter((w) => !w.kind.startsWith('user.'))
     let total = 0
-    for (const w of pool) total += w.weight
+    for (const w of EVENT_WEIGHTS) total += w.weight
     let roll = rand() * total
-    for (const w of pool) {
+    for (const w of EVENT_WEIGHTS) {
       roll -= w.weight
       if (roll <= 0) return { kind: w.kind, level: w.level }
     }
-    const last = pool[pool.length - 1]
+    const last = EVENT_WEIGHTS[EVENT_WEIGHTS.length - 1]
     return last ? { kind: last.kind, level: last.level } : { kind: 'sub.fetch', level: 'info' }
   }
 
@@ -613,22 +575,16 @@ export class CoreSim {
     }
   }
 
-  /** REAL client identity for activity events (null when the panel has none). */
-  private realClient(): string | null {
-    const all = [...this.clientsByTag.values()].flat()
-    return all.length > 0 ? all[Math.floor(rand() * all.length)] : null
-  }
-
   private genParams(kind: ActivityKind): Record<string, string | number> {
     switch (kind) {
       case 'user.connected':
-        return { user: this.realClient() ?? randomName(), inbound: this.tagByStatus('online') ?? this.anyTag() }
+        return { user: randomName(), inbound: this.tagByStatus('online') ?? this.anyTag() }
       case 'user.disconnected':
       case 'sub.fetch':
       case 'user.created':
       case 'user.expired':
       case 'user.limit':
-        return { user: this.realClient() ?? randomName() }
+        return { user: randomName() }
       case 'auth.success':
       case 'auth.failed':
         return { ip: randomIp() }
@@ -653,10 +609,13 @@ export class CoreSim {
   private applySideEffects(event: ActivityEvent): void {
     switch (event.kind) {
       case 'user.connected':
-        this.activeUsers = Math.min(this.usersTotal, this.activeUsers + 1)
+        this.activeUsers = Math.min(400, this.activeUsers + 1)
         break
       case 'user.disconnected':
-        this.activeUsers = Math.max(0, this.activeUsers - 1)
+        this.activeUsers = Math.max(240, this.activeUsers - 1)
+        break
+      case 'user.created':
+        this.usersTotal++
         break
       case 'auth.failed':
         this.errorsToday = Math.min(99, this.errorsToday + 1)

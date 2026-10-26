@@ -46,6 +46,7 @@ import { sfmt } from "@/lib/i18n/sub-dictionary";
 import type { ResellerDTO, TemplateDTO } from "@/lib/resellers";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { ResellerPaymentPanel } from "@/components/sephiroth/views/reseller-payment-panel";
 
 /* ============================================================
    Sephiroth · Phase 6 — Resellers view (admin)
@@ -1233,6 +1234,9 @@ export function ResellersView() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Reseller Payment Gateways & Wallet Hooks */}
+      <ResellerPaymentPanel />
     </div>
   );
 }

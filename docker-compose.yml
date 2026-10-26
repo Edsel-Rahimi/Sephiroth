@@ -1,0 +1,29 @@
+version: "3.8"
+
+services:
+  sephiroth:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sephiroth-panel
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - SEPHIROTH_ADMIN_USER=admin
+      - SEPHIROTH_ADMIN_PASS=admin
+    volumes:
+      # Persistent local database & backups
+      - sephiroth_data:/app/db
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/auth/session"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  sephiroth_data:
+    driver: local

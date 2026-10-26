@@ -34,6 +34,37 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
 
+    const userCount = await db.clientUser.count();
+    if (userCount === 0) {
+      const { ensureInboundSeed } = await import("@/lib/inbounds");
+      await ensureInboundSeed();
+      const inbounds = await db.inbound.findMany({ orderBy: { createdAt: "asc" } });
+      const topInbounds = inbounds.slice(0, 3);
+      const demoUsers = [
+        { username: "aria_vip", note: "VIP Multi-Device · Tehran", trafficLimitGb: 100, expiryDays: 30, ipLimit: 3, usedTrafficGb: 24.6, enabled: true },
+        { username: "kourosh_pro", note: "Gamer Low-Ping · Frankfurt", trafficLimitGb: 50, expiryDays: 30, ipLimit: 2, usedTrafficGb: 14.2, enabled: true },
+        { username: "negar_stream", note: "Streaming & AI · WARP+", trafficLimitGb: 250, expiryDays: 60, ipLimit: 5, usedTrafficGb: 68.9, enabled: true },
+        { username: "soren_gamer", note: "Esports Direct Tunnel", trafficLimitGb: 30, expiryDays: 30, ipLimit: 2, usedTrafficGb: 30.0, enabled: true },
+      ];
+      for (const du of demoUsers) {
+        const subId = genSubId();
+        await db.clientUser.create({
+          data: {
+            ...du,
+            subId,
+            accesses: {
+              create: topInbounds.map((inb: any) => ({
+                inboundId: inb.id,
+                email: emailFor(du.username, inb.tag, new Set()),
+                key: genKey(inb.protocol),
+                flow: flowFor(inb),
+              })),
+            },
+          },
+        });
+      }
+    }
+
     const rows = await db.clientUser.findMany({
       where: actor.role === "reseller" ? { resellerId: actor.id } : {},
       orderBy: [{ createdAt: "desc" }, { username: "asc" }],

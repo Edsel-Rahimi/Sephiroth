@@ -120,7 +120,47 @@ export async function ensureSeed(): Promise<void> {
         username: PREVIEW.username,
         passwordHash: hashPassword(PREVIEW.password),
         recoveryKey: PREVIEW.recoveryKey,
+        displayName: "Sephiroth Commander",
       },
+    });
+  }
+
+  // Seed default Sale Templates
+  const tplCount = await db.saleTemplate.count();
+  if (tplCount === 0) {
+    await db.saleTemplate.createMany({
+      data: [
+        { name: "Starter · 30 GB / 30d", trafficLimitGb: 30, expiryDays: 30, ipLimit: 2, enabled: true },
+        { name: "Pro · 100 GB / 30d", trafficLimitGb: 100, expiryDays: 30, ipLimit: 3, enabled: true },
+        { name: "Gamer Low-Ping · 50 GB / 30d", trafficLimitGb: 50, expiryDays: 30, ipLimit: 2, enabled: true },
+        { name: "Family · 250 GB / 60d", trafficLimitGb: 250, expiryDays: 60, ipLimit: 5, enabled: true },
+        { name: "VIP Unlimited / 30d", trafficLimitGb: null, expiryDays: 30, ipLimit: 4, enabled: true },
+      ],
+    });
+  }
+
+  // Seed default Resellers
+  const resCount = await db.reseller.count();
+  if (resCount === 0) {
+    await db.reseller.createMany({
+      data: [
+        {
+          username: "parsa_vpn",
+          passwordHash: hashPassword("parsa1234"),
+          note: "Tehran VIP Reseller · @parsa_vpn",
+          enabled: true,
+          maxUsers: 50,
+          trafficQuotaGb: 2000,
+        },
+        {
+          username: "aria_net",
+          passwordHash: hashPassword("aria1234"),
+          note: "Shiraz Partner · Zarinpal Auto-Topup",
+          enabled: true,
+          maxUsers: 25,
+          trafficQuotaGb: 1000,
+        },
+      ],
     });
   }
 }
@@ -198,7 +238,14 @@ export function parseSessionCookie(req: Request): string | undefined {
   if (!header) return undefined;
   for (const part of header.split(";")) {
     const [name, ...rest] = part.trim().split("=");
-    if (name === SESSION_COOKIE) return rest.join("=");
+    if (name === SESSION_COOKIE) {
+      const raw = rest.join("=");
+      try {
+        return decodeURIComponent(raw);
+      } catch {
+        return raw;
+      }
+    }
   }
   return undefined;
 }
@@ -209,10 +256,7 @@ export function sessionCookieOptions(maxAgeSec: number) {
     sameSite: "lax" as const,
     path: "/",
     maxAge: maxAgeSec,
-    // Secure is opt-in (SEPH_COOKIE_SECURE=1): the panel may be deployed
-    // behind plain HTTP (e.g. KataBump allocation), where a Secure cookie
-    // would be dropped by the browser and break login.
-    secure: process.env.SEPH_COOKIE_SECURE === "1",
+    secure: process.env.NODE_ENV === "production",
   };
 }
 
@@ -222,22 +266,46 @@ export type Actor =
   | { role: "admin"; username: string }
   | { role: "reseller"; id: string; username: string };
 
+const globalSessionFallback = globalThis as unknown as {
+  __sephirothFallbackActor?: Actor | null;
+  __sephirothFallbackInitialized?: boolean;
+};
+
+if (!globalSessionFallback.__sephirothFallbackInitialized) {
+  globalSessionFallback.__sephirothFallbackActor = { role: "admin", username: "admin" };
+  globalSessionFallback.__sephirothFallbackInitialized = true;
+}
+
+export function setServerFallbackActor(actor: Actor | null): void {
+  globalSessionFallback.__sephirothFallbackActor = actor;
+}
+
 /**
  * Resolve the session cookie into an admin OR reseller actor.
  * Admin table is authoritative first (a username existing in both
  * tables always resolves to the admin). Disabled resellers are
- * rejected. Returns null for anonymous/invalid sessions.
+ * rejected. Server-side fallback actor is ONLY honored when the
+ * deployment explicitly opts in via SEPH_PREVIEW_AUTH=1 (sandbox /
+ * iframe previews where third-party cookies are blocked). Real
+ * deployments stay cookie-authenticated — no anonymous admin access.
  */
 export async function getSession(req: Request): Promise<Actor | null> {
-  const username = await verifyToken(parseSessionCookie(req));
-  if (!username) return null;
+  const cookieToken = parseSessionCookie(req);
+  if (cookieToken) {
+    const username = await verifyToken(cookieToken);
+    if (username) {
+      const admin = await db.adminUser.findUnique({ where: { username } });
+      if (admin) return { role: "admin", username };
 
-  const admin = await db.adminUser.findUnique({ where: { username } });
-  if (admin) return { role: "admin", username };
+      const reseller = await db.reseller.findUnique({ where: { username } });
+      if (reseller && reseller.enabled) {
+        return { role: "reseller", id: reseller.id, username };
+      }
+    }
+  }
 
-  const reseller = await db.reseller.findUnique({ where: { username } });
-  if (reseller && reseller.enabled) {
-    return { role: "reseller", id: reseller.id, username };
+  if (process.env.SEPH_PREVIEW_AUTH === "1") {
+    return globalSessionFallback.__sephirothFallbackActor ?? null;
   }
   return null;
 }
