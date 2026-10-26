@@ -20,6 +20,10 @@ export interface DbInboundRow {
   transport: string
   security: string
   status: string
+  /** REAL client count parsed from clientsJson */
+  users: number
+  /** REAL client identities (emails) parsed from clientsJson */
+  clients: string[]
 }
 
 // ---------------------------------------------------------------------------
@@ -83,10 +87,40 @@ export function readInbounds(): DbInboundRow[] | null {
   try {
     const rows = db
       .prepare(
-        'SELECT tag, protocol, port, transport, security, status FROM Inbound ORDER BY createdAt ASC, tag ASC',
+        'SELECT tag, protocol, port, transport, security, status, clientsJson FROM Inbound ORDER BY createdAt ASC, tag ASC',
       )
-      .all() as Array<{ tag: string; protocol: string; port: number | bigint; transport: string; security: string; status: string }>
-    return rows.map((r) => ({ ...r, port: Number(r.port) }))
+      .all() as Array<{
+      tag: string
+      protocol: string
+      port: number | bigint
+      transport: string
+      security: string
+      status: string
+      clientsJson: string | null
+    }>
+    return rows.map((r) => {
+      let clients: string[] = []
+      try {
+        const parsed = JSON.parse(r.clientsJson ?? '[]')
+        if (Array.isArray(parsed)) {
+          clients = parsed
+            .map((c) => (c && typeof c === 'object' ? String((c as { email?: unknown }).email ?? '') : ''))
+            .filter((e) => e.length > 0)
+        }
+      } catch {
+        clients = []
+      }
+      return {
+        tag: r.tag,
+        protocol: r.protocol,
+        port: Number(r.port),
+        transport: r.transport,
+        security: r.security,
+        status: r.status,
+        users: clients.length,
+        clients,
+      }
+    })
   } catch (err) {
     logErrorThrottled('[core-sim/db] readInbounds failed (keeping last state):', err)
     return null

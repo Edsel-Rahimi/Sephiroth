@@ -18,6 +18,10 @@ export interface DbInboundRow {
   transport: string
   security: string
   status: string
+  /** REAL client count parsed from clientsJson */
+  users: number
+  /** REAL client identities (emails) parsed from clientsJson */
+  clients: string[]
 }
 
 const globalForSim = globalThis as unknown as {
@@ -48,16 +52,32 @@ export async function pollInbounds(): Promise<void> {
         transport: true,
         security: true,
         status: true,
+        clientsJson: true,
       },
     })
-    cachedRows = rows.map((r) => ({
-      tag: r.tag,
-      protocol: r.protocol,
-      port: Number(r.port),
-      transport: r.transport,
-      security: r.security,
-      status: r.status,
-    }))
+    cachedRows = rows.map((r) => {
+      let clients: string[] = []
+      try {
+        const parsed = JSON.parse(r.clientsJson ?? '[]')
+        if (Array.isArray(parsed)) {
+          clients = parsed
+            .map((c) => (c && typeof c === 'object' ? String((c as { email?: unknown }).email ?? '') : ''))
+            .filter((e) => e.length > 0)
+        }
+      } catch {
+        clients = []
+      }
+      return {
+        tag: r.tag,
+        protocol: r.protocol,
+        port: Number(r.port),
+        transport: r.transport,
+        security: r.security,
+        status: r.status,
+        users: clients.length,
+        clients,
+      }
+    })
   } catch (err) {
     console.error('[sim-db] pollInbounds failed (keeping last cache):', err)
   }
