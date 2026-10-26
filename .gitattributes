@@ -1,0 +1,9 @@
+# clean public exports via `git archive` — internals stay out of the public repo
+db/custom.db export-ignore
+db/custom.db-shm export-ignore
+db/custom.db-wal export-ignore
+worklog.md export-ignore
+tool-results/ export-ignore
+.zscripts/ export-ignore
+upload/ export-ignore
+dev.log export-ignore

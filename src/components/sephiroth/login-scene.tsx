@@ -661,6 +661,19 @@ export function LoginScene({ onSuccess }: { onSuccess: (username: string) => voi
           <Lock className="h-3 w-3" />
           {t.secureNote}
         </p>
+
+        {/* crafted-by signature */}
+        <p className="fade-up d-3 flex items-center gap-1.5 text-[11px] text-muted-foreground/70">
+          {dictionaries[lang].footer.crafted}{" "}
+          <a
+            href="https://github.com/Edsel-Rahimi"
+            target="_blank"
+            rel="noreferrer"
+            className="font-mono font-semibold text-primary hover:glow-cyan transition-colors"
+          >
+            EPODONIOS
+          </a>
+        </p>
       </main>
     </div>
   );

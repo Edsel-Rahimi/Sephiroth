@@ -1200,7 +1200,56 @@ export interface Dict {
     coming: string;
     bodies: Record<Exclude<ViewId, "dashboard">, string>;
   };
-  footer: { phase: string; rights: string };
+  footer: { phase: string; rights: string; crafted: string };
+
+  donate: {
+    title: string;
+    subtitle: string;
+    crypto: string;
+    cryptoHint: string;
+    copied: string;
+    reymit: string;
+    reymitDesc: string;
+    stars: string;
+    starsDesc: string;
+    creator: string;
+    close: string;
+  };
+
+  routingPresets: {
+    title: string;
+    desc: string;
+    add: string;
+    added: string;
+    dup: string;
+    needOb: string;
+    ads: string;
+    adsD: string;
+    porn: string;
+    pornD: string;
+    malware: string;
+    malwareD: string;
+    iran: string;
+    iranD: string;
+    quic: string;
+    quicD: string;
+    tg: string;
+    tgD: string;
+  };
+
+  guideLesson: {
+    chapters: string;
+    lessonWhat: string;
+    lessonWhen: string;
+    lessonFields: string;
+    fieldName: string;
+    fieldWhat: string;
+    fieldFill: string;
+    lessonSteps: string;
+    lessonTips: string;
+    prevCh: string;
+    nextCh: string;
+  };
 }
 
 export const dictionaries: Record<Lang, Dict> = {
@@ -2400,7 +2449,53 @@ export const dictionaries: Record<Lang, Dict> = {
         profile: "Your identity, security and preferences.",
       },
     },
-    footer: { phase: "Phase 8 · Core Network & Guide", rights: "© 2025 Sephiroth" },
+    footer: { phase: "Phase 8 · Core Network & Guide", rights: "© 2025 Sephiroth", crafted: "Crafted by" },
+    donate: {
+      title: "Support Sephiroth",
+      subtitle: "Sephiroth is crafted with love and long nights. If it makes your day easier, a small boost keeps the orbit alive.",
+      crypto: "USDT · TRC20",
+      cryptoHint: "Tap to copy the wallet address",
+      copied: "Wallet address copied",
+      reymit: "Reymit (Iranian)",
+      reymitDesc: "Support via Reymit — great for Iran-based supporters",
+      stars: "Star on GitHub",
+      starsDesc: "A star costs nothing but means the world",
+      creator: "Crafted by EPODONIOS",
+      close: "Close",
+    },
+    routingPresets: {
+      title: "Ready presets",
+      desc: "One click adds a proven rule. Review the order, then hit Save.",
+      add: "Add",
+      added: "Preset added — remember to Save",
+      dup: "This preset is already in your rules",
+      needOb: "Create a custom outbound first — then Telegram traffic can ride it",
+      ads: "Block Ads",
+      adsD: "Kills ad & tracker domains via the geosite ads list",
+      porn: "Block Porn",
+      pornD: "Blocks adult sites with the community blocklist",
+      malware: "Block Malware",
+      malwareD: "Shields against malware and phishing domains",
+      iran: "Iran → Direct",
+      iranD: "Iranian sites skip the tunnel — faster, data-friendly",
+      quic: "Block QUIC",
+      quicD: "Forces UDP 443 back to TCP for better stability",
+      tg: "Telegram → Proxy",
+      tgD: "Sends Telegram through your first custom outbound",
+    },
+    guideLesson: {
+      chapters: "Chapters",
+      lessonWhat: "What is it?",
+      lessonWhen: "When do I use it?",
+      lessonFields: "Every field explained",
+      fieldName: "Field",
+      fieldWhat: "What it means",
+      fieldFill: "What to enter",
+      lessonSteps: "Step by step",
+      lessonTips: "Pro tips",
+      prevCh: "Previous",
+      nextCh: "Next",
+    },
   },
 
   fa: {
@@ -3595,7 +3690,53 @@ export const dictionaries: Record<Lang, Dict> = {
         profile: "هویت، امنیت و ترجیحات شما.",
       },
     },
-    footer: { phase: "فاز ۸ · شبکه هسته‌ای و راهنما", rights: "© ۲۰۲۵ Sephiroth" },
+    footer: { phase: "فاز ۸ · شبکه هسته‌ای و راهنما", rights: "© ۲۰۲۵ Sephiroth", crafted: "ساخته‌ی" },
+    donate: {
+      title: "حمایت از سفیروت",
+      subtitle: "سفیروت با عشق و شب‌های بیداری ساخته شده. اگه کارتو راه انداخته، یک انرژی کوچیک مدار رو روشن نگه می‌داره.",
+      crypto: "تتر · TRC20",
+      cryptoHint: "برای کپی آدرس کیف پول کلیک کن",
+      copied: "آدرس کیف پول کپی شد",
+      reymit: "رایمیت (ایرانی)",
+      reymitDesc: "حمایت از طریق رایمیت — مناسب برای کاربران ایران",
+      stars: "ستاره در گیت‌هاب",
+      starsDesc: "ستاره هزینه‌ای نداره ولی دنیا رو بهم می‌ده",
+      creator: "ساخته‌ی EPODONIOS",
+      close: "بستن",
+    },
+    routingPresets: {
+      title: "پریست‌های آماده",
+      desc: "با یک کلیک یک قانون امتحان‌پس‌داده اضافه می‌شه. ترتیب رو مرور کن و ذخیره بزن.",
+      add: "افزودن",
+      added: "پریست اضافه شد — یادت نره ذخیره کنی",
+      dup: "این پریست قبلاً توی قوانینت هست",
+      needOb: "اول یک خروجی سفارشی بساز تا ترافیک تلگرام ازش رد بشه",
+      ads: "بلاک تبلیغات",
+      adsD: "دامین‌های تبلیغات و ردیاب‌ها رو با لیست geosite حذف می‌کنه",
+      porn: "بلاک پورن",
+      pornD: "سایت‌های بزرگسال رو با بلک‌لیست عمومی می‌بنده",
+      malware: "بلاک بدافزار",
+      malwareD: "جلوی دامین‌های بدافزار و فیشینگ رو می‌گیره",
+      iran: "ایران → مستقیم",
+      iranD: "سایت‌های ایرانی از تونل رد نمی‌شن — سریع‌تر و کم‌مصرف‌تر",
+      quic: "بلاک QUIC",
+      quicD: "UDP پورت ۴۴۳ رو مجبور به برگشتن به TCP می‌کنه — پایدارتر",
+      tg: "تلگرام → پروکسی",
+      tgD: "تلگرام رو از اولین خروجی سفارشی‌ات رد می‌کنه",
+    },
+    guideLesson: {
+      chapters: "فصل‌ها",
+      lessonWhat: "چی هست؟",
+      lessonWhen: "کی ازش استفاده کنم؟",
+      lessonFields: "توضیح تک‌تک فیلدها",
+      fieldName: "فیلد",
+      fieldWhat: "یعنی چی",
+      fieldFill: "چی وارد کنم",
+      lessonSteps: "قدم‌به‌قدم",
+      lessonTips: "نکته‌های حرفه‌ای",
+      prevCh: "قبلی",
+      nextCh: "بعدی",
+    },
   },
 
   ar: {
@@ -4789,7 +4930,53 @@ export const dictionaries: Record<Lang, Dict> = {
         profile: "هويتك وأمانك وتفضيلاتك.",
       },
     },
-    footer: { phase: "المرحلة ٨ · الشبكة الأساسية والدليل", rights: "© ٢٠٢٥ Sephiroth" },
+    footer: { phase: "المرحلة ٨ · الشبكة الأساسية والدليل", rights: "© ٢٠٢٥ Sephiroth", crafted: "صُنع بواسطة" },
+    donate: {
+      title: "ادعم Sephiroth",
+      subtitle: "صُنع Sephiroth بحب و ليالٍ طويلة. إذا سهّل يومك، فالدعم الصغير يُبقي المدار حيًا.",
+      crypto: "تيثر · TRC20",
+      cryptoHint: "اضغط لنسخ عنوان المحفظة",
+      copied: "تم نسخ عنوان المحفظة",
+      reymit: "Reymit (إيراني)",
+      reymitDesc: "الدعم عبر Reymit — مناسب للداعمين في إيران",
+      stars: "نجمة على GitHub",
+      starsDesc: "النجمة لا تكلف شيئًا لكنها تعني الكثير",
+      creator: "صُنع بواسطة EPODONIOS",
+      close: "إغلاق",
+    },
+    routingPresets: {
+      title: "قوالب جاهزة",
+      desc: "نقرة واحدة تضيف قاعدة مجرَّبة. راجع الترتيب ثم اضغط حفظ.",
+      add: "إضافة",
+      added: "أُضيف القالب — لا تنسَ الحفظ",
+      dup: "هذا القالب موجود مسبقًا في قواعدك",
+      needOb: "أنشئ مخرجًا مخصصًا أولًا حتى يمرّ ترافيك تيليجرام عبره",
+      ads: "حجب الإعلانات",
+      adsD: "يحجب نطاقات الإعلانات والتتبع عبر قائمة geosite",
+      porn: "حجب الإباحية",
+      pornD: "يحجب المواقع الإباحية بالقائمة المجتمعية",
+      malware: "حجب البرمجيات الخبيثة",
+      malwareD: "يحميك من نطاقات الفيشينغ والبرمجيات الخبيثة",
+      iran: "إيران → مباشر",
+      iranD: "المواقع الإيرانية تتجاوز النفق — أسرع وأوفر",
+      quic: "حجب QUIC",
+      quicD: "يجبر UDP 443 على العودة إلى TCP لثبات أفضل",
+      tg: "تيليجرام → بروكسي",
+      tgD: "يمرّر تيليجرام عبر أول مخرج مخصص لديك",
+    },
+    guideLesson: {
+      chapters: "الفصول",
+      lessonWhat: "ما هو؟",
+      lessonWhen: "متى أستخدمه؟",
+      lessonFields: "شرح كل حقل",
+      fieldName: "الحقل",
+      fieldWhat: "ما معناه",
+      fieldFill: "ماذا أكتب",
+      lessonSteps: "خطوة بخطوة",
+      lessonTips: "نصائح احترافية",
+      prevCh: "السابق",
+      nextCh: "التالي",
+    },
   },
 
   zh: {
@@ -5981,7 +6168,53 @@ export const dictionaries: Record<Lang, Dict> = {
         profile: "你的身份、安全与偏好。",
       },
     },
-    footer: { phase: "阶段 8 · 核心网络与指南", rights: "© 2025 Sephiroth" },
+    footer: { phase: "阶段 8 · 核心网络与指南", rights: "© 2025 Sephiroth", crafted: "由打造" },
+    donate: {
+      title: "支持 Sephiroth",
+      subtitle: "Sephiroth 由热爱与无数长夜打造。如果它让你的日子更轻松，一份小小的支持就能让轨道继续运转。",
+      crypto: "USDT · TRC20",
+      cryptoHint: "点击复制钱包地址",
+      copied: "钱包地址已复制",
+      reymit: "Reymit（伊朗）",
+      reymitDesc: "通过 Reymit 支持 — 适合伊朗用户",
+      stars: "GitHub 星标",
+      starsDesc: "一个星标不花一分钱，却意义非凡",
+      creator: "由 EPODONIOS 打造",
+      close: "关闭",
+    },
+    routingPresets: {
+      title: "现成预设",
+      desc: "一键添加一条经过验证的规则。检查顺序后点击保存。",
+      add: "添加",
+      added: "预设已添加 — 记得保存",
+      dup: "该预设已存在于你的规则中",
+      needOb: "请先创建一个自定义出站，Telegram 流量才能走它",
+      ads: "屏蔽广告",
+      adsD: "通过 geosite 广告列表拦截广告与跟踪域名",
+      porn: "屏蔽成人内容",
+      pornD: "使用社区黑名单封锁成人网站",
+      malware: "屏蔽恶意软件",
+      malwareD: "防御恶意软件与钓鱼域名",
+      iran: "伊朗 → 直连",
+      iranD: "伊朗网站不走隧道 — 更快更省流量",
+      quic: "屏蔽 QUIC",
+      quicD: "强制 UDP 443 回退到 TCP，连接更稳定",
+      tg: "Telegram → 代理",
+      tgD: "让 Telegram 走你的第一个自定义出站",
+    },
+    guideLesson: {
+      chapters: "章节",
+      lessonWhat: "这是什么？",
+      lessonWhen: "什么时候用？",
+      lessonFields: "每个字段详解",
+      fieldName: "字段",
+      fieldWhat: "含义",
+      fieldFill: "该填什么",
+      lessonSteps: "一步一步来",
+      lessonTips: "进阶技巧",
+      prevCh: "上一个",
+      nextCh: "下一个",
+    },
   },
 
   tr: {
@@ -7176,7 +7409,53 @@ export const dictionaries: Record<Lang, Dict> = {
         profile: "Kimliğin, güvenliğin ve tercihlerin.",
       },
     },
-    footer: { phase: "Aşama 8 · Çekirdek Ağ ve Rehber", rights: "© 2025 Sephiroth" },
+    footer: { phase: "Aşama 8 · Çekirdek Ağ ve Rehber", rights: "© 2025 Sephiroth", crafted: "Tasarlayan" },
+    donate: {
+      title: "Sephiroth'ı Destekle",
+      subtitle: "Sephiroth sevgiyle ve uzun gecelerde yapıldı. İşini kolaylaştırıyorsa, küçük bir destek yörüngeyi canlı tutar.",
+      crypto: "USDT · TRC20",
+      cryptoHint: "Cüzdan adresini kopyalamak için dokun",
+      copied: "Cüzdan adresi kopyalandı",
+      reymit: "Reymit (İran)",
+      reymitDesc: "Reymit üzerinden destek — İran'daki destekçiler için ideal",
+      stars: "GitHub'da Yıldızla",
+      starsDesc: "Bir yıldızın maliyeti yok ama dünyalar kadar değerli",
+      creator: "EPODONIOS tarafından tasarlandı",
+      close: "Kapat",
+    },
+    routingPresets: {
+      title: "Hazır ön ayarlar",
+      desc: "Tek tıkla kanıtlanmış bir kural ekler. Sırayı gözden geçir ve Kaydet'e bas.",
+      add: "Ekle",
+      added: "Ön ayar eklendi — Kaydetmeyi unutma",
+      dup: "Bu ön ayar kurallarında zaten var",
+      needOb: "Önce özel bir outbound oluştur ki Telegram trafiği onu kullansın",
+      ads: "Reklam Engelle",
+      adsD: "geosite reklam listesiyle reklam ve izleyici alan adlarını engeller",
+      porn: "Porn Engelle",
+      pornD: "topluluk kara listesiyle yetişkin sitelerini engeller",
+      malware: "Kötücül Yazılım Engelle",
+      malwareD: "kimlik avı ve kötücül yazılım alan adlarına karşı korur",
+      iran: "İran → Doğrudan",
+      iranD: "İran siteleri tünele girmez — daha hızlı, daha az veri",
+      quic: "QUIC Engelle",
+      quicD: "UDP 443'ü TCP'ye dönmeye zorlar — daha kararlı",
+      tg: "Telegram → Proxy",
+      tgD: "Telegram'ı ilk özel outbound'undan geçirir",
+    },
+    guideLesson: {
+      chapters: "Bölümler",
+      lessonWhat: "Bu nedir?",
+      lessonWhen: "Ne zaman kullanırım?",
+      lessonFields: "Her alanın açıklaması",
+      fieldName: "Alan",
+      fieldWhat: "Ne anlama geliyor",
+      fieldFill: "Ne yazmalıyım",
+      lessonSteps: "Adım adım",
+      lessonTips: "İpuçları",
+      prevCh: "Önceki",
+      nextCh: "Sonraki",
+    },
   },
 
   ru: {
@@ -8372,6 +8651,52 @@ export const dictionaries: Record<Lang, Dict> = {
         profile: "Ваша личность, безопасность и предпочтения.",
       },
     },
-    footer: { phase: "Фаза 8 · Сетевое ядро и гид", rights: "© 2025 Sephiroth" },
+    footer: { phase: "Фаза 8 · Сетевое ядро и гид", rights: "© 2025 Sephiroth", crafted: "Создано" },
+    donate: {
+      title: "Поддержать Sephiroth",
+      subtitle: "Sephiroth создан с любовью и долгими ночами. Если он облегчает ваш день, небольшой вклад удержит орбиту живой.",
+      crypto: "USDT · TRC20",
+      cryptoHint: "Нажмите, чтобы скопировать адрес кошелька",
+      copied: "Адрес кошелька скопирован",
+      reymit: "Reymit (Иран)",
+      reymitDesc: "Поддержка через Reymit — удобно для сторонников из Ирана",
+      stars: "Звезда на GitHub",
+      starsDesc: "Звезда ничего не стоит, но значит всё",
+      creator: "Создано EPODONIOS",
+      close: "Закрыть",
+    },
+    routingPresets: {
+      title: "Готовые пресеты",
+      desc: "Один клик добавляет проверенное правило. Проверьте порядок и нажмите Сохранить.",
+      add: "Добавить",
+      added: "Пресет добавлен — не забудьте сохранить",
+      dup: "Этот пресет уже есть в ваших правилах",
+      needOb: "Сначала создайте свой outbound — тогда трафик Telegram пойдёт через него",
+      ads: "Блок рекламы",
+      adsD: "Блокирует рекламные и трекинговые домены по списку geosite",
+      porn: "Блок порно",
+      pornD: "Блокирует сайты для взрослых по чёрному списку сообщества",
+      malware: "Блок вредоносов",
+      malwareD: "Защищает от фишинговых и вредоносных доменов",
+      iran: "Иран → напрямую",
+      iranD: "Иранские сайты идут мимо туннеля — быстрее и экономнее",
+      quic: "Блок QUIC",
+      quicD: "Заставляет UDP 443 откатиться на TCP — стабильнее",
+      tg: "Telegram → прокси",
+      tgD: "Направляет Telegram через ваш первый пользовательский outbound",
+    },
+    guideLesson: {
+      chapters: "Главы",
+      lessonWhat: "Что это?",
+      lessonWhen: "Когда использовать?",
+      lessonFields: "Каждое поле с объяснением",
+      fieldName: "Поле",
+      fieldWhat: "Что означает",
+      fieldFill: "Что вводить",
+      lessonSteps: "Шаг за шагом",
+      lessonTips: "Советы профи",
+      prevCh: "Назад",
+      nextCh: "Далее",
+    },
   },
 };

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="128" viewBox="0 0 1200 128" role="img" aria-label="Sephiroth at a glance">
+<style>
+.up{opacity:0;animation:fu .7s ease-out forwards}
+.p1{animation-delay:.1s}.p2{animation-delay:.25s}.p3{animation-delay:.4s}.p4{animation-delay:.55s}
+@keyframes fu{to{opacity:1}}
+.bl{animation:bl 3.2s ease-in-out infinite}
+@keyframes bl{0%,100%{opacity:1}50%{opacity:.45}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}.up{opacity:1}}
+</style>
+<g font-family="'JetBrains Mono',ui-monospace,Menlo,monospace" text-anchor="middle">
+<g class="up p1">
+  <rect x="105" y="24" width="225" height="80" rx="16" fill="#0a1218" stroke="#22d8ee" stroke-opacity=".22"/>
+  <text x="217" y="62" font-size="26" font-weight="700" fill="#22d8ee">9</text>
+  <text x="217" y="86" font-size="10.5" letter-spacing="2.5" fill="#8fa3ad">PROTOCOLS</text>
+</g>
+<g class="up p2">
+  <rect x="360" y="24" width="225" height="80" rx="16" fill="#0a1218" stroke="#22d8ee" stroke-opacity=".22"/>
+  <text x="472" y="62" font-size="26" font-weight="700" fill="#cfd9e2">6</text>
+  <text x="472" y="86" font-size="10.5" letter-spacing="2.5" fill="#8fa3ad">LANGUAGES · RTL</text>
+</g>
+<g class="up p3">
+  <rect x="615" y="24" width="225" height="80" rx="16" fill="#0a1218" stroke="#22d8ee" stroke-opacity=".22"/>
+  <text x="727" y="62" font-size="26" font-weight="700" fill="#22d8ee">13</text>
+  <text x="727" y="86" font-size="10.5" letter-spacing="2.5" fill="#8fa3ad">ORBIT VIEWS</text>
+</g>
+<g class="up p4">
+  <rect x="870" y="24" width="225" height="80" rx="16" fill="#0a1218" stroke="#22d8ee" stroke-opacity=".22"/>
+  <text x="982" y="62" font-size="26" font-weight="700" fill="#cfd9e2" class="bl">24/7</text>
+  <text x="982" y="86" font-size="10.5" letter-spacing="2.5" fill="#8fa3ad">REALTIME COCKPIT</text>
+</g>
+</g>
+</svg>

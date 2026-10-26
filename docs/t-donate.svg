@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="86" viewBox="0 0 1200 86" role="img" aria-label="Sephiroth">
+<style>
+.up{opacity:0;animation:fu .8s ease-out forwards}
+.d1{animation-delay:.1s}.d2{animation-delay:.25s}.d3{animation-delay:.4s}
+@keyframes fu{to{opacity:1}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}.up{opacity:1}}
+</style>
+<defs>
+<linearGradient id="tx" x1="0" x2="1">
+  <stop offset="0" stop-color="#eafcff"/><stop offset=".5" stop-color="#22d8ee"/><stop offset="1" stop-color="#eafcff"/>
+</linearGradient>
+</defs>
+<g class="up d1" stroke="#22d8ee" stroke-opacity=".35">
+  <line x1="330" y1="43" x2="520" y2="43"/><line x1="680" y1="43" x2="870" y2="43"/>
+</g>
+<g class="up d2" fill="#22d8ee">
+  <rect x="536" y="39" width="8" height="8" transform="rotate(45 540 43)"/>
+  <rect x="656" y="39" width="8" height="8" transform="rotate(45 660 43)"/>
+</g>
+<g class="up d3" text-anchor="middle">
+  <text x="600" y="51" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="26" font-weight="700" letter-spacing="6" fill="url(#tx)">FUEL THE ORBIT</text>
+</g>
+</svg>

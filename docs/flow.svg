@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="150" viewBox="0 0 1200 150" role="img" aria-label="Golden path — inbound to monitor">
+<style>
+.flow{stroke-dasharray:6 10;animation:fl 1.6s linear infinite}
+@keyframes fl{to{stroke-dashoffset:-16}}
+.up{opacity:0;animation:fu .7s ease-out forwards}
+.s1{animation-delay:.05s}.s2{animation-delay:.2s}.s3{animation-delay:.35s}.s4{animation-delay:.5s}.s5{animation-delay:.65s}
+@keyframes fu{to{opacity:1}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}.up{opacity:1}}
+</style>
+<defs>
+<marker id="ah" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+  <path d="M0 0 L8 4 L0 8 z" fill="#22d8ee"/>
+</marker>
+</defs>
+<g class="flow" fill="none" stroke="#22d8ee" stroke-opacity=".5" stroke-width="1.4">
+  <line x1="298" y1="62" x2="348" y2="62" marker-end="url(#ah)"/>
+  <line x1="528" y1="62" x2="578" y2="62" marker-end="url(#ah)"/>
+  <line x1="758" y1="62" x2="808" y2="62" marker-end="url(#ah)"/>
+  <line x1="988" y1="62" x2="1038" y2="62" marker-end="url(#ah)"/>
+</g>
+<g font-family="'JetBrains Mono',ui-monospace,Menlo,monospace" text-anchor="middle">
+<g class="up s1">
+  <rect x="140" y="30" width="158" height="64" rx="14" fill="#0a1218" stroke="#22d8ee" stroke-opacity=".3"/>
+  <text x="219" y="58" font-size="13" fill="#22d8ee">01 · INBOUND</text>
+  <text x="219" y="78" font-size="10" fill="#8fa3ad">open the door</text>
+</g>
+<g class="up s2">
+  <rect x="348" y="30" width="180" height="64" rx="14" fill="#0a1218" stroke="#22d8ee" stroke-opacity=".3"/>
+  <text x="438" y="58" font-size="13" fill="#22d8ee">02 · CLIENT</text>
+  <text x="438" y="78" font-size="10" fill="#8fa3ad">keys are born</text>
+</g>
+<g class="up s3">
+  <rect x="578" y="30" width="180" height="64" rx="14" fill="#0a1218" stroke="#22d8ee" stroke-opacity=".3"/>
+  <text x="668" y="58" font-size="13" fill="#22d8ee">03 · SHARE</text>
+  <text x="668" y="78" font-size="10" fill="#8fa3ad">link · QR · sub</text>
+</g>
+<g class="up s4">
+  <rect x="808" y="30" width="180" height="64" rx="14" fill="#0a1218" stroke="#22d8ee" stroke-opacity=".3"/>
+  <text x="898" y="58" font-size="13" fill="#22d8ee">04 · POLISH</text>
+  <text x="898" y="78" font-size="10" fill="#8fa3ad">hosts · routing</text>
+</g>
+<g class="up s5">
+  <rect x="1038" y="30" width="158" height="64" rx="14" fill="#0a1218" stroke="#22d8ee" stroke-opacity=".3"/>
+  <text x="1117" y="58" font-size="13" fill="#22d8ee">05 · WATCH</text>
+  <text x="1117" y="78" font-size="10" fill="#8fa3ad">activity feed</text>
+</g>
+<g font-size="11" fill="#8fa3ad" letter-spacing="1">
+  <text x="600" y="132">first match wins on routing · every config leaves the door tagged “Sephiroth”</text>
+</g>
+</g>
+</svg>

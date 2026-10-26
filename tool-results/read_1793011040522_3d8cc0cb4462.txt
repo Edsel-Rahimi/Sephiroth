@@ -1,0 +1,668 @@
+     1→     1→     1→"use client";
+     2→     2→     2→
+     3→     3→     3→import { useEffect, useMemo, useRef, useState } from "react";
+     4→     4→     4→import Image from "next/image";
+     5→     5→     5→import {
+     6→     6→     6→  ArrowLeft,
+     7→     7→     7→  Check,
+     8→     8→     8→  Eye,
+     9→     9→     9→  EyeOff,
+    10→    10→    10→  Globe,
+    11→    11→    11→  KeyRound,
+    12→    12→    12→  Languages,
+    13→    13→    13→  Loader2,
+    14→    14→    14→  Lock,
+    15→    15→    15→  ShieldAlert,
+    16→    16→    16→  ShieldCheck,
+    17→    17→    17→  Sparkles,
+    18→    18→    18→  User,
+    19→    19→    19→  WandSparkles,
+    20→    20→    20→  Activity,
+    21→    21→    21→  Server,
+    22→    22→    22→} from "lucide-react";
+    23→    23→    23→import {
+    24→    24→    24→  DropdownMenu,
+    25→    25→    25→  DropdownMenuContent,
+    26→    26→    26→  DropdownMenuItem,
+    27→    27→    27→  DropdownMenuLabel,
+    28→    28→    28→  DropdownMenuSeparator,
+    29→    29→    29→  DropdownMenuTrigger,
+    30→    30→    30→} from "@/components/ui/dropdown-menu";
+    31→    31→    31→import { Input } from "@/components/ui/input";
+    32→    32→    32→import { Label } from "@/components/ui/label";
+    33→    33→    33→import { Checkbox } from "@/components/ui/checkbox";
+    34→    34→    34→import { Button } from "@/components/ui/button";
+    35→    35→    35→import { BrandMark, BrandWord } from "@/components/sephiroth/brand";
+    36→    36→    36→import { Starfield } from "@/components/sephiroth/starfield";
+    37→    37→    37→import { useAppStore } from "@/lib/store/app-store";
+    38→    38→    38→import {
+    39→    39→    39→  dictionaries,
+    40→    40→    40→  LANGS,
+    41→    41→    41→  LANG_META,
+    42→    42→    42→  type Lang,
+    43→    43→    43→} from "@/lib/i18n/dictionaries";
+    44→    44→    44→import { useToast } from "@/hooks/use-toast";
+    45→    45→    45→import { cn } from "@/lib/utils";
+    46→    46→    46→
+    47→    47→    47→/* ============================================================
+    48→    48→    48→   Sephiroth · Phase 1 — Secure Terminal (framed showcase)
+    49→    49→    49→   Fusion: Clever split-frame + Ebolt refined form, cosmic DNA
+    50→    50→    50→   ============================================================ */
+    51→    51→    51→
+    52→    52→    52→type Mode = "login" | "recover";
+    53→    53→    53→
+    54→    54→    54→function LangMenu() {
+    55→    55→    55→  const lang = useAppStore((s) => s.lang);
+    56→    56→    56→  const setLang = useAppStore((s) => s.setLang);
+    57→    57→    57→  const t = dictionaries[lang];
+    58→    58→    58→  return (
+    59→    59→    59→    <DropdownMenu>
+    60→    60→    60→      <DropdownMenuTrigger
+    61→    61→    61→        aria-label={t.common.language}
+    62→    62→    62→        className="glass flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-medium text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+    63→    63→    63→      >
+    64→    64→    64→        <Globe className="h-3.5 w-3.5" />
+    65→    65→    65→        {LANG_META[lang].code}
+    66→    66→    66→      </DropdownMenuTrigger>
+    67→    67→    67→      <DropdownMenuContent align="end" className="glass-strong min-w-44">
+    68→    68→    68→        <DropdownMenuLabel className="text-xs text-muted-foreground">
+    69→    69→    69→          {t.common.language}
+    70→    70→    70→        </DropdownMenuLabel>
+    71→    71→    71→        <DropdownMenuSeparator />
+    72→    72→    72→        {LANGS.map((l: Lang) => (
+    73→    73→    73→          <DropdownMenuItem
+    74→    74→    74→            key={l}
+    75→    75→    75→            onClick={() => setLang(l)}
+    76→    76→    76→            className="flex items-center justify-between gap-2"
+    77→    77→    77→          >
+    78→    78→    78→            <span className="flex items-center gap-2">
+    79→    79→    79→              <span className="w-6 font-mono text-[10px] text-muted-foreground">
+    80→    80→    80→                {LANG_META[l].code}
+    81→    81→    81→              </span>
+    82→    82→    82→              <span>{LANG_META[l].native}</span>
+    83→    83→    83→            </span>
+    84→    84→    84→            {l === lang && <Check className="h-3.5 w-3.5 text-primary" />}
+    85→    85→    85→          </DropdownMenuItem>
+    86→    86→    86→        ))}
+    87→    87→    87→      </DropdownMenuContent>
+    88→    88→    88→    </DropdownMenu>
+    89→    89→    89→  );
+    90→    90→    90→}
+    91→    91→    91→
+    92→    92→    92→/* left showcase panel — generated obsidian dunes + brand + headline */
+    93→    93→    93→function ShowcasePanel() {
+    94→    94→    94→  const lang = useAppStore((s) => s.lang);
+    95→    95→    95→  const t = useMemo(() => dictionaries[lang].auth, [lang]);
+    96→    96→    96→  const brand = dictionaries[lang];
+    97→    97→    97→
+    98→    98→    98→  return (
+    99→    99→    99→    <div className="relative h-44 sm:h-52 lg:h-auto lg:min-h-[680px]">
+   100→   100→   100→      <Image
+   101→   101→   101→        src="/login-dunes.png"
+   102→   102→   102→        alt="Obsidian dunes under a starry night sky"
+   103→   103→   103→        fill
+   104→   104→   104→        priority
+   105→   105→   105→        sizes="(max-width: 1024px) 100vw, 50vw"
+   106→   106→   106→        className="object-cover"
+   107→   107→   107→      />
+   108→   108→   108→      {/* cinematic grading */}
+   109→   109→   109→      <div className="absolute inset-0 bg-gradient-to-t from-[#04080b] via-[#04080b]/20 to-[#04080b]/10" />
+   110→   110→   110→      <div className="absolute inset-0 bg-gradient-to-l from-transparent via-transparent to-[#04080b]/30" />
+   111→   111→   111→
+   112→   112→   112→      {/* brand top */}
+   113→   113→   113→      <div className="absolute inset-x-0 top-0 flex items-center gap-2.5 p-5 md:p-6">
+   114→   114→   114→        <BrandMark size={34} />
+   115→   115→   115→        <BrandWord tagline={brand.brand.tagline} />
+   116→   116→   116→      </div>
+   117→   117→   117→
+   118→   118→   118→      {/* headline bottom */}
+   119→   119→   119→      <div className="absolute inset-x-0 bottom-0 p-5 md:p-8">
+   120→   120→   120→        <div className="glass mb-4 hidden items-center gap-2 rounded-full px-3 py-1 text-[10px] font-semibold tracking-[0.22em] text-primary lg:inline-flex">
+   121→   121→   121→          <Sparkles className="h-3 w-3" />
+   122→   122→   122→          {t.heroBadge}
+   123→   123→   123→        </div>
+   124→   124→   124→        <h1 className="text-silver max-w-md text-2xl font-bold leading-[1.12] tracking-tight sm:text-3xl lg:text-[2.5rem]">
+   125→   125→   125→          {t.heroTitle}
+   126→   126→   126→        </h1>
+   127→   127→   127→        <p className="mt-2.5 max-w-sm text-[13px] leading-relaxed text-muted-foreground lg:text-sm">
+   128→   128→   128→          {t.heroSub}
+   129→   129→   129→        </p>
+   130→   130→   130→        <div className="mt-4 hidden flex-wrap items-center gap-2 lg:flex">
+   131→   131→   131→          {[
+   132→   132→   132→            { icon: Server, label: t.chipCore },
+   133→   133→   133→            { icon: Activity, label: t.chipLive },
+   134→   134→   134→            { icon: Languages, label: t.chipLangs },
+   135→   135→   135→          ].map(({ icon: Icon, label }) => (
+   136→   136→   136→            <span
+   137→   137→   137→              key={label}
+   138→   138→   138→              className="glass hover-glow flex h-8 items-center gap-2 rounded-full px-3 text-[11px] text-muted-foreground"
+   139→   139→   139→            >
+   140→   140→   140→              <Icon className="h-3 w-3 text-primary" />
+   141→   141→   141→              {label}
+   142→   142→   142→            </span>
+   143→   143→   143→          ))}
+   144→   144→   144→        </div>
+   145→   145→   145→      </div>
+   146→   146→   146→    </div>
+   147→   147→   147→  );
+   148→   148→   148→}
+   149→   149→   149→
+   150→   150→   150→/* dotted divider with label (Ebolt) */
+   151→   151→   151→function OrDivider({ label }: { label: string }) {
+   152→   152→   152→  return (
+   153→   153→   153→    <div className="flex items-center gap-3" role="separator" aria-label={label}>
+   154→   154→   154→      <span className="flex-1 border-t border-dashed border-border/70" />
+   155→   155→   155→      <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+   156→   156→   156→        {label}
+   157→   157→   157→      </span>
+   158→   158→   158→      <span className="flex-1 border-t border-dashed border-border/70" />
+   159→   159→   159→    </div>
+   160→   160→   160→  );
+   161→   161→   161→}
+   162→   162→   162→
+   163→   163→   163→const fieldCls =
+   164→   164→   164→  "h-11 rounded-xl border-border/60 bg-white/[.03] ps-10 text-[15px] placeholder:text-muted-foreground/60 focus-visible:border-primary/50 focus-visible:ring-primary/25";
+   165→   165→   165→
+   166→   166→   166→export function LoginScene({ onSuccess }: { onSuccess: (username: string) => void }) {
+   167→   167→   167→  const lang = useAppStore((s) => s.lang);
+   168→   168→   168→  const t = useMemo(() => dictionaries[lang].auth, [lang]);
+   169→   169→   169→  const { toast } = useToast();
+   170→   170→   170→
+   171→   171→   171→  /* login form state */
+   172→   172→   172→  const [mode, setMode] = useState<Mode>("login");
+   173→   173→   173→  const [username, setUsername] = useState("");
+   174→   174→   174→  const [password, setPassword] = useState("");
+   175→   175→   175→  const [showPw, setShowPw] = useState(false);
+   176→   176→   176→  const [remember, setRemember] = useState(true);
+   177→   177→   177→  const [busy, setBusy] = useState(false);
+   178→   178→   178→
+   179→   179→   179→  /* errors + lockout */
+   180→   180→   180→  const [error, setError] = useState<{ msg: string; shakeKey: number } | null>(null);
+   181→   181→   181→  const [lockSecs, setLockSecs] = useState<number | null>(null);
+   182→   182→   182→
+   183→   183→   183→  /* recovery state */
+   184→   184→   184→  const [recKey, setRecKey] = useState("");
+   185→   185→   185→  const [newPw, setNewPw] = useState("");
+   186→   186→   186→  const [recBusy, setRecBusy] = useState(false);
+   187→   187→   187→  const [recPw, setRecPw] = useState(false);
+   188→   188→   188→
+   189→   189→   189→  const errShake = useRef(0);
+   190→   190→   190→  const mounted = useRef(true);
+   191→   191→   191→  useEffect(() => {
+   192→   192→   192→    mounted.current = true;
+   193→   193→   193→    return () => {
+   194→   194→   194→      mounted.current = false;
+   195→   195→   195→    };
+   196→   196→   196→  }, []);
+   197→   197→   197→
+   198→   198→   198→  /* lockout countdown */
+   199→   199→   199→  useEffect(() => {
+   200→   200→   200→    if (lockSecs === null) return;
+   201→   201→   201→    if (lockSecs <= 0) {
+   202→   202→   202→      setLockSecs(null);
+   203→   203→   203→      return;
+   204→   204→   204→    }
+   205→   205→   205→    const id = setTimeout(() => setLockSecs((s) => (s === null ? null : s - 1)), 1000);
+   206→   206→   206→    return () => clearTimeout(id);
+   207→   207→   207→  }, [lockSecs]);
+   208→   208→   208→
+   209→   209→   209→  const fail = (msg: string) =>
+   210→   210→   210→    setError({ msg, shakeKey: ++errShake.current });
+   211→   211→   211→
+   212→   212→   212→  const fmt = (s: number) =>
+   213→   213→   213→    `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+   214→   214→   214→
+   215→   215→   215→  /* ---------- actions ---------- */
+   216→   216→   216→
+   217→   217→   217→  async function handleLogin(e: React.FormEvent) {
+   218→   218→   218→    e.preventDefault();
+   219→   219→   219→    if (busy || lockSecs !== null) return;
+   220→   220→   220→    if (!username.trim() || !password) {
+   221→   221→   221→      fail(t.errFields);
+   222→   222→   222→      return;
+   223→   223→   223→    }
+   224→   224→   224→    setBusy(true);
+   225→   225→   225→    setError(null);
+   226→   226→   226→    try {
+   227→   227→   227→      const res = await fetch("/api/auth/login", {
+   228→   228→   228→        method: "POST",
+   229→   229→   229→        headers: { "Content-Type": "application/json" },
+   230→   230→   230→        body: JSON.stringify({
+   231→   231→   231→          username: username.trim(),
+   232→   232→   232→          password,
+   233→   233→   233→          remember,
+   234→   234→   234→        }),
+   235→   235→   235→      });
+   236→   236→   236→      const data = (await res.json()) as {
+   237→   237→   237→        ok?: boolean;
+   238→   238→   238→        username?: string;
+   239→   239→   239→        error?: string;
+   240→   240→   240→        attemptsLeft?: number;
+   241→   241→   241→        retryAfter?: number;
+   242→   242→   242→      };
+   243→   243→   243→      if (!mounted.current) return;
+   244→   244→   244→      if (res.ok && data.ok && data.username) {
+   245→   245→   245→        toast({
+   246→   246→   246→          title: t.welcomeToast.replace("{name}", data.username),
+   247→   247→   247→          description: t.secureNote,
+   248→   248→   248→        });
+   249→   249→   249→        onSuccess(data.username);
+   250→   250→   250→        return;
+   251→   251→   251→      }
+   252→   252→   252→      if (res.status === 423 && data.retryAfter) {
+   253→   253→   253→        setLockSecs(data.retryAfter);
+   254→   254→   254→        fail(t.errLocked.replace("{s}", fmt(data.retryAfter)));
+   255→   255→   255→        return;
+   256→   256→   256→      }
+   257→   257→   257→      if (res.status === 401) {
+   258→   258→   258→        if (typeof data.attemptsLeft === "number") {
+   259→   259→   259→          fail(
+   260→   260→   260→            `${t.errInvalid} ${t.attemptsLeft.replace(
+   261→   261→   261→              "{n}",
+   262→   262→   262→              String(data.attemptsLeft)
+   263→   263→   263→            )}`
+   264→   264→   264→          );
+   265→   265→   265→          return;
+   266→   266→   266→        }
+   267→   267→   267→        fail(t.errInvalid);
+   268→   268→   268→        return;
+   269→   269→   269→      }
+   270→   270→   270→      fail(t.errFields);
+   271→   271→   271→    } catch {
+   272→   272→   272→      if (mounted.current) fail(t.errInvalid);
+   273→   273→   273→    } finally {
+   274→   274→   274→      if (mounted.current) setBusy(false);
+   275→   275→   275→    }
+   276→   276→   276→  }
+   277→   277→   277→
+   278→   278→   278→  async function handleRecover(e: React.FormEvent) {
+   279→   279→   279→    e.preventDefault();
+   280→   280→   280→    if (recBusy || lockSecs !== null) return;
+   281→   281→   281→    if (!recKey.trim() || !newPw) {
+   282→   282→   282→      fail(t.errFields);
+   283→   283→   283→      return;
+   284→   284→   284→    }
+   285→   285→   285→    if (newPw.length < 8) {
+   286→   286→   286→      fail(t.errWeak);
+   287→   287→   287→      return;
+   288→   288→   288→    }
+   289→   289→   289→    setRecBusy(true);
+   290→   290→   290→    setError(null);
+   291→   291→   291→    try {
+   292→   292→   292→      const res = await fetch("/api/auth/recover", {
+   293→   293→   293→        method: "POST",
+   294→   294→   294→        headers: { "Content-Type": "application/json" },
+   295→   295→   295→        body: JSON.stringify({ recoveryKey: recKey.trim(), newPassword: newPw }),
+   296→   296→   296→      });
+   297→   297→   297→      const data = (await res.json()) as {
+   298→   298→   298→        ok?: boolean;
+   299→   299→   299→        error?: string;
+   300→   300→   300→        attemptsLeft?: number;
+   301→   301→   301→        retryAfter?: number;
+   302→   302→   302→      };
+   303→   303→   303→      if (!mounted.current) return;
+   304→   304→   304→      if (res.ok && data.ok) {
+   305→   305→   305→        toast({ title: t.okRecovered });
+   306→   306→   306→        setMode("login");
+   307→   307→   307→        setRecKey("");
+   308→   308→   308→        setNewPw("");
+   309→   309→   309→        setPassword("");
+   310→   310→   310→        setError(null);
+   311→   311→   311→        return;
+   312→   312→   312→      }
+   313→   313→   313→      if (res.status === 423 && data.retryAfter) {
+   314→   314→   314→        setLockSecs(data.retryAfter);
+   315→   315→   315→        fail(t.errLocked.replace("{s}", fmt(data.retryAfter)));
+   316→   316→   316→        return;
+   317→   317→   317→      }
+   318→   318→   318→      if (data.error === "weak") {
+   319→   319→   319→        fail(t.errWeak);
+   320→   320→   320→        return;
+   321→   321→   321→      }
+   322→   322→   322→      if (res.status === 401) {
+   323→   323→   323→        if (typeof data.attemptsLeft === "number") {
+   324→   324→   324→          fail(
+   325→   325→   325→            `${t.errBadKey} ${t.attemptsLeft.replace(
+   326→   326→   326→              "{n}",
+   327→   327→   327→              String(data.attemptsLeft)
+   328→   328→   328→            )}`
+   329→   329→   329→          );
+   330→   330→   330→          return;
+   331→   331→   331→        }
+   332→   332→   332→        fail(t.errBadKey);
+   333→   333→   333→        return;
+   334→   334→   334→      }
+   335→   335→   335→      fail(t.errFields);
+   336→   336→   336→    } catch {
+   337→   337→   337→      if (mounted.current) fail(t.errBadKey);
+   338→   338→   338→    } finally {
+   339→   339→   339→      if (mounted.current) setRecBusy(false);
+   340→   340→   340→    }
+   341→   341→   341→  }
+   342→   342→   342→
+   343→   343→   343→  const autofill = () => {
+   344→   344→   344→    setUsername("admin");
+   345→   345→   345→    setPassword("sephiroth");
+   346→   346→   346→    setError(null);
+   347→   347→   347→  };
+   348→   348→   348→
+   349→   349→   349→  const mmss = lockSecs !== null ? fmt(lockSecs) : "";
+   350→   350→   350→
+   351→   351→   351→  const lockBanner = lockSecs !== null && (
+   352→   352→   352→    <div
+   353→   353→   353→      role="alert"
+   354→   354→   354→      className="mt-6 flex items-center gap-2.5 rounded-xl border border-amber-400/30 bg-amber-400/10 px-3.5 py-3 text-[13px] text-amber-300"
+   355→   355→   355→    >
+   356→   356→   356→      <ShieldAlert className="h-4 w-4 shrink-0" />
+   357→   357→   357→      <span>{t.errLocked.replace("{s}", mmss)}</span>
+   358→   358→   358→      <span className="kbd ms-auto border-amber-400/30 bg-amber-400/10 text-amber-200">
+   359→   359→   359→        {mmss}
+   360→   360→   360→      </span>
+   361→   361→   361→    </div>
+   362→   362→   362→  );
+   363→   363→   363→
+   364→   364→   364→  const errorBanner =
+   365→   365→   365→    error && lockSecs === null ? (
+   366→   366→   366→      <div
+   367→   367→   367→        key={error.shakeKey}
+   368→   368→   368→        role="alert"
+   369→   369→   369→        className="shake mt-6 flex items-start gap-2.5 rounded-xl border border-destructive/40 bg-destructive/10 px-3.5 py-3 text-[13px] text-destructive-foreground"
+   370→   370→   370→      >
+   371→   371→   371→        <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+   372→   372→   372→        <span>{error.msg}</span>
+   373→   373→   373→      </div>
+   374→   374→   374→    ) : null;
+   375→   375→   375→
+   376→   376→   376→  /* ---------- render ---------- */
+   377→   377→   377→
+   378→   378→   378→  return (
+   379→   379→   379→    <div className="bg-cosmic fixed inset-0 z-50 overflow-y-auto">
+   380→   380→   380→      <Starfield />
+   381→   381→   381→      <div className="login-horizon" aria-hidden="true" />
+   382→   382→   382→
+   383→   383→   383→      {/* floating controls */}
+   384→   384→   384→      <header className="absolute inset-x-0 top-0 z-20 flex items-center justify-end px-5 py-4 md:px-8">
+   385→   385→   385→        <LangMenu />
+   386→   386→   386→      </header>
+   387→   387→   387→
+   388→   388→   388→      <main className="relative z-10 mx-auto flex min-h-full w-full max-w-[1120px] flex-col items-center justify-center gap-5 px-4 py-8 md:px-8 lg:py-12">
+   389→   389→   389→        {/* ── framed showcase ── */}
+   390→   390→   390→        <div className="glass-frame fade-up relative w-full rounded-[2.1rem] p-2 md:p-2.5">
+   391→   391→   391→          <div className="grid overflow-hidden rounded-[1.6rem] border border-white/[.06] bg-background-deep/70 lg:grid-cols-[1.04fr_0.96fr]">
+   392→   392→   392→            <ShowcasePanel />
+   393→   393→   393→
+   394→   394→   394→            {/* ── form side ── */}
+   395→   395→   395→            <div className="flex flex-col justify-center px-6 py-9 sm:px-10 md:px-12 md:py-12">
+   396→   396→   396→              {mode === "login" ? (
+   397→   397→   397→                <div key="login">
+   398→   398→   398→                  {/* head */}
+   399→   399→   399→                  <div className="glass glow-cyan flex h-14 w-14 items-center justify-center rounded-2xl">
+   400→   400→   400→                    <BrandMark size={38} />
+   401→   401→   401→                  </div>
+   402→   402→   402→                  <h2 className="mt-5 text-[1.7rem] font-bold leading-tight tracking-tight text-foreground">
+   403→   403→   403→                    {t.welcome}
+   404→   404→   404→                  </h2>
+   405→   405→   405→                  <p className="mt-1.5 text-sm text-muted-foreground">
+   406→   406→   406→                    {t.welcomeSub}
+   407→   407→   407→                  </p>
+   408→   408→   408→
+   409→   409→   409→                  {lockBanner}
+   410→   410→   410→                  {errorBanner}
+   411→   411→   411→
+   412→   412→   412→                  {/* form */}
+   413→   413→   413→                  <form onSubmit={handleLogin} className="mt-7 space-y-5">
+   414→   414→   414→                    <div className="space-y-2">
+   415→   415→   415→                      <Label htmlFor="login-username" className="text-[13px] font-medium">
+   416→   416→   416→                        {t.username}
+   417→   417→   417→                      </Label>
+   418→   418→   418→                      <div className="relative">
+   419→   419→   419→                        <User className="pointer-events-none absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+   420→   420→   420→                        <Input
+   421→   421→   421→                          id="login-username"
+   422→   422→   422→                          autoComplete="username"
+   423→   423→   423→                          value={username}
+   424→   424→   424→                          onChange={(e) => setUsername(e.target.value)}
+   425→   425→   425→                          placeholder={t.usernamePh}
+   426→   426→   426→                          disabled={busy || lockSecs !== null}
+   427→   427→   427→                          className={fieldCls}
+   428→   428→   428→                        />
+   429→   429→   429→                      </div>
+   430→   430→   430→                    </div>
+   431→   431→   431→
+   432→   432→   432→                    <div className="space-y-2">
+   433→   433→   433→                      <div className="flex items-center justify-between gap-3">
+   434→   434→   434→                        <Label htmlFor="login-password" className="text-[13px] font-medium">
+   435→   435→   435→                          {t.password}
+   436→   436→   436→                        </Label>
+   437→   437→   437→                        <button
+   438→   438→   438→                          type="button"
+   439→   439→   439→                          onClick={() => {
+   440→   440→   440→                            setMode("recover");
+   441→   441→   441→                            setError(null);
+   442→   442→   442→                          }}
+   443→   443→   443→                          className="text-xs font-medium text-primary underline-offset-4 outline-none transition-colors hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+   444→   444→   444→                        >
+   445→   445→   445→                          {t.forgotShort}
+   446→   446→   446→                        </button>
+   447→   447→   447→                      </div>
+   448→   448→   448→                      <div className="relative">
+   449→   449→   449→                        <KeyRound className="pointer-events-none absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+   450→   450→   450→                        <Input
+   451→   451→   451→                          id="login-password"
+   452→   452→   452→                          type={showPw ? "text" : "password"}
+   453→   453→   453→                          autoComplete="current-password"
+   454→   454→   454→                          value={password}
+   455→   455→   455→                          onChange={(e) => setPassword(e.target.value)}
+   456→   456→   456→                          placeholder={t.passwordPh}
+   457→   457→   457→                          disabled={busy || lockSecs !== null}
+   458→   458→   458→                          className={cn(fieldCls, "pe-11")}
+   459→   459→   459→                        />
+   460→   460→   460→                        <button
+   461→   461→   461→                          type="button"
+   462→   462→   462→                          onClick={() => setShowPw((v) => !v)}
+   463→   463→   463→                          aria-label={showPw ? "Hide password" : "Show password"}
+   464→   464→   464→                          className="absolute end-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+   465→   465→   465→                        >
+   466→   466→   466→                          {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+   467→   467→   467→                        </button>
+   468→   468→   468→                      </div>
+   469→   469→   469→                    </div>
+   470→   470→   470→
+   471→   471→   471→                    <label
+   472→   472→   472→                      htmlFor="login-remember"
+   473→   473→   473→                      className="flex cursor-pointer items-center gap-2.5 text-[13px] text-muted-foreground"
+   474→   474→   474→                    >
+   475→   475→   475→                      <Checkbox
+   476→   476→   476→                        id="login-remember"
+   477→   477→   477→                        checked={remember}
+   478→   478→   478→                        onCheckedChange={(v) => setRemember(v === true)}
+   479→   479→   479→                        disabled={busy || lockSecs !== null}
+   480→   480→   480→                        className="border-border/70"
+   481→   481→   481→                      />
+   482→   482→   482→                      {t.remember}
+   483→   483→   483→                    </label>
+   484→   484→   484→
+   485→   485→   485→                    <Button
+   486→   486→   486→                      type="submit"
+   487→   487→   487→                      disabled={busy || lockSecs !== null}
+   488→   488→   488→                      className="relative mt-1 h-12 w-full overflow-hidden rounded-xl bg-primary text-[15px] font-semibold text-primary-foreground shadow-[0_0_26px_-8px_rgba(34,216,238,0.6)] transition-all hover:bg-primary/90 hover:shadow-[0_0_34px_-6px_rgba(34,216,238,0.7)] disabled:opacity-60"
+   489→   489→   489→                    >
+   490→   490→   490→                      {busy ? (
+   491→   491→   491→                        <>
+   492→   492→   492→                          <Loader2 className="me-2 h-4 w-4 animate-spin" />
+   493→   493→   493→                          {t.signingIn}
+   494→   494→   494→                        </>
+   495→   495→   495→                      ) : (
+   496→   496→   496→                        <>
+   497→   497→   497→                          <Lock className="me-2 h-3.5 w-3.5 opacity-70" />
+   498→   498→   498→                          {t.signIn}
+   499→   499→   499→                        </>
+   500→   500→   500→                      )}
+   501→   501→   501→                      {!busy && lockSecs === null && (
+   502→   502→   502→                        <span
+   503→   503→   503→                          aria-hidden="true"
+   504→   504→   504→                          className="shine-sweep pointer-events-none absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+   505→   505→   505→                        />
+   506→   506→   506→                      )}
+   507→   507→   507→                    </Button>
+   508→   508→   508→                  </form>
+   509→   509→   509→
+   510→   510→   510→                  {/* or divider */}
+   511→   511→   511→                  <div className="mt-6">
+   512→   512→   512→                    <OrDivider label={t.or} />
+   513→   513→   513→                  </div>
+   514→   514→   514→
+   515→   515→   515→                  {/* utility row (in place of social logins) */}
+   516→   516→   516→                  <div className="mt-6 grid grid-cols-2 gap-3">
+   517→   517→   517→                    <Button
+   518→   518→   518→                      type="button"
+   519→   519→   519→                      variant="outline"
+   520→   520→   520→                      onClick={() => {
+   521→   521→   521→                        setMode("recover");
+   522→   522→   522→                        setError(null);
+   523→   523→   523→                      }}
+   524→   524→   524→                      disabled={lockSecs !== null}
+   525→   525→   525→                      className="glass hover-glow h-11 rounded-xl border-border/60 bg-transparent text-[13px] font-medium text-foreground"
+   526→   526→   526→                    >
+   527→   527→   527→                      <ShieldCheck className="me-2 h-4 w-4 text-primary" />
+   528→   528→   528→                      {t.useRecovery}
+   529→   529→   529→                    </Button>
+   530→   530→   530→                    <Button
+   531→   531→   531→                      type="button"
+   532→   532→   532→                      variant="outline"
+   533→   533→   533→                      onClick={autofill}
+   534→   534→   534→                      disabled={lockSecs !== null}
+   535→   535→   535→                      className="glass hover-glow h-11 rounded-xl border-border/60 bg-transparent text-[13px] font-medium text-foreground"
+   536→   536→   536→                    >
+   537→   537→   537→                      <WandSparkles className="me-2 h-4 w-4 text-primary" />
+   538→   538→   538→                      {t.demoFill}
+   539→   539→   539→                    </Button>
+   540→   540→   540→                  </div>
+   541→   541→   541→
+   542→   542→   542→                  {/* preview credentials */}
+   543→   543→   543→                  <p className="mt-5 text-center text-[11px] text-muted-foreground/85">
+   544→   544→   544→                    {t.demoLabel}
+   545→   545→   545→                    <span className="mx-1.5 text-border">·</span>
+   546→   546→   546→                    <span className="font-mono text-foreground/80">admin / sephiroth</span>
+   547→   547→   547→                  </p>
+   548→   548→   548→                </div>
+   549→   549→   549→              ) : (
+   550→   550→   550→                /* ── recovery mode ── */
+   551→   551→   551→                <div key="recover">
+   552→   552→   552→                  <div className="glass glow-cyan flex h-14 w-14 items-center justify-center rounded-2xl text-primary">
+   553→   553→   553→                    <ShieldCheck className="h-6 w-6" />
+   554→   554→   554→                  </div>
+   555→   555→   555→                  <h2 className="mt-5 text-[1.7rem] font-bold leading-tight tracking-tight text-foreground">
+   556→   556→   556→                    {t.recoverTitle}
+   557→   557→   557→                  </h2>
+   558→   558→   558→                  <p className="mt-1.5 max-w-sm text-sm leading-relaxed text-muted-foreground">
+   559→   559→   559→                    {t.recoverSub}
+   560→   560→   560→                  </p>
+   561→   561→   561→
+   562→   562→   562→                  {lockBanner}
+   563→   563→   563→                  {errorBanner}
+   564→   564→   564→
+   565→   565→   565→                  <form onSubmit={handleRecover} className="mt-7 space-y-5">
+   566→   566→   566→                    <div className="space-y-2">
+   567→   567→   567→                      <Label htmlFor="rec-key" className="text-[13px] font-medium">
+   568→   568→   568→                        {t.recoveryKey}
+   569→   569→   569→                      </Label>
+   570→   570→   570→                      <div className="relative">
+   571→   571→   571→                        <KeyRound className="pointer-events-none absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+   572→   572→   572→                        <Input
+   573→   573→   573→                          id="rec-key"
+   574→   574→   574→                          value={recKey}
+   575→   575→   575→                          onChange={(e) => setRecKey(e.target.value)}
+   576→   576→   576→                          placeholder={t.recoveryKeyPh}
+   577→   577→   577→                          spellCheck={false}
+   578→   578→   578→                          disabled={recBusy || lockSecs !== null}
+   579→   579→   579→                          className={cn(fieldCls, "font-mono tracking-wide")}
+   580→   580→   580→                        />
+   581→   581→   581→                      </div>
+   582→   582→   582→                    </div>
+   583→   583→   583→
+   584→   584→   584→                    <div className="space-y-2">
+   585→   585→   585→                      <Label htmlFor="rec-pw" className="text-[13px] font-medium">
+   586→   586→   586→                        {t.newPassword}
+   587→   587→   587→                      </Label>
+   588→   588→   588→                      <div className="relative">
+   589→   589→   589→                        <Lock className="pointer-events-none absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+   590→   590→   590→                        <Input
+   591→   591→   591→                          id="rec-pw"
+   592→   592→   592→                          type={recPw ? "text" : "password"}
+   593→   593→   593→                          autoComplete="new-password"
+   594→   594→   594→                          value={newPw}
+   595→   595→   595→                          onChange={(e) => setNewPw(e.target.value)}
+   596→   596→   596→                          placeholder={t.newPasswordPh}
+   597→   597→   597→                          disabled={recBusy || lockSecs !== null}
+   598→   598→   598→                          className={cn(fieldCls, "pe-11")}
+   599→   599→   599→                        />
+   600→   600→   600→                        <button
+   601→   601→   601→                          type="button"
+   602→   602→   602→                          onClick={() => setRecPw((v) => !v)}
+   603→   603→   603→                          aria-label={recPw ? "Hide password" : "Show password"}
+   604→   604→   604→                          className="absolute end-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+   605→   605→   605→                        >
+   606→   606→   606→                          {recPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+   607→   607→   607→                        </button>
+   608→   608→   608→                      </div>
+   609→   609→   609→                    </div>
+   610→   610→   610→
+   611→   611→   611→                    <Button
+   612→   612→   612→                      type="submit"
+   613→   613→   613→                      disabled={recBusy || lockSecs !== null}
+   614→   614→   614→                      className="relative mt-1 h-12 w-full overflow-hidden rounded-xl bg-primary text-[15px] font-semibold text-primary-foreground shadow-[0_0_26px_-8px_rgba(34,216,238,0.6)] transition-all hover:bg-primary/90 disabled:opacity-60"
+   615→   615→   615→                    >
+   616→   616→   616→                      {recBusy ? (
+   617→   617→   617→                        <>
+   618→   618→   618→                          <Loader2 className="me-2 h-4 w-4 animate-spin" />
+   619→   619→   619→                          {t.resetting}
+   620→   620→   620→                        </>
+   621→   621→   621→                      ) : (
+   622→   622→   622→                        <>
+   623→   623→   623→                          <ShieldCheck className="me-2 h-4 w-4 opacity-70" />
+   624→   624→   624→                          {t.resetPassword}
+   625→   625→   625→                        </>
+   626→   626→   626→                      )}
+   627→   627→   627→                      {!recBusy && (
+   628→   628→   628→                        <span
+   629→   629→   629→                          aria-hidden="true"
+   630→   630→   630→                          className="shine-sweep pointer-events-none absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+   631→   631→   631→                        />
+   632→   632→   632→                      )}
+   633→   633→   633→                    </Button>
+   634→   634→   634→                  </form>
+   635→   635→   635→
+   636→   636→   636→                  {/* preview key hint */}
+   637→   637→   637→                  <div className="mt-6 flex items-center gap-2 rounded-xl border border-dashed border-primary/25 bg-primary/[.05] px-3.5 py-2.5 text-[11px] leading-relaxed text-muted-foreground">
+   638→   638→   638→                    <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
+   639→   639→   639→                    <span className="font-mono">{t.previewHint}</span>
+   640→   640→   640→                  </div>
+   641→   641→   641→
+   642→   642→   642→                  <button
+   643→   643→   643→                    type="button"
+   644→   644→   644→                    onClick={() => {
+   645→   645→   645→                      setMode("login");
+   646→   646→   646→                      setError(null);
+   647→   647→   647→                    }}
+   648→   648→   648→                    className="mt-5 flex w-full items-center justify-center gap-1.5 text-[13px] text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+   649→   649→   649→                  >
+   650→   650→   650→                    <ArrowLeft className="h-3.5 w-3.5 rtl:rotate-180" />
+   651→   651→   651→                    {t.backToLogin}
+   652→   652→   652→                  </button>
+   653→   653→   653→                </div>
+   654→   654→   654→              )}
+   655→   655→   655→            </div>
+   656→   656→   656→          </div>
+   657→   657→   657→        </div>
+   658→   658→   658→
+   659→   659→   659→        {/* under-frame note */}
+   660→   660→   660→        <p className="fade-up d-2 flex items-center gap-2 text-[11px] text-muted-foreground/80">
+   661→   661→   661→          <Lock className="h-3 w-3" />
+   662→   662→   662→          {t.secureNote}
+   663→   663→   663→        </p>
+   664→   664→   664→      </main>
+   665→   665→   665→    </div>
+   666→   666→   666→  );
+   667→   667→   667→}
+   668→   668→   668→

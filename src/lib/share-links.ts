@@ -6,6 +6,9 @@
    Node 18+ and all browsers alike.
    ============================================================ */
 
+/** Brand tag stamped on every generated config (URI label / conf comment). */
+export const BRAND_TAG = "Sephiroth";
+
 /** Structural inbound shape — rich DTOs (InboundDTO etc.) fit as-is. */
 export interface ShareInbound {
   id?: string;
@@ -66,7 +69,9 @@ export function buildShareLink(row: ShareInbound, first?: ShareClient): string |
   const st = (row.stream ?? {}) as Record<string, unknown>;
   const host = hostOf(row);
   const port = String(row.port);
-  const label = first?.email ? `${row.tag} · ${first.email}` : row.tag;
+  const label = first?.email
+    ? `${BRAND_TAG} · ${row.tag} · ${first.email}`
+    : `${BRAND_TAG} · ${row.tag}`;
   const q = new URLSearchParams();
 
   const commonParams = () => {
@@ -156,6 +161,7 @@ export function buildWgConf(row: ShareInbound, first?: ShareClient): string {
   const st = (row.stream ?? {}) as Record<string, unknown>;
   const host = hostOf(row);
   return [
+    `# ${BRAND_TAG} · ${row.tag}`,
     "[Interface]",
     `PrivateKey = ${st.wgSecretKey ?? "<private-key>"}`,
     "Address = 10.0.0.2/32",
@@ -174,7 +180,7 @@ export function buildWgConf(row: ShareInbound, first?: ShareClient): string {
 export function buildDokoSummary(row: ShareInbound): string {
   const st = (row.stream ?? {}) as Record<string, unknown>;
   return [
-    `dokodemo-door · ${row.tag}`,
+    `${BRAND_TAG} · dokodemo-door · ${row.tag}`,
     `listen: ${hostOf(row)}:${row.port}`,
     `target: ${st.dokoAddress ?? "?"}:${st.dokoPort ?? "?"}`,
     `network: ${st.dokoNetwork ?? "tcp"}`,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
   ArrowRightLeft,
@@ -10,6 +10,7 @@ import {
   FlaskConical,
   GraduationCap,
   Globe,
+  Heart,
   LayoutDashboard,
   LogOut,
   Network,
@@ -31,6 +32,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { BrandMark, BrandWord } from "@/components/sephiroth/brand";
+import { DonateDialog } from "@/components/sephiroth/donate-dialog";
 import { useAppStore } from "@/lib/store/app-store";
 import {
   dictionaries,
@@ -87,6 +89,9 @@ export function TopNav() {
   const setLang = useAppStore((s) => s.setLang);
   const setView = useAppStore((s) => s.setView);
   const { toast } = useToast();
+
+  /* donate dialog (top-bar heart) */
+  const [donateOpen, setDonateOpen] = useState(false);
 
   const t = useMemo(() => dictionaries[lang], [lang]);
 
@@ -171,6 +176,21 @@ export function TopNav() {
             <Search className="h-3.5 w-3.5" />
             <span className="hidden 2xl:inline">{t.topbar.search}</span>
             <span className="kbd ml-1 hidden 2xl:inline-flex">⌘K</span>
+          </button>
+
+          {/* donate */}
+          <button
+            type="button"
+            onClick={() => setDonateOpen(true)}
+            aria-label={t.donate.title}
+            title={t.donate.title}
+            className="glass relative flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground outline-none transition-all hover:text-rose-400 hover:shadow-[0_0_18px_-4px_rgba(251,113,133,0.55)] focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Heart className="h-4 w-4" />
+            <span
+              aria-hidden="true"
+              className="absolute end-2 top-2 h-1.5 w-1.5 animate-pulse rounded-full bg-rose-400"
+            />
           </button>
 
           {/* language */}
@@ -312,6 +332,8 @@ export function TopNav() {
         aria-hidden="true"
         className="h-px w-full bg-gradient-to-r from-transparent via-primary/50 to-transparent"
       />
+
+      <DonateDialog open={donateOpen} onOpenChange={setDonateOpen} />
     </header>
   );
 }

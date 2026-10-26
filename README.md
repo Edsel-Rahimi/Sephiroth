@@ -1,0 +1,153 @@
+<div align="center">
+
+<img src="docs/hero.svg" alt="Sephiroth — Xray Control Panel" width="100%">
+
+<br>
+
+<a href="https://github.com/Edsel-Rahimi/Sephiroth/stargazers"><img src="https://img.shields.io/github/stars/Edsel-Rahimi/Sephiroth?style=for-the-badge&logo=github&logoColor=22d8ee&color=22d8ee&labelColor=05080f&label=Stars" alt="GitHub Stars"></a>
+<a href="https://github.com/Edsel-Rahimi/Sephiroth/issues"><img src="https://img.shields.io/github/issues/Edsel-Rahimi/Sephiroth?style=for-the-badge&logo=github&logoColor=22d8ee&color=cfd9e2&labelColor=05080f&label=Issues" alt="Issues"></a>
+<a href="https://nextjs.org"><img src="https://img.shields.io/badge/Next.js-16-e8eef6?style=for-the-badge&logo=next.js&logoColor=e8eef6&labelColor=05080f" alt="Next.js 16"></a>
+<a href="https://www.typescriptlang.org"><img src="https://img.shields.io/badge/TypeScript-5-3178c6?style=for-the-badge&logo=typescript&logoColor=3178c6&labelColor=05080f" alt="TypeScript 5"></a>
+<a href="https://bun.sh"><img src="https://img.shields.io/badge/Bun-runtime-f472b6?style=for-the-badge&logo=bun&logoColor=f472b6&labelColor=05080f" alt="Bun"></a>
+
+<br><br>
+
+<img src="docs/stats.svg" alt="9 protocols · 6 languages RTL · 13 orbit views · realtime cockpit" width="100%">
+
+</div>
+
+<div dir="rtl">
+
+<img src="docs/divider.svg" width="100%">
+
+<div align="center">
+<img src="docs/t-what.svg" alt="سیفیروت چیست؟" width="100%">
+</div>
+
+**سیفیروت** یک پنل مدیریت **Xray** متن‌باز است که همه‌چیزِ یک سرور VPN را — از ساخت اینباند تا تحویل کانفیگ به کاربر — پشت یک شیشه‌ی تیره و آرام جمع می‌کند: اُبسیدینِ عمیق، نئونِ فیروزه‌ای و نقره‌ی پلاتینیوم. بدون شلوغی، بدون اصطلاح عجیب؛ فقط یک اتاق فرمان که کار می‌کند.
+
+هر چیزی که در پنل می‌سازید — از لینک اشتراک تا کانفیگ WireGuard — به‌صورت خودکار با نشان **«Sephiroth»** برچسب‌گذاری می‌شود تا همیشه بدانید هر اتصال از کجا آمده.
+
+<div align="center">
+<img src="docs/divider.svg" width="100%">
+</div>
+
+<div align="center">
+<img src="docs/t-features.svg" alt="توانایی‌ها" width="100%">
+</div>
+
+| | |
+|:---|:---|
+| **📡 اینباند کامل** | ۹ پروتکل (VLESS · VMess · Trojan · Shadowsocks · Hysteria2 · WireGuard · Dokodemo · SOCKS · HTTP) با تب‌های عمومی/کلاینت‌ها/ترنسپورت/امنیت/پیشرفته در یک دیالوگ ثابت‌قد |
+| **👥 کاربر و اشتراک** | کلیدهای خودکار، سهمیه‌ی ترافیک و انقضا، لینک‌ها/QR و صفحه‌ی اشتراک عمومی `/sub/[token]` با حالت قفل‌شده و رمز |
+| **🌍 هاست و نود** | دامنه‌ی خودتان روی لینک‌ها (SNI/REALITY/مسیر) و نودهای چندسروری با Probe و تأخیر زنده |
+| **🧭 روتینگ هوشمند** | قوانین ترتیبی با ماچرهای کامل geosite/geoip + **پریست‌های آماده** (بلاک تبلیغات، بلاک پورن، بلاک بدافزار، ایران→مستقیم، بلاک QUIC، تلگرام→پروکسی) |
+| **📈 اتاق فرمان زنده** | داشبورد بلوکی با نمودار ترافیک، فید فعالیت زنده‌ی سوکت‌محور، تاریخچه‌ی جستجوپذیر و خروجی JSON |
+| **🧑‍🏫 راهنمای میدانی** | ۱۳ فصل آموزشی؛ برای هر فیلد می‌گوید «یعنی چی» و «چه وارد کنی» — با زبانِ صفرِ شبکه |
+| **🌐 شش زبان، راست‌چین از جنس اول** | فارسی، عربی، انگلیسی، چینی، ترکی و روسی با RTL منطقی و فونت‌های لوکال |
+| **🎛 تنظیمات دو‌لایه** | تب **General** برای همه و تب **Expert** برای حرفه‌ای‌ها + ماژول‌های نوار بالا (Hosts/Nodes/Outbounds/Routing) با یک کلید روشن/خاموش می‌شوند |
+| **🌙 اتمسفر سفیروت** | شیشه‌ی مات، درخشش سایان، ستاره‌های پس‌زمینه و حرکت‌های نرم — همه با احترام به `prefers-reduced-motion` |
+
+<div align="center">
+<img src="docs/divider.svg" width="100%">
+</div>
+
+<div align="center">
+<img src="docs/t-shots.svg" alt="نگاهی به سیفیروت" width="100%">
+</div>
+
+| اتاق فرمان | دیالوگ اینباند |
+|:---:|:---:|
+| <img src="docs/shot-dashboard.png" alt="داشبورد سیفیروت"> | <img src="docs/shot-inbound-dialog.png" alt="دیالوگ ساخت اینباند"> |
+
+| راهنمای میدانی | روتینگ + پریست‌ها |
+|:---:|:---:|
+| <img src="docs/shot-guide-lesson.png" alt="راهنمای میدانی — درس اینباند"> | <img src="docs/shot-routing-presets.png" alt="پریست‌های آماده‌ی روتینگ"> |
+
+| حمایت | موبایل · فارسی |
+|:---:|:---:|
+| <img src="docs/shot-donate.png" alt="دیالوگ حمایت"> | <img src="docs/shot-mobile-fa-guide.png" alt="نسخه موبایل فارسی"> |
+
+<div align="center">
+<img src="docs/divider.svg" width="100%">
+</div>
+
+<div align="center">
+<img src="docs/t-start.svg" alt="شروع در ۹۰ ثانیه" width="100%">
+</div>
+
+```bash
+git clone https://github.com/Edsel-Rahimi/Sephiroth.git
+cd Sephiroth && bun install
+
+cp .env.example .env      # DATABASE_URL="file:./db/custom.db"
+bunx prisma db push       # ساخت دیتابیس
+
+bun run dev               # → http://localhost:3000
+```
+
+**ورود پیش‌فرض:** `admin` / `sephiroth` — و بعد از اولین ورود، از **Profile → Security** پسورد و کلید بازیابی را عوض کنید.
+
+<div align="center">
+<img src="docs/flow.svg" alt="مسیر طلایی — از اینباند تا مانیتور" width="100%">
+</div>
+
+> مسیر طلایی: اینباند بساز ← کلاینت بده ← لینک/اشتراک بگیر ← با هاست و روتینگ صیقل بده ← در Activity تماشا کن.
+
+<img src="docs/divider.svg" width="100%">
+
+## 🗺 نقشه‌ی راه
+
+- [x] طراحی Sephiroth Glass — اُبسیدین + سایان + پلاتینیوم
+- [x] ۹ پروتکل اینباند با دیالوگ Xray-grade
+- [x] کاربران، سهمیه‌ها، صفحه‌ی اشتراک عمومی و گروه‌های اشتراک
+- [x] شبکه‌ی هسته‌ای: Hosts · Nodes · Outbounds · Routing
+- [x] پریست‌های آماده‌ی روتینگ (بلاک پورن و …)
+- [x] راهنمای میدانی ۱۳ فصلی با توضیح تک‌تک فیلدها
+- [x] فعالیت زنده + تاریخچه + خروجی
+- [x] تنظیمات General/Expert + سوییچ ماژول‌های نوار بالا
+- [x] نشان «Sephiroth» روی هر کانفیگ خروجی
+- [ ] 🧠 درایور هسته‌ی واقعی Xray (فعلاً شبیه‌ساز زنده)
+- [ ] 🤖 ربات تلگرام
+- [ ] 📱 PWA و تم‌های فصلی
+
+## ⚠️ سلب مسئولیت
+
+این پروژه فقط برای مقاصد آموزشی و مدیریت قانونی سرورهای خودتان ساخته شده است. مسئولیت استفاده بر عهده‌ی خود کاربر است.
+
+<img src="docs/divider.svg" width="100%">
+
+<div align="center">
+<img src="docs/t-donate.svg" alt="سوخت مدار" width="100%">
+</div>
+
+سیفیروت با عشق و شب‌های بیداری ساخته شده. اگر کارتان را راه انداخته، یک انرژی کوچک مدار را روشن نگه می‌دارد 🛰️
+
+**💳 تتر (TRC20):**
+```
+TWdqYu5H6emRHd6jFfkHjfG8Yg2285DFmT
+```
+
+<div align="center">
+
+<a href="https://reymit.ir/edsel-rahimi"><img src="https://img.shields.io/badge/حمایت_ایرانی-Reymit-ff6b8d?style=for-the-badge&logo=githubsponsors&logoColor=ff6b8d&labelColor=05080f" alt="Reymit"></a>
+<a href="https://github.com/Edsel-Rahimi/Sephiroth/stargazers"><img src="https://img.shields.io/badge/⭐_ستاره_بزن-رایگان_است-22d8ee?style=for-the-badge&logo=github&logoColor=22d8ee&labelColor=05080f" alt="Star"></a>
+
+</div>
+
+</div>
+
+<div dir="ltr" align="center">
+
+**Sephiroth** is an open-source Xray control panel built with Next.js 16, TypeScript 5, Prisma and Bun — 9 inbound protocols, subscription pages with password-locked groups, hosts/nodes/outbounds/routing with one-click presets (block ads, block porn, Iran→direct…), a realtime activity cockpit, a 13-chapter field manual that explains every field in plain language, and 6 languages with first-class RTL. Every generated config is branded with the **Sephiroth** tag.
+
+</div>
+
+<div align="center">
+
+<img src="docs/footer.svg" alt="Sephiroth — Crafted by EPODONIOS" width="100%">
+
+<a href="https://github.com/Edsel-Rahimi/Sephiroth/issues"><img src="https://img.shields.io/badge/باگ_دیدی؟-Issue_بزن_⚡-22d8ee?style=for-the-badge&logo=github&labelColor=05080f" alt="Issues"></a>
+<a href="https://github.com/Edsel-Rahimi"><img src="https://img.shields.io/badge/سازنده-EPODONIOS-cfd9e2?style=for-the-badge&logo=github&labelColor=05080f" alt="EPODONIOS"></a>
+
+</div>

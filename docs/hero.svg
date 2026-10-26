@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="460" viewBox="0 0 1200 460" role="img" aria-label="Sephiroth — Xray control panel">
+<style>
+.b1{animation:br 8s ease-in-out infinite alternate}
+.b2{animation:br 11s ease-in-out infinite alternate-reverse}
+@keyframes br{from{opacity:.4}to{opacity:.95}}
+.ping{animation:pg 3s cubic-bezier(.2,.6,.4,1) infinite}
+@keyframes pg{0%{transform:scale(.35);opacity:.9}80%,100%{transform:scale(2.4);opacity:0}}
+.pt{transform-origin:center;transform-box:fill-box;animation:pg2 3s cubic-bezier(.2,.6,.4,1) infinite}
+@keyframes pg2{0%{transform:scale(.4);opacity:.9}80%,100%{transform:scale(2.2);opacity:0}}
+.up{opacity:0;animation:fu .9s ease-out forwards}
+.d1{animation-delay:.15s}.d2{animation-delay:.35s}.d3{animation-delay:.55s}.d4{animation-delay:.8s}
+@keyframes fu{to{opacity:1}}
+.dash{stroke-dasharray:3 14;animation:mv 22s linear infinite}
+@keyframes mv{to{stroke-dashoffset:-680}}
+.sheen{animation:sh 7s ease-in-out infinite}
+@keyframes sh{0%,55%{transform:translateX(-760px)}100%{transform:translateX(760px)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}.up{opacity:1}}
+</style>
+<defs>
+<linearGradient id="wg" x1="0" y1="120" x2="0" y2="290" gradientUnits="userSpaceOnUse">
+  <stop offset="0" stop-color="#eafcff"/><stop offset=".45" stop-color="#22d8ee"/><stop offset="1" stop-color="#0f7f9e"/>
+</linearGradient>
+<linearGradient id="shine" x1="0" y1="0" x2="1" y2="0">
+  <stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+</linearGradient>
+<radialGradient id="gl1" cx=".5" cy=".5" r=".5">
+  <stop offset="0" stop-color="#22d8ee" stop-opacity=".14"/><stop offset="1" stop-color="#22d8ee" stop-opacity="0"/>
+</radialGradient>
+<radialGradient id="gl2" cx=".5" cy=".5" r=".5">
+  <stop offset="0" stop-color="#9fb6c4" stop-opacity=".10"/><stop offset="1" stop-color="#9fb6c4" stop-opacity="0"/>
+</radialGradient>
+<radialGradient id="soft" cx=".5" cy=".42" r=".62"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#000"/></radialGradient>
+<mask id="frame"><rect width="1200" height="460" fill="url(#soft)"/></mask>
+<pattern id="dots" width="26" height="26" patternUnits="userSpaceOnUse">
+  <circle cx="1.3" cy="1.3" r="1.2" fill="#22d8ee" fill-opacity=".10"/>
+</pattern>
+</defs>
+
+<rect width="1200" height="460" fill="#060b0f"/>
+<rect width="1200" height="460" fill="url(#dots)" mask="url(#frame)"/>
+<g class="b1"><ellipse cx="185" cy="30" rx="470" ry="290" fill="url(#gl1)"/></g>
+<g class="b2"><ellipse cx="1030" cy="445" rx="540" ry="300" fill="url(#gl2)"/></g>
+
+<!-- orbital rings -->
+<g fill="none" stroke="#22d8ee">
+  <ellipse cx="600" cy="205" rx="435" ry="140" stroke-opacity=".16" class="dash"/>
+  <ellipse cx="600" cy="205" rx="315" ry="96" stroke-opacity=".24" stroke-dasharray="1 9"/>
+</g>
+<!-- traveling comet on the outer ring -->
+<circle r="4" fill="#22d8ee">
+  <animateMotion dur="16s" repeatCount="indefinite" path="M 165 205 a 435 140 0 1 0 870 0 a 435 140 0 1 0 -870 0"/>
+</circle>
+<circle r="9" fill="#22d8ee" opacity=".55" class="pt">
+  <animateMotion dur="16s" repeatCount="indefinite" path="M 165 205 a 435 140 0 1 0 870 0 a 435 140 0 1 0 -870 0"/>
+</circle>
+<!-- satellite nodes -->
+<g fill="#cfd9e2">
+  <circle cx="742" cy="119" r="3" opacity=".8"/><circle cx="322" cy="282" r="2.5" opacity=".6"/><circle cx="912" cy="268" r="2" opacity=".5"/>
+</g>
+<circle cx="742" cy="119" r="4" fill="none" stroke="#22d8ee" stroke-opacity=".5" class="ping"/>
+
+<!-- wordmark -->
+<g class="up d1" text-anchor="middle">
+  <text x="600" y="235" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="92" font-weight="800" letter-spacing="30" fill="url(#wg)">SEPHIROTH</text>
+</g>
+<g class="up d2" text-anchor="middle" fill="#8fa3ad" font-family="'JetBrains Mono',ui-monospace,Menlo,monospace">
+  <text x="600" y="278" font-size="15" letter-spacing="14">XRAY CONTROL PANEL</text>
+</g>
+<g class="up d3" text-anchor="middle">
+  <text x="600" y="336" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="19" fill="#e8eef6">One panel. Every protocol. Zero clutter.</text>
+</g>
+<!-- token pills -->
+<g class="up d4" font-family="'JetBrains Mono',ui-monospace,Menlo,monospace" font-size="11" text-anchor="middle">
+  <g fill="none" stroke="#22d8ee" stroke-opacity=".28">
+    <rect x="330" y="366" width="150" height="30" rx="15"/>
+    <rect x="492" y="366" width="150" height="30" rx="15"/>
+    <rect x="654" y="366" width="150" height="30" rx="15"/>
+    <rect x="816" y="366" width="54" height="30" rx="15"/>
+  </g>
+  <g fill="#22d8ee">
+    <text x="405" y="385">9 PROTOCOLS</text>
+    <text x="567" y="385">6 LANGUAGES</text>
+    <text x="729" y="385">RTL · FIRST</text>
+    <text x="843" y="385">v1.0</text>
+  </g>
+</g>
+
+<!-- sheen -->
+<rect class="sheen" x="220" y="80" width="180" height="300" fill="url(#shine)" opacity=".10" transform="skewX(-18)"/>
+<!-- frame hairline -->
+<rect x="14" y="14" width="1172" height="432" rx="18" fill="none" stroke="#22d8ee" stroke-opacity=".14"/>
+<rect x="18" y="18" width="1164" height="424" rx="15" fill="none" stroke="#cfd9e2" stroke-opacity=".05"/>
+</svg>

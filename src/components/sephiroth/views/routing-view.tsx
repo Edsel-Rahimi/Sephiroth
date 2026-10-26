@@ -5,6 +5,7 @@ import {
   ArrowRight,
   ArrowUpLeft,
   Ban,
+  Bug,
   ChevronDown,
   ChevronUp,
   Globe,
@@ -12,6 +13,7 @@ import {
   Info,
   Loader2,
   MapPin,
+  Megaphone,
   Network,
   Pencil,
   Plus,
@@ -20,6 +22,9 @@ import {
   Route,
   Save,
   ScanSearch,
+  Send,
+  ShieldOff,
+  Sparkles,
   Trash2,
   TriangleAlert,
   Zap,
@@ -66,7 +71,8 @@ import { cn } from "@/lib/utils";
    Ordered xray rules: first match wins. Local editable list
    (reorder/toggle/add/edit/delete) → bulk PUT with a sticky
    save bar while dirty. Rule dialog builds every match family
-   (domain/ip/port/network/protocol/inbound/source). Strings ×6.
+   (domain/ip/port/network/protocol/inbound/source). Ready presets:
+   one-click proven rules feed the same local-dirty save flow. Strings ×6.
    ============================================================ */
 
 type Strategy = "AsIs" | "IPIfNonMatch" | "IPOnDemand";
@@ -243,6 +249,86 @@ function toForm(r: RoutingRuleDTO): RuleForm {
   };
 }
 
+/* ---------- ready presets (one-click proven rules) ---------- */
+
+type PresetKey = "ads" | "porn" | "malware" | "iran" | "quic" | "tg";
+
+interface PresetDef {
+  key: PresetKey;
+  icon: React.ComponentType<{ className?: string }>;
+  payload: Pick<RoutingRuleDTO, "outboundTag" | "domain" | "ip" | "port" | "network">;
+}
+
+/* tg.outboundTag is resolved at add-time: first custom outbound */
+const PRESETS: readonly PresetDef[] = [
+  {
+    key: "ads",
+    icon: Megaphone,
+    payload: {
+      outboundTag: "blocked",
+      domain: ["geosite:category-ads-all"],
+      ip: [],
+      port: "",
+      network: "",
+    },
+  },
+  {
+    key: "porn",
+    icon: ShieldOff,
+    payload: {
+      outboundTag: "blocked",
+      domain: ["geosite:category-porn"],
+      ip: [],
+      port: "",
+      network: "",
+    },
+  },
+  {
+    key: "malware",
+    icon: Bug,
+    payload: {
+      outboundTag: "blocked",
+      domain: ["geosite:category-malware", "geosite:category-phishing"],
+      ip: [],
+      port: "",
+      network: "",
+    },
+  },
+  {
+    key: "iran",
+    icon: MapPin,
+    payload: {
+      outboundTag: "direct",
+      domain: ["geosite:category-ir", "geoip:ir"],
+      ip: [],
+      port: "",
+      network: "",
+    },
+  },
+  {
+    key: "quic",
+    icon: Network,
+    payload: {
+      outboundTag: "blocked",
+      domain: [],
+      ip: [],
+      port: "443",
+      network: "udp",
+    },
+  },
+  {
+    key: "tg",
+    icon: Send,
+    payload: {
+      outboundTag: "",
+      domain: ["geosite:telegram"],
+      ip: [],
+      port: "",
+      network: "",
+    },
+  },
+];
+
 export function RoutingView() {
   const lang = useAppStore((s) => s.lang);
   const t = useMemo(() => dictionaries[lang], [lang]);
@@ -326,6 +412,12 @@ export function RoutingView() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  /* first outbound that is neither direct nor blocked — feeds the tg preset */
+  const tgTag = useMemo(
+    () => outboundTags.find((tag) => tag !== "direct" && tag !== "blocked"),
+    [outboundTags]
+  );
 
   /* ---------- derived ---------- */
 
@@ -439,6 +531,44 @@ export function RoutingView() {
     setDlgOpen(false);
     markDirty();
     if (editIndex === null) toast({ description: u.created });
+  };
+
+  /* ---------- ready presets (client-side, local-dirty) ---------- */
+
+  const addPreset = (key: PresetKey) => {
+    const def = PRESETS.find((p) => p.key === key);
+    if (!def) return;
+    const list = rules ?? [];
+    let outboundTag = def.payload.outboundTag;
+    if (key === "tg") {
+      if (!tgTag) {
+        toast({ variant: "destructive", description: t.routingPresets.needOb });
+        return;
+      }
+      outboundTag = tgTag;
+    }
+    const name = t.routingPresets[key];
+    if (list.some((r) => r.comment === name)) {
+      toast({ description: t.routingPresets.dup });
+      return;
+    }
+    const rule: RoutingRuleDTO = {
+      id: `tmp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+      enabled: true,
+      comment: name,
+      outboundTag,
+      domain: [...def.payload.domain],
+      ip: [...def.payload.ip],
+      port: def.payload.port,
+      network: def.payload.network,
+      protocol: [],
+      inboundTag: [],
+      source: [],
+      sortOrder: list.length,
+    };
+    setRules((prev) => (prev ? [...prev, rule] : prev));
+    markDirty();
+    toast({ description: t.routingPresets.added });
   };
 
   /* ---------- bulk save ---------- */
@@ -632,6 +762,103 @@ export function RoutingView() {
             <p className="mt-1.5 font-mono text-2xl font-bold text-foreground md:text-3xl">{value}</p>
           </div>
         ))}
+      </section>
+
+      {/* ready presets — one-click proven rules */}
+      <section className="space-y-3" aria-label={t.routingPresets.title}>
+        <div className="flex items-start gap-3">
+          <span className="glass flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
+            <Sparkles className="h-4 w-4 text-primary" aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold text-foreground">{t.routingPresets.title}</h3>
+            <p className="mt-0.5 text-xs text-muted-foreground">{t.routingPresets.desc}</p>
+          </div>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {PRESETS.map(({ key, icon: Icon, payload }) => {
+            const name = t.routingPresets[key];
+            const tag = key === "tg" ? (tgTag ?? "") : payload.outboundTag;
+            return (
+              <div
+                key={key}
+                className="glass hover-glow group flex flex-col rounded-2xl p-4 ring-1 ring-white/10"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="glass flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ring-white/10 transition-shadow duration-300 group-hover:shadow-[0_0_18px_-4px_var(--primary)]">
+                    <Icon className="h-4 w-4 text-primary" aria-hidden="true" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold text-foreground">{name}</p>
+                    <p className="truncate text-[11px] text-muted-foreground">
+                      {t.routingPresets[`${key}D`]}
+                    </p>
+                  </div>
+                  <span
+                    className={cn(
+                      "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[10px] font-semibold ring-1",
+                      obChipCls(tag)
+                    )}
+                    dir="ltr"
+                  >
+                    <span className={cn("h-1.5 w-1.5 rounded-full", obDotCls(tag))} aria-hidden="true" />
+                    {tag || "?"}
+                  </span>
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                  {payload.domain.map((m) => (
+                    <span
+                      key={m}
+                      className="inline-flex items-center gap-1 rounded-full bg-black/25 px-2 py-0.5 text-[10px] text-muted-foreground ring-1 ring-white/10"
+                    >
+                      <Globe className="h-2.5 w-2.5 shrink-0 text-primary/70" aria-hidden="true" />
+                      <span className="font-mono" dir="ltr">
+                        {m}
+                      </span>
+                    </span>
+                  ))}
+                  {payload.ip.map((m) => (
+                    <span
+                      key={m}
+                      className="inline-flex items-center gap-1 rounded-full bg-black/25 px-2 py-0.5 text-[10px] text-muted-foreground ring-1 ring-white/10"
+                    >
+                      <MapPin className="h-2.5 w-2.5 shrink-0 text-primary/70" aria-hidden="true" />
+                      <span className="font-mono" dir="ltr">
+                        {m}
+                      </span>
+                    </span>
+                  ))}
+                  {payload.port && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-black/25 px-2 py-0.5 text-[10px] text-muted-foreground ring-1 ring-white/10">
+                      <Hash className="h-2.5 w-2.5 shrink-0 text-primary/70" aria-hidden="true" />
+                      <span className="font-mono" dir="ltr">
+                        {payload.port}
+                      </span>
+                    </span>
+                  )}
+                  {payload.network && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-black/25 px-2 py-0.5 text-[10px] text-muted-foreground ring-1 ring-white/10">
+                      <Network className="h-2.5 w-2.5 shrink-0 text-primary/70" aria-hidden="true" />
+                      <span className="font-mono" dir="ltr">
+                        {netLabel(payload.network, u)}
+                      </span>
+                    </span>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => addPreset(key)}
+                  className="mt-3 h-9 shrink-0 gap-1.5 self-start rounded-full border-primary/30 bg-primary/10 px-4 text-xs font-semibold text-primary hover:bg-primary/20 hover:text-primary"
+                  aria-label={`${t.routingPresets.add} — ${name}`}
+                >
+                  <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                  {t.routingPresets.add}
+                </Button>
+              </div>
+            );
+          })}
+        </div>
       </section>
 
       {/* rules list */}

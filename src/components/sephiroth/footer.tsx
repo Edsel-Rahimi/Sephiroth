@@ -63,9 +63,21 @@ export function Footer() {
           </span>
         </div>
 
-        {/* right : rights + clock */}
+        {/* right : rights + crafted-by + clock */}
         <div className="flex items-center gap-3">
           <span>{t.footer.rights}</span>
+          <span className="text-border">|</span>
+          <span>
+            {t.footer.crafted}{" "}
+            <a
+              href="https://github.com/Edsel-Rahimi"
+              target="_blank"
+              rel="noreferrer"
+              className="font-mono font-semibold text-primary hover:glow-cyan transition-colors"
+            >
+              EPODONIOS
+            </a>
+          </span>
           <span className="text-border">|</span>
           <ClientClock />
         </div>

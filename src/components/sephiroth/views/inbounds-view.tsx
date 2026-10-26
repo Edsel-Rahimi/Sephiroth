@@ -1761,7 +1761,7 @@ export function InboundsView() {
               </MiniField>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <MiniField id={`c-sub-${i}`} label={t.inbounds.cSubId} hint={t.inbounds.tipSub}>
                 <Input
                   id={`c-sub-${i}`}
@@ -1916,7 +1916,7 @@ export function InboundsView() {
 
   const renderTransport = () => (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup" aria-label={t.inbounds.transportHint}>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-5" role="radiogroup" aria-label={t.inbounds.transportHint}>
         {TRANSPORTS.map((tr) => (
           <button
             key={tr}
@@ -3109,33 +3109,28 @@ export function InboundsView() {
 
       {/* ── create / edit dialog (Xray-grade) ──────────────── */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="glass-strong flex max-h-[90vh] flex-col gap-0 overflow-hidden border-white/10 p-0 sm:max-w-[920px]">
-          <DialogHeader className="border-b border-white/5 px-5 py-4 text-start md:px-6">
+        <DialogContent className="glass-strong flex h-[92dvh] flex-col gap-0 overflow-hidden rounded-2xl border-white/10 p-0 sm:h-[640px] sm:max-h-[92vh] sm:max-w-[960px]">
+          <DialogHeader className="shrink-0 border-b border-white/5 px-5 py-3.5 text-start md:px-6">
             <DialogTitle className="flex items-center gap-3 text-silver">
-              <span className="glass flex h-9 w-9 items-center justify-center rounded-xl">
+              <span className="glass glow-cyan flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
                 <RadioTower className="h-4 w-4 text-primary" />
               </span>
               <span className="min-w-0">
-                <span className="block truncate text-base">
+                <span className="block truncate text-[15px] font-semibold leading-tight">
                   {editing ? t.inbounds.dialogEdit : t.inbounds.dialogCreate}
                 </span>
                 <DialogDescription className="mt-0.5 block truncate text-[11px] font-normal text-muted-foreground">
                   {t.inbounds.dlgSub}
                 </DialogDescription>
               </span>
-              <span
-                className={cn(
-                  "ms-auto hidden shrink-0 rounded-full px-2.5 py-1 font-mono text-[10px] font-bold ring-1 sm:block",
-                  PROTO_CLS[form.protocol] ?? PROTO_CLS.vless
-                )}
-              >
-                {composeProto(form.protocol, form.transport, form.security)}
-              </span>
             </DialogTitle>
           </DialogHeader>
 
-          {/* mobile tab chips */}
-          <div className="flex gap-1.5 overflow-x-auto px-4 pt-3 md:hidden" role="tablist">
+          {/* mobile tab chips (below md) — always-visible strip with hairline */}
+          <div
+            className="no-scrollbar flex shrink-0 gap-1.5 overflow-x-auto border-b border-white/5 bg-black/25 px-4 py-2.5 md:hidden"
+            role="tablist"
+          >
             {TABS.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
@@ -3143,24 +3138,30 @@ export function InboundsView() {
                 aria-selected={tab === id}
                 onClick={() => setTab(id)}
                 className={cn(
-                  "relative flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[11px] font-medium transition-colors",
+                  "relative flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-xs font-medium transition-all duration-200",
                   tab === id
-                    ? "bg-primary/15 text-primary ring-1 ring-primary/30"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-primary text-primary-foreground shadow-[0_0_20px_-4px_var(--primary)] ring-1 ring-primary/50"
+                    : "bg-white/[0.04] text-muted-foreground ring-1 ring-white/10 hover:bg-white/[0.07] hover:text-foreground"
                 )}
               >
-                <Icon className="h-3 w-3" />
+                <Icon className="h-3.5 w-3.5" aria-hidden="true" />
                 {label}
                 {tabHasError(id) && (
-                  <span className="absolute end-1.5 top-1 h-1.5 w-1.5 rounded-full bg-chart-5" />
+                  <span className="relative flex h-1.5 w-1.5 shrink-0">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-chart-5 opacity-75" />
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-chart-5" />
+                  </span>
                 )}
               </button>
             ))}
           </div>
 
           <div className="flex min-h-0 flex-1">
-            {/* desktop tab rail */}
-            <div className="hidden w-48 shrink-0 flex-col gap-1 border-e border-white/5 p-3 md:flex" role="tablist">
+            {/* desktop tab rail — glowing pill + start-edge indicator */}
+            <div
+              className="hidden w-48 shrink-0 flex-col gap-1 border-e border-white/5 bg-black/20 p-3 md:flex"
+              role="tablist"
+            >
               {TABS.map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
@@ -3168,32 +3169,46 @@ export function InboundsView() {
                   aria-selected={tab === id}
                   onClick={() => setTab(id)}
                   className={cn(
-                    "relative flex h-10 items-center gap-2.5 rounded-xl px-3 text-[12px] font-medium transition-colors",
+                    "group/rail relative flex h-10 items-center gap-2.5 rounded-xl px-3.5 text-[12px] font-medium transition-all duration-200",
                     tab === id
-                      ? "bg-primary/12 text-primary ring-1 ring-primary/25"
+                      ? "bg-primary/15 text-primary shadow-[0_0_18px_-6px_var(--primary)] ring-1 ring-primary/30"
                       : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground"
                   )}
                 >
-                  <Icon className="h-3.5 w-3.5" />
-                  {label}
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "absolute top-1/2 start-0 h-5 w-[3px] -translate-y-1/2 rounded-full transition-all duration-200",
+                      tab === id
+                        ? "bg-primary shadow-[0_0_10px_1px_var(--primary)]"
+                        : "bg-transparent group-hover/rail:bg-white/15"
+                    )}
+                  />
+                  <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span className="min-w-0 truncate">{label}</span>
                   {tabHasError(id) && (
-                    <span className="absolute end-2 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-chart-5" />
+                    <span className="relative ms-auto flex h-1.5 w-1.5 shrink-0">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-chart-5 opacity-75" />
+                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-chart-5" />
+                    </span>
                   )}
                 </button>
               ))}
 
-              <div className="mt-auto space-y-2 px-2 pb-1">
+              <div className="mt-auto space-y-2 px-1 pb-1">
                 {editing && (
-                  <p className="text-[10px] leading-relaxed text-muted-foreground/70">
-                    <BadgeCheck className="me-1 inline h-3 w-3 text-primary" />
-                    {editing.tag} · {editing.updatedAt.slice(0, 10)}
+                  <p className="flex items-start gap-1.5 border-t border-white/5 pt-2.5 text-[10px] leading-relaxed text-muted-foreground/70">
+                    <BadgeCheck className="mt-px h-3 w-3 shrink-0 text-primary" />
+                    <span className="min-w-0 break-all">
+                      {editing.tag} · {editing.updatedAt.slice(0, 10)}
+                    </span>
                   </p>
                 )}
               </div>
             </div>
 
-            {/* content */}
-            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 md:px-6">
+            {/* content — the only scrolling region (outer height is locked) */}
+            <div className="min-h-0 flex-1 scroll-smooth overflow-y-auto px-5 py-5 md:px-7 md:py-6">
               {topErr && (
                 <p className="mb-4 rounded-xl bg-chart-5/10 px-3.5 py-2.5 text-xs font-medium text-chart-5 ring-1 ring-chart-5/30">
                   {topErr}
@@ -3207,23 +3222,30 @@ export function InboundsView() {
             </div>
           </div>
 
-          <DialogFooter className="border-t border-white/5 px-5 py-3.5 md:px-6">
-            <div className="flex w-full items-center justify-between gap-3">
-              <p className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">
-                {saving ? t.inbounds.saving : ""}
-              </p>
-              <div className="flex items-center gap-2">
+          <DialogFooter className="shrink-0 border-t border-white/5 bg-black/25 px-5 py-3.5 md:px-6">
+            <div className="flex w-full flex-col-reverse gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+              {/* live composed-config preview (sm+) */}
+              <span className="hidden min-w-0 items-center gap-2 font-mono text-[11px] font-bold text-primary/90 sm:flex">
+                <span
+                  aria-hidden="true"
+                  className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary shadow-[0_0_8px_1px_var(--primary)]"
+                />
+                <span className="truncate">
+                  {composeProto(form.protocol, form.transport, form.security)}
+                </span>
+              </span>
+              <div className="flex w-full gap-2 sm:w-auto">
                 <Button
                   variant="outline"
                   onClick={() => setDialogOpen(false)}
-                  className="rounded-full border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"
+                  className="flex-1 rounded-full border-white/10 bg-white/[0.03] hover:bg-white/[0.06] sm:flex-none"
                 >
                   {t.inbounds.cancel}
                 </Button>
                 <Button
                   onClick={() => void save()}
                   disabled={saving}
-                  className="glow-cyan min-w-32 gap-2 rounded-full font-semibold"
+                  className="glow-cyan min-w-0 flex-1 gap-2 rounded-full font-semibold sm:min-w-32 sm:flex-none"
                 >
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <BadgeCheck className="h-4 w-4" />}
                   {saving ? t.inbounds.saving : t.inbounds.save}

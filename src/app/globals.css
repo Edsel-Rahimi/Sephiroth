@@ -178,16 +178,17 @@ html[dir="rtl"] body {
   -webkit-backdrop-filter: blur(22px);
 }
 
-.hover-glow {
+/* @utility → works with Tailwind variants (hover:glow-cyan etc.) */
+@utility hover-glow {
   transition: border-color 0.2s ease, box-shadow 0.25s ease, transform 0.2s ease;
-}
-.hover-glow:hover {
-  border-color: rgba(34, 216, 238, 0.38);
-  box-shadow: 0 0 28px -10px rgba(34, 216, 238, 0.35);
+  &:hover {
+    border-color: rgba(34, 216, 238, 0.38);
+    box-shadow: 0 0 28px -10px rgba(34, 216, 238, 0.35);
+  }
 }
 
 /* ---------- glow & metallic ---------- */
-.glow-cyan {
+@utility glow-cyan {
   box-shadow: 0 0 24px -6px rgba(34, 216, 238, 0.45);
 }
 

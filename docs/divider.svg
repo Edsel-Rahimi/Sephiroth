@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="30" viewBox="0 0 1200 30" role="img">
+<style>
+.orb{animation:dv 10s linear infinite}
+@keyframes dv{0%{transform:translateX(-260px)}100%{transform:translateX(260px)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+<defs>
+<linearGradient id="lg" x1="0" x2="1">
+  <stop offset="0" stop-color="#22d8ee" stop-opacity="0"/><stop offset=".5" stop-color="#22d8ee" stop-opacity=".4"/><stop offset="1" stop-color="#22d8ee" stop-opacity="0"/>
+</linearGradient>
+</defs>
+<rect width="1200" height="30" fill="transparent"/>
+<line x1="120" y1="15" x2="1080" y2="15" stroke="url(#lg)" stroke-width="1"/>
+<circle cx="600" cy="15" r="3.2" fill="#22d8ee"/>
+<circle class="orb" cx="600" cy="15" r="2" fill="#cfd9e2" opacity=".8"/>
+<g fill="#22d8ee" opacity=".65">
+  <rect x="556" y="13" width="4" height="4" transform="rotate(45 558 15)"/>
+  <rect x="640" y="13" width="4" height="4" transform="rotate(45 642 15)"/>
+</g>
+</svg>
