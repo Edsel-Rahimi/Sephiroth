@@ -24,6 +24,10 @@ export default defineConfig(() => {
       hmr: process.env.DISABLE_HMR !== 'true',
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
+      // The panel is always reached through proxies (sandbox preview, nginx,
+      // CDN tunnels) whose hostnames change — allow every Host header.
+      // (Vite 6+ otherwise blocks unknown hosts with "Blocked request".)
+      allowedHosts: true,
     },
   };
 });
