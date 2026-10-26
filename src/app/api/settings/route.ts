@@ -6,24 +6,27 @@ import {
   getNavModules,
   getGeneralSettings,
   getExpertSettings,
+  getSecuritySettings,
   saveCoreSettings,
   saveTelegramSettings,
   saveNavModules,
   saveGeneralSettings,
   saveExpertSettings,
+  saveSecuritySettings,
   validateCorePatch,
   validateTelegramPatch,
   validateNavPatch,
   validateGeneralPatch,
   validateExpertPatch,
+  validateSecurityPatch,
 } from "@/lib/settings";
 import { logActivity } from "@/lib/activity";
 
 /* ============================================================
    Sephiroth · Phase 7/8 — Settings API (admin only)
-   GET  /api/settings           → { core, telegram, nav, general, expert }
+   GET  /api/settings           → { core, telegram, nav, general, expert, security }
    PUT  /api/settings           → body { section: "core" | "telegram" | "nav"
-                                          | "general" | "expert", ...patch }
+                                          | "general" | "expert" | "security", ...patch }
    ============================================================ */
 
 export async function GET(req: Request) {
@@ -32,14 +35,15 @@ export async function GET(req: Request) {
     if (!admin) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
-    const [core, telegram, nav, general, expert] = await Promise.all([
+    const [core, telegram, nav, general, expert, security] = await Promise.all([
       getCoreSettings(),
       getTelegramSettings(),
       getNavModules(),
       getGeneralSettings(),
       getExpertSettings(),
+      getSecuritySettings(),
     ]);
-    return NextResponse.json({ core, telegram, nav, general, expert });
+    return NextResponse.json({ core, telegram, nav, general, expert, security });
   } catch (err) {
     console.error("[settings:GET]", err);
     return NextResponse.json({ error: "server_error" }, { status: 500 });
@@ -133,6 +137,26 @@ export async function PUT(req: Request) {
         meta: { section: "general" },
       });
       return NextResponse.json({ general });
+    }
+
+    if (section === "security") {
+      const parsed = await validateSecurityPatch(patch);
+      if (!parsed.ok) {
+        return NextResponse.json(
+          { error: "validation", fields: parsed.fields },
+          { status: 400 }
+        );
+      }
+      await saveSecuritySettings(parsed.data);
+      const security = await getSecuritySettings();
+      await logActivity({
+        kind: "settings.updated",
+        level: "warn",
+        actor: admin,
+        message: `Security settings updated (autoBackup: ${security.autoBackupEnabled}, totp: ${security.totpEnabled})`,
+        meta: { section: "security" },
+      });
+      return NextResponse.json({ security });
     }
 
     if (section === "expert") {

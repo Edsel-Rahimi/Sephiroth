@@ -10,6 +10,7 @@ import { getTickMs, refreshTickMs } from "./mini-services/core-sim/db";
 import type { ActivityEvent } from "./mini-services/core-sim/types";
 import { ensureSeed } from "./src/lib/auth";
 import { ensureNetSeeds } from "./src/lib/net-objects";
+import { runAutoBackup } from "./src/lib/backup-job";
 import { db } from "./src/lib/db";
 import { logActivity } from "./src/lib/activity";
 import { appVersion } from "./src/lib/settings";
@@ -49,6 +50,11 @@ import * as apiSettingsTestTelegram from "./src/app/api/settings/test-telegram/r
 import * as apiSubGroups from "./src/app/api/sub/groups/route";
 import * as apiSubGroupsId from "./src/app/api/sub/groups/[id]/route";
 import * as apiSubToken from "./src/app/api/sub/[token]/route";
+import * as apiSystemBackups from "./src/app/api/system/backups/route";
+import * as apiSystemRestart from "./src/app/api/system/restart/route";
+import * as apiSystemUpdate from "./src/app/api/system/update/route";
+import * as apiSystemUpdateInfo from "./src/app/api/system/update-info/route";
+import * as apiSystemUpdateStatus from "./src/app/api/system/update-status/route";
 import * as apiTelegramBotAction from "./src/app/api/telegram/bot-action/route";
 import * as apiTunnels from "./src/app/api/tunnels/route";
 import * as apiUsers from "./src/app/api/users/route";
@@ -263,6 +269,12 @@ async function startServer() {
   mountRoute(app, "/api/sub/groups/:id", apiSubGroupsId);
   mountRoute(app, "/api/sub/:token", apiSubToken);
 
+  mountRoute(app, "/api/system/backups", apiSystemBackups);
+  mountRoute(app, "/api/system/restart", apiSystemRestart);
+  mountRoute(app, "/api/system/update-info", apiSystemUpdateInfo);
+  mountRoute(app, "/api/system/update-status", apiSystemUpdateStatus);
+  mountRoute(app, "/api/system/update", apiSystemUpdate);
+
   mountRoute(app, "/api/telegram/bot-action", apiTelegramBotAction);
   mountRoute(app, "/api/tunnels", apiTunnels);
 
@@ -327,10 +339,15 @@ async function startServer() {
     }
   }, 2000);
 
-  // Periodic user traffic reset & expiry check
+  // Periodic user traffic reset & expiry check + daily auto-backup
   setInterval(() => {
     void runPeriodicUserMaintenance();
+    void runAutoBackup();
   }, 60_000);
+  // first auto-backup chance shortly after boot (also primes security settings)
+  setTimeout(() => {
+    void runAutoBackup();
+  }, 20_000);
 
   // Mount Vite middleware in development or static dist in production
   if (process.env.NODE_ENV !== "production") {

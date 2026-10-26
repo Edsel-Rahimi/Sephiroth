@@ -32,7 +32,8 @@ export type ActivityKind =
   | "settings.updated"
   | "backup.exported"
   | "backup.restored"
-  | "system.cleared";
+  | "system.cleared"
+  | "system.update";
 
 export interface ActivityEntry {
   kind: ActivityKind;

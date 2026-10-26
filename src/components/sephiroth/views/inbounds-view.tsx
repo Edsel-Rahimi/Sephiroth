@@ -973,6 +973,17 @@ export function InboundsView() {
       const used = new Set((rows ?? []).map((r) => r.port));
       let port = 10000;
       while (used.has(port)) port++;
+      if (proto === "one-port-combo") {
+        setQuickDraft({
+          tag: `combo-${port}`,
+          port,
+          email: "—",
+          key: "—",
+          subId: "—",
+        });
+        setQuickProto(proto);
+        return;
+      }
       setQuickDraft({
         tag: `${proto}-${port}`,
         port,
@@ -992,6 +1003,10 @@ export function InboundsView() {
 
   const runQuickCreate = async () => {
     if (quickBusy) return;
+    if (quickProto === "one-port-combo") {
+      await runComboCreate();
+      return;
+    }
     const preset = QUICK_PRESET[quickProto] ?? QUICK_PRESET.vless;
     setQuickBusy(true);
     try {
@@ -1054,6 +1069,103 @@ export function InboundsView() {
       } else {
         toast({ title: t.inbounds.toastFail, variant: "destructive" });
       }
+    } catch {
+      toast({ title: t.inbounds.toastFail, variant: "destructive" });
+    } finally {
+      setQuickBusy(false);
+    }
+  };
+
+  /** v2.2 — One-Port Combo: VLESS+TLS on a public port with Xray fallbacks
+   *  routing non-VLESS traffic to an internal Trojan inbound and the panel web. */
+  const runComboCreate = async () => {
+    setQuickBusy(true);
+    const mainPort = quickDraft.port;
+    const used = new Set((rows ?? []).map((r) => r.port));
+    let inner = mainPort + 1;
+    while (used.has(inner)) inner++;
+    const panelPort =
+      typeof window !== "undefined" && window.location.port ? Number(window.location.port) : 3000;
+    const fallbacks = [
+      { name: "panel", alpn: "http/1.1", path: "/panel", dest: `127.0.0.1:${panelPort}` },
+      { dest: `127.0.0.1:${inner}` },
+    ];
+    try {
+      const mainPayload = {
+        tag: quickDraft.tag,
+        protocol: "vless",
+        port: mainPort,
+        listen: "",
+        transport: "tcp",
+        security: "tls",
+        status: "online",
+        note: "",
+        trafficLimitGb: null,
+        expiryDays: null,
+        clients: [
+          {
+            email: `user-${mainPort}`,
+            key: genClientKey("vless"),
+            subId: genSubId(),
+            flow: "",
+            ipLimit: 0,
+            trafficLimitGb: null,
+            expiryDays: null,
+            enabled: true,
+          },
+        ],
+        sniffing: { enabled: true, destOverride: ["http", "tls"], routeOnly: false },
+        stream: { fingerprint: "chrome", fallbacksJson: JSON.stringify(fallbacks) },
+      };
+      const res = await fetch("/api/inbounds", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(mainPayload),
+      });
+      if (res.status === 409) {
+        makeQuickDraft("one-port-combo");
+        toast({ title: t.inbounds.errPortUsed, variant: "destructive" });
+        return;
+      }
+      if (!res.ok) throw new Error("combo-main");
+
+      const innerPayload = {
+        tag: `combo-trojan-${inner}`,
+        protocol: "trojan",
+        port: inner,
+        listen: "127.0.0.1",
+        transport: "tcp",
+        security: "none",
+        status: "online",
+        note: "",
+        trafficLimitGb: null,
+        expiryDays: null,
+        clients: [
+          {
+            email: `trojan-${inner}`,
+            key: genClientKey("trojan"),
+            subId: genSubId(),
+            flow: "",
+            ipLimit: 0,
+            trafficLimitGb: null,
+            expiryDays: null,
+            enabled: true,
+          },
+        ],
+        sniffing: { enabled: false, destOverride: [], routeOnly: false },
+        stream: {},
+      };
+      const res2 = await fetch("/api/inbounds", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(innerPayload),
+      });
+      if (!res2.ok) {
+        toast({ title: t.inbounds.toastFail, variant: "destructive" });
+      }
+      setQuickOpen(false);
+      toast({ title: lfmt(t.inbounds.toastQuick, { tag: quickDraft.tag }) });
+      void load();
     } catch {
       toast({ title: t.inbounds.toastFail, variant: "destructive" });
     } finally {
@@ -2499,6 +2611,49 @@ export function InboundsView() {
     </div>
   );
 
+  /* v2.2 — server-side Xray JSON for this draft (Advanced tab preview + copy).
+     Paste-ready: fallbacks expand into a real array (not the stored string),
+     and mux/fallbacksJson internal keys are stripped from streamSettings. */
+  const serverJsonPreview = (() => {
+    const stream: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(buildStream(form))) {
+      if (k === "mux" || k === "fallbacksJson") continue;
+      stream[k] = v;
+    }
+    const fb = form.fallbacks
+      .filter((f) => f.dest.trim())
+      .map((f) => ({
+        ...(f.name.trim() ? { name: f.name.trim() } : {}),
+        dest: f.dest.trim(),
+        ...(f.alpn.trim() ? { alpn: f.alpn.trim() } : {}),
+        ...(f.path.trim() ? { path: f.path.trim() } : {}),
+      }));
+    if (fb.length > 0) stream.fallbacks = fb;
+    return JSON.stringify(
+      {
+        tag: form.tag.trim() || undefined,
+        protocol: form.protocol,
+        port: Number(form.port) || 0,
+        listen: form.listen || "0.0.0.0",
+        settings: {
+          clients: form.clients.map((c) => ({
+            ...(c.email ? { email: c.email } : {}),
+            ...(c.key ? { id: c.key } : {}),
+            ...(c.flow ? { flow: c.flow } : {}),
+          })),
+        },
+        streamSettings: {
+          network: form.transport,
+          security: form.security,
+          ...stream,
+        },
+        sniffing: form.sniffing,
+      },
+      null,
+      2
+    );
+  })();
+
   const renderAdvanced = () => (
     <div className="space-y-4">
       {/* sniffing */}
@@ -2699,28 +2854,24 @@ export function InboundsView() {
       {/* live JSON preview */}
       <Tip>{t.inbounds.tipJson}</Tip>
       <details className="group rounded-xl border border-white/10 bg-black/30">
-        <summary className="cursor-pointer px-4 py-3 text-[11px] font-semibold tracking-wide text-muted-foreground transition-colors hover:text-foreground">
-          Xray JSON · preview
+        <summary className="flex cursor-pointer items-center justify-between gap-3 px-4 py-3 text-[11px] font-semibold tracking-wide text-muted-foreground transition-colors hover:text-foreground">
+          <span>Xray JSON · preview</span>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 gap-1.5 rounded-full px-2.5 text-[11px]"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              void copyServerJson();
+            }}
+          >
+            <Copy className="h-3 w-3" aria-hidden="true" />
+            {t.system.comboCopy}
+          </Button>
         </summary>
         <pre className="max-h-56 overflow-auto border-t border-white/5 px-4 py-3 font-mono text-[10px] leading-relaxed text-muted-foreground">
-          {JSON.stringify(
-            {
-              protocol: form.protocol,
-              port: Number(form.port) || 0,
-              listen: form.listen || "0.0.0.0",
-              settings: {
-                clients: form.clients.map((c) => ({ email: c.email, id: c.key, flow: c.flow })),
-              },
-              streamSettings: {
-                network: form.transport,
-                security: form.security,
-                ...buildStream(form),
-              },
-              sniffing: form.sniffing,
-            },
-            null,
-            2
-          )}
+          {serverJsonPreview}
         </pre>
       </details>
     </div>
@@ -2789,6 +2940,14 @@ export function InboundsView() {
     if (!previewLink) return;
     try {
       await navigator.clipboard.writeText(previewLink);
+      toast({ title: t.inbounds.toastCopied });
+    } catch {
+      toast({ title: t.inbounds.toastFail, variant: "destructive" });
+    }
+  };
+  const copyServerJson = async () => {
+    try {
+      await navigator.clipboard.writeText(serverJsonPreview);
       toast({ title: t.inbounds.toastCopied });
     } catch {
       toast({ title: t.inbounds.toastFail, variant: "destructive" });
@@ -3602,12 +3761,55 @@ export function InboundsView() {
             </div>
             <Tip>{t.inbounds.tipProtocol}</Tip>
 
+            {/* one-port combo preset (v2.2) */}
+            <button
+              type="button"
+              onClick={() => makeQuickDraft("one-port-combo")}
+              aria-pressed={quickProto === "one-port-combo"}
+              className={cn(
+                "flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-start transition-all outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                quickProto === "one-port-combo"
+                  ? "border-primary/40 bg-primary/10 shadow-[0_0_18px_-6px] shadow-primary/40"
+                  : "border-white/10 bg-white/[0.03] hover:border-white/20"
+              )}
+            >
+              <span className="glass flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
+                <Layers className="h-4 w-4 text-primary" aria-hidden="true" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-xs font-semibold text-foreground">{t.system.comboTile}</span>
+                <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">{t.system.comboHint}</span>
+              </span>
+            </button>
+
             {/* what will be created */}
             <div className="rounded-xl border border-white/10 bg-black/25 p-4">
               <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
                 {t.inbounds.quickWill}
               </p>
               <dl className="mt-3 space-y-2 text-xs">
+                {quickProto === "one-port-combo" ? (
+                  <>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-muted-foreground">{t.system.comboMain}</dt>
+                      <dd className="font-mono text-silver" dir="ltr">:{quickDraft.port}</dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-muted-foreground">{t.system.comboInner}</dt>
+                      <dd className="font-mono text-silver" dir="ltr">127.0.0.1:{(() => {
+                        const used = new Set((rows ?? []).map((r) => r.port));
+                        let p = quickDraft.port + 1;
+                        while (used.has(p)) p++;
+                        return p;
+                      })()}</dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-muted-foreground">{t.system.comboPanel}</dt>
+                      <dd className="font-mono text-silver" dir="ltr">/panel → 127.0.0.1:{typeof window !== "undefined" && window.location.port ? window.location.port : 3000}</dd>
+                    </div>
+                  </>
+                ) : (
+                  <>
                 <div className="flex items-center justify-between gap-3">
                   <dt className="text-muted-foreground">{t.inbounds.quickTag}</dt>
                   <dd className="font-mono text-silver">{quickDraft.tag}</dd>
@@ -3643,6 +3845,8 @@ export function InboundsView() {
                         {quickDraft.key}
                       </dd>
                     </div>
+                  </>
+                )}
                   </>
                 )}
               </dl>

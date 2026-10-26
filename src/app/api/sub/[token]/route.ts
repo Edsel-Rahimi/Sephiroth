@@ -9,6 +9,7 @@ import {
 import {
   buildClashMetaYaml,
   buildSingboxJson,
+  buildXrayJson,
   type SubExportItem,
 } from "@/lib/share-links";
 import { appVersion, getGeneralSettings } from "@/lib/settings";
@@ -20,6 +21,7 @@ import { appVersion, getGeneralSettings } from "@/lib/settings";
         /api/sub/[token]?format=b64     → base64-wrapped URI list
         /api/sub/[token]?format=clash   → Clash Meta (Mihomo) YAML config
         /api/sub/[token]?format=singbox → Sing-Box 1.10+ JSON config
+        /api/sub/[token]?format=xray   → Xray/v2ray-core full JSON profile
    POST /api/sub/[token] {password}     → unlock a password-protected group page
    ============================================================ */
 
@@ -162,7 +164,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
     const found = await resolveToken(token, reqHost, publicHost);
     if (!found) return textResponse("not found", 404);
 
-    if (format === "raw" || format === "b64" || format === "clash" || format === "meta" || format === "singbox" || format === "sb") {
+    if (format === "raw" || format === "b64" || format === "clash" || format === "meta" || format === "singbox" || format === "sb" || format === "xray" || format === "xray-json" || format === "v2ray") {
       if (found.type === "user" && found.disabled) {
         return textResponse("subscription disabled", 410);
       }
@@ -219,6 +221,13 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
       }
       if (format === "singbox" || format === "sb") {
         const json = buildSingboxJson(found.exportItems, payload.name, reqHost, publicHost);
+        return textResponse(json, 200, "application/json; charset=utf-8", {
+          ...subHeaders,
+          ...disposition("json"),
+        });
+      }
+      if (format === "xray" || format === "xray-json" || format === "v2ray") {
+        const json = buildXrayJson(found.exportItems, payload.name, reqHost, publicHost);
         return textResponse(json, 200, "application/json; charset=utf-8", {
           ...subHeaders,
           ...disposition("json"),

@@ -2,6 +2,7 @@ import { randomBytes } from "crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { db } from "@/lib/db";
+import { verifyTotp } from "@/lib/totp";
 
 /* ============================================================
    Sephiroth · Phase 7 — Settings & System (server-only)
@@ -80,6 +81,14 @@ const K = {
   certFile: "set_web_cert_file",
   keyFile: "set_web_key_file",
   sessionMaxAge: "set_session_max_age",
+  // security section (v2.2)
+  secAutoBackup: "set_sec_auto_backup",
+  secAutoKeep: "set_sec_auto_keep",
+  secTotpEnabled: "set_sec_totp_enabled",
+  secTotpSecret: "set_sec_totp_secret",
+  // internal bookkeeping (never exposed via the settings API)
+  autoBackupLast: "set_auto_backup_last",
+  autoBackupLastSize: "set_auto_backup_last_size",
 } as const;
 
 async function readSettings(keys: string[]): Promise<Map<string, string>> {
@@ -561,6 +570,133 @@ export async function saveExpertSettings(e: ExpertSettings): Promise<void> {
     writeSetting(K.keyFile, e.keyFile),
     writeSetting(K.sessionMaxAge, String(e.sessionMaxAge)),
   ]);
+}
+
+/* ---------- security (auto-backup + TOTP 2FA) ---------- */
+
+export interface SecuritySettings {
+  /** Daily server-side backup into db/backups (keeps the last N files). */
+  autoBackupEnabled: boolean;
+  /** How many auto backup files to retain (1-30). */
+  autoBackupKeep: number;
+  /** TOTP second factor active at login. */
+  totpEnabled: boolean;
+  /** A TOTP secret exists (masked — raw value never leaves the server). */
+  totpConfigured: boolean;
+}
+
+const SECURITY_DEFAULT: SecuritySettings = {
+  autoBackupEnabled: false,
+  autoBackupKeep: 7,
+  totpEnabled: false,
+  totpConfigured: false,
+};
+
+export async function getSecuritySettings(): Promise<SecuritySettings> {
+  const m = await readSettings([
+    K.secAutoBackup,
+    K.secAutoKeep,
+    K.secTotpEnabled,
+    K.secTotpSecret,
+  ]);
+  return {
+    autoBackupEnabled: m.get(K.secAutoBackup) === "1",
+    autoBackupKeep: toInt(m.get(K.secAutoKeep), SECURITY_DEFAULT.autoBackupKeep, 1, 30),
+    totpEnabled: m.get(K.secTotpEnabled) === "1",
+    totpConfigured: Boolean(m.get(K.secTotpSecret)),
+  };
+}
+
+export async function getTotpSecret(): Promise<string> {
+  const m = await readSettings([K.secTotpSecret]);
+  return m.get(K.secTotpSecret) ?? "";
+}
+
+/**
+ * Security patch semantics:
+ *  - autoBackupEnabled / autoBackupKeep: plain values.
+ *  - totpSecret + totpCode: enroll — code MUST verify against the provided
+ *    secret before it is stored (protects against typos locking the admin out).
+ *  - totpEnabled:false + totpCode: disable — code MUST verify against the
+ *    SAVED secret (an attacker with only the session cannot silently turn 2FA off).
+ */
+export async function validateSecurityPatch(
+  body: unknown
+): Promise<PatchResult<SecuritySettings & { _enrollSecret?: string }>> {
+  const b = (body ?? {}) as Record<string, unknown>;
+  const out = { ...(await getSecuritySettings()) } as SecuritySettings & {
+    _enrollSecret?: string;
+  };
+
+  if (b.autoBackupEnabled !== undefined) {
+    out.autoBackupEnabled = Boolean(b.autoBackupEnabled);
+  }
+  if (b.autoBackupKeep !== undefined) {
+    const n = Number(b.autoBackupKeep);
+    if (!Number.isInteger(n) || n < 1 || n > 30) {
+      return { ok: false, fields: [{ field: "autoBackupKeep", code: "range" }] };
+    }
+    out.autoBackupKeep = n;
+  }
+
+  if (b.totpSecret !== undefined) {
+    // enrollment path
+    const secret = String(b.totpSecret).replace(/\s+/g, "").toUpperCase();
+    if (!/^[A-Z2-7]{32}$/.test(secret)) {
+      return { ok: false, fields: [{ field: "totpSecret", code: "format" }] };
+    }
+    const code = String(b.totpCode ?? "");
+    if (!verifyTotp(secret, code)) {
+      return { ok: false, fields: [{ field: "totpCode", code: "invalid" }] };
+    }
+    out._enrollSecret = secret;
+    out.totpEnabled = true;
+    out.totpConfigured = true;
+  } else if (b.totpEnabled === true) {
+    // re-enable path — require a valid code against the SAVED secret
+    const saved = await getTotpSecret();
+    if (saved) {
+      const code = String(b.totpCode ?? "");
+      if (!verifyTotp(saved, code)) {
+        return { ok: false, fields: [{ field: "totpCode", code: "invalid" }] };
+      }
+    }
+    out.totpEnabled = true;
+  } else if (b.totpEnabled === false) {
+    // disable path — require a valid code against the saved secret
+    const saved = await getTotpSecret();
+    if (saved) {
+      const code = String(b.totpCode ?? "");
+      if (!verifyTotp(saved, code)) {
+        return { ok: false, fields: [{ field: "totpCode", code: "invalid" }] };
+      }
+    }
+    out.totpEnabled = false;
+  }
+
+  return { ok: true, data: out };
+}
+
+export async function saveSecuritySettings(
+  s: SecuritySettings & { _enrollSecret?: string }
+): Promise<void> {
+  await writeSetting(K.secAutoBackup, s.autoBackupEnabled ? "1" : "0");
+  await writeSetting(K.secAutoKeep, String(s.autoBackupKeep));
+  await writeSetting(K.secTotpEnabled, s.totpEnabled ? "1" : "0");
+  if (s._enrollSecret) {
+    await writeSetting(K.secTotpSecret, s._enrollSecret);
+  }
+}
+
+/** Internal timestamp of the last successful auto-backup (never in the API). */
+export async function getAutoBackupLastRun(): Promise<string> {
+  const m = await readSettings([K.autoBackupLast]);
+  return m.get(K.autoBackupLast) ?? "";
+}
+
+export async function markAutoBackupRun(sizeBytes: number): Promise<void> {
+  await writeSetting(K.autoBackupLast, new Date().toISOString());
+  await writeSetting(K.autoBackupLastSize, String(Math.max(0, Math.round(sizeBytes))));
 }
 
 /* ---------- recovery key ---------- */

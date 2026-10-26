@@ -608,3 +608,158 @@ export function buildSingboxJson(
 
   return JSON.stringify(profile, null, 2);
 }
+
+/* ============================================================
+   Xray (v2ray-core compatible) full client profile — v2.2
+   Full config JSON importable by v2rayN / v2rayNG / Nekoray /
+   Xray clients. Only protocols Xray-core supports are mapped
+   (vless / vmess / trojan / shadowsocks); hysteria2 & wireguard
+   items are skipped (use sing-box / clash profiles for those).
+   ============================================================ */
+
+function xrayStreamSettings(
+  st: Record<string, unknown>,
+  transport: string,
+  security: string
+): Record<string, unknown> {
+  const stream: Record<string, unknown> = { network: transport || "tcp", security: security || "none" };
+
+  if (security === "tls") {
+    stream.tlsSettings = {
+      serverName: String(st.sni || ""),
+      allowInsecure: Boolean(st.allowInsecure),
+      fingerprint: String(st.fingerprint || "chrome"),
+      ...(st.alpn ? { alpn: String(st.alpn).split(",").map((s) => s.trim()).filter(Boolean) } : {}),
+    };
+  } else if (security === "reality") {
+    stream.realitySettings = {
+      serverName: String(st.sni || ""),
+      fingerprint: String(st.fingerprint || "chrome"),
+      publicKey: String(st.publicKey || ""),
+      shortId: String(st.shortIds || "").split(",")[0]?.trim() || "",
+      spiderX: String(st.spiderX || "/"),
+    };
+  }
+
+  if (transport === "ws") {
+    stream.wsSettings = {
+      path: String(st.path || "/"),
+      ...(st.host ? { headers: { Host: String(st.host) } } : {}),
+    };
+  } else if (transport === "grpc") {
+    stream.grpcSettings = { serviceName: String(st.serviceName || ""), multiMode: st.multiMode === true };
+  } else if (transport === "httpupgrade") {
+    stream.httpupgradeSettings = { path: String(st.path || "/"), ...(st.host ? { host: String(st.host) } : {}) };
+  } else if (transport === "xhttp") {
+    stream.xhttpSettings = { path: String(st.path || "/"), ...(st.host ? { host: String(st.host) } : {}) };
+  } else if (transport === "http") {
+    stream.httpSettings = { path: String(st.path || "/"), ...(st.host ? { host: [String(st.host)] } : {}) };
+  }
+  return stream;
+}
+
+export function buildXrayJson(
+  items: SubExportItem[],
+  subName: string,
+  fallbackHost?: string,
+  publicHost?: string
+): string {
+  const outbounds: Record<string, unknown>[] = [];
+  const tags: string[] = [];
+
+  items.forEach((item, idx) => {
+    const host = hostOf({ listen: item.listen || "", stream: item.stream }, fallbackHost, publicHost);
+    const st = item.stream || {};
+    const stream = xrayStreamSettings(st, item.transport, item.security);
+    const tag = `${BRAND_TAG}-${item.tag}-${idx + 1}`;
+    let outbound: Record<string, unknown> | null = null;
+
+    if (item.protocol === "vless") {
+      outbound = {
+        tag,
+        protocol: "vless",
+        settings: {
+          vnext: [
+            {
+              address: host,
+              port: item.port,
+              users: [{ id: item.key || KEY_FALLBACK.vless, encryption: "none", flow: item.flow || "", level: 0 }],
+            },
+          ],
+        },
+        streamSettings: stream,
+        mux: { enabled: false, concurrency: -1 },
+      };
+    } else if (item.protocol === "vmess") {
+      outbound = {
+        tag,
+        protocol: "vmess",
+        settings: {
+          vnext: [
+            {
+              address: host,
+              port: item.port,
+              users: [{ id: item.key || KEY_FALLBACK.vmess, alterId: 0, security: "auto", level: 0 }],
+            },
+          ],
+        },
+        streamSettings: stream,
+        mux: { enabled: false, concurrency: -1 },
+      };
+    } else if (item.protocol === "trojan") {
+      outbound = {
+        tag,
+        protocol: "trojan",
+        settings: {
+          servers: [{ address: host, port: item.port, password: item.key || KEY_FALLBACK.trojan, level: 0 }],
+        },
+        streamSettings: stream,
+      };
+    } else if (item.protocol === "shadowsocks") {
+      outbound = {
+        tag,
+        protocol: "shadowsocks",
+        settings: {
+          servers: [
+            {
+              address: host,
+              port: item.port,
+              method: String(st.method || "2022-blake3-aes-128-gcm"),
+              password: item.key || KEY_FALLBACK.shadowsocks,
+              uot: true,
+            },
+          ],
+        },
+      };
+    }
+
+    if (outbound) {
+      tags.push(tag);
+      outbounds.push(outbound);
+    }
+  });
+
+  const profile = {
+    _comment: `${BRAND_TAG} Xray client profile — ${subName}`,
+    log: { loglevel: "warning" },
+    inbounds: [
+      { tag: "socks-in", listen: "127.0.0.1", port: 10808, protocol: "socks", settings: { udp: true }, sniffing: { enabled: true, destOverride: ["http", "tls", "quic"] } },
+      { tag: "http-in", listen: "127.0.0.1", port: 10809, protocol: "http", settings: {} },
+    ],
+    outbounds: [
+      ...outbounds,
+      { tag: "direct", protocol: "freedom", settings: {} },
+      { tag: "block", protocol: "blackhole", settings: { response: { type: "http" } } },
+    ],
+    routing: {
+      domainStrategy: "IPIfNonMatch",
+      rules: [
+        { type: "field", outboundTag: "block", protocol: ["bittorrent"] },
+        { type: "field", outboundTag: "direct", ip: ["geoip:private"] },
+        ...(tags.length ? [{ type: "field", outboundTag: tags[0], port: "0-65535" }] : []),
+      ],
+    },
+  };
+
+  return JSON.stringify(profile, null, 2);
+}

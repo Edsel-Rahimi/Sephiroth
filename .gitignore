@@ -58,3 +58,8 @@ download/
 tool-results/
 db/*.bak
 db/*.tmp
+# sephiroth runtime artifacts (v2.2)
+db/backups/
+db/update-status.json
+db/update-runner.sh
+db/update.log

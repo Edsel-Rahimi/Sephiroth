@@ -99,6 +99,7 @@ export interface Dict {
     okRecovered: string;
     welcomeToast: string;
     loggedOutToast: string;
+    totpPrompt: string;
   };
   dash: {
     phaseBadge: string;
@@ -1354,6 +1355,81 @@ export interface Dict {
     save: string;
     savePreview: string;
   };
+  system: {
+    // — software update —
+    updTitle: string;
+    updDesc: string;
+    updCurrent: string;
+    updLatest: string;
+    updCheck: string;
+    updChecking: string;
+    updUpToDate: string;
+    updAvailable: string;
+    updApply: string;
+    updApplying: string;
+    updNotGit: string;
+    updNotGitHint: string;
+    updSuccess: string;
+    updFailed: string;
+    updRestart: string;
+    updRestarting: string;
+    updRestartHint: string;
+    updCheckFail: string;
+    updRepo: string;
+    // — scheduled backups —
+    abTitle: string;
+    abDesc: string;
+    abEnable: string;
+    abKeep: string;
+    abKeepHint: string;
+    abLastRun: string;
+    abNever: string;
+    abList: string;
+    abEmpty: string;
+    abDownload: string;
+    abDelete: string;
+    abRunNow: string;
+    abRunning: string;
+    abDone: string;
+    // — TOTP 2FA —
+    totpTitle: string;
+    totpDesc: string;
+    totpStart: string;
+    totpCancel: string;
+    totpScan: string;
+    totpSecretLbl: string;
+    totpCode: string;
+    totpCodePh: string;
+    totpVerify: string;
+    totpVerifying: string;
+    totpInvalid: string;
+    totpOn: string;
+    totpOff: string;
+    totpDisableHint: string;
+    totpWarn: string;
+    // — MTProto proxy —
+    mtpTitle: string;
+    mtpDesc: string;
+    mtpHost: string;
+    mtpPort: string;
+    mtpMode: string;
+    mtpModeDd: string;
+    mtpModePlain: string;
+    mtpGen: string;
+    mtpSecret: string;
+    mtpLink: string;
+    mtpSetup: string;
+    mtpSetupTitle: string;
+    mtpNote: string;
+    // — one-port combo (quick create) —
+    comboTile: string;
+    comboHint: string;
+    comboWill: string;
+    comboMain: string;
+    comboInner: string;
+    comboPanel: string;
+    comboCopy: string;
+  };
 }
 
 export const dictionaries: Record<Lang, Dict> = {
@@ -1433,6 +1509,7 @@ export const dictionaries: Record<Lang, Dict> = {
       okRecovered: "Password updated. Sign in with your new password.",
       welcomeToast: "Welcome back, {name}",
       loggedOutToast: "Signed out safely",
+      totpPrompt: "Two-factor is on — enter the 6-digit code from your authenticator app",
     },
     dash: {
       phaseBadge: "PHASE 0 · DESIGN SYSTEM",
@@ -2708,6 +2785,76 @@ export const dictionaries: Record<Lang, Dict> = {
       savePreview:
         "Gateway credentials are stored in this session (preview) — server persistence lands with settings storage.",
     },
+    system: {
+      updTitle: "Software Update",
+      updDesc: "Check the public Sephiroth repository and update the panel in one click — the 3x-ui style self-update",
+      updCurrent: "Installed version",
+      updLatest: "Latest version",
+      updCheck: "Check for updates",
+      updChecking: "Checking…",
+      updUpToDate: "Panel is up to date",
+      updAvailable: "Update available",
+      updApply: "Update now",
+      updApplying: "Updating…",
+      updNotGit: "Not a git deployment",
+      updNotGitHint: "One-click update needs a git clone. Download the latest release as ZIP and re-upload it to your host.",
+      updSuccess: "Update applied — restart the panel to load the new version",
+      updFailed: "Update failed — check db/update.log on the server for details",
+      updRestart: "Restart panel",
+      updRestarting: "Restarting…",
+      updRestartHint: "The process restarts so the host loads the updated code; the panel comes back in a few seconds.",
+      updCheckFail: "Could not reach the update server — check the host's internet access",
+      updRepo: "Public repository",
+      abTitle: "Scheduled Backups",
+      abDesc: "Automatic daily server-side backup of the whole panel state",
+      abEnable: "Daily auto backup",
+      abKeep: "Files to keep",
+      abKeepHint: "Older auto-backup files beyond this number are deleted automatically",
+      abLastRun: "Last run",
+      abNever: "never",
+      abList: "Backup files on server",
+      abEmpty: "No auto backup files yet",
+      abDownload: "Download",
+      abDelete: "Delete",
+      abRunNow: "Back up now",
+      abRunning: "Backing up…",
+      abDone: "Server backup created",
+      totpTitle: "Two-Factor Login (TOTP)",
+      totpDesc: "Require a rotating 6-digit code from an authenticator app for admin sign-in",
+      totpStart: "Enable 2FA",
+      totpCancel: "Cancel",
+      totpScan: "Scan the QR with Google Authenticator / Aegis / Authy, then enter the current code",
+      totpSecretLbl: "Manual key",
+      totpCode: "6-digit code",
+      totpCodePh: "123456",
+      totpVerify: "Verify & enable",
+      totpVerifying: "Verifying…",
+      totpInvalid: "Code is wrong or expired — try again",
+      totpOn: "2FA is active",
+      totpOff: "2FA is off",
+      totpDisableHint: "Enter a current code to turn 2FA off",
+      totpWarn: "Keep the QR/key safe — without it you cannot sign in",
+      mtpTitle: "MTProto Proxy (Telegram)",
+      mtpDesc: "Generate a dedicated Telegram MTProto proxy: secret, tg:// links and server setup",
+      mtpHost: "Server host or IP",
+      mtpPort: "Port",
+      mtpMode: "Secret mode",
+      mtpModeDd: "FakeTLS (dd) — recommended, looks like normal TLS",
+      mtpModePlain: "Plain (16 bytes)",
+      mtpGen: "Generate secret",
+      mtpSecret: "Secret",
+      mtpLink: "Invite links",
+      mtpSetup: "Server setup",
+      mtpSetupTitle: "Run an MTProto proxy on your server",
+      mtpNote: "Xray-core removed its mtproto inbound in v24.10+; run a dedicated daemon (mtg / MTProtoProxy) instead. MTProto needs a raw TCP port — on single-port hosts use a second port or SNI routing.",
+      comboTile: "One-Port Combo",
+      comboHint: "Several protocols on one public port via Xray fallbacks",
+      comboWill: "Will be created",
+      comboMain: "Main port (VLESS + TLS)",
+      comboInner: "Trojan on localhost",
+      comboPanel: "Panel fallback",
+      comboCopy: "Copy server JSON",
+    },
   },
 
   fa: {
@@ -2786,6 +2933,7 @@ export const dictionaries: Record<Lang, Dict> = {
       okRecovered: "رمز به‌روزرسانی شد. با رمز تازه وارد شو.",
       welcomeToast: "خوش برگشتی، {name}",
       loggedOutToast: "با خیال راحت خارج شدی",
+      totpPrompt: "ورود دومرحله‌ای فعاله — کد ۶ رقمی اپلیکیشن احرازکننده را وارد کن",
     },
     dash: {
       phaseBadge: "فاز ۰ · سیستم طراحی",
@@ -4057,6 +4205,76 @@ export const dictionaries: Record<Lang, Dict> = {
       savePreview:
         "اطلاعات درگاه فقط در همین نشست ذخیره می‌شود (پیش‌نمایش) — ذخیره‌سازی سرور همراه بخش تنظیمات اضافه می‌شود.",
     },
+    system: {
+      updTitle: "بروزرسانی نرم‌افزار",
+      updDesc: "بررسی مخزن عمومی سپیفیراث و بروزرسانی پنل با یک کلیک — همان دکمه آپدیت پنل سنایی",
+      updCurrent: "نسخه نصب‌شده",
+      updLatest: "آخرین نسخه",
+      updCheck: "بررسی بروزرسانی",
+      updChecking: "در حال بررسی…",
+      updUpToDate: "پنل بروز است",
+      updAvailable: "بروزرسانی موجود است",
+      updApply: "همین حالا بروزرسانی کن",
+      updApplying: "در حال بروزرسانی…",
+      updNotGit: "نصب گیت نیست",
+      updNotGitHint: "بروزرسانی یک‌کلیکی به کلون گیت نیاز دارد. آخرین نسخه را به‌صورت ZIP دانلود و روی هاست دوباره آپلود کنید.",
+      updSuccess: "بروزرسانی انجام شد — برای اعمال نسخه جدید پنل را ری‌استارت کنید",
+      updFailed: "بروزرسانی ناموفق بود — جزئیات در فایل db/update.log سرور",
+      updRestart: "ری‌استارت پنل",
+      updRestarting: "در حال ری‌استارت…",
+      updRestartHint: "پروسه ری‌استارت می‌شود تا هاست کد جدید را لود کند؛ پنل چند ثانیه دیگر برمی‌گردد.",
+      updCheckFail: "ارتباط با سرور بروزرسانی ممکن نشد — اینترنت هاست را بررسی کنید",
+      updRepo: "مخزن عمومی",
+      abTitle: "بکاپ زمان‌بندی‌شده",
+      abDesc: "بکاپ خودکار روزانه از کل وضعیت پنل روی خود سرور",
+      abEnable: "بکاپ خودکار روزانه",
+      abKeep: "تعداد فایل نگه‌داشته‌شده",
+      abKeepHint: "فایل‌های بکاپ قدیمی‌تر از این تعداد خودکار حذف می‌شوند",
+      abLastRun: "آخرین اجرا",
+      abNever: "هرگز",
+      abList: "فایل‌های بکاپ روی سرور",
+      abEmpty: "هنوز فایل بکاپ خودکاری وجود ندارد",
+      abDownload: "دانلود",
+      abDelete: "حذف",
+      abRunNow: "همین حالا بکاپ بگیر",
+      abRunning: "در حال بکاپ…",
+      abDone: "بکاپ سروری ساخته شد",
+      totpTitle: "ورود دومرحله‌ای (TOTP)",
+      totpDesc: "برای ورود مدیر، کد ۶ رقمی متغیر از اپلیکیشن احرازکننده لازم می‌شود",
+      totpStart: "فعال‌سازی 2FA",
+      totpCancel: "انصراف",
+      totpScan: "QR را با Google Authenticator / Aegis / Authy اسکن کنید و کد فعلی را وارد کنید",
+      totpSecretLbl: "کلید دستی",
+      totpCode: "کد ۶ رقمی",
+      totpCodePh: "۱۲۳۴۵۶",
+      totpVerify: "تأیید و فعال‌سازی",
+      totpVerifying: "در حال تأیید…",
+      totpInvalid: "کد اشتباه یا منقضی است — دوباره تلاش کنید",
+      totpOn: "2FA فعال است",
+      totpOff: "2FA خاموش است",
+      totpDisableHint: "برای خاموش‌کردن 2FA کد فعلی را وارد کنید",
+      totpWarn: "QR/کلید را امن نگه دارید — بدون آن ورود ممکن نیست",
+      mtpTitle: "پروکسی MTProto (تلگرام)",
+      mtpDesc: "ساخت پروکسی اختصاصی تلگرام: سکرت، لینک‌های tg:// و راه‌اندازی سرور",
+      mtpHost: "هاست یا آی‌پی سرور",
+      mtpPort: "پورت",
+      mtpMode: "حالت سکرت",
+      mtpModeDd: "FakeTLS (dd) — پیشنهادی، شبیه TLS عادی دیده می‌شود",
+      mtpModePlain: "ساده (۱۶ بایت)",
+      mtpGen: "ساخت سکرت",
+      mtpSecret: "سکرت",
+      mtpLink: "لینک‌های دعوت",
+      mtpSetup: "راه‌اندازی سرور",
+      mtpSetupTitle: "اجرای پروکسی MTProto روی سرور",
+      mtpNote: "Xray-core از نسخه v24.10 به بعد inbound مربوط به mtproto را حذف کرده؛ به‌جای آن دیمن اختصاصی (mtg / MTProtoProxy) را اجرا کنید. MTProto به یک پورت TCP خام نیاز دارد — روی هاست تک‌پورتی از پورت دوم یا روتینگ SNI استفاده کنید.",
+      comboTile: "کمبو تک‌پورت",
+      comboHint: "چند پروتکل روی یک پورت عمومی با fallback ایکس‌ری",
+      comboWill: "ساخته می‌شود",
+      comboMain: "پورت اصلی (VLESS + TLS)",
+      comboInner: "تروجان روی localhost",
+      comboPanel: "فال‌بک پنل",
+      comboCopy: "کپی JSON سرور",
+    },
   },
 
   ar: {
@@ -4135,6 +4353,7 @@ export const dictionaries: Record<Lang, Dict> = {
       okRecovered: "تم تحديث كلمة المرور. سجّل دخولك بكلمتك الجديدة.",
       welcomeToast: "مرحباً بعودتك، {name}",
       loggedOutToast: "تم تسجيل الخروج بأمان",
+      totpPrompt: "التحقق الثنائي مفعّل — أدخل رمز الـ 6 أرقام من تطبيق المصادقة",
     },
     dash: {
       phaseBadge: "المرحلة ٠ · نظام التصميم",
@@ -5405,6 +5624,76 @@ export const dictionaries: Record<Lang, Dict> = {
       savePreview:
         "تُحفظ بيانات البوابة في هذه الجلسة فقط (معاينة) — الحفظ على الخادم قادم مع مخزن الإعدادات.",
     },
+    system: {
+      updTitle: "تحديث البرنامج",
+      updDesc: "افحص مستودع Sephiroth العام وحدّث اللوحة بنقرة واحدة — مثل زر التحديث في 3x-ui",
+      updCurrent: "النسخة المثبتة",
+      updLatest: "أحدث نسخة",
+      updCheck: "فحص التحديثات",
+      updChecking: "جارٍ الفحص…",
+      updUpToDate: "اللوحة محدّثة",
+      updAvailable: "يتوفر تحديث",
+      updApply: "حدّث الآن",
+      updApplying: "جارٍ التحديث…",
+      updNotGit: "التثبيت ليس عبر Git",
+      updNotGitHint: "التحديث بنقرة واحدة يحتاج نسخة Git. نزّل أحدث إصدار بصيغة ZIP وأعد رفعه إلى المضيف.",
+      updSuccess: "تم التحديث — أعد تشغيل اللوحة لتحميل النسخة الجديدة",
+      updFailed: "فشل التحديث — راجع ملف db/update.log على الخادم",
+      updRestart: "إعادة تشغيل اللوحة",
+      updRestarting: "جارٍ إعادة التشغيل…",
+      updRestartHint: "يُعاد تشغيل العملية ليحمّل المضيف الشيفرة الجديدة؛ تعود اللوحة خلال ثوانٍ.",
+      updCheckFail: "تعذّر الوصول إلى خادم التحديث — تحقق من إنترنت المضيف",
+      updRepo: "المستودع العام",
+      abTitle: "نسخ احتياطي مجدول",
+      abDesc: "نسخ احتياطي يومي تلقائي لحالة اللوحة كاملة على الخادم",
+      abEnable: "نسخ تلقائي يومي",
+      abKeep: "عدد الملفات المحفوظة",
+      abKeepHint: "تُحذف ملفات النسخ الأقدم من هذا العدد تلقائيًا",
+      abLastRun: "آخر تشغيل",
+      abNever: "أبدًا",
+      abList: "ملفات النسخ على الخادم",
+      abEmpty: "لا توجد ملفات نسخ تلقائي بعد",
+      abDownload: "تنزيل",
+      abDelete: "حذف",
+      abRunNow: "انسخ الآن",
+      abRunning: "جارٍ النسخ…",
+      abDone: "أُنشئت النسخة الاحتياطية على الخادم",
+      totpTitle: "دخول ثنائي الخطوات (TOTP)",
+      totpDesc: "يُطلب رمز من 6 أرقام متغيّر من تطبيق مصادقة عند دخول المدير",
+      totpStart: "تفعيل 2FA",
+      totpCancel: "إلغاء",
+      totpScan: "امسح رمز QR عبر Google Authenticator / Aegis / Authy ثم أدخل الرمز الحالي",
+      totpSecretLbl: "المفتاح اليدوي",
+      totpCode: "رمز من 6 أرقام",
+      totpCodePh: "123456",
+      totpVerify: "تحقق وتفعيل",
+      totpVerifying: "جارٍ التحقق…",
+      totpInvalid: "الرمز خاطئ أو منتهٍ — أعد المحاولة",
+      totpOn: "2FA مفعّل",
+      totpOff: "2FA متوقف",
+      totpDisableHint: "أدخل رمزًا حاليًا لإيقاف 2FA",
+      totpWarn: "احفظ رمز QR/المفتاح بأمان — بدونه لا يمكنك الدخول",
+      mtpTitle: "بروكسي MTProto (تيليجرام)",
+      mtpDesc: "أنشئ بروكسي MTProto مخصص: السر وروابط tg:// وإعداد الخادم",
+      mtpHost: "مضيف الخادم أو IP",
+      mtpPort: "المنفذ",
+      mtpMode: "نمط السر",
+      mtpModeDd: "FakeTLS (dd) — موصى به، يبدو كـ TLS عادي",
+      mtpModePlain: "عادي (16 بايت)",
+      mtpGen: "إنشاء سر",
+      mtpSecret: "السر",
+      mtpLink: "روابط الدعوة",
+      mtpSetup: "إعداد الخادم",
+      mtpSetupTitle: "تشغيل بروكسي MTProto على خادمك",
+      mtpNote: "أزال Xray-core مدخل mtproto اعتبارًا من v24.10؛ شغّل ديمون مخصص (mtg / MTProtoProxy) بدلًا منه. يحتاج MTProto منفذ TCP خام — على المضيفين أحاديي المنفذ استخدم منفذًا ثانيًا أو توجيه SNI.",
+      comboTile: "كومبو المنفذ الواحد",
+      comboHint: "عدة بروتوكولات على منفذ عام واحد عبر fallback في Xray",
+      comboWill: "سيُنشأ",
+      comboMain: "المنفذ الرئيسي (VLESS + TLS)",
+      comboInner: "Trojan على localhost",
+      comboPanel: "بديل اللوحة",
+      comboCopy: "نسخ JSON الخادم",
+    },
   },
 
   zh: {
@@ -5482,6 +5771,7 @@ export const dictionaries: Record<Lang, Dict> = {
       okRecovered: "密码已更新。请用新密码登录。",
       welcomeToast: "欢迎回来，{name}",
       loggedOutToast: "已安全退出",
+      totpPrompt: "已开启两步验证——请输入验证器应用中的 6 位验证码",
     },
     dash: {
       phaseBadge: "阶段 0 · 设计系统",
@@ -6751,6 +7041,76 @@ export const dictionaries: Record<Lang, Dict> = {
       savePreview:
         "网关凭据仅保存在本会话（预览）— 服务器持久化将随设置存储一同上线。",
     },
+    system: {
+      updTitle: "软件更新",
+      updDesc: "检查 Sephiroth 公共仓库并一键更新面板——与 3x-ui 相同的面板自更新",
+      updCurrent: "当前版本",
+      updLatest: "最新版本",
+      updCheck: "检查更新",
+      updChecking: "检查中…",
+      updUpToDate: "面板已是最新",
+      updAvailable: "有可用更新",
+      updApply: "立即更新",
+      updApplying: "更新中…",
+      updNotGit: "非 Git 部署",
+      updNotGitHint: "一键更新需要 Git 克隆。请下载最新版 ZIP 并重新上传到主机。",
+      updSuccess: "更新完成——重启面板以加载新版本",
+      updFailed: "更新失败——请查看服务器上的 db/update.log",
+      updRestart: "重启面板",
+      updRestarting: "重启中…",
+      updRestartHint: "重启进程让主机加载新代码；面板几秒内恢复。",
+      updCheckFail: "无法连接更新服务器——请检查主机的外网访问",
+      updRepo: "公共仓库",
+      abTitle: "定时备份",
+      abDesc: "每天自动在服务器上备份整个面板状态",
+      abEnable: "每日自动备份",
+      abKeep: "保留文件数",
+      abKeepHint: "超过此数量的旧备份文件会被自动删除",
+      abLastRun: "上次运行",
+      abNever: "从未",
+      abList: "服务器上的备份文件",
+      abEmpty: "还没有自动备份文件",
+      abDownload: "下载",
+      abDelete: "删除",
+      abRunNow: "立即备份",
+      abRunning: "备份中…",
+      abDone: "服务器备份已创建",
+      totpTitle: "两步登录（TOTP）",
+      totpDesc: "管理员登录需输入验证器应用中的 6 位动态码",
+      totpStart: "启用 2FA",
+      totpCancel: "取消",
+      totpScan: "用 Google Authenticator / Aegis / Authy 扫描二维码，然后输入当前验证码",
+      totpSecretLbl: "手动密钥",
+      totpCode: "6 位验证码",
+      totpCodePh: "123456",
+      totpVerify: "验证并启用",
+      totpVerifying: "验证中…",
+      totpInvalid: "验证码错误或已过期——请重试",
+      totpOn: "2FA 已启用",
+      totpOff: "2FA 未启用",
+      totpDisableHint: "输入当前验证码以关闭 2FA",
+      totpWarn: "请妥善保存二维码/密钥——丢失将无法登录",
+      mtpTitle: "MTProto 代理（Telegram）",
+      mtpDesc: "生成专用 Telegram MTProto 代理：密钥、tg:// 链接与服务器部署",
+      mtpHost: "服务器地址或 IP",
+      mtpPort: "端口",
+      mtpMode: "密钥模式",
+      mtpModeDd: "FakeTLS（dd）——推荐，伪装为普通 TLS",
+      mtpModePlain: "明文（16 字节）",
+      mtpGen: "生成密钥",
+      mtpSecret: "密钥",
+      mtpLink: "邀请链接",
+      mtpSetup: "服务器部署",
+      mtpSetupTitle: "在你的服务器上运行 MTProto 代理",
+      mtpNote: "Xray-core 自 v24.10 起移除了 mtproto 入站；请改用专用守护进程（mtg / MTProtoProxy）。MTProto 需要原始 TCP 端口——单端口主机请使用第二个端口或 SNI 分流。",
+      comboTile: "单端口组合",
+      comboHint: "通过 Xray fallback 在一个公网端口上承载多个协议",
+      comboWill: "将创建",
+      comboMain: "主端口（VLESS + TLS）",
+      comboInner: "本机 Trojan",
+      comboPanel: "面板回退",
+      comboCopy: "复制服务器 JSON",
+    },
   },
 
   tr: {
@@ -6829,6 +7189,7 @@ export const dictionaries: Record<Lang, Dict> = {
       okRecovered: "Şifre güncellendi. Yeni şifrenle giriş yap.",
       welcomeToast: "Tekrar hoş geldin, {name}",
       loggedOutToast: "Güvenle çıkış yapıldı",
+      totpPrompt: "İki adımlı doğrulama açık — kimlik doğrulama uygulamasındaki 6 haneli kodu girin",
     },
     dash: {
       phaseBadge: "AŞAMA 0 · TASARIM SİSTEMİ",
@@ -8100,6 +8461,76 @@ export const dictionaries: Record<Lang, Dict> = {
       savePreview:
         "Ağ geçidi bilgileri yalnızca bu oturumda saklanır (önizleme) — sunucu kalıcılığı ayar deposuyla gelecek.",
     },
+    system: {
+      updTitle: "Yazılım Güncellemesi",
+      updDesc: "Herkese açık Sephiroth deposunu kontrol et ve paneli tek tıkla güncelle — 3x-ui tarzı kendi kendine güncelleme",
+      updCurrent: "Kurulu sürüm",
+      updLatest: "Son sürüm",
+      updCheck: "Güncellemeleri kontrol et",
+      updChecking: "Kontrol ediliyor…",
+      updUpToDate: "Panel güncel",
+      updAvailable: "Güncelleme var",
+      updApply: "Şimdi güncelle",
+      updApplying: "Güncelleniyor…",
+      updNotGit: "Git kurulumu değil",
+      updNotGitHint: "Tek tıkla güncelleme git klonu gerektirir. Son sürümü ZIP olarak indirip sunucuya yeniden yükleyin.",
+      updSuccess: "Güncelleme tamam — yeni sürümü yüklemek için paneli yeniden başlatın",
+      updFailed: "Güncelleme başarısız — sunucuda db/update.log dosyasına bakın",
+      updRestart: "Paneli yeniden başlat",
+      updRestarting: "Yeniden başlatılıyor…",
+      updRestartHint: "Sunucu yeni kodu yüklesin diye süreç yeniden başlar; panel birkaç saniyede döner.",
+      updCheckFail: "Güncelleme sunucusuna ulaşılamadı — sunucunun internetini kontrol edin",
+      updRepo: "Herkese açık depo",
+      abTitle: "Zamanlanmış Yedekler",
+      abDesc: "Tüm panel durumunun günlük otomatik sunucu yedeği",
+      abEnable: "Günlük otomatik yedek",
+      abKeep: "Saklanacak dosya sayısı",
+      abKeepHint: "Bu sayıyı aşan eski yedek dosyaları otomatik silinir",
+      abLastRun: "Son çalışma",
+      abNever: "hiç",
+      abList: "Sunucudaki yedek dosyaları",
+      abEmpty: "Henüz otomatik yedek dosyası yok",
+      abDownload: "İndir",
+      abDelete: "Sil",
+      abRunNow: "Şimdi yedekle",
+      abRunning: "Yedekleniyor…",
+      abDone: "Sunucu yedeği oluşturuldu",
+      totpTitle: "İki Adımlı Giriş (TOTP)",
+      totpDesc: "Yönetici girişinde kimlik doğrulama uygulamasından dönen 6 haneli kod istenir",
+      totpStart: "2FA'yı etkinleştir",
+      totpCancel: "Vazgeç",
+      totpScan: "QR'ı Google Authenticator / Aegis / Authy ile okutun ve güncel kodu girin",
+      totpSecretLbl: "Manuel anahtar",
+      totpCode: "6 haneli kod",
+      totpCodePh: "123456",
+      totpVerify: "Doğrula ve etkinleştir",
+      totpVerifying: "Doğrulanıyor…",
+      totpInvalid: "Kod hatalı veya süresi geçti — tekrar deneyin",
+      totpOn: "2FA etkin",
+      totpOff: "2FA kapalı",
+      totpDisableHint: "2FA'yı kapatmak için güncel bir kod girin",
+      totpWarn: "QR/anahtarı güvenli saklayın — olmadan giriş yapamazsınız",
+      mtpTitle: "MTProto Proxy (Telegram)",
+      mtpDesc: "Özel Telegram MTProto proxy üret: gizli anahtar, tg:// bağlantıları ve sunucu kurulumu",
+      mtpHost: "Sunucu adresi veya IP",
+      mtpPort: "Port",
+      mtpMode: "Gizli anahtar modu",
+      mtpModeDd: "FakeTLS (dd) — önerilir, normal TLS gibi görünür",
+      mtpModePlain: "Düz (16 bayt)",
+      mtpGen: "Gizli anahtar üret",
+      mtpSecret: "Gizli anahtar",
+      mtpLink: "Davet bağlantıları",
+      mtpSetup: "Sunucu kurulumu",
+      mtpSetupTitle: "Sunucunuzda MTProto proxy çalıştırın",
+      mtpNote: "Xray-core v24.10+ sürümünde mtproto inbound'ı kaldırdı; bunun yerine özel bir daemon (mtg / MTProtoProxy) çalıştırın. MTProto ham bir TCP portu ister — tek portlu sunucularda ikinci bir port veya SNI yönlendirme kullanın.",
+      comboTile: "Tek Port Kombo",
+      comboHint: "Xray fallback ile tek genel portta birden çok protokol",
+      comboWill: "Oluşturulacak",
+      comboMain: "Ana port (VLESS + TLS)",
+      comboInner: "localhost üzerinde Trojan",
+      comboPanel: "Panel yedek rotası",
+      comboCopy: "Sunucu JSON'unu kopyala",
+    },
   },
 
   ru: {
@@ -8179,6 +8610,7 @@ export const dictionaries: Record<Lang, Dict> = {
       okRecovered: "Пароль обновлён. Войдите с новым паролем.",
       welcomeToast: "С возвращением, {name}",
       loggedOutToast: "Вышли безопасно",
+      totpPrompt: "Двухфакторная защита включена — введите 6-значный код из приложения-аутентификатора",
     },
     dash: {
       phaseBadge: "ФАЗА 0 · ДИЗАЙН-СИСТЕМА",
@@ -9449,6 +9881,76 @@ export const dictionaries: Record<Lang, Dict> = {
       save: "Сохранить платёжные хуки",
       savePreview:
         "Данные шлюза хранятся только в этой сессии (превью) — серверное сохранение появится вместе с хранилищем настроек.",
+    },
+    system: {
+      updTitle: "Обновление панели",
+      updDesc: "Проверьте публичный репозиторий Sephiroth и обновите панель в один клик — самообновление как в 3x-ui",
+      updCurrent: "Установленная версия",
+      updLatest: "Последняя версия",
+      updCheck: "Проверить обновления",
+      updChecking: "Проверяем…",
+      updUpToDate: "Панель актуальна",
+      updAvailable: "Доступно обновление",
+      updApply: "Обновить сейчас",
+      updApplying: "Обновляем…",
+      updNotGit: "Установка не через Git",
+      updNotGitHint: "Обновление в один клик требует git-клона. Скачайте последний релиз ZIP и заново загрузите на хостинг.",
+      updSuccess: "Обновление применено — перезапустите панель, чтобы загрузить новую версию",
+      updFailed: "Обновление не удалось — смотрите db/update.log на сервере",
+      updRestart: "Перезапустить панель",
+      updRestarting: "Перезапуск…",
+      updRestartHint: "Процесс перезапустится, чтобы хост загрузил новый код; панель вернётся через несколько секунд.",
+      updCheckFail: "Не удалось связаться с сервером обновлений — проверьте интернет на хосте",
+      updRepo: "Публичный репозиторий",
+      abTitle: "Бэкапы по расписанию",
+      abDesc: "Ежедневный автоматический бэкап всего состояния панели на сервере",
+      abEnable: "Ежедневный автобэкап",
+      abKeep: "Сколько файлов хранить",
+      abKeepHint: "Старые файлы автобэкапа сверх этого числа удаляются автоматически",
+      abLastRun: "Последний запуск",
+      abNever: "никогда",
+      abList: "Файлы бэкапов на сервере",
+      abEmpty: "Файлов автобэкапа пока нет",
+      abDownload: "Скачать",
+      abDelete: "Удалить",
+      abRunNow: "Создать бэкап",
+      abRunning: "Создаём…",
+      abDone: "Серверный бэкап создан",
+      totpTitle: "Двухфакторный вход (TOTP)",
+      totpDesc: "При входе администратора запрашивается 6-значный код из приложения-аутентификатора",
+      totpStart: "Включить 2FA",
+      totpCancel: "Отмена",
+      totpScan: "Отсканируйте QR через Google Authenticator / Aegis / Authy и введите текущий код",
+      totpSecretLbl: "Ключ вручную",
+      totpCode: "6-значный код",
+      totpCodePh: "123456",
+      totpVerify: "Проверить и включить",
+      totpVerifying: "Проверяем…",
+      totpInvalid: "Код неверный или истёк — попробуйте снова",
+      totpOn: "2FA включена",
+      totpOff: "2FA выключена",
+      totpDisableHint: "Введите текущий код, чтобы выключить 2FA",
+      totpWarn: "Храните QR/ключ в безопасности — без него войти не получится",
+      mtpTitle: "MTProto прокси (Telegram)",
+      mtpDesc: "Создайте выделенный MTProto прокси для Telegram: секрет, ссылки tg:// и настройку сервера",
+      mtpHost: "Адрес или IP сервера",
+      mtpPort: "Порт",
+      mtpMode: "Режим секрета",
+      mtpModeDd: "FakeTLS (dd) — рекомендуется, выглядит как обычный TLS",
+      mtpModePlain: "Простой (16 байт)",
+      mtpGen: "Сгенерировать секрет",
+      mtpSecret: "Секрет",
+      mtpLink: "Ссылки-приглашения",
+      mtpSetup: "Настройка сервера",
+      mtpSetupTitle: "Запуск MTProto прокси на вашем сервере",
+      mtpNote: "Xray-core удалил inbound mtproto начиная с v24.10; вместо него запустите отдельный демон (mtg / MTProtoProxy). MTProto требует «сырой» TCP-порт — на хостингах с одним портом используйте второй порт или SNI-маршрутизацию.",
+      comboTile: "Комбо «один порт»",
+      comboHint: "Несколько протоколов на одном публичном порту через fallback Xray",
+      comboWill: "Будет создано",
+      comboMain: "Главный порт (VLESS + TLS)",
+      comboInner: "Trojan на localhost",
+      comboPanel: "Фолбэк панели",
+      comboCopy: "Копировать JSON сервера",
     },
   },
 };

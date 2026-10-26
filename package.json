@@ -1,6 +1,6 @@
 {
   "name": "sephiroth",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "private": true,
   "author": "EPODONIOS",
   "description": "Sephiroth — Next-Gen Xray VPN Panel (full-stack: Express + Vite + React, zero external DB)",

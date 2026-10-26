@@ -4,9 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRightLeft,
   Braces,
+  CalendarClock,
   Check,
+  Copy,
   DatabaseBackup,
   Download,
+  ExternalLink,
   FileJson,
   KeyRound,
   Languages,
@@ -17,20 +20,24 @@ import {
   Palette,
   PanelsTopLeft,
   RadioTower,
+  RefreshCw,
   RotateCw,
   Route,
   Send,
   Server,
   Settings2,
+  ShieldCheck,
   SlidersHorizontal,
   Sparkles,
   Timer,
+  Trash2,
   TriangleAlert,
   Wifi,
   WifiOff,
   Wrench,
   Zap,
 } from "lucide-react";
+import QRCode from "react-qr-code";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -113,6 +120,7 @@ interface TelegramSettingsDTO {
 interface GeneralSettingsDTO {
   datepicker: "gregorian" | "jalalian";
   pageSize: number;
+  publicHost?: string;
 }
 
 interface ExpertSettingsDTO {
@@ -133,6 +141,36 @@ interface NavDTO {
   nodes: boolean;
   outbounds: boolean;
   routing: boolean;
+}
+
+interface SecuritySettingsDTO {
+  autoBackupEnabled: boolean;
+  autoBackupKeep: number;
+  totpEnabled: boolean;
+  totpConfigured: boolean;
+}
+
+interface UpdateInfoDTO {
+  current: string;
+  latest: string;
+  updateAvailable: boolean;
+  repoUrl: string;
+  isGit: boolean;
+  remoteName: string;
+}
+
+interface UpdateStatusDTO {
+  runId: string;
+  state: "pending" | "success" | "failed";
+  startedAt?: string;
+  finishedAt?: string;
+  exitCode?: number;
+}
+
+interface ServerBackupFile {
+  name: string;
+  sizeBytes: number;
+  createdAt: string;
 }
 
 interface CoreForm {
@@ -322,6 +360,7 @@ export function SettingsView() {
 
   const t = useMemo(() => dictionaries[lang], [lang]);
   const u = t.settings;
+  const sys = t.system;
 
   const [tab, setTab] = useState<TabId>("general");
   const [loading, setLoading] = useState(true);
@@ -387,6 +426,32 @@ export function SettingsView() {
   const [exporting, setExporting] = useState(false);
   const [restoring, setRestoring] = useState(false);
 
+  /* security / system (v2.2) — self-update, auto backup, TOTP, MTProto */
+  const [sec, setSec] = useState<SecuritySettingsDTO>({
+    autoBackupEnabled: false,
+    autoBackupKeep: 7,
+    totpEnabled: false,
+    totpConfigured: false,
+  });
+  const [abKeepDraft, setAbKeepDraft] = useState("7");
+  const [abList, setAbList] = useState<ServerBackupFile[]>([]);
+  const [abLastRun, setAbLastRun] = useState("");
+  const [abBusy, setAbBusy] = useState(false);
+  const [upd, setUpd] = useState<UpdateInfoDTO | null>(null);
+  const [updState, setUpdState] = useState<"idle" | "checking" | "updating" | "success" | "failed">("idle");
+  const [updNote, setUpdNote] = useState<string | null>(null);
+  const [restartOpen, setRestartOpen] = useState(false);
+  const [restartBusy, setRestartBusy] = useState(false);
+  const [totpEnroll, setTotpEnroll] = useState(false);
+  const [totpSecretGen, setTotpSecretGen] = useState("");
+  const [totpCode, setTotpCode] = useState("");
+  const [totpBusy, setTotpBusy] = useState(false);
+  const [totpErr, setTotpErr] = useState<string | null>(null);
+  const [mtpHost, setMtpHost] = useState("");
+  const [mtpPort, setMtpPort] = useState("443");
+  const [mtpMode, setMtpMode] = useState<"dd" | "plain">("dd");
+  const [mtpSecret, setMtpSecret] = useState("");
+
   const load = useCallback(async () => {
     setLoading(true);
     setLoadErr(false);
@@ -399,6 +464,7 @@ export function SettingsView() {
         nav: NavDTO;
         general: GeneralSettingsDTO;
         expert: ExpertSettingsDTO;
+        security: SecuritySettingsDTO;
       };
       setCoreForm({
         driver: d.core.driver,
@@ -418,6 +484,9 @@ export function SettingsView() {
         datepicker: d.general.datepicker,
         pageSize: String(d.general.pageSize),
       });
+      setSec(d.security);
+      setAbKeepDraft(String(d.security.autoBackupKeep));
+      if (!mtpHost && d.general.publicHost) setMtpHost(d.general.publicHost);
       setExpertForm(expertFromDTO(d.expert));
       setRawJson(d.expert.rawJson);
       setCertForm({ certFile: d.expert.certFile, keyFile: d.expert.keyFile });
@@ -438,6 +507,306 @@ export function SettingsView() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  /* ---------- server backups / system (v2.2) ---------- */
+
+  const loadServerBackups = useCallback(async () => {
+    try {
+      const res = await fetch("/api/system/backups", { cache: "no-store" });
+      if (!res.ok) return;
+      const d = (await res.json()) as { backups: ServerBackupFile[]; lastRun: string };
+      setAbList(d.backups ?? []);
+      setAbLastRun(d.lastRun ?? "");
+    } catch {
+      /* silent — the card keeps its last state */
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadServerBackups();
+  }, [loadServerBackups]);
+
+  const saveSecurityQuick = async (
+    patch: Record<string, unknown>
+  ): Promise<true | "invalid" | false> => {
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ section: "security", ...patch }),
+      });
+      if (!res.ok) return res.status === 400 ? "invalid" : false;
+      const d = (await res.json()) as { security: SecuritySettingsDTO };
+      setSec(d.security);
+      setAbKeepDraft(String(d.security.autoBackupKeep));
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const saveAbKeep = async (raw: string) => {
+    const n = Number(raw);
+    if (!Number.isInteger(n) || n < 1 || n > 30) {
+      setAbKeepDraft(String(sec.autoBackupKeep));
+      return;
+    }
+    await saveSecurityQuick({ autoBackupKeep: n });
+  };
+
+  const runBackupNow = async () => {
+    setAbBusy(true);
+    try {
+      const res = await fetch("/api/system/backups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "run" }),
+      });
+      if (!res.ok) throw new Error("run");
+      toast({ description: sys.abDone });
+      await loadServerBackups();
+    } catch {
+      toast({ description: t.inbounds.errGeneric });
+    }
+    setAbBusy(false);
+  };
+
+  const downloadServerBackup = async (name: string) => {
+    try {
+      const res = await fetch(`/api/system/backups?name=${encodeURIComponent(name)}&dl=1`);
+      if (!res.ok) throw new Error("dl");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast({ description: t.inbounds.errGeneric });
+    }
+  };
+
+  const deleteServerBackup = async (name: string) => {
+    try {
+      const res = await fetch(`/api/system/backups?name=${encodeURIComponent(name)}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("del");
+      await loadServerBackups();
+    } catch {
+      toast({ description: t.inbounds.errGeneric });
+    }
+  };
+
+  /* ---------- software self-update (v2.2) ---------- */
+
+  const checkUpdate = async () => {
+    setUpdState("checking");
+    setUpdNote(null);
+    try {
+      const res = await fetch("/api/system/update-info", { cache: "no-store" });
+      const d = (await res.json()) as UpdateInfoDTO & { error?: string };
+      if (!res.ok || d.error) {
+        setUpdState("failed");
+        setUpdNote(sys.updCheckFail);
+        return;
+      }
+      setUpd(d);
+      setUpdState("idle");
+      setUpdNote(d.updateAvailable ? sys.updAvailable : sys.updUpToDate);
+    } catch {
+      setUpdState("failed");
+      setUpdNote(sys.updCheckFail);
+    }
+  };
+
+  const pollUpdateStatus = (runId: string): Promise<void> =>
+    new Promise((resolve) => {
+      const started = Date.now();
+      const tick = async () => {
+        try {
+          const res = await fetch("/api/system/update-status", { cache: "no-store" });
+          const d = (await res.json()) as { status: UpdateStatusDTO | null };
+          if (d.status && d.status.runId === runId && d.status.state !== "pending") {
+            resolve();
+            return;
+          }
+        } catch {
+          /* keep polling */
+        }
+        if (Date.now() - started > 10 * 60_000) {
+          resolve();
+          return;
+        }
+        setTimeout(() => void tick(), 3000);
+      };
+      void tick();
+    });
+
+  const applyUpdate = async () => {
+    setUpdState("updating");
+    setUpdNote(null);
+    try {
+      const res = await fetch("/api/system/update", { method: "POST" });
+      const d = (await res.json()) as { ok?: boolean; runId?: string; reason?: string };
+      if (!res.ok || !d.ok || !d.runId) {
+        setUpdState("failed");
+        setUpdNote(d.reason === "not_git" || d.reason === "no_remote" ? sys.updNotGitHint : sys.updFailed);
+        return;
+      }
+      await pollUpdateStatus(d.runId);
+      const st = (await (await fetch("/api/system/update-status", { cache: "no-store" })).json()) as {
+        status: UpdateStatusDTO | null;
+      };
+      if (st.status?.state === "success") {
+        setUpdState("success");
+        setUpdNote(sys.updSuccess);
+      } else {
+        setUpdState("failed");
+        setUpdNote(sys.updFailed);
+      }
+    } catch {
+      setUpdState("failed");
+      setUpdNote(sys.updFailed);
+    }
+  };
+
+  const restartPanel = async () => {
+    setRestartBusy(true);
+    try {
+      await fetch("/api/system/restart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: "RESTART" }),
+      });
+    } catch {
+      /* restarting anyway */
+    }
+    setTimeout(() => {
+      window.location.reload();
+    }, 2500);
+  };
+
+  /* ---------- TOTP 2FA (v2.2) ---------- */
+
+  const totpUri = useMemo(
+    () =>
+      `otpauth://totp/Sephiroth:admin?secret=${totpSecretGen}&issuer=Sephiroth&algorithm=SHA1&digits=6&period=30`,
+    [totpSecretGen]
+  );
+
+  const totpBegin = () => {
+    const A = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+    const bytes = crypto.getRandomValues(new Uint8Array(20));
+    let bits = 0;
+    let val = 0;
+    let out = "";
+    for (const b of bytes) {
+      val = (val << 8) | b;
+      bits += 8;
+      while (bits >= 5) {
+        out += A[(val >>> (bits - 5)) & 31];
+        bits -= 5;
+      }
+    }
+    if (bits > 0) out += A[(val << (5 - bits)) & 31];
+    setTotpSecretGen(out);
+    setTotpCode("");
+    setTotpErr(null);
+    setTotpEnroll(true);
+  };
+
+  const totpCancelEnroll = () => {
+    setTotpEnroll(false);
+    setTotpSecretGen("");
+    setTotpCode("");
+    setTotpErr(null);
+  };
+
+  const totpVerifyEnroll = async () => {
+    setTotpBusy(true);
+    setTotpErr(null);
+    const r = await saveSecurityQuick({ totpSecret: totpSecretGen, totpCode, totpEnabled: true });
+    if (r === true) {
+      toast({ description: sys.totpOn });
+      totpCancelEnroll();
+    } else if (r === "invalid") {
+      setTotpErr(sys.totpInvalid);
+    } else {
+      toast({ description: t.inbounds.errGeneric });
+    }
+    setTotpBusy(false);
+  };
+
+  const totpDisable = async () => {
+    setTotpBusy(true);
+    setTotpErr(null);
+    const r = await saveSecurityQuick({ totpEnabled: false, totpCode });
+    if (r === true) {
+      toast({ description: sys.totpOff });
+      setTotpCode("");
+    } else if (r === "invalid") {
+      setTotpErr(sys.totpInvalid);
+    } else {
+      toast({ description: t.inbounds.errGeneric });
+    }
+    setTotpBusy(false);
+  };
+
+  /** re-enable 2FA on an existing secret (code verified server-side) */
+  const totpReenable = async () => {
+    setTotpBusy(true);
+    setTotpErr(null);
+    const r = await saveSecurityQuick({ totpEnabled: true, totpCode });
+    if (r === true) {
+      toast({ description: sys.totpOn });
+      setTotpCode("");
+    } else if (r === "invalid") {
+      setTotpErr(sys.totpInvalid);
+    } else {
+      toast({ description: t.inbounds.errGeneric });
+    }
+    setTotpBusy(false);
+  };
+
+  /* ---------- MTProto proxy generator (v2.2) ---------- */
+
+  const mtpGenerate = () => {
+    const hex = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) =>
+      b.toString(16).padStart(2, "0")
+    ).join("");
+    setMtpSecret(mtpMode === "dd" ? `dd${hex}` : hex);
+  };
+
+  const copyText = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({ description: t.inbounds.toastCopied });
+    } catch {
+      toast({ description: t.inbounds.toastFail, variant: "destructive" });
+    }
+  };
+
+  const mtpHostClean = mtpHost.trim();
+  const mtpLinkTg =
+    mtpSecret && mtpHostClean
+      ? `tg://proxy?server=${encodeURIComponent(mtpHostClean)}&port=${mtpPort}&secret=${mtpSecret}`
+      : "";
+  const mtpLinkHttps =
+    mtpSecret && mtpHostClean
+      ? `https://t.me/proxy?server=${encodeURIComponent(mtpHostClean)}&port=${mtpPort}&secret=${mtpSecret}`
+      : "";
+  const mtpSetupCmds = `# 1) mtg v2 — FakeTLS daemon (recommended)
+docker run -d --name mtg --restart=always -p ${mtpPort || "443"}:3128 ghcr.io/9seconds/mtg/v2:latest \\
+  simple-run -n 16 "$(docker run --rm ghcr.io/9seconds/mtg/v2:latest generate-secret tls -c cloudflare.com)"
+
+# 2) erlang MTProtoProxy — uses the secret generated above
+docker run -d --name mtproxy --restart=always -p ${mtpPort || "443"}:443 \\
+  -e SECRET=${mtpSecret || "<secret>"} seriyps777/mtproto-proxy:latest
+
+# invite link
+# ${mtpLinkTg || "tg://proxy?server=<host>&port=<port>&secret=<secret>"}`;
 
   /* ---------- top-bar modules (optimistic, live) ---------- */
 
@@ -917,7 +1286,7 @@ export function SettingsView() {
           <Skeleton className="h-4 w-80" />
         </div>
         <Skeleton className="h-11 w-full max-w-md rounded-full" />
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Skeleton className="h-64 rounded-2xl" />
           <Skeleton className="h-64 rounded-2xl" />
         </div>
@@ -1001,7 +1370,7 @@ export function SettingsView() {
 
         {/* ═══════════ GENERAL ═══════════ */}
         <TabsContent value="general">
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {/* language */}
             <SectionCard icon={Languages} title={u.langTitle} desc={u.langDesc}>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -1397,13 +1766,438 @@ export function SettingsView() {
                 )}
               </div>
             </SectionCard>
+
+            {/* ── software update (v2.2) ── */}
+            <SectionCard icon={RefreshCw} title={sys.updTitle} desc={sys.updDesc} className="lg:col-span-2">
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="rounded-xl bg-white/[0.03] px-4 py-3 ring-1 ring-border/60">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{sys.updCurrent}</p>
+                    <p className="font-mono text-lg font-semibold text-foreground" dir="ltr">
+                      {upd?.current ?? "v2.2.0"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl bg-white/[0.03] px-4 py-3 ring-1 ring-border/60">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{sys.updLatest}</p>
+                    <p className="font-mono text-lg font-semibold text-foreground" dir="ltr">
+                      {upd?.latest ?? "—"}
+                    </p>
+                  </div>
+                </div>
+
+                {updNote && (
+                  <p
+                    role="status"
+                    className={cn(
+                      "rounded-lg px-2.5 py-2 text-xs ring-1",
+                      updState === "failed"
+                        ? "bg-chart-5/10 text-chart-5 ring-chart-5/30"
+                        : upd?.updateAvailable
+                          ? "bg-primary/10 text-primary ring-primary/30"
+                          : "bg-white/[0.03] text-muted-foreground ring-border/60"
+                    )}
+                    dir="auto"
+                  >
+                    {updNote}
+                  </p>
+                )}
+
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <Button
+                    variant="outline"
+                    onClick={() => void checkUpdate()}
+                    disabled={updState === "checking" || updState === "updating"}
+                    className="gap-2 rounded-xl border-border bg-white/4 hover:bg-white/8"
+                  >
+                    {updState === "checking" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4" aria-hidden="true" />
+                    )}
+                    {updState === "checking" ? sys.updChecking : sys.updCheck}
+                  </Button>
+                  {upd?.updateAvailable && upd.isGit && updState !== "updating" && (
+                    <Button onClick={() => void applyUpdate()} className="glow-cyan gap-2 rounded-xl">
+                      <Zap className="h-4 w-4" aria-hidden="true" />
+                      {sys.updApply}
+                    </Button>
+                  )}
+                  {updState === "updating" && (
+                    <span className="inline-flex items-center gap-2 text-xs text-muted-foreground" dir="auto">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                      {sys.updApplying}
+                    </span>
+                  )}
+                  {upd?.repoUrl && (
+                    <a
+                      href={upd.repoUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                      {sys.updRepo}
+                    </a>
+                  )}
+                </div>
+
+                {upd && !upd.isGit && (
+                  <p className="flex items-start gap-1.5 rounded-lg bg-chart-4/10 px-2.5 py-2 text-[11px] leading-relaxed text-chart-4 ring-1 ring-chart-4/30" dir="auto">
+                    <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    <span>
+                      <strong>{sys.updNotGit} — </strong>
+                      {sys.updNotGitHint}
+                    </span>
+                  </p>
+                )}
+
+                {updState === "success" && (
+                  <Button onClick={() => setRestartOpen(true)} className="glow-cyan gap-2 rounded-xl">
+                    <RotateCw className="h-4 w-4" aria-hidden="true" />
+                    {sys.updRestart}
+                  </Button>
+                )}
+              </div>
+            </SectionCard>
+
+            {/* ── TOTP two-factor (v2.2) ── */}
+            <SectionCard icon={ShieldCheck} title={sys.totpTitle} desc={sys.totpDesc}>
+              <div className="space-y-4">
+                {sec.totpConfigured ? (
+                  <>
+                    <p
+                      className={cn(
+                        "inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold",
+                        sec.totpEnabled
+                          ? "bg-chart-2/15 text-chart-2 ring-1 ring-chart-2/30"
+                          : "bg-white/5 text-muted-foreground ring-1 ring-border"
+                      )}
+                      dir="auto"
+                    >
+                      <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                      {sec.totpEnabled ? sys.totpOn : sys.totpOff}
+                    </p>
+                    {sec.totpEnabled && (
+                      <div className="space-y-2">
+                        <Label htmlFor="totp-disable">{sys.totpDisableHint}</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            id="totp-disable"
+                            dir="ltr"
+                            inputMode="numeric"
+                            maxLength={6}
+                            autoComplete="one-time-code"
+                            className="font-mono"
+                            placeholder={sys.totpCodePh}
+                            value={totpCode}
+                            onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ""))}
+                          />
+                          <Button
+                            variant="outline"
+                            disabled={totpBusy || totpCode.length !== 6}
+                            onClick={() => void totpDisable()}
+                            className="gap-2 rounded-xl border-border bg-white/4 hover:bg-white/8"
+                          >
+                            {totpBusy ? (
+                              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                            ) : (
+                              <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+                            )}
+                            {sys.totpOff}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    {!sec.totpEnabled && (
+                      <div className="space-y-2">
+                        <Label htmlFor="totp-reenable">{sys.totpStart}</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            id="totp-reenable"
+                            dir="ltr"
+                            inputMode="numeric"
+                            maxLength={6}
+                            autoComplete="one-time-code"
+                            className="font-mono"
+                            placeholder={sys.totpCodePh}
+                            value={totpCode}
+                            onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ""))}
+                          />
+                          <Button
+                            disabled={totpBusy || totpCode.length !== 6}
+                            onClick={() => void totpReenable()}
+                            className="glow-cyan gap-2 rounded-xl"
+                          >
+                            {totpBusy ? (
+                              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                            ) : (
+                              <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+                            )}
+                            {sys.totpOn}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : !totpEnroll ? (
+                  <Button onClick={totpBegin} className="glow-cyan gap-2 rounded-xl">
+                    <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+                    {sys.totpStart}
+                  </Button>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex flex-col items-center gap-3 rounded-xl bg-white/[0.03] p-4 ring-1 ring-border/60 sm:flex-row sm:items-start">
+                      <div className="rounded-lg bg-white p-2">
+                        <QRCode value={totpUri} size={120} />
+                      </div>
+                      <div className="min-w-0 flex-1 space-y-2">
+                        <p className="text-xs leading-relaxed text-muted-foreground" dir="auto">
+                          {sys.totpScan}
+                        </p>
+                        <div className="min-w-0">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{sys.totpSecretLbl}</p>
+                          <p className="break-all font-mono text-xs text-foreground" dir="ltr">
+                            {totpSecretGen}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <Tip>{sys.totpWarn}</Tip>
+                    <div className="flex flex-wrap items-end gap-2">
+                      <div className="min-w-36 flex-1 space-y-1">
+                        <Label htmlFor="totp-code">{sys.totpCode}</Label>
+                        <Input
+                          id="totp-code"
+                          dir="ltr"
+                          inputMode="numeric"
+                          maxLength={6}
+                          autoComplete="one-time-code"
+                          className="font-mono"
+                          placeholder={sys.totpCodePh}
+                          value={totpCode}
+                          onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ""))}
+                        />
+                      </div>
+                      <Button
+                        onClick={() => void totpVerifyEnroll()}
+                        disabled={totpBusy || totpCode.length !== 6}
+                        className="gap-2 rounded-xl"
+                      >
+                        {totpBusy ? (
+                          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                        ) : (
+                          <Check className="h-4 w-4" aria-hidden="true" />
+                        )}
+                        {totpBusy ? sys.totpVerifying : sys.totpVerify}
+                      </Button>
+                      <Button variant="outline" onClick={totpCancelEnroll} className="rounded-xl border-white/10 bg-white/[0.03] hover:bg-white/[0.06]">
+                        {sys.totpCancel}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                {totpErr && (
+                  <p role="alert" className="rounded-lg bg-chart-5/10 px-2.5 py-2 text-xs text-chart-5 ring-1 ring-chart-5/30" dir="auto">
+                    {totpErr}
+                  </p>
+                )}
+              </div>
+            </SectionCard>
+
+            {/* ── scheduled server backups (v2.2) ── */}
+            <SectionCard icon={CalendarClock} title={sys.abTitle} desc={sys.abDesc} className="lg:col-span-2">
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
+                  <div className="min-w-44 flex-1">
+                    <SwitchRow
+                      label={sys.abEnable}
+                      checked={sec.autoBackupEnabled}
+                      onCheckedChange={(v) => void saveSecurityQuick({ autoBackupEnabled: v })}
+                      icon={DatabaseBackup}
+                    />
+                  </div>
+                  <div className="w-24 space-y-1">
+                    <Label htmlFor="ab-keep">{sys.abKeep}</Label>
+                    <Input
+                      id="ab-keep"
+                      dir="ltr"
+                      inputMode="numeric"
+                      maxLength={2}
+                      className="font-mono"
+                      value={abKeepDraft}
+                      onChange={(e) => setAbKeepDraft(e.target.value.replace(/\D/g, ""))}
+                      onBlur={(e) => void saveAbKeep(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{sys.abLastRun}</p>
+                    <p className="font-mono text-xs text-foreground" dir="ltr">
+                      {abLastRun ? abLastRun.slice(0, 19).replace("T", " ") : sys.abNever}
+                    </p>
+                  </div>
+                  <Button variant="outline" onClick={() => void runBackupNow()} disabled={abBusy} className="gap-2 rounded-xl border-border bg-white/4 hover:bg-white/8">
+                    {abBusy ? (
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <DatabaseBackup className="h-4 w-4" aria-hidden="true" />
+                    )}
+                    {abBusy ? sys.abRunning : sys.abRunNow}
+                  </Button>
+                </div>
+                <Tip>{sys.abKeepHint}</Tip>
+                <div>
+                  <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">{sys.abList}</p>
+                  {abList.length === 0 ? (
+                    <p className="text-xs text-muted-foreground" dir="auto">
+                      {sys.abEmpty}
+                    </p>
+                  ) : (
+                    <div className="max-h-48 space-y-1.5 overflow-y-auto pe-1">
+                      {abList.map((b) => (
+                        <div
+                          key={b.name}
+                          className="flex items-center gap-2 rounded-lg bg-white/[0.03] px-3 py-2 ring-1 ring-border/60"
+                        >
+                          <span className="min-w-0 flex-1 truncate font-mono text-xs text-foreground" dir="ltr" title={b.name}>
+                            {b.name}
+                          </span>
+                          <span className="hidden shrink-0 font-mono text-[10px] text-muted-foreground sm:block" dir="ltr">
+                            {(b.sizeBytes / 1024).toFixed(1)} KB
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => void downloadServerBackup(b.name)}
+                            className="h-8 shrink-0 gap-1.5 px-2 text-xs"
+                            aria-label={`${sys.abDownload} ${b.name}`}
+                          >
+                            <Download className="h-3.5 w-3.5" aria-hidden="true" />
+                            {sys.abDownload}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => void deleteServerBackup(b.name)}
+                            className="h-8 shrink-0 gap-1.5 px-2 text-xs text-chart-5 hover:text-chart-5"
+                            aria-label={`${sys.abDelete} ${b.name}`}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                            {sys.abDelete}
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </SectionCard>
+
+            {/* ── MTProto proxy generator (v2.2) ── */}
+            <SectionCard icon={Send} title={sys.mtpTitle} desc={sys.mtpDesc} className="lg:col-span-2">
+              <div className="space-y-4">
+                <p className="flex items-start gap-1.5 rounded-lg bg-chart-4/10 px-2.5 py-2 text-[11px] leading-relaxed text-chart-4 ring-1 ring-chart-4/25" dir="auto">
+                  <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span>{sys.mtpNote}</span>
+                </p>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="mtp-host">{sys.mtpHost}</Label>
+                    <Input
+                      id="mtp-host"
+                      dir="ltr"
+                      autoComplete="off"
+                      className="font-mono"
+                      value={mtpHost}
+                      onChange={(e) => setMtpHost(e.target.value)}
+                      placeholder="vpn.example.com"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="mtp-port">{sys.mtpPort}</Label>
+                    <Input
+                      id="mtp-port"
+                      dir="ltr"
+                      inputMode="numeric"
+                      maxLength={5}
+                      className="font-mono"
+                      value={mtpPort}
+                      onChange={(e) => setMtpPort(e.target.value.replace(/\D/g, ""))}
+                      placeholder="443"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>{sys.mtpMode}</Label>
+                    <Select value={mtpMode} onValueChange={(v) => setMtpMode(v === "plain" ? "plain" : "dd")}>
+                      <SelectTrigger aria-label={sys.mtpMode}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="dd">FakeTLS · dd</SelectItem>
+                        <SelectItem value="plain">Plain · 16B</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] leading-snug text-muted-foreground" dir="auto">
+                      {mtpMode === "dd" ? sys.mtpModeDd : sys.mtpModePlain}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <Button onClick={mtpGenerate} className="glow-cyan gap-2 rounded-xl">
+                    {mtpSecret ? (
+                      <RotateCw className="h-4 w-4" aria-hidden="true" />
+                    ) : (
+                      <KeyRound className="h-4 w-4" aria-hidden="true" />
+                    )}
+                    {sys.mtpGen}
+                  </Button>
+                  {mtpSecret && (
+                    <code className="min-w-0 max-w-full truncate rounded-lg bg-black/40 px-3 py-2 font-mono text-xs text-primary ring-1 ring-primary/30" dir="ltr">
+                      {mtpSecret}
+                    </code>
+                  )}
+                </div>
+                {mtpSecret && mtpHostClean && (
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">{sys.mtpLink}</p>
+                    {[mtpLinkTg, mtpLinkHttps].map((link) => (
+                      <div
+                        key={link.slice(0, 16)}
+                        className="flex items-center gap-2 rounded-xl bg-black/30 p-2 ring-1 ring-border/60"
+                      >
+                        <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap font-mono text-[11px] text-muted-foreground" dir="ltr">
+                          {link}
+                        </code>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => void copyText(link)}
+                          className="h-8 shrink-0 px-2"
+                          aria-label="Copy"
+                          title="Copy"
+                        >
+                          <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+                        </Button>
+                      </div>
+                    ))}
+                    <details className="rounded-xl border border-white/10 bg-black/30">
+                      <summary className="cursor-pointer px-4 py-3 text-[11px] font-semibold tracking-wide text-muted-foreground transition-colors hover:text-foreground">
+                        {sys.mtpSetup}
+                      </summary>
+                      <pre className="overflow-x-auto border-t border-white/5 px-4 py-3 font-mono text-[10px] leading-relaxed text-muted-foreground" dir="ltr">
+                        {mtpSetupCmds}
+                      </pre>
+                    </details>
+                  </div>
+                )}
+              </div>
+            </SectionCard>
           </div>
         </TabsContent>
 
         {/* ═══════════ EXPERT ═══════════ */}
         <TabsContent value="expert">
           <div className="space-y-4">
-            <div className="grid gap-4 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               {/* core driver */}
               <SectionCard icon={RadioTower} title={u.coreTitle} desc={u.coreDesc}>
                 <div className="space-y-4">
@@ -1746,7 +2540,7 @@ export function SettingsView() {
               </div>
             </SectionCard>
 
-            <div className="grid gap-4 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               {/* certificates */}
               <SectionCard icon={KeyRound} title={u.certTitle} desc={u.certDesc}>
                 <div className="space-y-3">
@@ -1844,6 +2638,38 @@ export function SettingsView() {
               }}
             >
               {u.jsonResetBtn}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* panel restart confirm (v2.2) */}
+      <AlertDialog open={restartOpen} onOpenChange={setRestartOpen}>
+        <AlertDialogContent className="glass-strong border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2.5">
+              <RotateCw className="h-4 w-4 text-primary" aria-hidden="true" />
+              {sys.updRestart}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground" dir="auto">
+              {sys.updRestartHint}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t.inbounds.cancel}</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={restartBusy}
+              onClick={(e) => {
+                e.preventDefault();
+                void restartPanel();
+              }}
+            >
+              {restartBusy ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <RotateCw className="h-4 w-4" aria-hidden="true" />
+              )}
+              {restartBusy ? sys.updRestarting : sys.updRestart}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

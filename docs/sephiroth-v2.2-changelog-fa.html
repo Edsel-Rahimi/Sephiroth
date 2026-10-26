@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>Sephiroth v2.2.0 — تغییرات و آپشن‌های جدید</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#060b0f; --panel:#0b1319; --panel2:#0e1720; --line:#1b2831;
+    --cyan:#22d8ee; --cyan-dim:#0f7f8f; --txt:#dce9ef; --mut:#7f97a3;
+    --ok:#34d399; --warn:#fbbf24; --rose:#fb7185;
+  }
+  @page { size: A4; margin: 0; }
+  html,body{ margin:0; padding:0; background:var(--bg); }
+  body{ font-family:'Vazirmatn',Tahoma,'DejaVu Sans',sans-serif; color:var(--txt);
+        -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .page{ width:100%; min-height:296mm; box-sizing:border-box; position:relative;
+         padding:16mm 15mm 18mm; overflow:hidden; page-break-after:always;
+         background:var(--bg); }
+  .page:last-child{ page-break-after:auto; }
+  .page.light{ background:#f3f7f9; color:#12222b; }
+  .mono{ font-family:'JetBrains Mono','DejaVu Sans Mono',monospace; direction:ltr; unicode-bidi:embed; }
+
+  /* ── cover ── */
+  .cover{ display:flex; flex-direction:column;
+    background:
+      radial-gradient(circle 75mm at 8% 4%, rgba(34,216,238,.05) 0%, rgba(34,216,238,.05) 62%, transparent 63%),
+      radial-gradient(circle 50mm at 97% 96%, rgba(34,216,238,.04) 0%, rgba(34,216,238,.04) 61%, transparent 62%),
+      radial-gradient(circle 29mm at 93% 88%, rgba(34,216,238,.10) 0%, rgba(34,216,238,.10) 60%, transparent 61%),
+      radial-gradient(6mm 6mm at 22% 22%, rgba(34,216,238,.9) 0%, rgba(34,216,238,0) 100%),
+      var(--bg);
+  }
+  .glowdot{ position:absolute; width:7px; height:7px; border-radius:50%; background:var(--cyan);
+            box-shadow:0 0 18px 4px rgba(34,216,238,.55); top:64mm; left:44mm; }
+  .badge{ display:inline-block; border:1px solid rgba(34,216,238,.45); color:var(--cyan);
+          border-radius:999px; padding:4px 14px; font-size:11px; font-weight:700; letter-spacing:.22em; }
+  .cover h1{ font-size:52px; font-weight:900; margin:16mm 0 2mm; line-height:1.12; }
+  .cover h1 .thin{ font-weight:300; color:var(--mut); }
+  .cover .sub{ color:var(--mut); font-size:14.5px; line-height:2; max-width:150mm; margin-top:6mm; }
+  .vers{ margin-top:10mm; display:flex; gap:8px; flex-wrap:wrap; }
+  .chip{ background:var(--panel); border:1px solid var(--line); color:var(--txt);
+         border-radius:10px; padding:7px 14px; font-size:12px; font-weight:600; }
+  .chip b{ color:var(--cyan); }
+  .cover-foot{ margin-top:auto; display:flex; justify-content:space-between; align-items:flex-end;
+               border-top:1px solid var(--line); padding-top:6mm; color:var(--mut); font-size:12px; }
+  .cover-foot b{ color:var(--txt); }
+
+  /* ── content ── */
+  .light h2{ font-size:21px; font-weight:800; color:#0d1b23; margin:0 0 3mm;
+             padding-bottom:2.4mm; border-bottom:2px solid #d3e2e8; }
+  .light h2 .no{ color:var(--cyan-dim); font-weight:900; }
+  .light .lead{ color:#4a6270; font-size:11.5px; line-height:1.9; margin:0 0 5mm; }
+  .cards{ display:grid; grid-template-columns:1fr 1fr; gap:4mm; }
+  .card{ background:#fff; border:1px solid #dce7ec; border-radius:12px; padding:4.5mm 5mm; }
+  .card h4{ margin:0 0 1.6mm; font-size:12.5px; font-weight:800; color:#0d1b23; display:flex; align-items:center; gap:2mm; }
+  .num{ background:#e6f8fb; color:#0b7f92; border-radius:8px; min-width:7mm; height:7mm;
+        display:inline-flex; align-items:center; justify-content:center; font-size:11px; font-weight:900; }
+  .card p{ margin:0; font-size:10.3px; line-height:1.95; color:#41565f; }
+  .card p .mono{ font-size:9.3px; background:#eef4f7; border-radius:5px; padding:1px 5px; }
+  table{ width:100%; border-collapse:collapse; background:#fff; border-radius:12px; overflow:hidden;
+         border:1px solid #dce7ec; font-size:10.2px; }
+  th{ background:#0d1b23; color:#cfe6ee; font-weight:700; padding:2.8mm 3mm; text-align:right; font-size:10px; }
+  td{ padding:2.6mm 3mm; border-top:1px solid #e4edf1; color:#33484f; line-height:1.75; vertical-align:top; }
+  tr:nth-child(even) td{ background:#f7fbfc; }
+  .ok{ color:#0e9f6e; font-weight:800; } .no2{ color:#d64550; font-weight:800; } .mid{ color:#b7791f; font-weight:700; }
+  .note{ background:#e9f6f9; border:1px solid #bfe4ec; border-right:3px solid var(--cyan-dim);
+         border-radius:10px; padding:3.5mm 4.5mm; font-size:10.3px; line-height:2; color:#134e5a; margin:4mm 0; }
+  .note b{ color:#0b6d7e; }
+  .warnbox{ background:#fdf3e0; border:1px solid #f0d9a8; border-right:3px solid var(--warn);
+            border-radius:10px; padding:3.5mm 4.5mm; font-size:10.3px; line-height:2; color:#6d4d0c; margin:4mm 0; }
+  pre{ background:#0d1b23; color:#b9d4de; border-radius:10px; padding:4mm 5mm; font-size:9px;
+       line-height:1.85; direction:ltr; text-align:left; overflow:hidden; margin:3mm 0; }
+  pre .c{ color:#5d7c8a; } pre .k{ color:#22d8ee; }
+  .steps{ counter-reset:st; margin:3mm 0; padding:0; list-style:none; }
+  .steps li{ counter-increment:st; position:relative; padding:0 9mm 3.2mm 0; font-size:10.6px; line-height:1.95; color:#33484f; }
+  .steps li::before{ content:counter(st,decimal-leading-zero); position:absolute; right:0; top:.6mm;
+        background:#e6f8fb; color:#0b7f92; font-weight:900; font-size:10px;
+        border-radius:7px; width:6.6mm; height:6.6mm; display:flex; align-items:center; justify-content:center; }
+  .steps b{ color:#0d1b23; }
+  .foot{ position:absolute; bottom:7mm; right:15mm; left:15mm; display:flex; justify-content:space-between;
+         color:#8aa0ab; font-size:9px; border-top:1px solid #dbe7ec; padding-top:2.5mm; }
+  .flow{ display:flex; align-items:stretch; gap:0; margin:4mm 0; }
+  .fnode{ flex:1; background:#fff; border:1.5px solid #cfe0e7; border-radius:11px; padding:3.2mm 3mm;
+          text-align:center; font-size:9.6px; line-height:1.7; color:#33484f; }
+  .fnode b{ display:block; color:#0d1b23; font-size:10.6px; margin-bottom:1mm; }
+  .farrow{ width:9mm; display:flex; align-items:center; justify-content:center; color:var(--cyan-dim); font-size:15px; font-weight:900; }
+  .oneport{ background:#fff; border:1.5px dashed #9fc4cf; border-radius:12px; padding:3mm; display:flex; align-items:center; gap:3mm; }
+  .oneport .port{ background:#0d1b23; color:var(--cyan); border-radius:9px; padding:4mm 4.5mm; text-align:center; font-weight:900; font-size:12px; line-height:1.6; }
+  .oneport .port span{ display:block; font-size:8.6px; color:#8fb2bd; font-weight:500; }
+  .plist{ flex:1; display:grid; grid-template-columns:1fr 1fr; gap:2mm; }
+  .pitem{ background:#f2f8fa; border:1px solid #dbe9ee; border-radius:8px; padding:1.8mm 2.6mm; font-size:9.4px; color:#33484f; line-height:1.6; }
+  .pitem b{ color:#0b7f92; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ COVER ═══════════════ -->
+<section class="page cover">
+  <div class="glowdot"></div>
+  <div style="margin-top:34mm">
+    <span class="badge">CHANGELOG · RELEASE NOTES</span>
+    <h1>سپیفیراث <span class="thin">v2.2.0</span><br>تغییرات و آپشن‌های جدید</h1>
+    <p class="sub">هم‌ترازی کامل با پنل‌های برتر دنیا: دکمه‌ی بروزرسانی خودِ پنل (به سبک 3x-ui)، بکاپ خودکار سروری، ورود دومرحله‌ای TOTP، پروکسی MTProto تلگرام، کمبو تک‌پورت با Fallback و فرمت اشتراک Xray-JSON — همه در یک انتشار.</p>
+    <div class="vers">
+      <span class="chip">نسخه <b>2.2.0</b></span>
+      <span class="chip">تاریخ <b class="mono">2026-10-26</b></span>
+      <span class="chip">۶ زبان · RTL کامل</span>
+      <span class="chip">ساخت <b>EPODONIOS</b></span>
+    </div>
+  </div>
+  <div class="cover-foot">
+    <div><b>Sephiroth</b> · Next-Gen Xray Panel · <span class="mono">github.com/Edsel-Rahimi/Sephiroth</span></div>
+    <div>صفحه ۱ / ۵</div>
+  </div>
+</section>
+
+<!-- ═══════════════ PAGE 2 — خلاصه تغییرات ═══════════════ -->
+<section class="page light">
+  <h2><span class="no">۰۱</span> · خلاصه‌ی تغییرات نسخه ۲.۲</h2>
+  <p class="lead">هر هفت قابلیت زیر بر اساس «تحلیل شکاف» از بررسی عمیق ۷ پنل رقیب (3x-ui، Marzban، Marzneshin، Hiddify، S-UI، x-ui، Remnawave) پیاده‌سازی شده‌اند؛ اولویت‌بندی از گزارش docs/panel-gap-analysis.md برداشته شد و همه در ۶ زبان پنل ترجمه شده‌اند.</p>
+  <div class="cards">
+    <div class="card"><h4><span class="num">۱</span> دکمه‌ی بروزرسانی پنل</h4>
+      <p>تنظیمات → بروزرسانی نرم‌افزار: چک نسخه از مخزن عمومی گیت‌هاب، مقایسه‌ی نسخه، آپدیت یک‌کلیکی (<span class="mono">git fetch + reset + install</span> در پس‌زمینه) و دکمه‌ی ری‌استارت. دقیقاً همان الگویی که 3x-ui دارد.</p></div>
+    <div class="card"><h4><span class="num">۲</span> بکاپ خودکار روزانه</h4>
+      <p>بکاپ کامل وضعیت پنل روی خودِ سرور در <span class="mono">db/backups/</span> هر ۲۴ ساعت؛ نگهداری آخرین N فایل، لیست فایل‌ها با دانلود و حذف، زمان آخرین اجرا و دکمه‌ی «همین حالا بکاپ بگیر».</p></div>
+    <div class="card"><h4><span class="num">۳</span> ورود دومرحله‌ای TOTP</h4>
+      <p>فعال‌سازی با QR (Google Authenticator / Aegis / Authy)؛ پیاده‌سازی RFC-6238 بدون هیچ وابستگی جدید. غیرفعال‌سازی و فعال‌سازی مجدد فقط با کد معتبر — حتی با نشست باز نمی‌شود 2FA را بی‌صدا خاموش کرد.</p></div>
+    <div class="card"><h4><span class="num">۴</span> پروکسی MTProto تلگرام</h4>
+      <p>کارت اختصاصی در تنظیمات: ساخت سکرت FakeTLS (<span class="mono">dd</span>) یا ساده، لینک‌های <span class="mono">tg://proxy</span> و <span class="mono">t.me/proxy</span> با کپی فوری + دستورات آماده‌ی اجرا (mtg v2 و erlang MTProtoProxy).</p></div>
+    <div class="card"><h4><span class="num">۵</span> کمبو تک‌پورت</h4>
+      <p>پریست جدید در «ساخت سریع»: روی یک پورت عمومی VLESS+TLS می‌سازد با Fallback به تروجان داخلی و مسیر <span class="mono">/panel</span> برای خود پنل — چند پروتکل، یک پورت (بخش ۰۳ همین سند).</p></div>
+    <div class="card"><h4><span class="num">۶</span> فرمت اشتراک Xray-JSON</h4>
+      <p>خروجی کامل کانفیگ کلاینت Xray/v2ray-core از آدرس اشتراک با <span class="mono">?format=xray</span> (vless/vmess/trojan/shadowsocks + TLS/Reality + ws/grpc/xhttp) + دکمه‌ی «کپی JSON سرور» در تب پیشرفته‌ی Forge.</p></div>
+  </div>
+  <div class="note"><b>پاک‌سازی کامل دمو (نسخه ۲.۱.۱):</b> هیچ داده‌ی فیک در پنل نیست — هیچ اینباند نمونه، کاربر تزئینی یا عدد ساختگی. همه‌ی اعداد داشبورد واقعی اند (CPU/RAM/دیسک/شبکه‌ی واقعی سرور) و ورود اول = تجربه‌ی «اولین بار» تمیز.</div>
+  <div class="foot"><span>Sephiroth v2.2.0 — Changelog</span><span>EPODONIOS</span></div>
+</section>
+
+<!-- ═══════════════ PAGE 3 — تک‌پورت ═══════════════ -->
+<section class="page light">
+  <h2><span class="no">۰۲</span> · چند پروتکل روی «یک» پورت — توضیح ساده</h2>
+  <p class="lead">سوال: روی کتابامپ فقط یک پورت داریم که برای VLESS است. چطور پروتکل‌های دیگر را هم بالا بیاوریم؟ جواب کوتاه: پورت فقط یک «در» است؛ مهم این است که بعد از باز شدن در، بر اساس محتوای ترافیک تصمیم بگیریم کدام پروتکل آن را باز کرده است.</p>
+
+  <div class="oneport">
+    <div class="port">پورت ۴۴۳<span>تنها درِ باز</span></div>
+    <div class="plist">
+      <div class="pitem"><b>VLESS + TLS</b> — صاحب اصلی پورت؛ TLS را باز می‌کند</div>
+      <div class="pitem"><b>Trojan</b> — ترافیک غیر VLESS به آن منتقل می‌شود</div>
+      <div class="pitem"><b>پنل وب</b> — مسیر <span class="mono">/panel</span> به خود پنل می‌رسد</div>
+      <div class="pitem"><b>هر مسیر دیگر</b> — با <span class="mono">path</span>/<span class="mono">alpn</span> قابل تعریف</div>
+    </div>
+  </div>
+
+  <div class="flow">
+    <div class="fnode"><b>۱ · اتصال می‌رسد</b>کلاینت به همان یک پورت وصل می‌شود و TLS handshake انجام می‌شود</div>
+    <div class="farrow">←</div>
+    <div class="fnode"><b>۲ · VLESS بررسی می‌شود</b>اگر ترافیک VLESS معتبر بود → همین‌جا سرو می‌شود</div>
+    <div class="farrow">←</div>
+    <div class="fnode"><b>۳ · Fallback</b>اگر نبود، Xray بر اساس SNI/ALPN/Path تصمیم می‌گیرد: تروجان؟ پنل؟ وب؟</div>
+  </div>
+
+  <p class="lead" style="margin-bottom:2mm"><b>در پنل چطور؟</b> کانفیگ‌ها → ساخت سریع → کاشی «کمبو تک‌پورت» → بساز. پنل خودش دو اینباند می‌سازد:</p>
+  <ul class="steps">
+    <li><b>اینباند اصلی</b> — <span class="mono">VLESS + TCP + TLS</span> روی پورت عمومی (مثلاً ۱۰۰۰۰) با دو Fallback: مسیر <span class="mono">/panel</span> به پنل، و بقیه‌ی ترافیک به تروجان داخلی.</li>
+    <li><b>اینباند داخلی</b> — <span class="mono">Trojan</span> روی <span class="mono">127.0.0.1:10001</span> (فقط localhost؛ از بیرون دیده نمی‌شود).</li>
+    <li><b>خروجی آماده</b> — در تب «پیشرفته» دکمه‌ی «کپی JSON سرور» همان کانفیگ واقعی Xray را می‌دهد؛ روی سرور واقعی‌ات داخل <span class="mono">inbounds</span> کانفیگ paste کن — همان یک پورت، چند پروتکل.</li>
+  </ul>
+  <div class="note"><b>نکته‌ی مهم درباره‌ی کتابامپ:</b> اگر پورت کتابامپ مستقیم به پروسه‌ی پنل می‌رسد (HTTP)، برای اجرای واقعی Xray به یکی از این سه راه نیاز داری: ① پلتفرمی که پورت خام TCP بدهد (VPS/اسکیل)، ② پنل + VLESS روی همان یک پورت با همین الگوی Fallback روی سرور شخصی، ③ تانل: سرور خارجی پورت را باز می‌کند و با <span class="mono">dokodemo-door</span> یا تانل (بخش تانل‌های پنل) ترافیک را به هاست تو می‌رساند.</div>
+  <div class="foot"><span>Sephiroth v2.2.0 — Changelog</span><span>EPODONIOS</span></div>
+</section>
+
+<!-- ═══════════════ PAGE 4 — MTProto + آپدیت کتابامپ ═══════════════ -->
+<section class="page light">
+  <h2><span class="no">۰۳</span> · پروکسی MTProto برای تلگرام</h2>
+  <p class="lead">از تنظیمات ← کارت «پروکسی MTProto (تلگرام)»: هاست/آی‌پی و پورت را بده، «ساخت سکرت» را بزن — سکرت FakeTLS (پیشوند <span class="mono">dd</span>؛ شبیه ترافیک TLS عادی و مقاوم‌تر به فیلترینگ) یا ساده می‌سازد و لینک‌های دعوت را همان لحظه می‌دهد:</p>
+  <pre><span class="c"># لینک‌های خروجی (کپی با یک کلیک):</span>
+<span class="k">tg://proxy?server=HOST&port=443&secret=dd...</span>
+<span class="k">https://t.me/proxy?server=HOST&port=443&secret=dd...</span></pre>
+  <p class="lead" style="margin-bottom:2mm"><b>اجرا روی سرور</b> — دکمه‌ی «راه‌اندازی سرور» دو دستور آماده می‌دهد؛ ساده‌ترین راه دیمن mtg است:</p>
+  <pre><span class="c"># mtg v2 — FakeTLS (توصیه‌شده)</span>
+docker run -d --name mtg --restart=always -p 443:3128 \
+  ghcr.io/9seconds/mtg/v2:latest simple-run -n 16 \
+  "$(docker run --rm ghcr.io/9seconds/mtg/v2:latest generate-secret tls -c cloudflare.com)"
+
+<span class="c"># یا erlang MTProtoProxy با سکرتِ ساخته‌شده در پنل</span>
+docker run -d --name mtproxy --restart=always -p 443:443 \
+  -e SECRET=<span class="k">dd...</span> seriyps777/mtproto-proxy:latest</pre>
+  <div class="warnbox"><b>صادقانه بگوییم:</b> هسته‌ی Xray از نسخه‌ی <span class="mono">v24.10</span> به بعد پروتکل mtproto را حذف کرده؛ به همین دلیل پنل به‌جای اینباند mtproto، «مولد سکرت/لینک + دستورات دیمن اختصاصی» می‌دهد. MTProto به یک پورت TCP خام نیاز دارد — روی هاست‌های تک‌پورتی (مثل کتابامپ) یا باید یک پورت دوم بگیری، یا با روتینگ SNI روی سروری که کنترل کامل داری. ضمناً این پروکسی را باید روی یک سرور واقعی (VPS خارج) اجرا کنی؛ سکرت و لینک از همین کارت قابل کپی است و بلافاصله در تلگرام کار می‌کند.</div>
+
+  <h2 style="margin-top:6mm"><span class="no">۰۴</span> · بروزرسانی پنل در کتابامپ — سه راه</h2>
+  <ul class="steps">
+    <li><b>داخل خود پنل (جدید):</b> تنظیمات ← بروزرسانی نرم‌افزار ← «بررسی بروزرسانی». اگر نسخه‌ی جدیدی در مخزن باشد دکمه‌ی «همین حالا بروزرسانی کن» ظاهر می‌شود؛ بعد از اتمام، «ری‌استارت پنل» را بزن. (نیازمند نصب از نوع git clone)</li>
+    <li><b>اگر با ZIP آپلود کرده‌ای:</b> کارت بروزرسانی خودش تشخیص می‌دهد و راهنمایی می‌کند — آخرین نسخه را از <span class="mono">github.com/Edsel-Rahimi/Sephiroth</span> به‌صورت ZIP بگیر و مثل دفعه‌ی قبل آپلود/جایگزین کن؛ پوشه‌ی <span class="mono">db/</span> را دست نزن تا اطلاعات بماند.</li>
+    <li><b>خط فرمان ( اگر دسترسی SSH داری):</b> <span class="mono">git fetch origin && git reset --hard origin/main && (bun install || npm install)</span> و ری‌استارت پروسه.</li>
+  </ul>
+  <div class="foot"><span>Sephiroth v2.2.0 — Changelog</span><span>EPODONIOS</span></div>
+</section>
+
+<!-- ═══════════════ PAGE 5 — مقایسه + ربات ═══════════════ -->
+<section class="page light">
+  <h2><span class="no">۰۵</span> · ما در برابر بقیه پنل‌ها</h2>
+  <p class="lead">نتیجه‌ی زیر و رو کردن ۷ پنل رقیب (نسخه‌های روز، سورس‌های واقعی خوانده شد) — ستون آخر یعنی از v2.2 چی شد:</p>
+  <table>
+    <tr><th style="width:26%">قابلیت</th><th style="width:22%">کجا داشتیم؟</th><th style="width:13%">قبلاً</th><th>وضعیت در Sephiroth v2.2</th></tr>
+    <tr><td>دکمه‌ی بروزرسانی پنل</td><td>3x-ui (تنها)</td><td class="no2">نداشتیم</td><td class="ok">پیاده شد — چک + آپدیت + ری‌استارت داخل پنل</td></tr>
+    <tr><td>بکاپ زمان‌بندی‌شده</td><td>Marzban / 3x-ui</td><td class="no2">نداشتیم</td><td class="ok">پیاده شد — روزانه + نگهداری N فایل + لیست</td></tr>
+    <tr><td>ورود دومرحله‌ای TOTP</td><td>3x-ui / S-UI</td><td class="no2">نداشتیم</td><td class="ok">پیاده شد — QR، بدون وابستگی</td></tr>
+    <tr><td>فرمت اشتراک Xray-JSON</td><td>Remnawave</td><td class="no2">نداشتیم</td><td class="ok">پیاده شد — <span class="mono">?format=xray</span></td></tr>
+    <tr><td>چند پروتکل روی یک پورت</td><td>3x-ui (Fallbacks)</td><td class="mid">دستی</td><td class="ok">پریست «کمبو تک‌پورت» یک‌کلیکی</td></tr>
+    <tr><td>پروکسی MTProto تلگرام</td><td>هیچ پنلی</td><td class="no2">نداشتیم</td><td class="ok">مولد سکرت/لینک + دستورات دیمن (یکتا)</td></tr>
+    <tr><td>نماینده + قالب فروش + درگاه</td><td>—</td><td class="ok">داریم</td><td class="ok">کماکان منحصربه‌فرد (در هیچ رقیبی نیست)</td></tr>
+    <tr><td>پورتال اشتراک قفل‌دار + ۶ تم</td><td>—</td><td class="ok">داریم</td><td class="ok">برتری حفظ شد</td></tr>
+    <tr><td>درایور هسته‌ی واقعی Xray</td><td>همه</td><td class="no2">شبیه‌ساز</td><td class="mid">فاز بعدی (اولویت ۱ تحلیل شکاف)</td></tr>
+  </table>
+
+  <h2 style="margin-top:6mm"><span class="no">۰۶</span> · ربات فروش تلگرام — تحقیق (تصمیم: فردا)</h2>
+  <p class="lead">طبق خواسته‌ی شما فقط فاز تحقیق انجام شد (<span class="mono">docs/telegram-bot-research.md</span>) — هیچ کدی ساخته نشد. خلاصه:</p>
+  <table>
+    <tr><th style="width:20%">ربات</th><th style="width:40%">نقطه قوت</th><th>نقطه ضعف</th></tr>
+    <tr><td>Mirza</td><td>رهبر بازار ایران؛ زارین‌پل + کارت‌به‌کارت؛ اتصال به ۱۳ پنل</td><td>AGPL؛ وابسته به پنل بیرونی</td></tr>
+    <tr><td>Bedolaga</td><td>کامل‌ترین شاپ متن‌باز (۲۰+ درگاه)، MIT</td><td>منحنی یادگیری؛ برای Remnawave/Marzban</td></tr>
+    <tr><td>3xui-shop</td><td>یکپارچه با 3x-ui؛ نصب آسان</td><td>فقط 3x-ui؛ انعطاف کم</td></tr>
+    <tr><td>RemnaShop</td><td>سبک، مخصوص Remnawave</td><td>اکوسیستم محدود</td></tr>
+    <tr><td>Sushbot</td><td>فارسی، سریع</td><td>مستندات ضعیف</td></tr>
+  </table>
+  <div class="note"><b>پیشنهاد v1 برای فردا:</b> ربات درون‌خودی پنل (بدون سرویس جدا) — حالت ربات + شناسه‌های مدیر در همین بخش ربات تلگرام، کاربر قالب فروش را می‌بیند → پرداخت (زارین‌پل/کارت‌به‌کارت) → ساخت خودکار کاربر → تحویل لینک اشتراک در چت. منتظر تایید شما هستیم.</div>
+  <div class="foot"><span>Sephiroth v2.2.0 — Changelog</span><span>EPODONIOS · MIT</span></div>
+</section>
+
+</body>
+</html>

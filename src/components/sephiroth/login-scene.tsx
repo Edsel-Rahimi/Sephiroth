@@ -172,6 +172,7 @@ export function LoginScene({
 }) {
   const lang = useAppStore((s) => s.lang);
   const t = useMemo(() => dictionaries[lang].auth, [lang]);
+  const sysT = useMemo(() => dictionaries[lang].system, [lang]);
   const { toast } = useToast();
 
   /* login form state */
@@ -181,6 +182,9 @@ export function LoginScene({
   const [showPw, setShowPw] = useState(false);
   const [remember, setRemember] = useState(true);
   const [busy, setBusy] = useState(false);
+  /* TOTP second factor (v2.2) */
+  const [totpStep, setTotpStep] = useState(false);
+  const [totpCode, setTotpCode] = useState("");
 
   /* errors + lockout */
   const [error, setError] = useState<{ msg: string; shakeKey: number } | null>(null);
@@ -237,6 +241,7 @@ export function LoginScene({
           username: username.trim(),
           password,
           remember,
+          ...(totpStep && totpCode ? { totp: totpCode } : {}),
         }),
       });
       const data = (await res.json()) as {
@@ -258,6 +263,17 @@ export function LoginScene({
       if (res.status === 423 && data.retryAfter) {
         setLockSecs(data.retryAfter);
         fail(t.errLocked.replace("{s}", fmt(data.retryAfter)));
+        return;
+      }
+      if (res.status === 401 && data.error === "totp_required") {
+        setTotpStep(true);
+        setTotpCode("");
+        fail(t.totpPrompt);
+        return;
+      }
+      if (res.status === 401 && data.error === "totp_invalid") {
+        setTotpCode("");
+        fail(sysT.totpInvalid);
         return;
       }
       if (res.status === 401) {
@@ -473,6 +489,29 @@ export function LoginScene({
                         </button>
                       </div>
                     </div>
+
+                    {totpStep && (
+                      <div className="space-y-2">
+                        <Label htmlFor="login-totp" className="text-[13px] font-medium">
+                          {t.totpPrompt}
+                        </Label>
+                        <div className="relative">
+                          <ShieldCheck className="pointer-events-none absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
+                          <Input
+                            id="login-totp"
+                            dir="ltr"
+                            inputMode="numeric"
+                            autoComplete="one-time-code"
+                            maxLength={6}
+                            value={totpCode}
+                            onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ""))}
+                            placeholder={sysT.totpCodePh}
+                            disabled={busy || lockSecs !== null}
+                            className={cn(fieldCls, "font-mono tracking-[0.4em]")}
+                          />
+                        </div>
+                      </div>
+                    )}
 
                     <label
                       htmlFor="login-remember"

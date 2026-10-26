@@ -14,6 +14,8 @@ import {
   verifyPassword,
 } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { getSecuritySettings, getTotpSecret } from "@/lib/settings";
+import { verifyTotp } from "@/lib/totp";
 import { logActivity } from "@/lib/activity";
 
 export async function POST(req: Request) {
@@ -28,7 +30,7 @@ export async function POST(req: Request) {
     );
   }
 
-  let body: { username?: unknown; password?: unknown; remember?: unknown };
+  let body: { username?: unknown; password?: unknown; remember?: unknown; totp?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -79,6 +81,28 @@ export async function POST(req: Request) {
       { error: "invalid", attemptsLeft: fail.attemptsLeft },
       { status: 401 }
     );
+  }
+
+  // ---- TOTP second factor (v2.2) ----
+  const sec = await getSecuritySettings();
+  if (role === "admin" && sec.totpEnabled) {
+    const totpCode = typeof body.totp === "string" ? body.totp.trim() : "";
+    if (!totpCode) {
+      // credentials are correct — ask for the second factor WITHOUT counting
+      // a lockout failure and without revealing whether the password was right
+      return NextResponse.json({ error: "totp_required" }, { status: 401 });
+    }
+    const secret = await getTotpSecret();
+    if (!secret || !verifyTotp(secret, totpCode)) {
+      await logActivity({
+        kind: "auth.failed",
+        level: "error",
+        actor: okUser,
+        message: `Invalid 2FA code for "${okUser}" from ${ip}`,
+        meta: { ip, totp: true },
+      });
+      return NextResponse.json({ error: "totp_invalid" }, { status: 401 });
+    }
   }
 
   clearFailures(ip);
