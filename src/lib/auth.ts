@@ -209,7 +209,10 @@ export function sessionCookieOptions(maxAgeSec: number) {
     sameSite: "lax" as const,
     path: "/",
     maxAge: maxAgeSec,
-    secure: process.env.NODE_ENV === "production",
+    // Secure is opt-in (SEPH_COOKIE_SECURE=1): the panel may be deployed
+    // behind plain HTTP (e.g. KataBump allocation), where a Secure cookie
+    // would be dropped by the browser and break login.
+    secure: process.env.SEPH_COOKIE_SECURE === "1",
   };
 }
 
