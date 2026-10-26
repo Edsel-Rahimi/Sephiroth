@@ -654,3 +654,21 @@ html[dir="rtl"] .shine-sweep {
   transition-duration: 0.01ms !important;
   scroll-behavior: auto !important;
 }
+
+/* dialog tab swap (New Inbound redesign) */
+@keyframes tab-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.tab-swap {
+  animation: tab-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.reduce-motion .tab-swap {
+  animation-duration: 0.01ms;
+}

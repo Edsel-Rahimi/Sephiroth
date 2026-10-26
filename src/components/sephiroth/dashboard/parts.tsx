@@ -1,8 +1,41 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+/* ---------- shared identity (GET /api/profile · fetched once per page load) ----------
+   Used by the top-nav account chip and the dashboard welcome header so both show
+   the real signed-in identity (displayName ?? username + role) instead of the
+   hardcoded "Commander / admin@sephiroth". */
+export interface SephirothIdentity {
+  username: string;
+  displayName: string;
+  role: "admin" | "reseller";
+}
+
+let identityCache: Promise<SephirothIdentity | null> | null = null;
+function fetchIdentity(): Promise<SephirothIdentity | null> {
+  identityCache ??= fetch("/api/profile", { cache: "no-store" })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((d: { profile?: SephirothIdentity } | null) => d?.profile ?? null)
+    .catch(() => null);
+  return identityCache;
+}
+
+export function useIdentity(): SephirothIdentity | null {
+  const [identity, setIdentity] = useState<SephirothIdentity | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void fetchIdentity().then((p) => {
+      if (alive && p) setIdentity(p);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return identity;
+}
 
 /* ---------- smooth path helper (catmull-rom → bezier) ---------- */
 export function smoothLine(

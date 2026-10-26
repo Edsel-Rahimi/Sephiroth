@@ -1,3 +1,4 @@
+import net from "node:net";
 import { db } from "@/lib/db";
 import type { FieldError } from "@/lib/settings";
 
@@ -402,10 +403,121 @@ export async function listOutbounds(): Promise<OutboundDTO[]> {
   return rows.map(toOutboundDTO);
 }
 
-/** Simulated connectivity test (preview mode — no real dial). */
-export function simulateOutboundTest(): { ok: boolean; latencyMs: number } {
-  const ok = Math.random() > 0.1;
-  return { ok, latencyMs: 25 + Math.floor(Math.random() * 240) };
+/* ---------- outbound connectivity test (real TCP dial) ---------- */
+
+const OUTBOUND_TEST_TIMEOUT_MS = 3000;
+
+/** Real TCP connect with a hard timeout; resolves with round-trip ms. */
+export function tcpProbe(host: string, port: number, timeoutMs = OUTBOUND_TEST_TIMEOUT_MS): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const started = Date.now();
+    const socket = net.createConnection({ host, port });
+    const done = (err: Error | null) => {
+      socket.removeAllListeners();
+      socket.destroy();
+      if (err) reject(err);
+      else resolve(Date.now() - started);
+    };
+    socket.setTimeout(timeoutMs);
+    socket.on("connect", () => done(null));
+    socket.on("timeout", () => done(new Error("timeout")));
+    socket.on("error", (err) => done(err));
+  });
+}
+
+interface OutboundEndpoint {
+  host: string;
+  port: number;
+}
+
+/**
+ * Extracts the first dialable remote endpoint from an outbound's settings
+ * JSON (socks/http servers, vmess/vless vnext, trojan/ss servers, wireguard
+ * peers). Local-egress protocols (freedom/blackhole/dns) have none.
+ */
+function resolveOutboundEndpoint(row: {
+  protocol: string;
+  settingsJson: string;
+  streamJson?: string;
+  tag?: string;
+}): OutboundEndpoint | null {
+  const settings = parseJsonLoose<Record<string, unknown>>(row.settingsJson, {});
+  const hostOfEntry = (e: unknown): OutboundEndpoint | null => {
+    if (!e || typeof e !== "object") return null;
+    const rec = e as Record<string, unknown>;
+    const host = typeof rec.address === "string" ? rec.address.trim() : "";
+    const port = Number(rec.port);
+    if (host && Number.isInteger(port) && port >= 1 && port <= 65535) {
+      return { host, port };
+    }
+    return null;
+  };
+
+  const lists: unknown[][] = [];
+  if (Array.isArray(settings.vnext)) lists.push(settings.vnext);
+  if (Array.isArray(settings.servers)) lists.push(settings.servers);
+  if (Array.isArray(settings.peers)) lists.push(settings.peers); // wireguard
+
+  for (const list of lists) {
+    for (const entry of list) {
+      if (!entry || typeof entry !== "object") continue;
+      const rec = entry as Record<string, unknown>;
+      // wireguard peers carry "endpoint": "host:port"
+      if (typeof rec.endpoint === "string") {
+        const m = rec.endpoint.trim().match(/^\[?([^\]^:]+)\]?:([0-9]+)$/);
+        if (m) return { host: m[1]!, port: Number(m[2]) };
+      }
+      const direct = hostOfEntry(entry);
+      if (direct) return direct;
+    }
+  }
+
+  // last resort: a bare address/port pair on the settings object
+  return hostOfEntry(settings);
+}
+
+export interface OutboundTestResult {
+  ok: boolean;
+  latencyMs: number;
+  checkedAt: string;
+  /** "host:port" actually dialed, or null for local-egress protocols. */
+  endpoint: string | null;
+  mode: "tcp" | "local";
+  error?: string;
+}
+
+/**
+ * Connectivity test for one outbound row. Performs a REAL TCP connect to
+ * the remote endpoint resolved from the outbound's settings (3s budget);
+ * protocols without a remote endpoint (freedom/blackhole/dns) report
+ * ok with mode "local" — there is genuinely nothing to dial.
+ */
+export async function simulateOutboundTest(row: {
+  protocol: string;
+  settingsJson: string;
+  streamJson?: string;
+  tag?: string;
+}): Promise<OutboundTestResult> {
+  const checkedAt = new Date().toISOString();
+  const endpoint = resolveOutboundEndpoint(row);
+  if (!endpoint) {
+    return { ok: true, latencyMs: 0, checkedAt, endpoint: null, mode: "local" };
+  }
+  const target = `${endpoint.host}:${endpoint.port}`;
+  try {
+    const latencyMs = await tcpProbe(endpoint.host, endpoint.port);
+    return { ok: true, latencyMs, checkedAt, endpoint: target, mode: "tcp" };
+  } catch (err) {
+    const reason =
+      (err as NodeJS.ErrnoException)?.code === "ECONNREFUSED"
+        ? "refused"
+        : (err as Error)?.message === "timeout"
+          ? "timeout"
+          : (err as NodeJS.ErrnoException)?.code === "ENOTFOUND"
+            ? "dns"
+            : "unreachable";
+    return { ok: false, latencyMs: 0, checkedAt, endpoint: target, mode: "tcp", error: reason };
+  }
 }
 
 /* ---------- Routing rules ---------- */

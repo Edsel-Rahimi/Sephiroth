@@ -6,9 +6,7 @@ import { D2Card } from "@/components/sephiroth/dashboard/parts";
 import { useAppStore } from "@/lib/store/app-store";
 import { useCoreStore } from "@/lib/store/core-store";
 import { lfmt, liveDictionaries } from "@/lib/i18n/live-strings";
-import { dictionaries } from "@/lib/i18n/dictionaries";
 import { d2Dictionaries } from "@/lib/i18n/dashboard-strings";
-import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 /* ---------- statistics bubbles (Resq-style overlapping circles, live) ---------- */
@@ -29,12 +27,12 @@ function StatsBubbles() {
             backgroundSize: "7px 7px",
           }}
         />
-        {/* big cyan */}
-        <div className="float-y absolute left-2 top-8 flex h-36 w-36 flex-col items-center justify-center rounded-full bg-[radial-gradient(circle_at_30%_25%,#4be3f7,#0ea5bf_60%,#087a90)] shadow-[0_0_50px_-10px_rgba(34,216,238,0.6)]">
-          <span className="font-mono text-[26px] font-bold tabular-nums leading-none text-[#04161b]">
+        {/* big primary bubble — theme-aware (was hardcoded cyan radial) */}
+        <div className="float-y absolute left-2 top-8 flex h-36 w-36 flex-col items-center justify-center rounded-full bg-primary shadow-[0_0_50px_-10px_var(--ring)]">
+          <span className="font-mono text-[26px] font-bold tabular-nums leading-none text-primary-foreground">
             {Math.round(dist.connectedPct)}%
           </span>
-          <span className="mt-1 text-[10px] font-semibold text-[#04161b]/80">{d2.connected}</span>
+          <span className="mt-1 text-[10px] font-semibold text-primary-foreground/80">{d2.connected}</span>
         </div>
         {/* medium idle */}
         <div className="absolute right-8 top-0 flex h-28 w-28 flex-col items-center justify-center rounded-full bg-white/8 ring-1 ring-white/15 backdrop-blur-md">
@@ -141,8 +139,7 @@ function ActiveAlerts() {
 function RenewalRadar() {
   const lang = useAppStore((s) => s.lang);
   const d2 = useMemo(() => d2Dictionaries[lang], [lang]);
-  const dict = useMemo(() => dictionaries[lang], [lang]);
-  const { toast } = useToast();
+  const setView = useAppStore((s) => s.setView);
   const topUsers = useCoreStore((s) => s.snapshot.topUsers);
 
   const items = useMemo(
@@ -184,8 +181,8 @@ function RenewalRadar() {
         ))}
       </ul>
       <button
-        onClick={() => toast({ title: dict.common.soon, description: dict.common.soonDesc })}
-        className="glow-cyan mt-4 flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-[#0ea5bf] text-sm font-bold text-[#041014] transition-transform hover:scale-[1.01]"
+        onClick={() => setView("users")}
+        className="glow-cyan mt-4 flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-primary/70 text-sm font-bold text-primary-foreground transition-transform hover:scale-[1.01]"
       >
         <PlayCircle className="h-4 w-4" />
         {d2.reviewNow}
@@ -223,8 +220,8 @@ function GoalGauge() {
                 <line x1="0" y1="0" x2="0" y2="6" stroke="rgba(148,184,205,0.28)" strokeWidth="2.5" />
               </pattern>
               <linearGradient id="gaugeGrad" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#0ea5bf" />
-                <stop offset="100%" stopColor="#4be3f7" />
+                <stop offset="0%" style={{ stopColor: "var(--primary)" }} />
+                <stop offset="100%" style={{ stopColor: "var(--accent-foreground)" }} />
               </linearGradient>
             </defs>
             <path d="M18,78 A62,62 0 0 1 142,78" fill="none" stroke="url(#gaugeHatch)" strokeWidth="15" strokeLinecap="round" />
@@ -236,7 +233,7 @@ function GoalGauge() {
               strokeLinecap="round"
               strokeDasharray={`${done} ${C}`}
               className="line-draw"
-              style={{ filter: "drop-shadow(0 0 8px rgba(34,216,238,0.45))" }}
+              style={{ filter: "drop-shadow(0 0 8px var(--ring))" }}
             />
           </svg>
           <div className="absolute inset-x-0 bottom-0 text-center">
@@ -260,8 +257,8 @@ function GoalGauge() {
           <div className="min-w-40 flex-1 sm:max-w-64">
             <div className="h-2 overflow-hidden rounded-full bg-muted">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-[#0ea5bf] to-[#4be3f7] transition-[width] duration-700"
-                style={{ width: `${pct}%`, filter: "drop-shadow(0 0 6px rgba(34,216,238,0.4))" }}
+                className="h-full rounded-full bg-gradient-to-r from-primary to-accent-foreground transition-[width] duration-700"
+                style={{ width: `${pct}%`, filter: "drop-shadow(0 0 6px var(--ring))" }}
               />
             </div>
             <p className="mt-1.5 text-right font-mono text-[10px] tabular-nums text-muted-foreground">

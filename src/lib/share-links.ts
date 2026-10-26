@@ -38,6 +38,9 @@ export interface ShareClient {
   trafficLimitGb?: number | null;
   expiryDays?: number | null;
   enabled?: boolean;
+  /** WireGuard: per-client X25519 material (base64 32-byte halves). */
+  wgPrivateKey?: string;
+  wgPublicKey?: string;
 }
 
 export function b64utf8(s: string): string {
@@ -47,8 +50,14 @@ export function b64utf8(s: string): string {
 /**
  * Resolves a routable public hostname or IP for client configs.
  * Fixes the critical bug where listen="0.0.0.0" or "" produced unroutable 0.0.0.0 links.
+ * Chain: listen → fallbackHost (request host) → stream sni/host → node domain →
+ * publicHost (admin setting) → edge.sephiroth.network.
  */
-export function hostOf(row: { listen: string; stream?: unknown }, fallbackHost?: string): string {
+export function hostOf(
+  row: { listen: string; stream?: unknown },
+  fallbackHost?: string,
+  publicHost?: string
+): string {
   const st = (row.stream ?? {}) as Record<string, unknown>;
   const raw = (row.listen || "").trim();
   if (raw && raw !== "0.0.0.0" && raw !== "::" && raw !== "127.0.0.1" && raw !== "localhost") {
@@ -69,6 +78,9 @@ export function hostOf(row: { listen: string; stream?: unknown }, fallbackHost?:
       return h;
     }
   }
+  if (publicHost && publicHost.trim()) {
+    return publicHost.trim();
+  }
   return "edge.sephiroth.network";
 }
 
@@ -80,9 +92,14 @@ const KEY_FALLBACK: Record<string, string> = {
   hysteria2: "password",
 };
 
-export function buildShareLink(row: ShareInbound, first?: ShareClient, fallbackHost?: string): string | null {
+export function buildShareLink(
+  row: ShareInbound,
+  first?: ShareClient,
+  fallbackHost?: string,
+  publicHost?: string
+): string | null {
   const st = (row.stream ?? {}) as Record<string, unknown>;
-  const host = hostOf(row, fallbackHost);
+  const host = hostOf(row, fallbackHost, publicHost);
   const port = String(row.port);
   const label = first?.email
     ? `${BRAND_TAG} · ${row.tag} · ${first.email}`
@@ -166,8 +183,10 @@ export function buildShareLink(row: ShareInbound, first?: ShareClient, fallbackH
       return `hy2://${encodeURIComponent(key)}@${host}:${port}?${q.toString()}#${encodeURIComponent(label)}`;
     }
     case "wireguard": {
-      const priv = encodeURIComponent(String(st.wgSecretKey || first?.key || "WG_PRIVATE_KEY"));
-      const pub = encodeURIComponent(String(st.wgPublicKey || first?.key || "WG_PUBLIC_KEY"));
+      // the CLIENT private key (never the server/inbound secret)
+      const priv = encodeURIComponent(String(first?.wgPrivateKey || "<client-private-key>"));
+      // the SERVER (inbound) public key from the stream settings
+      const pub = encodeURIComponent(String(st.wgPublicKey || first?.wgPublicKey || "WG_PUBLIC_KEY"));
       const mtu = String(st.wgMtu ?? 1420);
       return `wireguard://${priv}@${host}:${port}?address=10.0.0.2%2F32&publickey=${pub}&mtu=${mtu}#${encodeURIComponent(label)}`;
     }
@@ -183,30 +202,37 @@ export function buildShareLink(row: ShareInbound, first?: ShareClient, fallbackH
   }
 }
 
-export function buildWgConf(row: ShareInbound, first?: ShareClient, fallbackHost?: string): string {
+export function buildWgConf(
+  row: ShareInbound,
+  first?: ShareClient,
+  fallbackHost?: string,
+  publicHost?: string
+): string {
   const st = (row.stream ?? {}) as Record<string, unknown>;
-  const host = hostOf(row, fallbackHost);
+  const host = hostOf(row, fallbackHost, publicHost);
   return [
     `# ${BRAND_TAG} · ${row.tag}`,
     "[Interface]",
-    `PrivateKey = ${st.wgSecretKey ?? "<private-key>"}`,
+    // per-client private key — the inbound's server secret must never ship
+    `PrivateKey = ${first?.wgPrivateKey || "<client-private-key>"}`,
     "Address = 10.0.0.2/32",
     "DNS = 1.1.1.1, 1.0.0.1",
     `MTU = ${st.wgMtu ?? 1420}`,
     "",
     "[Peer]",
-    `PublicKey = ${first?.key ?? st.wgPublicKey ?? "<peer-public-key>"}`,
+    // the inbound's SERVER public key
+    `PublicKey = ${st.wgPublicKey ?? first?.wgPublicKey ?? "<server-public-key>"}`,
     "AllowedIPs = 0.0.0.0/0, ::/0",
     `Endpoint = ${host}:${row.port}`,
     "PersistentKeepalive = 25",
   ].join("\n");
 }
 
-export function buildDokoSummary(row: ShareInbound, fallbackHost?: string): string {
+export function buildDokoSummary(row: ShareInbound, fallbackHost?: string, publicHost?: string): string {
   const st = (row.stream ?? {}) as Record<string, unknown>;
   return [
     `${BRAND_TAG} · dokodemo-door · ${row.tag}`,
-    `listen: ${hostOf(row, fallbackHost)}:${row.port}`,
+    `listen: ${hostOf(row, fallbackHost, publicHost)}:${row.port}`,
     `target: ${st.dokoAddress ?? "127.0.0.1"}:${st.dokoPort ?? "8080"}`,
     `network: ${st.dokoNetwork ?? "tcp,udp"}`,
   ].join("\n");
@@ -215,14 +241,15 @@ export function buildDokoSummary(row: ShareInbound, fallbackHost?: string): stri
 export function buildShareMaterial(
   row: ShareInbound,
   first?: ShareClient,
-  fallbackHost?: string
+  fallbackHost?: string,
+  publicHost?: string
 ): { link: string | null; text: string } {
-  const link = buildShareLink(row, first, fallbackHost);
+  const link = buildShareLink(row, first, fallbackHost, publicHost);
   if (row.protocol === "wireguard") {
-    return { link, text: buildWgConf(row, first, fallbackHost) };
+    return { link, text: buildWgConf(row, first, fallbackHost, publicHost) };
   }
   if (link) return { link, text: link };
-  return { link: null, text: buildDokoSummary(row, fallbackHost) };
+  return { link: null, text: buildDokoSummary(row, fallbackHost, publicHost) };
 }
 
 /* ============================================================
@@ -243,16 +270,43 @@ export interface SubExportItem {
   link?: string | null;
 }
 
-export function buildClashMetaYaml(items: SubExportItem[], subName: string, fallbackHost?: string): string {
+/** Clash ws/grpc transport options — shared by vless/vmess/trojan (httpupgrade rides ws). */
+function clashTransportLines(item: SubExportItem, st: Record<string, unknown>, host: string): string[] {
+  const lines: string[] = [];
+  if (item.transport === "ws" || item.transport === "httpupgrade") {
+    lines.push(
+      `    ws-opts:`,
+      `      path: "${String(st.path || "/")}"`,
+      `      headers:`,
+      `        Host: "${String(st.host || host)}"`
+    );
+  } else if (item.transport === "grpc") {
+    lines.push(
+      `    grpc-opts:`,
+      `      grpc-service-name: "${String(st.serviceName || "grpc")}"`
+    );
+  }
+  return lines;
+}
+
+export function buildClashMetaYaml(
+  items: SubExportItem[],
+  subName: string,
+  fallbackHost?: string,
+  publicHost?: string
+): string {
   const proxyLines: string[] = [];
   const proxyNames: string[] = [];
 
   items.forEach((item, idx) => {
     const name = `${BRAND_TAG}-${item.tag}-${idx + 1}`;
-    const host = hostOf({ listen: item.listen || "", stream: item.stream }, fallbackHost);
+    const host = hostOf({ listen: item.listen || "", stream: item.stream }, fallbackHost, publicHost);
     const st = item.stream || {};
     const tls = item.security === "tls" || item.security === "reality";
     const sni = String(st.sni || (typeof st.serverNames === "string" ? st.serverNames.split(",")[0] : "") || host);
+    // clash has no httpupgrade network — it rides ws
+    const network = item.transport === "httpupgrade" ? "ws" : item.transport;
+    const transport = clashTransportLines(item, st, host);
 
     if (item.protocol === "vless") {
       proxyNames.push(name);
@@ -262,7 +316,7 @@ export function buildClashMetaYaml(items: SubExportItem[], subName: string, fall
         `    server: ${host}`,
         `    port: ${item.port}`,
         `    uuid: ${item.key || KEY_FALLBACK.vless}`,
-        `    network: ${item.transport === "httpupgrade" ? "ws" : item.transport}`,
+        `    network: ${network}`,
         `    tls: ${tls}`,
         `    udp: true`,
         `    client-fingerprint: ${String(st.fingerprint || "chrome")}`,
@@ -276,19 +330,7 @@ export function buildClashMetaYaml(items: SubExportItem[], subName: string, fall
           `      short-id: ${String(st.shortIds || "").split(",")[0].trim()}`
         );
       }
-      if (item.transport === "ws" || item.transport === "httpupgrade") {
-        proxyLines.push(
-          `    ws-opts:`,
-          `      path: "${String(st.path || "/")}"`,
-          `      headers:`,
-          `        Host: "${String(st.host || host)}"`
-        );
-      } else if (item.transport === "grpc") {
-        proxyLines.push(
-          `    grpc-opts:`,
-          `      grpc-service-name: "${String(st.serviceName || "grpc")}"`
-        );
-      }
+      proxyLines.push(...transport);
     } else if (item.protocol === "vmess") {
       proxyNames.push(name);
       proxyLines.push(
@@ -299,11 +341,12 @@ export function buildClashMetaYaml(items: SubExportItem[], subName: string, fall
         `    uuid: ${item.key || KEY_FALLBACK.vmess}`,
         `    alterId: 0`,
         `    cipher: auto`,
-        `    network: ${item.transport}`,
+        `    network: ${network}`,
         `    tls: ${tls}`,
         `    udp: true`,
         `    servername: ${sni}`
       );
+      proxyLines.push(...transport);
     } else if (item.protocol === "trojan") {
       proxyNames.push(name);
       proxyLines.push(
@@ -312,10 +355,11 @@ export function buildClashMetaYaml(items: SubExportItem[], subName: string, fall
         `    server: ${host}`,
         `    port: ${item.port}`,
         `    password: "${item.key || KEY_FALLBACK.trojan}"`,
-        `    network: ${item.transport}`,
+        `    network: ${network}`,
         `    sni: ${sni}`,
         `    udp: true`
       );
+      proxyLines.push(...transport);
     } else if (item.protocol === "shadowsocks") {
       proxyNames.push(name);
       proxyLines.push(
@@ -389,21 +433,53 @@ export function buildClashMetaYaml(items: SubExportItem[], subName: string, fall
   ].join("\n");
 }
 
-export function buildSingboxJson(items: SubExportItem[], subName: string, fallbackHost?: string): string {
+/**
+ * Sing-Box transport object — vless/vmess/trojan/ss all dial through it.
+ * httpupgrade is folded into type "http" (sing-box ≥1.11 merged them).
+ */
+function singboxTransport(st: Record<string, unknown>, transport: string): Record<string, unknown> | undefined {
+  if (transport === "ws") {
+    return {
+      type: "ws",
+      path: String(st.path || "/"),
+      ...(st.host ? { headers: { Host: String(st.host) } } : {}),
+    };
+  }
+  if (transport === "grpc") {
+    return { type: "grpc", service_name: String(st.serviceName || "") };
+  }
+  if (transport === "http" || transport === "httpupgrade") {
+    return {
+      type: "http",
+      path: String(st.path || "/"),
+      ...(st.host ? { host: [String(st.host)] } : {}),
+    };
+  }
+  return undefined; // tcp / reality-over-tcp need no transport object
+}
+
+export function buildSingboxJson(
+  items: SubExportItem[],
+  subName: string,
+  fallbackHost?: string,
+  publicHost?: string
+): string {
   const outbounds: Record<string, unknown>[] = [];
   const tags: string[] = [];
 
   items.forEach((item, idx) => {
     const tag = `${BRAND_TAG}-${item.tag}-${idx + 1}`;
-    const host = hostOf({ listen: item.listen || "", stream: item.stream }, fallbackHost);
+    const host = hostOf({ listen: item.listen || "", stream: item.stream }, fallbackHost, publicHost);
     const st = item.stream || {};
     const tlsEnabled = item.security === "tls" || item.security === "reality";
     const sni = String(st.sni || (typeof st.serverNames === "string" ? st.serverNames.split(",")[0] : "") || host);
+    const transport = singboxTransport(st, item.transport);
 
     const tlsObj = tlsEnabled
       ? {
           enabled: true,
           server_name: sni,
+          insecure: Boolean(st.allowInsecure),
           utls: { enabled: true, fingerprint: String(st.fingerprint || "chrome") },
           ...(item.security === "reality"
             ? {
@@ -426,6 +502,7 @@ export function buildSingboxJson(items: SubExportItem[], subName: string, fallba
         server_port: item.port,
         uuid: item.key || KEY_FALLBACK.vless,
         flow: item.flow || undefined,
+        ...(transport ? { transport } : {}),
         tls: tlsObj,
       });
     } else if (item.protocol === "vmess") {
@@ -437,6 +514,7 @@ export function buildSingboxJson(items: SubExportItem[], subName: string, fallba
         server_port: item.port,
         uuid: item.key || KEY_FALLBACK.vmess,
         security: "auto",
+        ...(transport ? { transport } : {}),
         tls: tlsObj,
       });
     } else if (item.protocol === "trojan") {
@@ -447,6 +525,7 @@ export function buildSingboxJson(items: SubExportItem[], subName: string, fallba
         server: host,
         server_port: item.port,
         password: item.key || KEY_FALLBACK.trojan,
+        ...(transport ? { transport } : {}),
         tls: tlsObj,
       });
     } else if (item.protocol === "shadowsocks") {

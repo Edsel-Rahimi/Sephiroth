@@ -866,12 +866,10 @@ export function RoutingView() {
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-bold text-foreground">
-                  {lang === "fa" ? "وارپ کلودفلر (رفع کپچا و هوش مصنوعی)" : "Cloudflare WARP+ (Clean IP & AI)"}
+                  {t.routingPresets.warp}
                 </p>
                 <p className="truncate text-[11px] text-muted-foreground">
-                  {lang === "fa"
-                    ? "هدایت OpenAI، گوگل، نتفلیکس و اسپاتیفای به خروجی WARP"
-                    : "Route OpenAI, Google, Netflix & Spotify via WARP outbound"}
+                  {t.routingPresets.warpD}
                 </p>
               </div>
               <span
@@ -924,7 +922,7 @@ export function RoutingView() {
                 };
                 setRules((prev) => (prev ? [...prev, rule] : prev));
                 markDirty();
-                toast({ description: `${t.routingPresets.added}: WARP+ Clean IP` });
+                toast({ description: `${t.routingPresets.added}: ${t.routingPresets.warp}` });
               }}
               className="mt-3 h-9 shrink-0 gap-1.5 self-start rounded-full border-primary/30 bg-primary/10 px-4 text-xs font-semibold text-primary hover:bg-primary/20 hover:text-primary"
             >

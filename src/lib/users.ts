@@ -1,4 +1,10 @@
-import { randomBytes, randomUUID } from "node:crypto";
+import {
+  createPrivateKey,
+  createPublicKey,
+  generateKeyPairSync,
+  randomBytes,
+  randomUUID,
+} from "node:crypto";
 import type { ClientUser, Inbound, UserInboundAccess } from "@/lib/db";
 import {
   type AccessDTO,
@@ -25,6 +31,56 @@ const PW_ALPHABET = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 export function genSubId(): string {
   return randomBytes(8).toString("hex"); // 16 hex chars
+}
+
+/* ---------- WireGuard per-client key material ---------- */
+
+/** Raw base64 (32-byte) X25519 keypair — the shape WireGuard expects. */
+export function makeWgKeypair(): { privateKey: string; publicKey: string } {
+  const { privateKey, publicKey } = generateKeyPairSync("x25519");
+  const privDer = privateKey.export({ type: "pkcs8", format: "der" });
+  const pubDer = publicKey.export({ type: "spki", format: "der" });
+  return {
+    // DER wrappers end with the raw 32-byte key
+    privateKey: Buffer.from(privDer.subarray(privDer.length - 32)).toString("base64"),
+    publicKey: Buffer.from(pubDer.subarray(pubDer.length - 32)).toString("base64"),
+  };
+}
+
+/** Derives the public key for a raw base64 WireGuard private key (null if malformed). */
+export function wgPublicKeyFrom(secret: string): string | null {
+  const PKCS8_PREFIX = Buffer.from("302e020100300506032b656e04220420", "hex");
+  try {
+    const raw = Buffer.from(secret, "base64");
+    if (raw.length !== 32) return null;
+    const priv = createPrivateKey({
+      key: Buffer.concat([PKCS8_PREFIX, raw]),
+      format: "der",
+      type: "pkcs8",
+    });
+    const pubDer = createPublicKey(priv).export({ type: "spki", format: "der" });
+    return Buffer.from(pubDer.subarray(pubDer.length - 32)).toString("base64");
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Identity material for one access row. WireGuard gets a REAL per-client
+ * X25519 keypair (private key stays on the access row; the share/export
+ * layer uses it for the [Interface] PrivateKey); other protocols only
+ * carry the protocol-correct `key`.
+ */
+export function genAccessFields(protocol: string): {
+  key: string;
+  wgPrivateKey: string;
+  wgPublicKey: string;
+} {
+  if (protocol === "wireguard") {
+    const kp = makeWgKeypair();
+    return { key: kp.publicKey, wgPrivateKey: kp.privateKey, wgPublicKey: kp.publicKey };
+  }
+  return { key: genKey(protocol), wgPrivateKey: "", wgPublicKey: "" };
 }
 
 /** Protocol-correct identity material for an access entry. */
@@ -85,6 +141,7 @@ export function toUserDTO(row: UserRow, now?: Date): UserDTO & { status: UserSta
     expiryDays: row.expiryDays,
     ipLimit: row.ipLimit,
     usedTrafficGb: row.usedTrafficGb,
+    resetPeriod: row.resetPeriod ?? null,
     status: deriveStatus(row),
     resellerId: row.resellerId,
     createdAt: new Date(row.createdAt).toISOString(),
@@ -96,6 +153,8 @@ export function toUserDTO(row: UserRow, now?: Date): UserDTO & { status: UserSta
         email: a.email,
         key: a.key,
         flow: a.flow,
+        wgPrivateKey: a.wgPrivateKey ?? "",
+        wgPublicKey: a.wgPublicKey ?? "",
         inbound: {
           id: a.inbound.id,
           tag: a.inbound.tag,

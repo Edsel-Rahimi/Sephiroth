@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/auth";
-import { requireAdmin } from "@/lib/inbounds";
+import { prismaErrorCode, requireAdmin } from "@/lib/inbounds";
 import { logActivity } from "@/lib/activity";
 import { toResellerDTO, validateResellerPatch } from "@/lib/resellers";
 
@@ -63,6 +63,9 @@ export async function PATCH(req: Request, ctx: Ctx) {
     });
     return NextResponse.json({ reseller: toResellerDTO(updated) });
   } catch (err) {
+    if (prismaErrorCode(err) === "P2025") {
+      return NextResponse.json({ error: "not_found" }, { status: 404 });
+    }
     console.error("[resellers:PATCH]", err);
     return NextResponse.json({ error: "server_error" }, { status: 500 });
   }

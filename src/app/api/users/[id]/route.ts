@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { emailFor, flowFor, genKey, toUserDTO } from "@/lib/users";
-import { parseClients, validateUser } from "@/lib/user-types";
+import { emailFor, flowFor, genAccessFields, toUserDTO } from "@/lib/users";
+import { parseClients, validateUserPatch } from "@/lib/user-types";
 import { stripUserEverywhere, syncUserProjection } from "@/lib/user-sync";
 import { logActivity } from "@/lib/activity";
 
@@ -12,7 +12,8 @@ import { logActivity } from "@/lib/activity";
    own (resellerId mismatch → 404, no existence leak).
    PATCH  /api/users/:id → { user: UserDTO }
      body: { note?, enabled?, trafficLimitGb?, expiryDays?, ipLimit?,
-             inboundIds? (replaces the full link set) }
+             resetPeriod?, inboundIds? (replaces the full link set) }
+     TRUE partial merge: only keys present in the body are written;
      username is immutable (it names the entries inside inbounds).
      clientsJson projection is rebuilt after the transaction by
      syncUserProjection (adds new, updates limits, drops removed).
@@ -38,13 +39,15 @@ export async function PATCH(
       return NextResponse.json({ error: "bad_json" }, { status: 400 });
     }
 
-    const parsed = validateUser(body, { requireInbounds: false, partial: true });
+    const parsed = validateUserPatch(body);
     if (!parsed.ok) {
       return NextResponse.json(
         { error: "validation", fields: parsed.fields },
         { status: 400 }
       );
     }
+    // sparse patch — only provided keys are written; everything else keeps
+    // the currently stored value (true partial merge, no default resets)
     const data = parsed.data;
 
     const existing = await db.clientUser.findUnique({
@@ -58,9 +61,9 @@ export async function PATCH(
       return NextResponse.json({ error: "not_found" }, { status: 404 });
     }
 
-    // resolve the new link set (default: keep current)
+    // resolve the new link set (only when the key was actually sent)
     let nextInboundIds: string[] | null = null;
-    if (Array.isArray((body as Record<string, unknown>)?.inboundIds)) {
+    if (data.inboundIds !== undefined) {
       nextInboundIds = data.inboundIds;
       const inboundRows = await db.inbound.findMany({
         where: { id: { in: nextInboundIds } },
@@ -74,15 +77,24 @@ export async function PATCH(
       }
     }
 
+    // effective limits = patch values when present, otherwise current row
+    const nextLimits = {
+      ipLimit: data.ipLimit ?? existing.ipLimit,
+      trafficLimitGb: data.trafficLimitGb !== undefined ? data.trafficLimitGb : existing.trafficLimitGb,
+      expiryDays: data.expiryDays !== undefined ? data.expiryDays : existing.expiryDays,
+      enabled: data.enabled ?? existing.enabled,
+    };
+
     await db.$transaction(async (tx) => {
       await tx.clientUser.update({
         where: { id },
         data: {
-          note: data.note || null,
-          enabled: data.enabled,
-          trafficLimitGb: data.trafficLimitGb,
-          expiryDays: data.expiryDays,
-          ipLimit: data.ipLimit,
+          ...(data.note !== undefined ? { note: data.note } : {}),
+          ...(data.enabled !== undefined ? { enabled: data.enabled } : {}),
+          ...(data.trafficLimitGb !== undefined ? { trafficLimitGb: data.trafficLimitGb } : {}),
+          ...(data.expiryDays !== undefined ? { expiryDays: data.expiryDays } : {}),
+          ...(data.ipLimit !== undefined ? { ipLimit: data.ipLimit } : {}),
+          ...(data.resetPeriod !== undefined ? { resetPeriod: data.resetPeriod } : {}),
         },
       });
 
@@ -108,13 +120,16 @@ export async function PATCH(
             inbound.tag,
             new Set(existingClients.map((c) => c.email))
           );
+          const material = genAccessFields(inbound.protocol);
           await tx.userInboundAccess.create({
             data: {
               userId: id,
               inboundId,
               email,
-              key: genKey(inbound.protocol),
+              key: material.key,
               flow: flowFor(inbound),
+              wgPrivateKey: material.wgPrivateKey,
+              wgPublicKey: material.wgPublicKey,
             },
           });
         }
@@ -122,12 +137,7 @@ export async function PATCH(
     });
 
     // rebuild every linked inbound's clientsJson with the freshest state
-    await syncUserProjection(id, {
-      ipLimit: data.ipLimit,
-      trafficLimitGb: data.trafficLimitGb,
-      expiryDays: data.expiryDays,
-      enabled: data.enabled,
-    });
+    await syncUserProjection(id, nextLimits);
 
     const updated = await db.clientUser.findUnique({
       where: { id },

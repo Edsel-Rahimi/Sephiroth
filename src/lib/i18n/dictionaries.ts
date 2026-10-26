@@ -129,6 +129,33 @@ export interface Dict {
     badge: string;
     subtitle: string;
     new: string;
+    pdVless: string;
+    pdVmess: string;
+    pdTrojan: string;
+    pdSs: string;
+    pdHy2: string;
+    pdWg: string;
+    pdDoko: string;
+    pdSocks: string;
+    pdHttp: string;
+    subGeneral: string;
+    subClients: string;
+    subTransport: string;
+    subSecurity: string;
+    subAdvanced: string;
+    pvTitle: string;
+    pvEmpty: string;
+    pvNoLink: string;
+    pvCopy: string;
+    recoBadge: string;
+    secNoneDesc: string;
+    secTlsDesc: string;
+    secRealDesc: string;
+    trTcpDesc: string;
+    trWsDesc: string;
+    trGrpcDesc: string;
+    trHttpUpDesc: string;
+    trXhttpDesc: string;
     edit: string;
     kpiTotal: string;
     kpiOnline: string;
@@ -1236,6 +1263,8 @@ export interface Dict {
     quicD: string;
     tg: string;
     tgD: string;
+    warp: string;
+    warpD: string;
   };
 
   guideLesson: {
@@ -1250,6 +1279,84 @@ export interface Dict {
     lessonTips: string;
     prevCh: string;
     nextCh: string;
+  };
+
+  tunnels: {
+    title: string;
+    subtitle: string;
+    add: string;
+    entryBridge: string;
+    exitUpstream: string;
+    lb: string;
+    probe: string;
+    del: string;
+    stActive: string;
+    stInactive: string;
+    stTesting: string;
+    empty: string;
+    probeOk: string;
+    toastStrategy: string;
+    toastDeleted: string;
+    toastCreated: string;
+    toastFailed: string;
+    dlgTitle: string;
+    dlgDesc: string;
+    fName: string;
+    fProtocol: string;
+    fEntryAddr: string;
+    fEntryPort: string;
+    fExitAddr: string;
+    fExitPort: string;
+    fInbound: string;
+    fLb: string;
+    phName: string;
+    cancel: string;
+    create: string;
+  };
+
+  tgBot: {
+    title: string;
+    subtitle: string;
+    executor: string;
+    tokenOk: string;
+    simulated: string;
+    cmdStatus: string;
+    cmdUsers: string;
+    cmdTrial: string;
+    cmdBackup: string;
+    terminalIdle: string;
+    openSub: string;
+    toastOk: string;
+    errorToast: string;
+    selfService: string;
+    selfServiceD: string;
+    receipt: string;
+    receiptD: string;
+    guardian: string;
+    guardianD: string;
+    backup: string;
+    backupD: string;
+    cad1h: string;
+    cad6h: string;
+    cad12h: string;
+    cad24h: string;
+    previewNote: string;
+  };
+
+  payment: {
+    title: string;
+    subtitle: string;
+    cardTitle: string;
+    zarinTitle: string;
+    tetherTitle: string;
+    fCard: string;
+    fTariff: string;
+    fMerchant: string;
+    fWallet: string;
+    webhookNote: string;
+    verifyNote: string;
+    save: string;
+    savePreview: string;
   };
 }
 
@@ -1360,6 +1467,33 @@ export const dictionaries: Record<Lang, Dict> = {
       badge: "PHASE 3 · LIVE CONFIG",
       subtitle: "Create, tune and monitor every listening socket — changes reach the core in seconds.",
       new: "New Inbound",
+      pdVless: "Lightweight Xray-native proxy — best with Reality",
+      pdVmess: "Classic VMess with automatic encryption",
+      pdTrojan: "Hardened trojan gate in HTTPS camouflage",
+      pdSs: "Shadowsocks 2022 ciphers — fast and simple",
+      pdHy2: "QUIC-based — built for lossy links",
+      pdWg: "Kernel-grade VPN tunnel and mesh",
+      pdDoko: "Forward a port to any target",
+      pdSocks: "Local SOCKS5 entry point",
+      pdHttp: "Plain HTTP proxy entry point",
+      subGeneral: "Identity and limits",
+      subClients: "Accounts and keys",
+      subTransport: "Carrier network",
+      subSecurity: "TLS / Reality shell",
+      subAdvanced: "Sniffing, mux, fallbacks",
+      pvTitle: "Live Preview",
+      pvEmpty: "Unnamed draft",
+      pvNoLink: "Add a client email to mint a share link",
+      pvCopy: "Copy share link",
+      recoBadge: "Recommended",
+      secNoneDesc: "Raw stream — fastest, no camouflage",
+      secTlsDesc: "Standard TLS certificate shell",
+      secRealDesc: "Borrows a real site's TLS fingerprint",
+      trTcpDesc: "Raw TCP — default, lowest overhead",
+      trWsDesc: "WebSocket — CDN friendly",
+      trGrpcDesc: "gRPC streams — multiplexed",
+      trHttpUpDesc: "HTTP Upgrade — CDN compatible",
+      trXhttpDesc: "XHTTP — next-gen split mode",
       edit: "Edit Inbound",
       kpiTotal: "Inbounds",
       kpiOnline: "Online now",
@@ -2483,6 +2617,8 @@ export const dictionaries: Record<Lang, Dict> = {
       quicD: "Forces UDP 443 back to TCP for better stability",
       tg: "Telegram → Proxy",
       tgD: "Sends Telegram through your first custom outbound",
+      warp: "Cloudflare WARP+ (Clean IP & AI)",
+      warpD: "Route OpenAI, Google, Netflix & Spotify via the WARP outbound",
     },
     guideLesson: {
       chapters: "Chapters",
@@ -2496,6 +2632,89 @@ export const dictionaries: Record<Lang, Dict> = {
       lessonTips: "Pro tips",
       prevCh: "Previous",
       nextCh: "Next",
+    },
+
+    tunnels: {
+      title: "Multi-Node Relay Tunnels (Bridge -> Core) & Live Load Balancing",
+      subtitle:
+        "Orchestrate XHTTP reverse tunnels, gRPC muxing, TCP relays, and real-time load balancing across entry and exit nodes",
+      add: "New Relay Tunnel",
+      entryBridge: "Entry Bridge",
+      exitUpstream: "Exit Upstream",
+      lb: "LB Strategy:",
+      probe: "Probe Tunnel",
+      del: "Delete tunnel",
+      stActive: "Active",
+      stInactive: "Inactive",
+      stTesting: "Testing…",
+      empty: "No relay tunnels yet — create one to chain the Iran bridge to an offshore exit node.",
+      probeOk: "Relay tunnel latency: {ms}ms (Active)",
+      toastStrategy: "Load balancing strategy updated to {strategy}",
+      toastDeleted: "Relay tunnel removed",
+      toastCreated: "New multi-node relay tunnel created",
+      toastFailed: "Tunnel creation failed — check the entry/exit addresses and try again",
+      dlgTitle: "Create Multi-Node Relay Tunnel",
+      dlgDesc: "Chain an entry bridge node to an upstream exit node with custom transport and load balancing",
+      fName: "Tunnel Name",
+      fProtocol: "Relay Protocol",
+      fEntryAddr: "Entry Node Address",
+      fEntryPort: "Entry Port",
+      fExitAddr: "Exit Node Address",
+      fExitPort: "Exit Port",
+      fInbound: "Target Inbound Tag",
+      fLb: "Load Balancing Strategy",
+      phName: "Tehran -> Frankfurt XHTTP",
+      cancel: "Cancel",
+      create: "Create Tunnel",
+    },
+
+    tgBot: {
+      title: "Interactive Telegram Bot Console, Auto-Backup & Self-Healing Guardian",
+      subtitle:
+        "Admin & user Telegram commands, instant trial creation, scheduled encrypted backups, and 60s core self-healing",
+      executor: "Live Telegram Bot Command Executor",
+      tokenOk: "Bot token configured",
+      simulated: "Simulated terminal — no bot token configured",
+      cmdStatus: "/status (Telemetry)",
+      cmdUsers: "/users (Top Quota)",
+      cmdTrial: "/create_trial (5GB/7d)",
+      cmdBackup: "/backup_now (Snapshot)",
+      terminalIdle:
+        "🤖 Sephiroth Orbit Telegram Bot ready.\nSelect a command above to execute against the live core.",
+      openSub: "Open Pass Page",
+      toastOk: "Bot command {cmd} executed",
+      errorToast: "Bot command failed — core returned an error. Check server logs and retry.",
+      selfService: "User Self-Service Bot Portal",
+      selfServiceD: "Allow users to query remaining GB, get QR codes, and fetch Clash/Sing-box links",
+      receipt: "Card-to-Card Receipt Approval",
+      receiptD: "Forward payment receipts to admin chat with one-tap approve/reject inline buttons",
+      guardian: "Self-Healing Core Guardian",
+      guardianD: "Checks Xray core & sub-links every 60s and auto-heals stalled workers",
+      backup: "Automated Telegram Backup Cadence",
+      backupD: "Push full database & inbound snapshot to admin Telegram",
+      cad1h: "Every 1h",
+      cad6h: "Every 6h",
+      cad12h: "Every 12h",
+      cad24h: "Daily (24h)",
+      previewNote: "Preview: automation switches are session-only until settings persistence lands.",
+    },
+
+    payment: {
+      title: "Reseller Wallet, Per-GB Tariff & Automated Payment Webhooks",
+      subtitle:
+        "Connect Zarinpal, Crypto USDT (TRC20), and Telegram Card-to-Card hooks for automatic reseller traffic quota top-ups",
+      cardTitle: "Smart Card-to-Card",
+      zarinTitle: "Zarinpal / IDPay Webhook",
+      tetherTitle: "Crypto USDT (TRC20) Hook",
+      fCard: "Destination Card Number",
+      fTariff: "Reseller Tariff per GB (IRR/Toman)",
+      fMerchant: "Merchant ID / API Key",
+      fWallet: "TRC20 Wallet Address",
+      webhookNote: "Automatically increments reseller trafficQuotaGb immediately upon verified callback.",
+      verifyNote: "Webhook simulation only — no live gateway calls are made in this preview build.",
+      save: "Save Payment Hooks",
+      savePreview:
+        "Gateway credentials are stored in this session (preview) — server persistence lands with settings storage.",
     },
   },
 
@@ -2605,6 +2824,33 @@ export const dictionaries: Record<Lang, Dict> = {
       badge: "فاز ۳ · کانفیگ زنده",
       subtitle: "هر سوکت گوش‌دهنده را بساز، تنظیم کن و زیر نظر بگیر — تغییرها در چند ثانیه به هسته می‌رسند.",
       new: "کانفیگ جدید",
+      pdVless: "پراکسی سبکِ بومی Xray — بهترین جفت با ریالیتی",
+      pdVmess: "VMess کلاسیک با رمزنگاری خودکار",
+      pdTrojan: "دروازه تروجان مقاوم با پوشش HTTPS",
+      pdSs: "شفرهای Shadowsocks 2022 — سریع و ساده",
+      pdHy2: "بر پایه QUIC — ساخته‌شده برای شبکه‌های پرلاس",
+      pdWg: "تونل VPN هسته‌ای و مش",
+      pdDoko: "هر پورتی را به هر مقصدی فوروارد کن",
+      pdSocks: "نقطه ورود محلی SOCKS5",
+      pdHttp: "نقطه ورود پراکسی HTTP ساده",
+      subGeneral: "هویت و محدودیت‌ها",
+      subClients: "حساب‌ها و کلیدها",
+      subTransport: "شبکه حامل",
+      subSecurity: "پوسته TLS / ریالیتی",
+      subAdvanced: "اسنیف، مالتی‌پلکس، فال‌بک",
+      pvTitle: "پیش‌نمایش زنده",
+      pvEmpty: "پیش‌نویس بی‌نام",
+      pvNoLink: "برای ساخت لینک اشتراک، ایمیل کاربر را وارد کنید",
+      pvCopy: "کپی لینک اشتراک",
+      recoBadge: "پیشنهاد ما",
+      secNoneDesc: "استریم خام — سریع‌ترین، بدون پوشش",
+      secTlsDesc: "پوسته استاندارد گواهی TLS",
+      secRealDesc: "اثرانگشت TLS یک سایت واقعی را قرض می‌گیرد",
+      trTcpDesc: "TCP خام — پیش‌فرض، کم‌سربارترین",
+      trWsDesc: "وب‌سوکت — سازگار با CDN",
+      trGrpcDesc: "استریم‌های gRPC — چندگانه",
+      trHttpUpDesc: "HTTP Upgrade — سازگار با CDN",
+      trXhttpDesc: "XHTTP — حالت تقسیم نسل جدید",
       edit: "ویرایش کانفیگ",
       kpiTotal: "کانفیگ‌ها",
       kpiOnline: "آنلاین",
@@ -3724,6 +3970,8 @@ export const dictionaries: Record<Lang, Dict> = {
       quicD: "UDP پورت ۴۴۳ رو مجبور به برگشتن به TCP می‌کنه — پایدارتر",
       tg: "تلگرام → پروکسی",
       tgD: "تلگرام رو از اولین خروجی سفارشی‌ات رد می‌کنه",
+      warp: "وارپ کلودفلر (رفع کپچا و هوش مصنوعی)",
+      warpD: "هدایت OpenAI، گوگل، نتفلیکس و اسپاتیفای به خروجی WARP",
     },
     guideLesson: {
       chapters: "فصل‌ها",
@@ -3737,6 +3985,89 @@ export const dictionaries: Record<Lang, Dict> = {
       lessonTips: "نکته‌های حرفه‌ای",
       prevCh: "قبلی",
       nextCh: "بعدی",
+    },
+
+    tunnels: {
+      title: "زنجیره تانل‌های چندسروره (ایران ↔ خارج) و توازن بار زنده",
+      subtitle:
+        "مدیریت مستقیم تانل‌های معکوس XHTTP، مالتی‌پلکس gRPC، رله TCP و توزیع بار هوشمند بین سرورهای ورودی و خروجی",
+      add: "افزودن تانل رله",
+      entryBridge: "نود ورودی (Bridge)",
+      exitUpstream: "نود خروجی (Upstream)",
+      lb: "توازن بار:",
+      probe: "تست پینگ تانل",
+      del: "حذف تانل",
+      stActive: "فعال",
+      stInactive: "غیرفعال",
+      stTesting: "در حال تست…",
+      empty: "هنوز تانل رله‌ای ساخته نشده — یکی بسازید تا پل ایران به نود خروجی خارجی وصل شود.",
+      probeOk: "پینگ زنجیره تانل: {ms}ms (پایدار)",
+      toastStrategy: "الگوریتم توازن بار به {strategy} تغییر یافت",
+      toastDeleted: "تانل رله حذف شد",
+      toastCreated: "زنجیره تانل جدید ایجاد شد",
+      toastFailed: "ساخت تانل ناموفق بود — آدرس ورودی و خروجی را بررسی کنید و دوباره تلاش کنید",
+      dlgTitle: "ایجاد زنجیره تانل چندسروره",
+      dlgDesc: "اتصال سرور واسط (ایران) به سرور مقصد (خارج) با انتخاب پروتکل تانل و استراتژی توازن بار",
+      fName: "نام تانل",
+      fProtocol: "پروتکل تانل",
+      fEntryAddr: "آدرس سرور ورودی (ایران)",
+      fEntryPort: "پورت ورودی",
+      fExitAddr: "آدرس سرور خروجی (خارج)",
+      fExitPort: "پورت خروجی",
+      fInbound: "اینباند متصل",
+      fLb: "استراتژی توازن بار",
+      phName: "Tehran -> Frankfurt XHTTP",
+      cancel: "انصراف",
+      create: "ایجاد زنجیره تانل",
+    },
+
+    tgBot: {
+      title: "کنسول تعاملی ربات تلگرام، بکاپ خودکار و نگهبان هوشمند (Self-Healing)",
+      subtitle:
+        "دستورات مدیریتی و کاربری تلگرام، ساخت آنی اکانت تست، بکاپ رمزنگاری‌شده زمان‌بندی‌شده و خودترمیمی هسته در ۶۰ ثانیه",
+      executor: "اجراکننده زنده دستورات ربات تلگرام",
+      tokenOk: "توکن ربات تنظیم شده",
+      simulated: "ترمینال شبیه‌سازی‌شده — توکن ربات تنظیم نشده است",
+      cmdStatus: "/status (وضعیت سرور)",
+      cmdUsers: "/users (بیشترین مصرف)",
+      cmdTrial: "/create_trial (۵ گیگ / ۷ روز)",
+      cmdBackup: "/backup_now (اسنپ‌شات)",
+      terminalIdle:
+        "🤖 ربات تلگرام سفیروت آماده دریافت دستورات مدیریت و استعلام کاربران است.\nیک دستور را از بالا انتخاب کنید تا خروجی زنده را ببینید.",
+      openSub: "مشاهده صفحه اشتراک",
+      toastOk: "دستور {cmd} در ربات اجرا شد",
+      errorToast: "اجرای دستور ناموفق بود — هسته خطا برگرداند. لاگ سرور را بررسی کنید و دوباره تلاش کنید",
+      selfService: "پنل سلف‌سرویس کاربران در ربات",
+      selfServiceD: "امکان استعلام حجم باقی‌مانده، دریافت QR و لینک Clash/Sing-box توسط خود کاربر",
+      receipt: "تأیید رسید کارت‌به‌کارت و تمدید خودکار",
+      receiptD: "ارسال تصویر فیش واریزی توسط کاربر یا نماینده به ادمین با دکمه تأیید آنی",
+      guardian: "نگهبان خودترمیم‌گر (Self-Healing Guardian)",
+      guardianD: "بررسی سلامت هسته Xray و لینک‌های اشتراک هر ۶۰ ثانیه و ری‌استارت خودکار در صورت خطا",
+      backup: "دوره ارسال خودکار بکاپ به تلگرام",
+      backupD: "ارسال فایل JSON دیتابیس و کانفیگ‌ها به چت ادمین",
+      cad1h: "هر ۱ ساعت",
+      cad6h: "هر ۶ ساعت",
+      cad12h: "هر ۱۲ ساعت",
+      cad24h: "روزانه (۲۴ ساعت)",
+      previewNote: "پیش‌نمایش: کلیدهای اتوماسیون تا اضافه شدن ذخیره‌سازی تنظیمات فقط در همین نشست اعمال می‌شوند.",
+    },
+
+    payment: {
+      title: "کیف پول نمایندگان، تعرفه ترافیک و وب‌هوک‌های پرداخت خودکار",
+      subtitle:
+        "اتصال به درگاه زرین‌پال، کریپتو (USDT TRC20) و کارت‌به‌کارت تلگرام جهت شارژ خودکار سهمیه ترافیک نمایندگان",
+      cardTitle: "کارت‌به‌کارت هوشمند",
+      zarinTitle: "وب‌هوک درگاه زرین‌پال / آیدی‌پی",
+      tetherTitle: "درگاه ارزی تتر (USDT TRC20)",
+      fCard: "شماره کارت مقصد",
+      fTariff: "تعرفه هر گیگابایت نماینده (تومان)",
+      fMerchant: "مرچنت آیدی / کلید API",
+      fWallet: "آدرس کیف پول TRC20",
+      webhookNote: "پس از تراکنش موفق، سقف ترافیک نماینده (trafficQuotaGb) به صورت آنی افزایش می‌یابد.",
+      verifyNote: "فقط شبیه‌سازی وب‌هوک — در این نسخه پیش‌نمایش هیچ درگاه واقعی فراخوانی نمی‌شود.",
+      save: "ذخیره تنظیمات مالی",
+      savePreview:
+        "اطلاعات درگاه فقط در همین نشست ذخیره می‌شود (پیش‌نمایش) — ذخیره‌سازی سرور همراه بخش تنظیمات اضافه می‌شود.",
     },
   },
 
@@ -3846,6 +4177,33 @@ export const dictionaries: Record<Lang, Dict> = {
       badge: "المرحلة ٣ · تكوين مباشر",
       subtitle: "أنشئ كل مقبس استماع واضبطه وراقبه — تصل التغييرات إلى النواة خلال ثوانٍ.",
       new: "نقطة دخول جديدة",
+      pdVless: "بروكسي خفيف أصلي لـ Xray — الأفضل مع Reality",
+      pdVmess: "VMess كلاسيكي بتشفير تلقائي",
+      pdTrojan: "بوابة تروجان متينة بتمويه HTTPS",
+      pdSs: "شيفرات Shadowsocks 2022 — سريع وبسيط",
+      pdHy2: "مبني على QUIC — مصمم للشبكات المفقدة",
+      pdWg: "نفق VPN من مستوى النواة وشبكة Mesh",
+      pdDoko: "حوّل أي منفذ إلى أي هدف",
+      pdSocks: "نقطة دخول SOCKS5 محلية",
+      pdHttp: "نقطة دخول بروكسي HTTP عادي",
+      subGeneral: "الهوية والحدود",
+      subClients: "الحسابات والمفاتيح",
+      subTransport: "الشبكة الناقلة",
+      subSecurity: "غلاف TLS / Reality",
+      subAdvanced: "التلصص والتضمين والبدائل",
+      pvTitle: "معاينة حية",
+      pvEmpty: "مسودة بلا اسم",
+      pvNoLink: "أضف بريد العميل لتوليد رابط الاشتراك",
+      pvCopy: "نسخ رابط الاشتراك",
+      recoBadge: "موصى به",
+      secNoneDesc: "تدفق خام — الأسرع دون تمويه",
+      secTlsDesc: "غلاف شهادة TLS قياسي",
+      secRealDesc: "يستعير بصمة TLS لموقع حقيقي",
+      trTcpDesc: "TCP خام — الافتراضي، الأقل عبئاً",
+      trWsDesc: "WebSocket — متوافق مع CDN",
+      trGrpcDesc: "تدفقات gRPC — مضمّنة",
+      trHttpUpDesc: "HTTP Upgrade — متوافق مع CDN",
+      trXhttpDesc: "XHTTP — وضع التقسيم الجديد",
       edit: "تعديل نقطة الدخول",
       kpiTotal: "نقاط الدخول",
       kpiOnline: "متصلة الآن",
@@ -4964,6 +5322,8 @@ export const dictionaries: Record<Lang, Dict> = {
       quicD: "يجبر UDP 443 على العودة إلى TCP لثبات أفضل",
       tg: "تيليجرام → بروكسي",
       tgD: "يمرّر تيليجرام عبر أول مخرج مخصص لديك",
+      warp: "كلودفلر WARP+ (آي بي نظيف و ذكاء اصطناعي)",
+      warpD: "يمرّر OpenAI و Google و Netflix و Spotify عبر مخرج WARP",
     },
     guideLesson: {
       chapters: "الفصول",
@@ -4977,6 +5337,89 @@ export const dictionaries: Record<Lang, Dict> = {
       lessonTips: "نصائح احترافية",
       prevCh: "السابق",
       nextCh: "التالي",
+    },
+
+    tunnels: {
+      title: "سلاسل الأنفاق متعددة الخوادم (الجسر ↔ الخارج) وموازنة الحمل الحيّة",
+      subtitle:
+        "إدارة أنفاق XHTTP العكسية وتجميع gRPC ومرحّلات TCP وتوزيع الحمل الذكي بين خوادم الدخول والخروج",
+      add: "إضافة نفق مرحّل",
+      entryBridge: "عقدة الدخول (Bridge)",
+      exitUpstream: "عقدة الخروج (Upstream)",
+      lb: "موازنة الحمل:",
+      probe: "اختبار اتصال النفق",
+      del: "حذف النفق",
+      stActive: "نشط",
+      stInactive: "غير نشط",
+      stTesting: "جارٍ الاختبار…",
+      empty: "لا توجد أنفاق مرحّلة بعد — أنشئ واحداً لربط جسر إيران بعقدة خروج خارجية.",
+      probeOk: "زمن استجابة سلسلة النفق: {ms}ms (مستقر)",
+      toastStrategy: "تم تحديث استراتيجية موازنة الحمل إلى {strategy}",
+      toastDeleted: "تم حذف النفق المرحّل",
+      toastCreated: "تم إنشاء سلسلة نفق جديدة",
+      toastFailed: "فشل إنشاء النفق — تحقق من عناوين الدخول والخروج ثم أعد المحاولة",
+      dlgTitle: "إنشاء نفق متعدد الخوادم",
+      dlgDesc: "اربط عقدة جسر الدخول بخادم الخروج الخارجي مع بروتوكول نقل واستراتيجية موازنة حسب الطلب",
+      fName: "اسم النفق",
+      fProtocol: "بروتوكول النفق",
+      fEntryAddr: "عنوان خادم الدخول (إيران)",
+      fEntryPort: "منفذ الدخول",
+      fExitAddr: "عنوان خادم الخروج (الخارج)",
+      fExitPort: "منفذ الخروج",
+      fInbound: "الوارد المتصل",
+      fLb: "استراتيجية موازنة الحمل",
+      phName: "Tehran -> Frankfurt XHTTP",
+      cancel: "إلغاء",
+      create: "إنشاء النفق",
+    },
+
+    tgBot: {
+      title: "كونسول تفاعلي لبوت تيليجرام، نسخ احتياطي تلقائي وحارس ذكي الإصلاح الذاتي",
+      subtitle:
+        "أوادر إدارية وللمستخدمين عبر تيليجرام، إنشاء فوري لحسابات تجريبية، نسخ احتياطية مشفّرة مجدولة، وإصلاح ذاتي للنواة كل 60 ثانية",
+      executor: "منفّذ أوادر البوت الحيّ",
+      tokenOk: "توكن البوت مضبوط",
+      simulated: "طرفية محاكاة — لا يوجد توكن بوت مضبوط",
+      cmdStatus: "/status (قياسات النظام)",
+      cmdUsers: "/users (أعلى استهلاك)",
+      cmdTrial: "/create_trial (5GB/7 أيام)",
+      cmdBackup: "/backup_now (لقطة)",
+      terminalIdle:
+        "🤖 بوت تيليجرام Sephiroth جاهز لاستقبال أوادر الإدارة والاستعلام عن المستخدمين.\nاختر أمراً من الأعلى لمشاهدة المخرجات الحيّة.",
+      openSub: "فتح صفحة الاشتراك",
+      toastOk: "تم تنفيذ أمر {cmd} في البوت",
+      errorToast: "فشل تنفيذ الأمر — أعادت النواة خطأً. راجع سجلات الخادم وأعد المحاولة",
+      selfService: "بوابة الخدمة الذاتية للمستخدمين في البوت",
+      selfServiceD: "تمكين المستخدمين من الاستعلام عن الرصيد المتبقي والحصول على رمز QR وروابط Clash/Sing-box",
+      receipt: "اعتماد إيصال التحويل البطاقي",
+      receiptD: "إرسال صورة الإيصال من المستخدم أو الوكيل إلى الإدارة مع زر اعتماد فوري",
+      guardian: "الحارس ذو الإصلاح الذاتي (Self-Healing Guardian)",
+      guardianD: "يفحص نواة Xray وروابط الاشتراك كل 60 ثانية ويعيد التشغيل تلقائياً عند الخطأ",
+      backup: "دورية النسخ الاحتياطي التلقائي إلى تيليجرام",
+      backupD: "إرسال ملف JSON لقاعدة البيانات والإعدادات إلى محادثة الإدارة",
+      cad1h: "كل ساعة",
+      cad6h: "كل 6 ساعات",
+      cad12h: "كل 12 ساعة",
+      cad24h: "يومياً (24 ساعة)",
+      previewNote: "معاينة: مفاتيح الأتمتة سارية في هذه الجلسة فقط حتى توفر حفظ الإعدادات.",
+    },
+
+    payment: {
+      title: "محفظة الوكلاء، تعريفة كل غيغابايت، وويب هوكات الدفع التلقائي",
+      subtitle:
+        "اربط بوابة Zarinpal وكريبتو USDT (TRC20) والتحويل البطاقي عبر تيليجرام لشحن حصة ترافيك الوكلاء تلقائياً",
+      cardTitle: "تحويل بطاقي ذكي",
+      zarinTitle: "ويب هوك بوابة Zarinpal / IDPay",
+      tetherTitle: "بوابة كريبتو USDT (TRC20)",
+      fCard: "رقم البطاقة الوجهة",
+      fTariff: "تعريفة الوكيل لكل غيغابايت (تومان)",
+      fMerchant: "معرّف التاجر / مفتاح API",
+      fWallet: "عنوان محفظة TRC20",
+      webhookNote: "بعد كل عملية ناجحة تُرفع حصة ترافيك الوكيل (trafficQuotaGb) فوراً.",
+      verifyNote: "محاكاة ويب هوك فقط — لا تُجرى أي اتصالات ببوابات حقيقية في هذه النسخة التجريبية.",
+      save: "حفظ إعدادات الدفع",
+      savePreview:
+        "تُحفظ بيانات البوابة في هذه الجلسة فقط (معاينة) — الحفظ على الخادم قادم مع مخزن الإعدادات.",
     },
   },
 
@@ -5085,6 +5528,33 @@ export const dictionaries: Record<Lang, Dict> = {
       badge: "阶段 3 · 实时配置",
       subtitle: "创建、调优并监控每个监听套接字 — 更改数秒内同步到核心。",
       new: "新建入站",
+      pdVless: "Xray 原生轻量代理 — 搭配 Reality 最佳",
+      pdVmess: "经典 VMess，自动加密",
+      pdTrojan: "HTTPS 伪装的坚固木马网关",
+      pdSs: "Shadowsocks 2022 加密 — 快速简洁",
+      pdHy2: "基于 QUIC — 专为高丢包链路而生",
+      pdWg: "内核级 VPN 隧道与组网",
+      pdDoko: "把端口转发到任意目标",
+      pdSocks: "本地 SOCKS5 入口",
+      pdHttp: "纯 HTTP 代理入口",
+      subGeneral: "身份与限额",
+      subClients: "账户与密钥",
+      subTransport: "承载网络",
+      subSecurity: "TLS / Reality 外壳",
+      subAdvanced: "嗅探、多路复用、回落",
+      pvTitle: "实时预览",
+      pvEmpty: "未命名草稿",
+      pvNoLink: "填写客户端邮箱以生成分享链接",
+      pvCopy: "复制分享链接",
+      recoBadge: "推荐",
+      secNoneDesc: "裸流 — 最快，无伪装",
+      secTlsDesc: "标准 TLS 证书外壳",
+      secRealDesc: "借用真实网站的 TLS 指纹",
+      trTcpDesc: "原始 TCP — 默认，开销最低",
+      trWsDesc: "WebSocket — CDN 友好",
+      trGrpcDesc: "gRPC 流 — 多路复用",
+      trHttpUpDesc: "HTTP Upgrade — CDN 兼容",
+      trXhttpDesc: "XHTTP — 下一代分流模式",
       edit: "编辑入站",
       kpiTotal: "入站总数",
       kpiOnline: "当前在线",
@@ -6202,6 +6672,8 @@ export const dictionaries: Record<Lang, Dict> = {
       quicD: "强制 UDP 443 回退到 TCP，连接更稳定",
       tg: "Telegram → 代理",
       tgD: "让 Telegram 走你的第一个自定义出站",
+      warp: "Cloudflare WARP+（纯净 IP 与 AI）",
+      warpD: "将 OpenAI、Google、Netflix 和 Spotify 路由到 WARP 出站",
     },
     guideLesson: {
       chapters: "章节",
@@ -6215,6 +6687,89 @@ export const dictionaries: Record<Lang, Dict> = {
       lessonTips: "进阶技巧",
       prevCh: "上一个",
       nextCh: "下一个",
+    },
+
+    tunnels: {
+      title: "多节点中继隧道（桥接 ↔ 核心）与实时负载均衡",
+      subtitle:
+        "统一编排 XHTTP 反向隧道、gRPC 多路复用与 TCP 中继，并在入口与出口节点间进行实时负载均衡",
+      add: "新建中继隧道",
+      entryBridge: "入口节点（Bridge）",
+      exitUpstream: "出口节点（Upstream）",
+      lb: "负载均衡：",
+      probe: "隧道测速",
+      del: "删除隧道",
+      stActive: "在线",
+      stInactive: "停用",
+      stTesting: "测试中…",
+      empty: "还没有中继隧道 — 创建一条，把伊朗桥接节点串联到海外出口节点。",
+      probeOk: "隧道链路延迟：{ms}ms（稳定）",
+      toastStrategy: "负载均衡策略已切换为 {strategy}",
+      toastDeleted: "中继隧道已删除",
+      toastCreated: "新的多节点隧道链已创建",
+      toastFailed: "隧道创建失败 — 请检查入口/出口地址后重试",
+      dlgTitle: "创建多节点中继隧道",
+      dlgDesc: "将入口桥接节点串联到上游出口节点，可自定义传输协议与负载均衡策略",
+      fName: "隧道名称",
+      fProtocol: "隧道协议",
+      fEntryAddr: "入口节点地址",
+      fEntryPort: "入口端口",
+      fExitAddr: "出口节点地址",
+      fExitPort: "出口端口",
+      fInbound: "目标入站标签",
+      fLb: "负载均衡策略",
+      phName: "Tehran -> Frankfurt XHTTP",
+      cancel: "取消",
+      create: "创建隧道",
+    },
+
+    tgBot: {
+      title: "Telegram 机器人交互控制台、自动备份与自愈守护",
+      subtitle:
+        "管理员与用户的 Telegram 指令、即时创建试用账号、定时加密备份，以及 60 秒核心自愈",
+      executor: "Telegram 机器人指令实时执行器",
+      tokenOk: "已配置机器人 Token",
+      simulated: "模拟终端 — 未配置机器人 Token",
+      cmdStatus: "/status（遥测）",
+      cmdUsers: "/users（用量排行）",
+      cmdTrial: "/create_trial（5GB/7天）",
+      cmdBackup: "/backup_now（快照）",
+      terminalIdle:
+        "🤖 Sephiroth Orbit Telegram 机器人就绪，可接收管理与用户查询指令。\n在上方选择一条指令，即可对实时核心执行并查看输出。",
+      openSub: "打开订阅页面",
+      toastOk: "机器人指令 {cmd} 已执行",
+      errorToast: "指令执行失败 — 核心返回错误，请查看服务器日志后重试",
+      selfService: "用户自助机器人门户",
+      selfServiceD: "允许用户自行查询剩余流量、获取二维码以及 Clash/Sing-box 链接",
+      receipt: "卡到卡回执审核",
+      receiptD: "用户或代理将转账回执转发给管理员，一键批准或驳回",
+      guardian: "核心自愈守护",
+      guardianD: "每 60 秒检查 Xray 核心与订阅链接，异常时自动重启",
+      backup: "Telegram 自动备份周期",
+      backupD: "将数据库与入站的完整快照推送到管理员 Telegram",
+      cad1h: "每 1 小时",
+      cad6h: "每 6 小时",
+      cad12h: "每 12 小时",
+      cad24h: "每天（24 小时）",
+      previewNote: "预览：在设置持久化上线前，自动化开关仅在本会话内生效。",
+    },
+
+    payment: {
+      title: "代理钱包、每 GB 资费与自动支付 Webhook",
+      subtitle:
+        "接入 Zarinpal、加密货币 USDT（TRC20）与 Telegram 卡到卡通道，自动为代理充值流量配额",
+      cardTitle: "智能卡到卡",
+      zarinTitle: "Zarinpal / IDPay Webhook",
+      tetherTitle: "加密货币 USDT（TRC20）通道",
+      fCard: "收款卡号",
+      fTariff: "代理每 GB 资费（图曼）",
+      fMerchant: "商户号 / API 密钥",
+      fWallet: "TRC20 钱包地址",
+      webhookNote: "回调校验通过后，立即增加代理的 trafficQuotaGb 流量配额。",
+      verifyNote: "仅 Webhook 模拟 — 此预览版本不会向真实支付网关发起请求。",
+      save: "保存支付通道",
+      savePreview:
+        "网关凭据仅保存在本会话（预览）— 服务器持久化将随设置存储一同上线。",
     },
   },
 
@@ -6324,6 +6879,33 @@ export const dictionaries: Record<Lang, Dict> = {
       badge: "FAZ 3 · CANLI YAPILANDIRMA",
       subtitle: "Her dinleme soketini oluştur, ayarla ve izle — değişiklikler saniyeler içinde çekirdeğe ulaşır.",
       new: "Yeni Giriş",
+      pdVless: "Hafif Xray yerel proxy — Reality ile en iyi",
+      pdVmess: "Otomatik şifreli klasik VMess",
+      pdTrojan: "HTTPS kamuflajlı sağlam trojan kapısı",
+      pdSs: "Shadowsocks 2022 şifreleri — hızlı ve basit",
+      pdHy2: "QUIC tabanlı — paket kayıplı hatlar için",
+      pdWg: "Çekirdek seviye VPN tüneli ve mesh",
+      pdDoko: "Herhangi bir hedefe port yönlendir",
+      pdSocks: "Yerel SOCKS5 giriş noktası",
+      pdHttp: "Düz HTTP proxy girişi",
+      subGeneral: "Kimlik ve limitler",
+      subClients: "Hesaplar ve anahtarlar",
+      subTransport: "Taşıyıcı ağ",
+      subSecurity: "TLS / Reality kabuğu",
+      subAdvanced: "Sniff, mux, fallback",
+      pvTitle: "Canlı Önizleme",
+      pvEmpty: "İsimsiz taslak",
+      pvNoLink: "Paylaşım bağlantısı için istemci e-postası girin",
+      pvCopy: "Paylaşım bağlantısını kopyala",
+      recoBadge: "Önerilen",
+      secNoneDesc: "Ham akış — en hızlı, kamuflajsız",
+      secTlsDesc: "Standart TLS sertifika kabuğu",
+      secRealDesc: "Gerçek bir sitenin TLS parmak izini ödünç alır",
+      trTcpDesc: "Ham TCP — varsayılan, en düşük ek yük",
+      trWsDesc: "WebSocket — CDN uyumlu",
+      trGrpcDesc: "gRPC akışları — çoğullu",
+      trHttpUpDesc: "HTTP Upgrade — CDN uyumlu",
+      trXhttpDesc: "XHTTP — yeni nesil bölme modu",
       edit: "Girişi Düzenle",
       kpiTotal: "Girişler",
       kpiOnline: "Şu an çevrimiçi",
@@ -7443,6 +8025,8 @@ export const dictionaries: Record<Lang, Dict> = {
       quicD: "UDP 443'ü TCP'ye dönmeye zorlar — daha kararlı",
       tg: "Telegram → Proxy",
       tgD: "Telegram'ı ilk özel outbound'undan geçirir",
+      warp: "Cloudflare WARP+ (Temiz IP ve AI)",
+      warpD: "OpenAI, Google, Netflix ve Spotify trafiğini WARP outbound'una yönlendirir",
     },
     guideLesson: {
       chapters: "Bölümler",
@@ -7456,6 +8040,89 @@ export const dictionaries: Record<Lang, Dict> = {
       lessonTips: "İpuçları",
       prevCh: "Önceki",
       nextCh: "Sonraki",
+    },
+
+    tunnels: {
+      title: "Çok Düğümlü Aktarma Tünelleri (Köprü -> Çekirdek) ve Canlı Yük Dengeleme",
+      subtitle:
+        "XHTTP ters tünellerini, gRPC çoğullamayı ve TCP aktarımlarını yönetin; giriş ve çıkış düğümleri arasında gerçek zamanlı yük dengeleme yapın",
+      add: "Yeni Aktarma Tüneli",
+      entryBridge: "Giriş Düğümü (Bridge)",
+      exitUpstream: "Çıkış Düğümü (Upstream)",
+      lb: "Yük Dengeleme:",
+      probe: "Tünel Gecikme Testi",
+      del: "Tüneli sil",
+      stActive: "Etkin",
+      stInactive: "Devre dışı",
+      stTesting: "Test ediliyor…",
+      empty: "Henüz aktarma tüneli yok — İran köprüsünü yurt dışı çıkış düğümüne bağlamak için bir tane oluşturun.",
+      probeOk: "Tünel zinciri gecikmesi: {ms}ms (Kararlı)",
+      toastStrategy: "Yük dengeleme stratejisi {strategy} olarak güncellendi",
+      toastDeleted: "Aktarma tüneli silindi",
+      toastCreated: "Yeni çok düğümlü tünel zinciri oluşturuldu",
+      toastFailed: "Tünel oluşturulamadı — giriş/çıkış adreslerini kontrol edip tekrar deneyin",
+      dlgTitle: "Çok Düğümlü Aktarma Tüneli Oluştur",
+      dlgDesc: "Giriş köprü düğümünü özel aktarım ve yük dengeleme ile bir üst akış çıkış düğümüne bağlayın",
+      fName: "Tünel Adı",
+      fProtocol: "Tünel Protokolü",
+      fEntryAddr: "Giriş Düğüm Adresi",
+      fEntryPort: "Giriş Portu",
+      fExitAddr: "Çıkış Düğüm Adresi",
+      fExitPort: "Çıkış Portu",
+      fInbound: "Hedef Inbound Etiketi",
+      fLb: "Yük Dengeleme Stratejisi",
+      phName: "Tehran -> Frankfurt XHTTP",
+      cancel: "İptal",
+      create: "Tünel Oluştur",
+    },
+
+    tgBot: {
+      title: "Etkileşimli Telegram Bot Konsolu, Otomatik Yedekleme ve Kendi Kendini Onaran Bekçi",
+      subtitle:
+        "Yönetici ve kullanıcı Telegram komutları, anında deneme hesabı, zamanlanmış şifreli yedekler ve 60 saniyelik çekirdek öz-onarımı",
+      executor: "Canlı Telegram Bot Komut Yürütücü",
+      tokenOk: "Bot token tanımlı",
+      simulated: "Simüle terminal — bot token tanımlı değil",
+      cmdStatus: "/status (Telemetri)",
+      cmdUsers: "/users (En Yüksek Kota)",
+      cmdTrial: "/create_trial (5GB/7g)",
+      cmdBackup: "/backup_now (Anlık Görüntü)",
+      terminalIdle:
+        "🤖 Sephiroth Orbit Telegram Botu yönetim ve kullanıcı sorgularına hazır.\nCanlı çekirdekte çalıştırmak için yukarıdan bir komut seçin.",
+      openSub: "Abonelik Sayfasını Aç",
+      toastOk: "{cmd} bot komutu yürütüldü",
+      errorToast: "Komut yürütülemedi — çekirdek hata döndürdü. Sunucu günlüklerini kontrol edip tekrar deneyin",
+      selfService: "Kullanıcı Self-Service Bot Portalı",
+      selfServiceD: "Kullanıcılar kalan GB'yi sorgulayabilsin, QR kod ve Clash/Sing-box bağlantıları alabilsin",
+      receipt: "Karttan Kartaya Makbuz Onayı",
+      receiptD: "Kullanıcı veya bayi ödeme makbuzunu yönetici sohbetine iletir; tek dokunuşla onayla/reddet",
+      guardian: "Kendi Kendini Onaran Çekirdek Bekçisi",
+      guardianD: "Xray çekirdeğini ve abonelik bağlantılarını her 60 saniyede kontrol eder, takılanları otomatik onarır",
+      backup: "Otomatik Telegram Yedekleme Sıklığı",
+      backupD: "Veritabanı ve inbound anlık görüntüsünü yönetici Telegram'ına gönderir",
+      cad1h: "Her 1 saat",
+      cad6h: "Her 6 saat",
+      cad12h: "Her 12 saat",
+      cad24h: "Günlük (24 saat)",
+      previewNote: "Önizleme: ayar kalıcılığı devreye girene kadar otomasyon anahtarları yalnızca bu oturumda geçerlidir.",
+    },
+
+    payment: {
+      title: "Bayi Cüzdanı, GB Başına Tarife ve Otomatik Ödeme Webhook'ları",
+      subtitle:
+        "Bayi trafik kotalarını otomatik yüklemek için Zarinpal, kripto USDT (TRC20) ve Telegram karttan kartaya bağlantılarını yapılandırın",
+      cardTitle: "Akıllı Karttan Kartaya",
+      zarinTitle: "Zarinpal / IDPay Webhook",
+      tetherTitle: "Kripto USDT (TRC20) Bağlantısı",
+      fCard: "Alıcı Kart Numarası",
+      fTariff: "Bayi GB Başına Tarife (Toman)",
+      fMerchant: "Merchant ID / API Anahtarı",
+      fWallet: "TRC20 Cüzdan Adresi",
+      webhookNote: "Doğrulanan geri aramadan sonra bayinin trafficQuotaGb kotası anında artırılır.",
+      verifyNote: "Yalnızca webhook simülasyonu — bu önizleme sürümü gerçek ödeme ağlarına istek göndermez.",
+      save: "Ödeme Bağlantılarını Kaydet",
+      savePreview:
+        "Ağ geçidi bilgileri yalnızca bu oturumda saklanır (önizleme) — sunucu kalıcılığı ayar deposuyla gelecek.",
     },
   },
 
@@ -7566,6 +8233,33 @@ export const dictionaries: Record<Lang, Dict> = {
       badge: "ФАЗА 3 · ЖИВАЯ КОНФИГУРАЦИЯ",
       subtitle: "Создавайте, настраивайте и наблюдайте каждый слушающий сокет — изменения доходят до ядра за секунды.",
       new: "Новый инбаунд",
+      pdVless: "Легковесный прокси Xray — лучший с Reality",
+      pdVmess: "Классический VMess с автошифрованием",
+      pdTrojan: "Троян-шлюз в маскировке HTTPS",
+      pdSs: "Шифры Shadowsocks 2022 — быстро и просто",
+      pdHy2: "На базе QUIC — для сетей с потерями",
+      pdWg: "Туннель VPN уровня ядра и mesh",
+      pdDoko: "Проброс порта на любую цель",
+      pdSocks: "Локальная точка входа SOCKS5",
+      pdHttp: "Точка входа простого HTTP-прокси",
+      subGeneral: "Личность и лимиты",
+      subClients: "Аккаунты и ключи",
+      subTransport: "Транспортная сеть",
+      subSecurity: "Оболочка TLS / Reality",
+      subAdvanced: "Сниф, мультиплекс, fallback",
+      pvTitle: "Живой предпросмотр",
+      pvEmpty: "Безымянный черновик",
+      pvNoLink: "Добавьте email клиента для ссылки подписки",
+      pvCopy: "Копировать ссылку подписки",
+      recoBadge: "Рекомендуем",
+      secNoneDesc: "Сырой поток — самый быстрый, без маскировки",
+      secTlsDesc: "Стандартная оболочка сертификата TLS",
+      secRealDesc: "Заимствует TLS-отпечаток реального сайта",
+      trTcpDesc: "Сырой TCP — по умолчанию, минимум накладных",
+      trWsDesc: "WebSocket — совместим с CDN",
+      trGrpcDesc: "Потоки gRPC — мультиплексирование",
+      trHttpUpDesc: "HTTP Upgrade — совместим с CDN",
+      trXhttpDesc: "XHTTP — режим разделения нового поколения",
       edit: "Изменить инбаунд",
       kpiTotal: "Инбаунды",
       kpiOnline: "Сейчас онлайн",
@@ -8685,6 +9379,8 @@ export const dictionaries: Record<Lang, Dict> = {
       quicD: "Заставляет UDP 443 откатиться на TCP — стабильнее",
       tg: "Telegram → прокси",
       tgD: "Направляет Telegram через ваш первый пользовательский outbound",
+      warp: "Cloudflare WARP+ (чистый IP и ИИ)",
+      warpD: "Направляет OpenAI, Google, Netflix и Spotify через WARP-outbound",
     },
     guideLesson: {
       chapters: "Главы",
@@ -8698,6 +9394,89 @@ export const dictionaries: Record<Lang, Dict> = {
       lessonTips: "Советы профи",
       prevCh: "Назад",
       nextCh: "Далее",
+    },
+
+    tunnels: {
+      title: "Многоузловые релейные туннели (мост -> ядро) и живой балансировщик",
+      subtitle:
+        "Управляйте обратными туннелями XHTTP, мультиплексированием gRPC, TCP-ретрансляторами и балансировкой нагрузки между входными и выходными узлами",
+      add: "Новый релейный туннель",
+      entryBridge: "Входной узел (Bridge)",
+      exitUpstream: "Выходной узел (Upstream)",
+      lb: "Балансировка:",
+      probe: "Проверить туннель",
+      del: "Удалить туннель",
+      stActive: "Активен",
+      stInactive: "Отключён",
+      stTesting: "Проверка…",
+      empty: "Релейных туннелей пока нет — создайте один, чтобы связать иранский мост с зарубежным выходным узлом.",
+      probeOk: "Задержка цепочки туннеля: {ms}ms (стабильно)",
+      toastStrategy: "Стратегия балансировки изменена на {strategy}",
+      toastDeleted: "Релейный туннель удалён",
+      toastCreated: "Создана новая цепочка туннелей",
+      toastFailed: "Не удалось создать туннель — проверьте адреса входа и выхода и повторите",
+      dlgTitle: "Создать многоузловой релейный туннель",
+      dlgDesc: "Свяжите входной узел-мост с верховым выходным узлом, выбрав транспорт и стратегию балансировки",
+      fName: "Имя туннеля",
+      fProtocol: "Протокол туннеля",
+      fEntryAddr: "Адрес входного узла",
+      fEntryPort: "Порт входа",
+      fExitAddr: "Адрес выходного узла",
+      fExitPort: "Порт выхода",
+      fInbound: "Тег целевого inbound",
+      fLb: "Стратегия балансировки",
+      phName: "Tehran -> Frankfurt XHTTP",
+      cancel: "Отмена",
+      create: "Создать туннель",
+    },
+
+    tgBot: {
+      title: "Интерактивная консоль Telegram-бота, автобэкап и самовосстанавливающийся страж",
+      subtitle:
+        "Команды администратора и пользователей в Telegram, мгновенные триалы, шифрованные бэкапы по расписанию и самолечение ядра за 60 секунд",
+      executor: "Живой исполнитель команд Telegram-бота",
+      tokenOk: "Токен бота настроен",
+      simulated: "Симулятор терминала — токен бота не настроен",
+      cmdStatus: "/status (телеметрия)",
+      cmdUsers: "/users (топ по квоте)",
+      cmdTrial: "/create_trial (5ГБ/7д)",
+      cmdBackup: "/backup_now (снимок)",
+      terminalIdle:
+        "🤖 Telegram-бот Sephiroth Orbit готов принимать команды управления и запросы пользователей.\nВыберите команду выше, чтобы увидеть живой вывод.",
+      openSub: "Открыть страницу подписки",
+      toastOk: "Команда {cmd} выполнена в боте",
+      errorToast: "Команда не выполнена — ядро вернуло ошибку. Проверьте журналы сервера и повторите",
+      selfService: "Портал самообслуживания пользователей в боте",
+      selfServiceD: "Пользователи сами узнают остаток ГБ, получают QR-код и ссылки Clash/Sing-box",
+      receipt: "Подтверждение чеков карточных оплат",
+      receiptD: "Пользователь или реселлер пересылает чек в чат админа — подтверждение в один тап",
+      guardian: "Страж самовосстановления ядра",
+      guardianD: "Каждые 60 секунд проверяет ядро Xray и sub-ссылки, автоматически перезапускает при сбое",
+      backup: "Периодичность автобэкапа в Telegram",
+      backupD: "Отправляет полный снимок БД и инбаундов в чат администратора",
+      cad1h: "Каждый час",
+      cad6h: "Каждые 6 часов",
+      cad12h: "Каждые 12 часов",
+      cad24h: "Раз в сутки (24 ч)",
+      previewNote: "Превью: переключатели автоматики действуют только в этой сессии, пока не появится сохранение настроек.",
+    },
+
+    payment: {
+      title: "Кошелёк реселлера, тариф за ГБ и автоматические платёжные вебхуки",
+      subtitle:
+        "Подключите Zarinpal, крипто USDT (TRC20) и карточные переводы через Telegram для автопополнения трафика реселлеров",
+      cardTitle: "Умный карточный перевод",
+      zarinTitle: "Вебхук Zarinpal / IDPay",
+      tetherTitle: "Крипто-шлюз USDT (TRC20)",
+      fCard: "Номер карты получателя",
+      fTariff: "Тариф реселлера за ГБ (томан)",
+      fMerchant: "Merchant ID / API-ключ",
+      fWallet: "Адрес кошелька TRC20",
+      webhookNote: "После подтверждённого колбэка квота trafficQuotaGb реселлера растёт мгновенно.",
+      verifyNote: "Только симуляция вебхуков — в этой сборке-превью реальные запросы к шлюзам не отправляются.",
+      save: "Сохранить платёжные хуки",
+      savePreview:
+        "Данные шлюза хранятся только в этой сессии (превью) — серверное сохранение появится вместе с хранилищем настроек.",
     },
   },
 };

@@ -115,10 +115,14 @@ export async function ensureSeed(): Promise<void> {
   await getSecret();
   const existing = await db.adminUser.findFirst();
   if (!existing) {
+    // Deployment-configurable admin credentials (docker-compose env);
+    // falls back to the preview defaults when unset.
+    const username = (process.env.SEPHIROTH_ADMIN_USER ?? "").trim() || PREVIEW.username;
+    const password = process.env.SEPHIROTH_ADMIN_PASS ?? PREVIEW.password;
     await db.adminUser.create({
       data: {
-        username: PREVIEW.username,
-        passwordHash: hashPassword(PREVIEW.password),
+        username,
+        passwordHash: hashPassword(password),
         recoveryKey: PREVIEW.recoveryKey,
         displayName: "Sephiroth Commander",
       },

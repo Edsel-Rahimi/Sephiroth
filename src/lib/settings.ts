@@ -1,4 +1,6 @@
 import { randomBytes } from "crypto";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { db } from "@/lib/db";
 
 /* ============================================================
@@ -65,6 +67,8 @@ const K = {
   // general panel prefs
   datepicker: "set_datepicker",
   pageSize: "set_page_size",
+  publicHost: "set_public_host",
+  subSupportUrl: "set_sub_support_url",
   // expert
   xrayLogLevel: "set_xray_log_level",
   xrayDnsServers: "set_xray_dns_servers",
@@ -126,10 +130,11 @@ export type PatchResult<T> =
 
 const HOST_RE = /^[a-zA-Z0-9._-]{1,120}$/;
 
-export function validateCorePatch(body: unknown): PatchResult<CoreSettings> {
+export async function validateCorePatch(body: unknown): Promise<PatchResult<CoreSettings>> {
   const b = (body ?? {}) as Record<string, unknown>;
-  const current = CORE_DEFAULT; // route always merges onto saved values
-  const out: CoreSettings = { ...current };
+  // merge onto the CURRENTLY SAVED values (not factory defaults) so a
+  // partial PUT never wipes fields the request omitted
+  const out: CoreSettings = { ...(await getCoreSettings()) };
 
   if (b.driver !== undefined) {
     if (b.driver !== "simulator" && b.driver !== "xray") {
@@ -337,24 +342,34 @@ export async function saveNavModules(n: NavModules): Promise<void> {
 export interface GeneralSettings {
   datepicker: "gregorian" | "jalalian";
   pageSize: number;
+  /** Admin-declared public hostname for client configs / sub links ("" = unset). */
+  publicHost: string;
+  /** Optional support/portal URL surfaced via the `support-url` sub header. */
+  subSupportUrl: string;
 }
 
 const GENERAL_DEFAULT: GeneralSettings = {
   datepicker: "gregorian",
   pageSize: 25,
+  publicHost: "",
+  subSupportUrl: "",
 };
 
 export async function getGeneralSettings(): Promise<GeneralSettings> {
-  const m = await readSettings([K.datepicker, K.pageSize]);
+  const m = await readSettings([K.datepicker, K.pageSize, K.publicHost, K.subSupportUrl]);
   return {
     datepicker: m.get(K.datepicker) === "jalalian" ? "jalalian" : "gregorian",
     pageSize: toInt(m.get(K.pageSize), GENERAL_DEFAULT.pageSize, 10, 100),
+    publicHost: m.get(K.publicHost) ?? GENERAL_DEFAULT.publicHost,
+    subSupportUrl: m.get(K.subSupportUrl) ?? GENERAL_DEFAULT.subSupportUrl,
   };
 }
 
-export function validateGeneralPatch(body: unknown): PatchResult<GeneralSettings> {
+export async function validateGeneralPatch(body: unknown): Promise<PatchResult<GeneralSettings>> {
   const b = (body ?? {}) as Record<string, unknown>;
-  const out: GeneralSettings = { ...GENERAL_DEFAULT };
+  // merge onto the CURRENTLY SAVED values (not factory defaults) so a
+  // partial PUT never wipes fields the request omitted
+  const out: GeneralSettings = { ...(await getGeneralSettings()) };
   if (b.datepicker !== undefined) {
     if (b.datepicker !== "gregorian" && b.datepicker !== "jalalian") {
       return { ok: false, fields: [{ field: "datepicker", code: "format" }] };
@@ -368,12 +383,28 @@ export function validateGeneralPatch(body: unknown): PatchResult<GeneralSettings
     }
     out.pageSize = n;
   }
+  if (b.publicHost !== undefined) {
+    const v = String(b.publicHost).trim();
+    if (v.length > 253 || /\s/.test(v)) {
+      return { ok: false, fields: [{ field: "publicHost", code: "format" }] };
+    }
+    out.publicHost = v;
+  }
+  if (b.subSupportUrl !== undefined) {
+    const v = String(b.subSupportUrl).trim();
+    if (v.length > 300 || /\s/.test(v)) {
+      return { ok: false, fields: [{ field: "subSupportUrl", code: "format" }] };
+    }
+    out.subSupportUrl = v;
+  }
   return { ok: true, data: out };
 }
 
 export async function saveGeneralSettings(g: GeneralSettings): Promise<void> {
   await writeSetting(K.datepicker, g.datepicker);
   await writeSetting(K.pageSize, String(g.pageSize));
+  await writeSetting(K.publicHost, g.publicHost);
+  await writeSetting(K.subSupportUrl, g.subSupportUrl);
 }
 
 /* ---------- expert / xray config ---------- */
@@ -430,9 +461,12 @@ export async function getExpertSettings(): Promise<ExpertSettings> {
   };
 }
 
-export function validateExpertPatch(body: unknown): PatchResult<ExpertSettings> {
+export async function validateExpertPatch(body: unknown): Promise<PatchResult<ExpertSettings>> {
   const b = (body ?? {}) as Record<string, unknown>;
-  const out: ExpertSettings = { ...EXPERT_DEFAULT };
+  // merge onto the CURRENTLY SAVED values (not factory defaults) so a
+  // partial PUT never wipes fields the request omitted (e.g. saving the
+  // cert paths alone no longer erases rawJson/dns and vice-versa)
+  const out: ExpertSettings = { ...(await getExpertSettings()) };
 
   if (b.logLevel !== undefined) {
     if (!XRAY_LOG_LEVELS.includes(b.logLevel as never)) {
@@ -548,6 +582,22 @@ export function genRecoveryKey(): string {
 }
 
 /* ---------- helpers ---------- */
+
+let cachedVersion: string | null = null;
+
+/** Branded app version from package.json (cached; "2.0.0" fallback). */
+export function appVersion(): string {
+  if (cachedVersion) return cachedVersion;
+  try {
+    const pkg = JSON.parse(readFileSync(resolve(process.cwd(), "package.json"), "utf8")) as {
+      version?: string;
+    };
+    cachedVersion = typeof pkg.version === "string" && pkg.version ? pkg.version : "2.0.0";
+  } catch {
+    cachedVersion = "2.0.0";
+  }
+  return cachedVersion;
+}
 
 function toInt(raw: string | undefined, fallback: number, min: number, max: number): number {
   const n = Number(raw);

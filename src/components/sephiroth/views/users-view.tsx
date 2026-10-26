@@ -679,12 +679,12 @@ export function UsersView() {
       {/* error banner */}
       {loadErr && (
         <div className="glass rounded-2xl border border-destructive/40 p-4 text-sm text-destructive">
-          {t.common.soonDesc}
+          {t.inbounds.errGeneric}
         </div>
       )}
 
-      {/* table */}
-      <section className="glass overflow-hidden rounded-2xl">
+      {/* table (md+) */}
+      <section className="glass hidden overflow-hidden rounded-2xl md:block">
         <div className="max-h-[600px] overflow-y-auto">
           <table className="w-full min-w-[820px] text-sm">
             <thead className="sticky top-0 z-10 bg-card/95 text-[11px] uppercase tracking-wider text-muted-foreground backdrop-blur">
@@ -884,6 +884,165 @@ export function UsersView() {
           </table>
         </div>
       </section>
+
+      {/* mobile cards (below md) */}
+      <ul className="space-y-3 md:hidden">
+        {loading &&
+          Array.from({ length: 3 }).map((_, i) => (
+            <li key={i} className="glass rounded-2xl p-4">
+              <Skeleton className="h-16 w-full" />
+            </li>
+          ))}
+        {!loading && filtered.length === 0 && (
+          <li className="glass rounded-2xl p-8 text-center">
+            <UsersIcon className="mx-auto h-10 w-10 text-muted-foreground/40" aria-hidden="true" />
+            <p className="mt-3 text-sm font-medium">{u.empty}</p>
+            <p className="mx-auto mt-1 max-w-md text-xs text-muted-foreground">{u.emptyDesc}</p>
+            <Button size="sm" className="mt-4 gap-2" onClick={openCreate}>
+              <UserPlus className="h-3.5 w-3.5" aria-hidden="true" /> {u.new}
+            </Button>
+          </li>
+        )}
+        {!loading &&
+          filtered.map((user) => {
+            const st = STATUS_STYLE[user.status];
+            const left = daysLeft(user.expiryDays, user.createdAt);
+            const pct =
+              user.trafficLimitGb !== null && user.trafficLimitGb > 0
+                ? Math.min(100, (user.usedTrafficGb / user.trafficLimitGb) * 100)
+                : null;
+            return (
+              <li
+                key={user.id}
+                className="glass hover-glow cursor-pointer rounded-2xl p-4 ring-1 ring-white/10"
+                onClick={() => setDrawerId(user.id)}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span
+                      className={cn(
+                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ring-1 ring-border",
+                        avatarColor(user.username)
+                      )}
+                      aria-hidden="true"
+                    >
+                      {user.username.slice(0, 1).toUpperCase()}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold text-foreground" dir="ltr">
+                        {user.username}
+                      </p>
+                      {user.note && (
+                        <p className="truncate text-[11px] text-muted-foreground">{user.note}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                    <Switch
+                      checked={user.enabled}
+                      onCheckedChange={(v) => void toggleEnabled(user, v)}
+                      aria-label={`${u.colStatus} · ${user.username}`}
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium ring-1",
+                      st.ring,
+                      st.text
+                    )}
+                  >
+                    <span className={cn("h-1.5 w-1.5 rounded-full", st.dot)} aria-hidden="true" />
+                    {user.status === "active"
+                      ? u.stActive
+                      : user.status === "expired"
+                        ? u.stExpired
+                        : user.status === "capped"
+                          ? u.stCapped
+                          : u.stDisabled}
+                  </span>
+                  {user.accesses.slice(0, 3).map((a) => (
+                    <ProtoBadge key={a.id} protocol={a.inbound.protocol} />
+                  ))}
+                  {user.accesses.length > 3 && (
+                    <span className="text-[10px] text-muted-foreground">+{user.accesses.length - 3}</span>
+                  )}
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                      {u.colTraffic}
+                    </p>
+                    <div className="mt-1 w-[130px] max-w-full">
+                      <div className="flex items-baseline justify-between gap-2 text-[11px]">
+                        <span className="font-mono">{fmtGb(user.usedTrafficGb)}</span>
+                        <span className="text-muted-foreground">
+                          {user.trafficLimitGb === null ? u.unlimited : fmtGb(user.trafficLimitGb)}
+                        </span>
+                      </div>
+                      <div className="mt-1 h-1 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className={cn(
+                            "h-full rounded-full transition-all",
+                            pct !== null && pct >= 100 ? "bg-chart-5" : pct !== null && pct >= 80 ? "bg-chart-4" : "bg-primary"
+                          )}
+                          style={{ width: `${pct === null ? 8 : pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                      {u.colExpiry}
+                    </p>
+                    <p className="mt-1 text-xs">
+                      {user.expiryDays === null ? (
+                        <span className="text-muted-foreground">{u.expiryNever}</span>
+                      ) : left === null ? (
+                        "—"
+                      ) : left >= 0 ? (
+                        <span className={cn("font-mono", left <= 3 ? "text-chart-5" : "")}>
+                          {lfmt(u.expiryLeft, { n: left })}
+                        </span>
+                      ) : (
+                        <span className="font-mono text-chart-5">
+                          {lfmt(u.expiredAgo, { n: Math.abs(left) })}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                <div
+                  className="mt-3 flex items-center justify-end gap-1 border-t border-white/5 pt-3"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8"
+                    onClick={() => setDrawerId(user.id)}
+                    aria-label={`${u.dlgEdit} · ${user.username}`}
+                  >
+                    <Eye className="h-3.5 w-3.5" aria-hidden="true" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    onClick={() => setDeleting(user)}
+                    aria-label={`${u.bulkDelete} · ${user.username}`}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                  </Button>
+                </div>
+              </li>
+            );
+          })}
+      </ul>
 
       {/* create / edit dialog */}
       <Dialog open={dlgOpen} onOpenChange={setDlgOpen}>

@@ -63,7 +63,7 @@ export async function PUT(req: Request) {
     const { section, ...patch } = (body ?? {}) as Record<string, unknown>;
 
     if (section === "core") {
-      const parsed = validateCorePatch(patch);
+      const parsed = await validateCorePatch(patch);
       if (!parsed.ok) {
         return NextResponse.json(
           { error: "validation", fields: parsed.fields },
@@ -116,7 +116,7 @@ export async function PUT(req: Request) {
     }
 
     if (section === "general") {
-      const parsed = validateGeneralPatch(patch);
+      const parsed = await validateGeneralPatch(patch);
       if (!parsed.ok) {
         return NextResponse.json(
           { error: "validation", fields: parsed.fields },
@@ -136,7 +136,7 @@ export async function PUT(req: Request) {
     }
 
     if (section === "expert") {
-      const parsed = validateExpertPatch(patch);
+      const parsed = await validateExpertPatch(patch);
       if (!parsed.ok) {
         return NextResponse.json(
           { error: "validation", fields: parsed.fields },

@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { randomBytes } from "node:crypto";
 
@@ -52,6 +52,10 @@ export interface ClientUser {
   expiryDays: number | null;
   ipLimit: number;
   usedTrafficGb: number;
+  /** "daily" | "weekly" | "monthly" | "none" | null (null = never reset) */
+  resetPeriod: string | null;
+  /** Anchor for the reset window; falls back to createdAt when null. */
+  lastResetAt: Date | null;
   resellerId: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -64,6 +68,9 @@ export interface UserInboundAccess {
   email: string;
   key: string;
   flow: string;
+  /** WireGuard: per-client X25519 keypair (base64, 32 raw bytes). Empty for non-WG. */
+  wgPrivateKey: string;
+  wgPublicKey: string;
 }
 
 export interface SubGroup {
@@ -271,7 +278,7 @@ function reviveDates(obj: any): any {
   const out: Record<string, any> = {};
   for (const [k, v] of Object.entries(obj)) {
     if (
-      (k === "createdAt" || k === "updatedAt" || k === "lastSeen") &&
+      (k === "createdAt" || k === "updatedAt" || k === "lastSeen" || k === "lastResetAt") &&
       typeof v === "string"
     ) {
       const d = new Date(v);
@@ -283,20 +290,33 @@ function reviveDates(obj: any): any {
   return out;
 }
 
-function loadStore(): StoreData {
+function parseStoreFile(file: string): StoreData | null {
   try {
-    if (existsSync(STORE_FILE)) {
-      const raw = JSON.parse(readFileSync(STORE_FILE, "utf8"));
-      const base = emptyStore();
-      for (const k of Object.keys(base) as TableName[]) {
-        if (Array.isArray(raw[k])) {
-          base[k] = raw[k].map(reviveDates);
-        }
+    if (!existsSync(file)) return null;
+    const raw = JSON.parse(readFileSync(file, "utf8"));
+    const base = emptyStore();
+    for (const k of Object.keys(base) as TableName[]) {
+      if (Array.isArray(raw[k])) {
+        base[k] = raw[k].map(reviveDates);
       }
-      return base;
     }
-  } catch (err) {
-    console.error("[db] failed to load store file, starting fresh:", err);
+    return base;
+  } catch {
+    return null;
+  }
+}
+
+function loadStore(): StoreData {
+  const main = parseStoreFile(STORE_FILE);
+  if (main) return main;
+  // main file missing or corrupt → try the one-generation backup
+  const bak = parseStoreFile(STORE_FILE + ".bak");
+  if (bak) {
+    console.error("[db] main store unreadable — recovered from", STORE_FILE + ".bak");
+    return bak;
+  }
+  if (existsSync(STORE_FILE)) {
+    console.error("[db] failed to load store file, starting fresh:", STORE_FILE);
   }
   return emptyStore();
 }
@@ -310,7 +330,20 @@ function persistStore(): void {
     saveTimer = null;
     try {
       mkdirSync(dirname(STORE_FILE), { recursive: true });
-      writeFileSync(STORE_FILE, JSON.stringify(state, null, 2), "utf8");
+      // atomic-ish write: stage into a tmp sibling, keep a one-generation
+      // .bak of the previous live file, then rename onto the live path so a
+      // crash mid-write can never truncate the store.
+      const tmpFile = STORE_FILE + ".tmp";
+      const bakFile = STORE_FILE + ".bak";
+      if (existsSync(STORE_FILE)) {
+        try {
+          copyFileSync(STORE_FILE, bakFile);
+        } catch (bakErr) {
+          console.error("[db] failed to stage .bak (continuing):", bakErr);
+        }
+      }
+      writeFileSync(tmpFile, JSON.stringify(state, null, 2), "utf8");
+      renameSync(tmpFile, STORE_FILE);
     } catch (err) {
       console.error("[db] failed to persist store:", err);
     }
@@ -376,6 +409,8 @@ const DEFAULTS: Record<TableName, () => Record<string, any>> = {
     expiryDays: null,
     ipLimit: 0,
     usedTrafficGb: 0,
+    resetPeriod: null,
+    lastResetAt: null,
     resellerId: null,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -383,6 +418,8 @@ const DEFAULTS: Record<TableName, () => Record<string, any>> = {
   userInboundAccess: () => ({
     id: cuid(),
     flow: "",
+    wgPrivateKey: "",
+    wgPublicKey: "",
   }),
   subGroup: () => ({
     id: cuid(),
@@ -779,7 +816,6 @@ function makeDelegate(table: TableName) {
         }
       }
       if (table === "subGroup" && members?.create) {
-        const list = Array.isArray(members.create) ? accesses?.create : Array.isArray(members.create) ? members.create : [members.create];
         for (const item of Array.isArray(members.create) ? members.create : [members.create]) {
           state.subGroupMember.push({
             ...DEFAULTS.subGroupMember(),
@@ -806,7 +842,11 @@ function makeDelegate(table: TableName) {
     async update(args: { where: Record<string, any>; data: Record<string, any>; include?: any; select?: any }) {
       const idx = state[table].findIndex((r) => matchesWhere(r, args.where));
       if (idx === -1) {
-        throw new Error(`[db.${table}.update] Record not found for ${JSON.stringify(args.where)}`);
+        // Prisma-compatible P2025 so routes mapping prismaErrorCode() → 404 work
+        throw new Prisma.PrismaClientKnownRequestError(
+          `[db.${table}.update] Record not found for ${JSON.stringify(args.where)}`,
+          { code: "P2025", meta: { cause: "Record to update not found" } }
+        );
       }
       const existing = state[table][idx];
       const updated: Record<string, any> = { ...existing };
@@ -866,7 +906,11 @@ function makeDelegate(table: TableName) {
     async delete(args: { where: Record<string, any> }) {
       const idx = state[table].findIndex((r) => matchesWhere(r, args.where));
       if (idx === -1) {
-        throw new Error(`[db.${table}.delete] Record not found for ${JSON.stringify(args.where)}`);
+        // Prisma-compatible P2025 so routes mapping prismaErrorCode() → 404 work
+        throw new Prisma.PrismaClientKnownRequestError(
+          `[db.${table}.delete] Record not found for ${JSON.stringify(args.where)}`,
+          { code: "P2025", meta: { cause: "Record to delete does not exist" } }
+        );
       }
       const [removed] = state[table].splice(idx, 1);
       handleCascadeDelete(table, removed);

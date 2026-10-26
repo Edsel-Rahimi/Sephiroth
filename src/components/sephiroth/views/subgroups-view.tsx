@@ -340,6 +340,13 @@ export function SubGroupsView() {
         </div>
       </section>
 
+      {/* error banner */}
+      {loadErr && (
+        <div className="glass rounded-2xl border border-destructive/40 p-4 text-sm text-destructive">
+          {t.inbounds.errGeneric}
+        </div>
+      )}
+
       {/* KPI row */}
       <section className="grid grid-cols-3 gap-3" aria-label={u.kpiGroups}>
         {[

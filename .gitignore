@@ -53,3 +53,8 @@ download/
 
 # stale next.js artifacts (removed stack, keep ignored just in case)
 /.next/
+
+# runtime + tooling junk
+tool-results/
+db/*.bak
+db/*.tmp

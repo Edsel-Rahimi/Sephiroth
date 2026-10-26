@@ -11,6 +11,7 @@ import {
   buildSingboxJson,
   type SubExportItem,
 } from "@/lib/share-links";
+import { appVersion, getGeneralSettings } from "@/lib/settings";
 
 /* ============================================================
    Sephiroth · Phase 5+ — Public Subscription Endpoint
@@ -41,7 +42,7 @@ function safeJsonRecord(raw: string): Record<string, unknown> {
   }
 }
 
-async function resolveToken(token: string, fallbackHost?: string): Promise<Resolved | null> {
+async function resolveToken(token: string, fallbackHost?: string, publicHost?: string): Promise<Resolved | null> {
   const user = await db.clientUser.findUnique({
     where: { subId: token },
     include: { accesses: { include: { inbound: true } } },
@@ -61,7 +62,7 @@ async function resolveToken(token: string, fallbackHost?: string): Promise<Resol
     }));
     return {
       type: "user",
-      payload: userSubPayload(user),
+      payload: await userSubPayload(user, new Date(), fallbackHost, publicHost),
       disabled: !user.enabled,
       exportItems,
     };
@@ -103,7 +104,7 @@ async function resolveToken(token: string, fallbackHost?: string): Promise<Resol
   }
   return {
     type: "group",
-    payload: groupSubPayload(group),
+    payload: await groupSubPayload(group, new Date(), fallbackHost, publicHost),
     locked: false,
     disabled: false,
     exportItems,
@@ -130,6 +131,11 @@ function payloadToRaw(payload: SubPayload): string {
   return lines.join("\n") + (lines.length ? "\n" : "");
 }
 
+function sanitizeFilenamePart(raw: string): string {
+  const clean = raw.replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-+|-+$/g, "");
+  return clean || "sub";
+}
+
 export async function GET(req: Request, ctx: { params: Promise<{ token: string }> }) {
   try {
     const { token } = await ctx.params;
@@ -137,6 +143,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
     let format = url.searchParams.get("format")?.toLowerCase() || "";
     const pw = url.searchParams.get("pw") ?? "";
     const reqHost = url.hostname && url.hostname !== "localhost" && url.hostname !== "127.0.0.1" ? url.hostname : "edge.sephiroth.network";
+    const general = await getGeneralSettings();
+    const publicHost = general.publicHost || "";
 
     // Auto-detect VPN client User-Agents when no ?format= is specified and Accept does not prefer application/json from fetch()
     const ua = (req.headers.get("user-agent") || "").toLowerCase();
@@ -151,7 +159,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
       }
     }
 
-    const found = await resolveToken(token, reqHost);
+    const found = await resolveToken(token, reqHost, publicHost);
     if (!found) return textResponse("not found", 404);
 
     if (format === "raw" || format === "b64" || format === "clash" || format === "meta" || format === "singbox" || format === "sb") {
@@ -173,32 +181,61 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
           },
         });
         if (!fresh) return textResponse("not found", 404);
-        payload = groupSubPayload(fresh);
+        payload = await groupSubPayload(fresh, new Date(), reqHost, publicHost);
       }
 
       const usedBytes = Math.round((payload.usage.usedGb || 0) * 1073741824);
       const totalBytes = payload.usage.limitGb ? Math.round(payload.usage.limitGb * 1073741824) : 0;
       const expireUnix = payload.expiry.endsAtIso ? Math.floor(new Date(payload.expiry.endsAtIso).getTime() / 1000) : 0;
+
+      // public landing page for this subscription (request host wins, admin
+      // publicHost is the fallback) — surfaced via profile-web-page-url
+      const pageBase = publicHost || (url.hostname !== "localhost" && url.hostname !== "127.0.0.1" ? url.host : "edge.sephiroth.network");
+      const profileWebPageUrl = `${url.protocol}//${pageBase.replace(/\/$/, "")}/sub/${token}`;
+
       const subHeaders: Record<string, string> = {
         "profile-title": `base64:${Buffer.from(`Sephiroth · ${payload.name}`).toString("base64")}`,
         "subscription-userinfo": `upload=0; download=${usedBytes}; total=${totalBytes}; expire=${expireUnix}`,
         "profile-update-interval": "6",
+        "profile-web-page-url": profileWebPageUrl,
+        "x-sephiroth": appVersion(),
       };
+      if (general.subSupportUrl) {
+        subHeaders["support-url"] = general.subSupportUrl;
+      }
+
+      const token8 = token.slice(0, 8);
+      const namePart = sanitizeFilenamePart(payload.name);
+      const disposition = (ext: string): Record<string, string> => ({
+        "content-disposition": `attachment; filename="sephiroth-${namePart}-${token8}.${ext}"`,
+      });
 
       if (format === "clash" || format === "meta") {
-        const yaml = buildClashMetaYaml(found.exportItems, payload.name, reqHost);
-        return textResponse(yaml, 200, "text/yaml; charset=utf-8", subHeaders);
+        const yaml = buildClashMetaYaml(found.exportItems, payload.name, reqHost, publicHost);
+        return textResponse(yaml, 200, "text/yaml; charset=utf-8", {
+          ...subHeaders,
+          ...disposition("yaml"),
+        });
       }
       if (format === "singbox" || format === "sb") {
-        const json = buildSingboxJson(found.exportItems, payload.name, reqHost);
-        return textResponse(json, 200, "application/json; charset=utf-8", subHeaders);
+        const json = buildSingboxJson(found.exportItems, payload.name, reqHost, publicHost);
+        return textResponse(json, 200, "application/json; charset=utf-8", {
+          ...subHeaders,
+          ...disposition("json"),
+        });
       }
 
       const raw = payloadToRaw(payload);
       if (format === "b64") {
-        return textResponse(Buffer.from(raw, "utf-8").toString("base64"), 200, "text/plain; charset=utf-8", subHeaders);
+        return textResponse(Buffer.from(raw, "utf-8").toString("base64"), 200, "text/plain; charset=utf-8", {
+          ...subHeaders,
+          ...disposition("txt"),
+        });
       }
-      return textResponse(raw, 200, "text/plain; charset=utf-8", subHeaders);
+      return textResponse(raw, 200, "text/plain; charset=utf-8", {
+        ...subHeaders,
+        ...disposition("txt"),
+      });
     }
 
     if (found.type === "group" && found.locked) {
@@ -239,7 +276,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
       },
     });
     if (!fresh) return NextResponse.json({ error: "not_found" }, { status: 404 });
-    return NextResponse.json(groupSubPayload(fresh));
+    return NextResponse.json(await groupSubPayload(fresh));
   } catch (err) {
     console.error("[sub:token:POST]", err);
     return NextResponse.json({ error: "server_error" }, { status: 500 });

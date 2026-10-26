@@ -5,9 +5,7 @@ import { ArrowUpRight, Info, Radio, Layers } from "lucide-react";
 import { D2Card, smoothLine } from "@/components/sephiroth/dashboard/parts";
 import { useAppStore } from "@/lib/store/app-store";
 import { useCoreStore } from "@/lib/store/core-store";
-import { dictionaries } from "@/lib/i18n/dictionaries";
 import { d2Dictionaries } from "@/lib/i18n/dashboard-strings";
-import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 /* ---------- x-axis labels per range (decorative) ---------- */
@@ -134,7 +132,7 @@ function FrequencyChart() {
               {data.dl[data.peakIdx]} MB/s
             </p>
             <p className="whitespace-nowrap text-[9px] text-muted-foreground">{d2.peak}</p>
-            <span className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-b border-l border-border bg-[#0a1218]" />
+            <span className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-b border-l border-border bg-popover" />
           </div>
         </div>
       </div>
@@ -183,7 +181,7 @@ function SummaryCard() {
           </li>
         ))}
       </ul>
-      <p className="mt-4 flex gap-2 border-l-2 border-primary/40 pl-3 text-[11px] leading-relaxed text-muted-foreground/80">
+      <p className="mt-4 flex gap-2 border-s-2 border-primary/40 ps-3 text-[11px] leading-relaxed text-muted-foreground/80">
         <Info className="mt-0.5 h-3 w-3 shrink-0 text-primary/70" />
         {d2.summaryNote}
       </p>
@@ -194,32 +192,29 @@ function SummaryCard() {
 function PassCard() {
   const lang = useAppStore((s) => s.lang);
   const d2 = useMemo(() => d2Dictionaries[lang], [lang]);
-  const { toast } = useToast();
-  const dict = useMemo(() => dictionaries[lang], [lang]);
+  const setView = useAppStore((s) => s.setView);
   const activeUsers = useCoreStore((s) => s.snapshot.metrics.activeUsers);
   const groups = useCoreStore((s) => s.snapshot.totals.groups);
 
   return (
-    <section className="relative col-span-12 overflow-hidden rounded-2xl p-5 md:col-span-6 xl:col-span-3 bg-[linear-gradient(150deg,#35e2f6_0%,#17b6cf_45%,#0a7f95_100%)]">
+    <section className="relative col-span-12 overflow-hidden rounded-2xl p-5 md:col-span-6 xl:col-span-3 bg-gradient-to-br from-primary/30 via-primary/10 to-primary/5 ring-1 ring-primary/25">
       {/* watermark ring */}
-      <div aria-hidden="true" className="pointer-events-none absolute -right-14 -top-16 h-48 w-48 rounded-full border-[10px] border-white/15" />
-      <div aria-hidden="true" className="pointer-events-none absolute -right-4 -top-2 h-24 w-24 rounded-full border-[6px] border-white/10" />
+      <div aria-hidden="true" className="pointer-events-none absolute -end-14 -top-16 h-48 w-48 rounded-full border-[10px] border-white/15" />
+      <div aria-hidden="true" className="pointer-events-none absolute -end-4 -top-2 h-24 w-24 rounded-full border-[6px] border-white/10" />
       <div aria-hidden="true" className="shine-sweep pointer-events-none absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/25 to-transparent" />
 
       <div className="relative">
         <div className="flex items-start justify-between">
-          <h3 className="text-[15px] font-bold text-[#04161b]">{d2.passTitle}</h3>
+          <h3 className="text-[15px] font-bold text-foreground">{d2.passTitle}</h3>
           <button
-            onClick={() =>
-              toast({ title: dict.common.soon, description: dict.common.soonDesc })
-            }
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-[#04161b] text-primary transition-transform hover:scale-105"
+            onClick={() => setView("users")}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-background/60 text-primary ring-1 ring-primary/25 transition-transform hover:scale-105"
             aria-label={d2.passTitle}
           >
             <ArrowUpRight className="h-4 w-4" />
           </button>
         </div>
-        <p className="mt-1.5 min-h-10 text-[11px] leading-relaxed text-[#04161b]/75">
+        <p className="mt-1.5 min-h-10 text-[11px] leading-relaxed text-foreground/70">
           {d2.passDesc}
         </p>
 
@@ -227,13 +222,13 @@ function PassCard() {
         <div className="mt-4 space-y-2">
           <div className="flex items-center justify-between rounded-xl bg-white/90 px-3.5 py-2.5 shadow-lg shadow-black/20">
             <span className="flex items-center gap-2 text-[11px] font-semibold text-[#04161b]">
-              <Radio className="h-3.5 w-3.5 text-[#0a7f95]" /> {d2.subs}
+              <Radio className="h-3.5 w-3.5 text-primary" /> {d2.subs}
             </span>
             <span className="font-mono text-sm font-bold tabular-nums text-[#04161b]">{Math.round(activeUsers)}</span>
           </div>
           <div className="flex items-center justify-between rounded-xl bg-white/60 px-3.5 py-2.5 shadow-md shadow-black/15 backdrop-blur-sm">
             <span className="flex items-center gap-2 text-[11px] font-semibold text-[#04161b]">
-              <Layers className="h-3.5 w-3.5 text-[#0a7f95]" /> {d2.groups}
+              <Layers className="h-3.5 w-3.5 text-primary" /> {d2.groups}
             </span>
             <span className="font-mono text-sm font-bold tabular-nums text-[#04161b]">{groups}</span>
           </div>

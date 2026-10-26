@@ -21,7 +21,6 @@ import { GuideView } from "@/components/sephiroth/views/guide-view";
 import { SettingsView } from "@/components/sephiroth/views/settings-view";
 import { ProfileView } from "@/components/sephiroth/views/profile-view";
 import { PanelsView } from "@/components/sephiroth/views/panels-view";
-import { PlaceholderView } from "@/components/sephiroth/views/placeholder-view";
 import { useAppStore } from "@/lib/store/app-store";
 import { cn } from "@/lib/utils";
 import { RTL_LANGS, type ViewId } from "@/lib/i18n/dictionaries";
@@ -46,6 +45,7 @@ export default function Home() {
 
   /* phase 1 — server-backed session gate (null = checking) */
   const [authed, setAuthed] = useState<boolean | null>(null);
+  const [previewHints, setPreviewHints] = useState(false);
 
   /* apply language + direction + theme to <html> */
   useEffect(() => {
@@ -61,9 +61,14 @@ export default function Home() {
   const refreshSession = useCallback(async () => {
     try {
       const r = await fetch("/api/auth/session", { cache: "no-store" });
-      const d = (await r.json()) as { authenticated?: boolean; role?: string };
+      const d = (await r.json()) as {
+        authenticated?: boolean;
+        role?: string;
+        showPreviewHints?: boolean;
+      };
       const ok = Boolean(d.authenticated);
       setAuthed(ok);
+      setPreviewHints(Boolean(d.showPreviewHints));
       const nextRole = ok && d.role === "reseller" ? "reseller" : "admin";
       setRole(nextRole);
       /* resellers land on their only workspace */
@@ -80,10 +85,11 @@ export default function Home() {
     let alive = true;
     fetch("/api/auth/session", { cache: "no-store" })
       .then((r) => r.json())
-      .then((d: { authenticated?: boolean; role?: string }) => {
+      .then((d: { authenticated?: boolean; role?: string; showPreviewHints?: boolean }) => {
         if (!alive) return;
         const ok = Boolean(d.authenticated);
         setAuthed(ok);
+        setPreviewHints(Boolean(d.showPreviewHints));
         const nextRole = ok && d.role === "reseller" ? "reseller" : "admin";
         setRole(nextRole);
         if (ok && nextRole === "reseller" && useAppStore.getState().view !== "users") {
@@ -104,6 +110,7 @@ export default function Home() {
   if (!authed) {
     return (
       <LoginScene
+        previewHints={previewHints}
         onSuccess={() => {
           void refreshSession();
         }}
@@ -159,25 +166,8 @@ export default function Home() {
         ) : effectiveView === "panels" ? (
           <PanelsView />
         ) : (
-          <PlaceholderView
-            view={effectiveView as Exclude<
-              ViewId,
-              | "dashboard"
-              | "inbounds"
-              | "hosts"
-              | "nodes"
-              | "outbounds"
-              | "routing"
-              | "users"
-              | "subgroups"
-              | "resellers"
-              | "activity"
-              | "guide"
-              | "settings"
-              | "profile"
-              | "panels"
-            >}
-          />
+          /* exhaustive fallback — every ViewId is handled above */
+          <DashboardView />
         )}
       </main>
 

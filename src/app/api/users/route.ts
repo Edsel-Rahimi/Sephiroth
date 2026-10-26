@@ -4,12 +4,12 @@ import { getSession } from "@/lib/auth";
 import {
   emailFor,
   flowFor,
-  genKey,
+  genAccessFields,
   genSubId,
   projectUserOntoInbound,
   toUserDTO,
 } from "@/lib/users";
-import { parseClients, seededUsage, validateUser } from "@/lib/user-types";
+import { parseClients, validateUser } from "@/lib/user-types";
 import { resellerQuota } from "@/lib/resellers";
 import { logActivity } from "@/lib/activity";
 
@@ -35,7 +35,8 @@ export async function GET(req: Request) {
     }
 
     const userCount = await db.clientUser.count();
-    if (userCount === 0) {
+    if (userCount === 0 && process.env.SEPH_PREVIEW_AUTH === "1") {
+      // preview-only demo population — production boots with a clean store
       const { ensureInboundSeed } = await import("@/lib/inbounds");
       await ensureInboundSeed();
       const inbounds = await db.inbound.findMany({ orderBy: { createdAt: "asc" } });
@@ -53,12 +54,17 @@ export async function GET(req: Request) {
             ...du,
             subId,
             accesses: {
-              create: topInbounds.map((inb: any) => ({
-                inboundId: inb.id,
-                email: emailFor(du.username, inb.tag, new Set()),
-                key: genKey(inb.protocol),
-                flow: flowFor(inb),
-              })),
+              create: topInbounds.map((inb: any) => {
+                const material = genAccessFields(inb.protocol);
+                return {
+                  inboundId: inb.id,
+                  email: emailFor(du.username, inb.tag, new Set()),
+                  key: material.key,
+                  flow: flowFor(inb),
+                  wgPrivateKey: material.wgPrivateKey,
+                  wgPublicKey: material.wgPublicKey,
+                };
+              }),
             },
           },
         });
@@ -151,13 +157,10 @@ export async function POST(req: Request) {
           trafficLimitGb: data.trafficLimitGb,
           expiryDays: data.expiryDays,
           ipLimit: data.ipLimit,
+          resetPeriod: data.resetPeriod,
           usedTrafficGb: 0,
           resellerId,
         },
-      });
-      await tx.clientUser.update({
-        where: { id: user.id },
-        data: { usedTrafficGb: seededUsage(user.id, data.trafficLimitGb) },
       });
 
       for (const inbound of inboundRows) {
@@ -168,11 +171,20 @@ export async function POST(req: Request) {
         const existing = parseClients(current?.clientsJson);
         const taken = new Set(existing.map((c) => c.email));
         const email = emailFor(data.username, inbound.tag, taken);
-        const key = genKey(inbound.protocol);
+        const material = genAccessFields(inbound.protocol);
+        const key = material.key;
         const flow = flowFor(inbound);
 
         await tx.userInboundAccess.create({
-          data: { userId: user.id, inboundId: inbound.id, email, key, flow },
+          data: {
+            userId: user.id,
+            inboundId: inbound.id,
+            email,
+            key,
+            flow,
+            wgPrivateKey: material.wgPrivateKey,
+            wgPublicKey: material.wgPublicKey,
+          },
         });
 
         const nextJson = projectUserOntoInbound(

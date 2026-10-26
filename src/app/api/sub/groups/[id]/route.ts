@@ -52,10 +52,13 @@ export async function PATCH(req: Request, ctx: Ctx) {
     }
 
     const updated = await db.$transaction(async (tx) => {
+      const bodyObj = (body && typeof body === "object" ? body : {}) as Record<string, unknown>;
+      // true partial merge: infoLine/enabled only change when the key was
+      // actually sent — toggling `enabled` no longer wipes infoLine
       const base: { name?: string; infoLine?: string | null; enabled?: boolean; passwordHash?: string | null } = {};
       if (data.name !== "") base.name = data.name;
-      base.infoLine = data.infoLine || null;
-      base.enabled = data.enabled;
+      if ("infoLine" in bodyObj) base.infoLine = data.infoLine || null;
+      if ("enabled" in bodyObj) base.enabled = data.enabled;
       if (data.password === "") base.passwordHash = null;
       else if (typeof data.password === "string" && data.password.length >= 4)
         base.passwordHash = groupPasswordHash(data.password);

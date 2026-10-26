@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowLeftRight,
+  ArrowUpFromLine,
   BadgeCheck,
+  CircleAlert,
   CircleCheck,
   Copy,
   EllipsisVertical,
@@ -12,7 +14,9 @@ import {
   KeyRound,
   Layers,
   Lightbulb,
+  Link2,
   Loader2,
+  Network,
   Pencil,
   Plus,
   Radar,
@@ -20,12 +24,17 @@ import {
   RefreshCcw,
   Search,
   ShieldCheck,
+  ShieldOff,
+  ShieldPlus,
+  Sparkles,
+  Star,
   LayoutGrid,
   Rows3,
   SlidersHorizontal,
   Trash2,
   TrendingUp,
   Users,
+  Waves,
   Wifi,
   Zap,
   type LucideIcon,
@@ -254,6 +263,30 @@ const PROTO_HOVER: Record<string, string> = {
     "hover:border-[#fde047]/50 hover:shadow-[0_0_38px_-12px_#fde047]",
   http:
     "hover:border-[#fb923c]/50 hover:shadow-[0_0_38px_-12px_#fb923c]",
+};
+
+/* protocols that carry raw sockets — no transport/security layers apply */
+const NO_STREAM_PROTOCOLS = new Set(["wireguard", "socks", "http", "dokodemo-door"]);
+
+/* dictionary key per protocol for the picker card descriptions */
+const PROTO_DESC_KEY: Record<string, string> = {
+  vless: "pdVless",
+  vmess: "pdVmess",
+  trojan: "pdTrojan",
+  shadowsocks: "pdSs",
+  hysteria2: "pdHy2",
+  wireguard: "pdWg",
+  "dokodemo-door": "pdDoko",
+  socks: "pdSocks",
+  http: "pdHttp",
+};
+
+const TRANSPORT_META: Record<string, { icon: LucideIcon; descKey: string }> = {
+  tcp: { icon: Network, descKey: "trTcpDesc" },
+  ws: { icon: Waves, descKey: "trWsDesc" },
+  grpc: { icon: Layers, descKey: "trGrpcDesc" },
+  httpupgrade: { icon: ArrowUpFromLine, descKey: "trHttpUpDesc" },
+  xhttp: { icon: Zap, descKey: "trXhttpDesc" },
 };
 
 const STATUS_DOT: Record<string, string> = {
@@ -653,6 +686,9 @@ function SecPicker({
   noneLabel,
   tlsLabel,
   realLabel,
+  noneDesc,
+  tlsDesc,
+  realDesc,
   hint,
 }: {
   value: string;
@@ -660,17 +696,20 @@ function SecPicker({
   noneLabel: string;
   tlsLabel: string;
   realLabel: string;
+  noneDesc: string;
+  tlsDesc: string;
+  realDesc: string;
   hint: string;
 }) {
   const items = [
-    { v: "none", label: noneLabel, icon: CircleCheck },
-    { v: "tls", label: tlsLabel, icon: ShieldCheck },
-    { v: "reality", label: realLabel, icon: Fingerprint },
+    { v: "none", label: noneLabel, desc: noneDesc, icon: ShieldOff },
+    { v: "tls", label: tlsLabel, desc: tlsDesc, icon: ShieldCheck },
+    { v: "reality", label: realLabel, desc: realDesc, icon: ShieldPlus },
   ];
   return (
     <div className="space-y-2">
-      <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label={hint}>
-        {items.map(({ v, label, icon: Icon }) => (
+      <div className="grid gap-2.5 sm:grid-cols-3" role="radiogroup" aria-label={hint}>
+        {items.map(({ v, label, desc, icon: Icon }) => (
           <button
             key={v}
             type="button"
@@ -678,14 +717,38 @@ function SecPicker({
             aria-checked={value === v}
             onClick={() => onChange(v)}
             className={cn(
-              "flex h-11 items-center justify-center gap-2 rounded-xl border text-[12px] font-semibold transition-all",
+              "group/sec relative flex items-start gap-3 overflow-hidden rounded-2xl border p-3.5 text-start transition-all duration-200",
               value === v
-                ? "border-primary/40 bg-primary/10 text-primary shadow-[0_0_18px_-6px] shadow-primary/40"
-                : "border-white/10 bg-white/[0.03] text-muted-foreground hover:border-white/20 hover:text-foreground"
+                ? "border-primary/45 bg-primary/[0.07] shadow-[0_0_26px_-10px_var(--primary)]"
+                : "border-white/10 bg-white/[0.03] hover:border-white/20"
             )}
           >
-            <Icon className="h-3.5 w-3.5" />
-            {label}
+            <span
+              className={cn(
+                "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 transition-colors",
+                value === v
+                  ? "bg-primary/10 text-primary ring-primary/30"
+                  : "bg-white/[0.04] text-muted-foreground ring-white/10 group-hover/sec:text-foreground"
+              )}
+            >
+              <Icon className="h-4 w-4" />
+            </span>
+            <span className="min-w-0">
+              <span
+                className={cn(
+                  "block text-[12px] font-bold",
+                  value === v ? "text-primary" : "text-silver"
+                )}
+              >
+                {label}
+              </span>
+              <span className="mt-0.5 block text-[10px] leading-snug text-muted-foreground">
+                {desc}
+              </span>
+            </span>
+            {value === v && (
+              <BadgeCheck className="absolute top-2.5 end-2.5 h-3.5 w-3.5 shrink-0 text-primary" />
+            )}
           </button>
         ))}
       </div>
@@ -1218,6 +1281,7 @@ export function InboundsView() {
     ws: t.inbounds.trWs,
     grpc: t.inbounds.trGrpc,
     httpupgrade: t.inbounds.trHttpUp,
+    xhttp: "XHTTP",
   };
 
   const SecurityText: Record<string, string> = {
@@ -1262,80 +1326,110 @@ export function InboundsView() {
 
   const renderGeneral = () => (
     <div className="space-y-5">
-      {/* protocol picker */}
+      {/* protocol picker — rich per-protocol cards */}
       <div className="space-y-2">
         <Label className="text-xs text-muted-foreground">{t.inbounds.fieldProtocol}</Label>
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-          {PROTOCOLS.map((p) => (
-            <button
-              key={p}
-              type="button"
-              onClick={() => {
-                setForm((f) => {
-                  const stream = { ...f.stream };
-                  if (p === "shadowsocks" && !stream.method)
-                    stream.method = "2022-blake3-aes-128-gcm";
-                  if (p === "wireguard" && !stream.wgSecretKey) {
-                    const pair = genWgPair();
-                    stream.wgSecretKey = pair.priv;
-                    stream.wgPublicKey = pair.pub;
-                    if (!stream.wgMtu) stream.wgMtu = "1420";
-                  }
-                  if (p === "dokodemo-door" && !stream.dokoAddress) {
-                    stream.dokoAddress = "one.one.one.one";
-                    if (!stream.dokoPort) stream.dokoPort = "53";
-                    if (!stream.dokoNetwork) stream.dokoNetwork = "tcp,udp";
-                  }
-                  return {
-                    ...f,
-                    protocol: p,
-                    stream,
-                    clients:
-                      p === "dokodemo-door"
-                        ? []
-                        : f.clients.length === 0
-                          ? [
-                              {
-                                email: "",
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+          {PROTOCOLS.map((p) => {
+            const selected = form.protocol === p;
+            return (
+              <button
+                key={p}
+                type="button"
+                onClick={() => {
+                  setForm((f) => {
+                    const stream = { ...f.stream };
+                    if (p === "shadowsocks" && !stream.method)
+                      stream.method = "2022-blake3-aes-128-gcm";
+                    if (p === "wireguard" && !stream.wgSecretKey) {
+                      const pair = genWgPair();
+                      stream.wgSecretKey = pair.priv;
+                      stream.wgPublicKey = pair.pub;
+                      if (!stream.wgMtu) stream.wgMtu = "1420";
+                    }
+                    if (p === "dokodemo-door" && !stream.dokoAddress) {
+                      stream.dokoAddress = "one.one.one.one";
+                      if (!stream.dokoPort) stream.dokoPort = "53";
+                      if (!stream.dokoNetwork) stream.dokoNetwork = "tcp,udp";
+                    }
+                    const noStream = NO_STREAM_PROTOCOLS.has(p);
+                    return {
+                      ...f,
+                      protocol: p,
+                      stream,
+                      // raw-socket protocols carry no transport/security layers
+                      transport: noStream ? "tcp" : f.transport,
+                      security: noStream ? "none" : f.security,
+                      clients:
+                        p === "dokodemo-door"
+                          ? []
+                          : f.clients.length === 0
+                            ? [
+                                {
+                                  email: "",
+                                  key: genClientKey(p),
+                                  subId: genSubId(),
+                                  flow: "",
+                                  ipLimit: "0",
+                                  trafficLimitGb: "",
+                                  expiryDays: "",
+                                  enabled: true,
+                                },
+                              ]
+                            : f.clients.map((c) => ({
+                                ...c,
                                 key: genClientKey(p),
-                                subId: genSubId(),
-                                flow: "",
-                                ipLimit: "0",
-                                trafficLimitGb: "",
-                                expiryDays: "",
-                                enabled: true,
-                              },
-                            ]
-                          : f.clients.map((c) => ({
-                              ...c,
-                              key: genClientKey(p),
-                              flow: p === "vless" ? c.flow : "",
-                            })),
-                  };
-                });
-                if (p === "dokodemo-door") {
-                  setTab((cur) => (cur === "clients" ? "general" : cur));
-                }
-              }}
-              className={cn(
-                "flex h-14 flex-col items-center justify-center gap-1 rounded-xl border transition-all",
-                form.protocol === p
-                  ? "border-primary/40 bg-primary/10 shadow-[0_0_18px_-6px] shadow-primary/40"
-                  : "border-white/10 bg-white/[0.03] hover:border-white/20"
-              )}
-              aria-pressed={form.protocol === p}
-            >
-              <ProtoOrb protocol={p} />
-              <span
+                                flow: p === "vless" ? c.flow : "",
+                              })),
+                    };
+                  });
+                  if (p === "dokodemo-door") {
+                    setTab((cur) => (cur === "clients" ? "general" : cur));
+                  }
+                }}
                 className={cn(
-                  "text-[10px] font-semibold",
-                  form.protocol === p ? "text-primary" : "text-muted-foreground"
+                  "group/card relative flex items-start gap-3 overflow-hidden rounded-2xl border p-3 text-start transition-all duration-200",
+                  selected
+                    ? "border-primary/45 bg-primary/[0.07] shadow-[0_0_26px_-10px_var(--primary)]"
+                    : cn("border-white/10 bg-white/[0.03]", PROTO_HOVER[p])
                 )}
+                aria-pressed={selected}
               >
-                {PROTO_LABEL[p]}
-              </span>
-            </button>
-          ))}
+                <span
+                  className={cn(
+                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 transition-transform duration-200 group-hover/card:scale-105",
+                    PROTO_CLS[p]
+                  )}
+                >
+                  <ProtoOrb protocol={p} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-1">
+                    <span
+                      className={cn(
+                        "text-[12px] font-bold",
+                        selected ? "text-primary" : "text-silver"
+                      )}
+                    >
+                      {PROTO_LABEL[p]}
+                    </span>
+                    {p === "vless" && (
+                      <Star
+                        className="h-3 w-3 shrink-0 fill-chart-3 text-chart-3"
+                        aria-label={t.inbounds.recoBadge}
+                      />
+                    )}
+                  </span>
+                  <span className="mt-0.5 block text-[10px] leading-snug text-muted-foreground">
+                    {t.inbounds[PROTO_DESC_KEY[p] as keyof typeof t.inbounds]}
+                  </span>
+                </span>
+                {selected && (
+                  <BadgeCheck className="absolute top-2 end-2 h-3.5 w-3.5 shrink-0 text-primary" />
+                )}
+              </button>
+            );
+          })}
         </div>
         <Tip>{t.inbounds.tipProtocol}</Tip>
       </div>
@@ -1916,25 +2010,54 @@ export function InboundsView() {
 
   const renderTransport = () => (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-5" role="radiogroup" aria-label={t.inbounds.transportHint}>
-        {TRANSPORTS.map((tr) => (
-          <button
-            key={tr}
-            type="button"
-            role="radio"
-            aria-checked={form.transport === tr}
-            onClick={() => setS({ transport: tr })}
-            className={cn(
-              "flex h-11 items-center justify-center gap-2 rounded-xl border text-[12px] font-semibold transition-all",
-              form.transport === tr
-                ? "border-primary/40 bg-primary/10 text-primary shadow-[0_0_18px_-6px] shadow-primary/40"
-                : "border-white/10 bg-white/[0.03] text-muted-foreground hover:border-white/20 hover:text-foreground"
-            )}
-          >
-            <Layers className="h-3.5 w-3.5" />
-            {TransportText[tr] ?? tr}
-          </button>
-        ))}
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-5" role="radiogroup" aria-label={t.inbounds.transportHint}>
+        {TRANSPORTS.map((tr) => {
+          const meta = TRANSPORT_META[tr] ?? TRANSPORT_META.tcp;
+          const TrIcon = meta.icon;
+          const selected = form.transport === tr;
+          return (
+            <button
+              key={tr}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              onClick={() => setS({ transport: tr })}
+              className={cn(
+                "group/tr relative flex items-start gap-3 overflow-hidden rounded-2xl border p-3 text-start transition-all duration-200",
+                selected
+                  ? "border-primary/45 bg-primary/[0.07] shadow-[0_0_26px_-10px_var(--primary)]"
+                  : "border-white/10 bg-white/[0.03] hover:border-white/20"
+              )}
+            >
+              <span
+                className={cn(
+                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 transition-colors",
+                  selected
+                    ? "bg-primary/10 text-primary ring-primary/30"
+                    : "bg-white/[0.04] text-muted-foreground ring-white/10 group-hover/tr:text-foreground"
+                )}
+              >
+                <TrIcon className="h-4 w-4" />
+              </span>
+              <span className="min-w-0">
+                <span
+                  className={cn(
+                    "block text-[12px] font-bold",
+                    selected ? "text-primary" : "text-silver"
+                  )}
+                >
+                  {TransportText[tr] ?? tr}
+                </span>
+                <span className="mt-0.5 block text-[10px] leading-snug text-muted-foreground">
+                  {t.inbounds[meta.descKey as keyof typeof t.inbounds]}
+                </span>
+              </span>
+              {selected && (
+                <BadgeCheck className="absolute top-2.5 end-2.5 h-3.5 w-3.5 shrink-0 text-primary" />
+              )}
+            </button>
+          );
+        })}
       </div>
       <p className="text-[11px] text-muted-foreground/70">{t.inbounds.transportHint}</p>
 
@@ -2143,6 +2266,9 @@ export function InboundsView() {
         noneLabel={t.inbounds.secNone}
         tlsLabel={t.inbounds.secTls}
         realLabel={t.inbounds.secReal}
+        noneDesc={t.inbounds.secNoneDesc}
+        tlsDesc={t.inbounds.secTlsDesc}
+        realDesc={t.inbounds.secRealDesc}
         hint={t.inbounds.secHint}
       />
 
@@ -2607,22 +2733,75 @@ export function InboundsView() {
     </div>
   );
 
-  const ALL_TABS: { id: TabId; label: string; icon: LucideIcon }[] = [
-    { id: "general", label: t.inbounds.tabGeneral, icon: RadioTower },
-    { id: "clients", label: t.inbounds.tabClients, icon: Users },
-    { id: "transport", label: t.inbounds.tabTransport, icon: Layers },
-    { id: "security", label: t.inbounds.tabSecurity, icon: ShieldCheck },
-    { id: "advanced", label: t.inbounds.tabAdvanced, icon: SlidersHorizontal },
+  const ALL_TABS: { id: TabId; label: string; sub: string; icon: LucideIcon }[] = [
+    { id: "general", label: t.inbounds.tabGeneral, sub: t.inbounds.subGeneral, icon: RadioTower },
+    { id: "clients", label: t.inbounds.tabClients, sub: t.inbounds.subClients, icon: Users },
+    { id: "transport", label: t.inbounds.tabTransport, sub: t.inbounds.subTransport, icon: Network },
+    { id: "security", label: t.inbounds.tabSecurity, sub: t.inbounds.subSecurity, icon: ShieldPlus },
+    { id: "advanced", label: t.inbounds.tabAdvanced, sub: t.inbounds.subAdvanced, icon: SlidersHorizontal },
   ];
-  // dokodemo-door has no client accounts → hide the Clients tab
-  const TABS = ALL_TABS.filter(
-    (x) => form.protocol !== "dokodemo-door" || x.id !== "clients"
-  );
+  // dokodemo-door has no client accounts → hide the Clients tab;
+  // raw-socket protocols (wg/socks/http/doko) carry no transport/security layers
+  const TABS = ALL_TABS.filter((x) => {
+    if (form.protocol === "dokodemo-door" && x.id === "clients") return false;
+    if (NO_STREAM_PROTOCOLS.has(form.protocol) && (x.id === "transport" || x.id === "security"))
+      return false;
+    return true;
+  });
+  // if the active tab vanished (protocol switched), snap back to general
+  const activeTab = TABS.some((x) => x.id === tab) ? tab : "general";
 
   const tabHasError = (id: TabId): boolean =>
     Object.keys(fieldErr).some(
       (k) => FIELD_TAB[k.replace(/-\d+$/, "")] === id || FIELD_TAB[k] === id
     ) || (id === "clients" && dupEmails.size > 0);
+
+  /* ---------- live share-link preview (dialog sidebar) ---------- */
+  const previewClient =
+    form.clients.find((c) => c.enabled) ?? form.clients[0] ?? null;
+  const previewClientDto = previewClient
+    ? {
+        email: previewClient.email,
+        key: previewClient.key,
+        flow: previewClient.flow,
+        subId: previewClient.subId,
+        ipLimit: Number(previewClient.ipLimit) || 0,
+        trafficLimitGb: null,
+        expiryDays: null,
+        enabled: previewClient.enabled,
+      }
+    : null;
+  const previewLink = (() => {
+    if (!form.port || !Number(form.port)) return null;
+    try {
+      const row = {
+        id: editing?.id ?? "draft",
+        tag: form.tag.trim() || "draft",
+        protocol: form.protocol,
+        port: Number(form.port) || 0,
+        listen: form.listen,
+        transport: form.transport,
+        security: form.security,
+        stream: form.stream,
+      };
+      if (form.protocol === "wireguard")
+        return buildWgConf(row, previewClientDto ?? undefined);
+      if (form.protocol === "dokodemo-door") return buildDokoSummary(row);
+      return buildShareLink(row, previewClientDto ?? undefined);
+    } catch {
+      return null;
+    }
+  })();
+  const copyPreview = async () => {
+    if (!previewLink) return;
+    try {
+      await navigator.clipboard.writeText(previewLink);
+      toast({ title: t.inbounds.toastCopied });
+    } catch {
+      toast({ title: t.inbounds.toastFail, variant: "destructive" });
+    }
+  };
+  const hasFieldErrors = Object.keys(fieldErr).length > 0 || dupEmails.size > 0;
 
   return (
     <div className="space-y-6">
@@ -3107,26 +3286,44 @@ export function InboundsView() {
         </div>
       )}
 
-      {/* ── create / edit dialog (Xray-grade) ──────────────── */}
+      {/* ── create / edit dialog — Sephiroth Forge ─────────── */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="glass-strong flex h-[92dvh] flex-col gap-0 overflow-hidden rounded-2xl border-white/10 p-0 sm:h-[640px] sm:max-h-[92vh] sm:max-w-[960px]">
-          <DialogHeader className="shrink-0 border-b border-white/5 px-5 py-3.5 text-start md:px-6">
-            <DialogTitle className="flex items-center gap-3 text-silver">
-              <span className="glass glow-cyan flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
-                <RadioTower className="h-4 w-4 text-primary" />
+        <DialogContent className="glass-strong flex h-[94dvh] flex-col gap-0 overflow-hidden rounded-2xl border-white/10 p-0 sm:h-[700px] sm:max-h-[92vh] sm:max-w-[1100px]">
+          {/* hero header — protocol-reactive glow band */}
+          <DialogHeader className="relative shrink-0 overflow-hidden rounded-none border-b border-white/5 p-0 text-start">
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_190%_at_0%_0%,color-mix(in_srgb,var(--primary)_16%,transparent),transparent_58%)]"
+            />
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -top-16 end-10 h-40 w-40 rounded-full bg-primary/10 blur-3xl"
+            />
+            <DialogTitle className="relative flex items-center gap-3.5 px-5 py-4 md:px-6">
+              <span className="glass glow-cyan relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ring-1 ring-primary/25">
+                <ProtoOrb protocol={form.protocol} size="lg" />
               </span>
-              <span className="min-w-0">
-                <span className="block truncate text-[15px] font-semibold leading-tight">
+              <span className="min-w-0 flex-1">
+                <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[15px] font-semibold leading-tight text-silver">
                   {editing ? t.inbounds.dialogEdit : t.inbounds.dialogCreate}
+                  <Chip accent>{PROTO_LABEL[form.protocol]}</Chip>
+                  <Chip>:{form.port || "—"}</Chip>
                 </span>
                 <DialogDescription className="mt-0.5 block truncate text-[11px] font-normal text-muted-foreground">
                   {t.inbounds.dlgSub}
                 </DialogDescription>
               </span>
+              <span
+                aria-hidden="true"
+                className="glass hidden shrink-0 items-center gap-2 rounded-full px-3 py-1.5 font-mono text-[11px] font-bold text-primary/90 ring-1 ring-primary/20 sm:flex"
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_8px_1px_var(--primary)]" />
+                {composeProto(form.protocol, form.transport, form.security)}
+              </span>
             </DialogTitle>
           </DialogHeader>
 
-          {/* mobile tab chips (below md) — always-visible strip with hairline */}
+          {/* mobile step chips (below md) */}
           <div
             className="no-scrollbar flex shrink-0 gap-1.5 overflow-x-auto border-b border-white/5 bg-black/25 px-4 py-2.5 md:hidden"
             role="tablist"
@@ -3135,11 +3332,11 @@ export function InboundsView() {
               <button
                 key={id}
                 role="tab"
-                aria-selected={tab === id}
+                aria-selected={activeTab === id}
                 onClick={() => setTab(id)}
                 className={cn(
                   "relative flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-xs font-medium transition-all duration-200",
-                  tab === id
+                  activeTab === id
                     ? "bg-primary text-primary-foreground shadow-[0_0_20px_-4px_var(--primary)] ring-1 ring-primary/50"
                     : "bg-white/[0.04] text-muted-foreground ring-1 ring-white/10 hover:bg-white/[0.07] hover:text-foreground"
                 )}
@@ -3157,37 +3354,64 @@ export function InboundsView() {
           </div>
 
           <div className="flex min-h-0 flex-1">
-            {/* desktop tab rail — glowing pill + start-edge indicator */}
+            {/* step rail — numbered, glow pill, sub-labels */}
             <div
-              className="hidden w-48 shrink-0 flex-col gap-1 border-e border-white/5 bg-black/20 p-3 md:flex"
+              className="hidden w-56 shrink-0 flex-col gap-1 border-e border-white/5 bg-black/20 p-3 md:flex"
               role="tablist"
             >
-              {TABS.map(({ id, label, icon: Icon }) => (
+              {TABS.map(({ id, label, sub, icon: Icon }, idx) => (
                 <button
                   key={id}
                   role="tab"
-                  aria-selected={tab === id}
+                  aria-selected={activeTab === id}
                   onClick={() => setTab(id)}
                   className={cn(
-                    "group/rail relative flex h-10 items-center gap-2.5 rounded-xl px-3.5 text-[12px] font-medium transition-all duration-200",
-                    tab === id
-                      ? "bg-primary/15 text-primary shadow-[0_0_18px_-6px_var(--primary)] ring-1 ring-primary/30"
-                      : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground"
+                    "group/rail relative flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-start transition-all duration-200",
+                    activeTab === id
+                      ? "bg-primary/15 shadow-[0_0_18px_-6px_var(--primary)] ring-1 ring-primary/30"
+                      : "hover:bg-white/[0.04]"
                   )}
                 >
                   <span
                     aria-hidden="true"
                     className={cn(
-                      "absolute top-1/2 start-0 h-5 w-[3px] -translate-y-1/2 rounded-full transition-all duration-200",
-                      tab === id
+                      "absolute top-1/2 start-0 h-6 w-[3px] -translate-y-1/2 rounded-full transition-all duration-200",
+                      activeTab === id
                         ? "bg-primary shadow-[0_0_10px_1px_var(--primary)]"
                         : "bg-transparent group-hover/rail:bg-white/15"
                     )}
                   />
-                  <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                  <span className="min-w-0 truncate">{label}</span>
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "font-mono text-[9px] font-bold tabular-nums",
+                      activeTab === id ? "text-primary" : "text-muted-foreground/50"
+                    )}
+                  >
+                    {String(idx + 1).padStart(2, "0")}
+                  </span>
+                  <Icon
+                    className={cn(
+                      "h-4 w-4 shrink-0",
+                      activeTab === id ? "text-primary" : "text-muted-foreground"
+                    )}
+                    aria-hidden="true"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span
+                      className={cn(
+                        "block truncate text-[12px] font-semibold leading-tight",
+                        activeTab === id ? "text-primary" : "text-muted-foreground group-hover/rail:text-foreground"
+                      )}
+                    >
+                      {label}
+                    </span>
+                    <span className="block truncate text-[9.5px] leading-tight text-muted-foreground/60">
+                      {sub}
+                    </span>
+                  </span>
                   {tabHasError(id) && (
-                    <span className="relative ms-auto flex h-1.5 w-1.5 shrink-0">
+                    <span className="relative flex h-1.5 w-1.5 shrink-0">
                       <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-chart-5 opacity-75" />
                       <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-chart-5" />
                     </span>
@@ -3208,18 +3432,108 @@ export function InboundsView() {
             </div>
 
             {/* content — the only scrolling region (outer height is locked) */}
-            <div className="min-h-0 flex-1 scroll-smooth overflow-y-auto px-5 py-5 md:px-7 md:py-6">
+            <div className="min-h-0 flex-1 scroll-smooth overflow-y-auto px-5 py-5 md:px-6 md:py-6">
               {topErr && (
                 <p className="mb-4 rounded-xl bg-chart-5/10 px-3.5 py-2.5 text-xs font-medium text-chart-5 ring-1 ring-chart-5/30">
                   {topErr}
                 </p>
               )}
-              {tab === "general" && renderGeneral()}
-              {tab === "clients" && renderClients()}
-              {tab === "transport" && renderTransport()}
-              {tab === "security" && renderSecurity()}
-              {tab === "advanced" && renderAdvanced()}
+              <div key={activeTab} className="tab-swap">
+                {activeTab === "general" && renderGeneral()}
+                {activeTab === "clients" && renderClients()}
+                {activeTab === "transport" && renderTransport()}
+                {activeTab === "security" && renderSecurity()}
+                {activeTab === "advanced" && renderAdvanced()}
+              </div>
             </div>
+
+            {/* live preview sidebar — forge output at a glance */}
+            <aside
+              className="hidden w-64 shrink-0 flex-col gap-4 overflow-y-auto border-s border-white/5 bg-black/20 p-4 lg:flex"
+              aria-label={t.inbounds.pvTitle}
+            >
+              <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                <Sparkles className="h-3 w-3 text-primary" aria-hidden="true" />
+                {t.inbounds.pvTitle}
+              </p>
+
+              <div className="glass rounded-2xl p-3.5 ring-1 ring-white/10">
+                <div className="flex items-center gap-2.5">
+                  <ProtoOrb protocol={form.protocol} size="lg" />
+                  <div className="min-w-0">
+                    <p className="truncate font-mono text-[12px] font-bold text-silver">
+                      {form.tag.trim() || t.inbounds.pvEmpty}
+                    </p>
+                    <p
+                      dir="ltr"
+                      className="truncate font-mono text-[10px] text-primary/90"
+                    >
+                      {composeProto(form.protocol, form.transport, form.security)}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  <Chip>:{form.port || "—"}</Chip>
+                  {!NO_STREAM_PROTOCOLS.has(form.protocol) && (
+                    <Chip>{SecurityText[form.security] ?? form.security}</Chip>
+                  )}
+                  {!NO_STREAM_PROTOCOLS.has(form.protocol) && (
+                    <Chip>{TransportText[form.transport] ?? form.transport}</Chip>
+                  )}
+                  {form.protocol !== "dokodemo-door" && (
+                    <Chip>
+                      <span className="inline-flex items-center gap-1">
+                        <Users className="h-2.5 w-2.5" aria-hidden="true" />
+                        {form.clients.length}
+                      </span>
+                    </Chip>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                  <Link2 className="h-3 w-3 text-primary" aria-hidden="true" />
+                  {t.inbounds.pvCopy}
+                </p>
+                <div className="rounded-xl border border-white/10 bg-black/40 p-2.5">
+                  <p
+                    dir="ltr"
+                    className="break-all font-mono text-[9px] leading-relaxed text-muted-foreground"
+                  >
+                    {previewLink ?? t.inbounds.pvNoLink}
+                  </p>
+                </div>
+                {previewLink && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void copyPreview()}
+                    className="h-7 w-full gap-1.5 rounded-full border-white/10 bg-white/[0.03] text-[11px] hover:bg-white/[0.06]"
+                  >
+                    <Copy className="h-3 w-3" />
+                    {t.inbounds.pvCopy}
+                  </Button>
+                )}
+              </div>
+
+              {hasFieldErrors && (
+                <div className="space-y-1.5">
+                  {TABS.filter((x) => tabHasError(x.id)).map(({ id, label }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setTab(id)}
+                      className="flex w-full items-center gap-1.5 rounded-lg bg-chart-5/10 px-2.5 py-1.5 text-start text-[11px] font-medium text-chart-5 ring-1 ring-chart-5/25 transition-colors hover:bg-chart-5/15"
+                    >
+                      <CircleAlert className="h-3 w-3 shrink-0" aria-hidden="true" />
+                      <span className="min-w-0 truncate">{label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </aside>
           </div>
 
           <DialogFooter className="shrink-0 border-t border-white/5 bg-black/25 px-5 py-3.5 md:px-6">

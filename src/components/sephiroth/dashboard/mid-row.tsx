@@ -10,7 +10,7 @@ import {
   UserPlus,
   RadioTower,
   DatabaseBackup,
-  Send,
+  Search,
   Bot,
 } from "lucide-react";
 import { D2Card, Sparkline, TrendBadge } from "@/components/sephiroth/dashboard/parts";
@@ -20,6 +20,7 @@ import { splitUptime } from "@/lib/i18n/live-strings";
 import { dictionaries } from "@/lib/i18n/dictionaries";
 import { d2Dictionaries } from "@/lib/i18n/dashboard-strings";
 import { useToast } from "@/hooks/use-toast";
+import { openCommandPalette } from "@/components/sephiroth/top-nav";
 
 /* ---------- top consumers (Stakent-style asset cards, live) ---------- */
 function ConsumerCards() {
@@ -106,7 +107,7 @@ function ThroughputHero() {
         <div>
           <p className="font-mono text-[44px] font-bold leading-none tabular-nums text-glow">
             {total.toFixed(1)}
-            <span className="ml-1.5 align-middle text-sm font-medium text-muted-foreground">
+            <span className="ms-1.5 align-middle text-sm font-medium text-muted-foreground">
               MB/s
             </span>
           </p>
@@ -127,19 +128,20 @@ function ThroughputHero() {
         </div>
       </div>
 
-      {/* decorative load track */}
+      {/* decorative load track — anchored to the INLINE-START edge so the
+          fill + knob + label mirror to the right side in RTL */}
       <div className="relative mt-6 h-1.5 rounded-full bg-muted">
         <div
-          className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-chart-2/40 to-primary transition-[width] duration-700"
+          className="absolute inset-y-0 start-0 rounded-full bg-gradient-to-r rtl:bg-gradient-to-l from-chart-2/40 to-primary transition-[width] duration-700"
           style={{ width: `${Math.max(6, loadPct)}%` }}
         />
         <span
-          className="absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-primary bg-[#0a1218] glow-cyan transition-[left] duration-700"
-          style={{ left: `${Math.max(6, loadPct)}%` }}
+          className="absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border-2 border-primary bg-background glow-cyan transition-[inset-inline-start] duration-700"
+          style={{ insetInlineStart: `calc(${Math.max(6, loadPct)}% - 8px)` }}
         />
         <span
-          className="absolute top-1/2 ml-3 -translate-y-1/2 font-mono text-[10px] tabular-nums text-primary transition-[left] duration-700"
-          style={{ left: `${Math.max(6, loadPct)}%` }}
+          className="absolute top-1/2 -translate-y-1/2 font-mono text-[10px] tabular-nums text-primary transition-[inset-inline-start] duration-700"
+          style={{ insetInlineStart: `calc(${Math.max(6, loadPct)}% + 12px)` }}
         >
           {loadPct}%
         </span>
@@ -148,7 +150,7 @@ function ThroughputHero() {
       {/* bottom strip */}
       <div className="mt-5 grid grid-cols-4 divide-x divide-border/60 rounded-xl bg-muted/40 py-3">
         {strip.map((s) => (
-          <div key={s.label} className="px-3 text-center first:pl-0 last:pr-0">
+          <div key={s.label} className="px-3 text-center first:ps-0 last:pe-0">
             <p className="truncate text-[9px] text-muted-foreground">{s.label}</p>
             <p className="mt-0.5 font-mono text-sm font-bold tabular-nums">{s.val}</p>
           </div>
@@ -166,14 +168,48 @@ function QuickActions() {
   const d2 = useMemo(() => d2Dictionaries[lang], [lang]);
   const dict = useMemo(() => dictionaries[lang], [lang]);
   const { toast } = useToast();
+  const [exporting, setExporting] = useState(false);
 
-  const soon = () => toast({ title: dict.common.soon, description: dict.common.soonDesc });
+  /* mirrors Settings → Backup export (settings-view downloadBackup) */
+  const downloadBackup = async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const res = await fetch("/api/settings/backup", { cache: "no-store" });
+      if (!res.ok) throw new Error("export");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `sephiroth-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast({ description: dict.settings.bkDone });
+    } catch {
+      toast({ description: dict.inbounds.errGeneric });
+    }
+    setExporting(false);
+  };
 
-  const actions: Array<{ icon: typeof UserPlus; label: string; go?: "inbounds" }> = [
-    { icon: UserPlus, label: d2.newClient },
-    { icon: RadioTower, label: d2.newInbound, go: "inbounds" },
-    { icon: DatabaseBackup, label: d2.backupNow },
-    { icon: Bot, label: d2.tgBot },
+  /* every action lands somewhere real — no more “coming soon” stubs */
+  const actions: Array<{
+    icon: typeof UserPlus;
+    label: string;
+    run: () => void;
+    disabled?: boolean;
+  }> = [
+    { icon: UserPlus, label: d2.newClient, run: () => setView("users") },
+    { icon: RadioTower, label: d2.newInbound, run: () => setView("inbounds") },
+    {
+      icon: DatabaseBackup,
+      label: d2.backupNow,
+      run: () => void downloadBackup(),
+      disabled: exporting,
+    },
+    /* the Telegram bot console lives inside Settings (TelegramBotPanel) */
+    { icon: Bot, label: d2.tgBot, run: () => setView("settings") },
   ];
 
   return (
@@ -185,8 +221,9 @@ function QuickActions() {
         {actions.map((a) => (
           <button
             key={a.label}
-            onClick={() => (a.go ? setView(a.go) : soon())}
-            className="glass hover-glow flex items-center gap-2.5 rounded-xl px-3.5 py-3 text-left text-xs font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onClick={a.run}
+            disabled={a.disabled}
+            className="glass hover-glow flex items-center gap-2.5 rounded-xl px-3.5 py-3 text-start text-xs font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
           >
             <a.icon className="h-4 w-4 shrink-0 text-primary" />
             <span className="truncate">{a.label}</span>
@@ -194,21 +231,17 @@ function QuickActions() {
         ))}
       </div>
 
-      <div className="glass mt-3 flex items-center gap-2 rounded-full py-1 pl-4 pr-1">
-        <input
-          placeholder={d2.askPh}
-          className="h-8 flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground/60"
-          aria-label={d2.askPh}
-        />
-        <button
-          onClick={soon}
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-primary transition-colors hover:bg-primary/25"
-          aria-label="send"
-        >
-          <Send className="h-3.5 w-3.5" />
-        </button>
-      </div>
-      <Sparkles className="pointer-events-none absolute -right-3 -top-3 h-8 w-8 text-primary/15" />
+      {/* quick access to the ⌘K command palette (top-nav owns the dialog) */}
+      <button
+        onClick={openCommandPalette}
+        className="glass mt-3 flex h-10 w-full items-center gap-2.5 rounded-full px-4 text-xs text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+        aria-label={dict.topbar.search}
+      >
+        <Search className="h-3.5 w-3.5 shrink-0 text-primary" />
+        <span className="flex-1 truncate text-start">{dict.topbar.search}</span>
+        <span className="kbd">⌘K</span>
+      </button>
+      <Sparkles className="pointer-events-none absolute -end-3 -top-3 h-8 w-8 text-primary/15" />
     </D2Card>
   );
 }
@@ -232,8 +265,8 @@ function UptimeTracker() {
 
   return (
     <section className="relative col-span-12 overflow-hidden rounded-2xl p-5 md:col-span-6 xl:col-span-3 bg-[linear-gradient(160deg,#0a2733_0%,#061218_70%)] ring-1 ring-primary/20">
-      <div aria-hidden="true" className="pointer-events-none absolute -right-10 -bottom-14 h-40 w-40 rounded-full border-[8px] border-primary/10" />
-      <div aria-hidden="true" className="pointer-events-none absolute -right-2 -bottom-4 h-16 w-16 orbit-spin rounded-full border-t border-primary/40" />
+      <div aria-hidden="true" className="pointer-events-none absolute -end-10 -bottom-14 h-40 w-40 rounded-full border-[8px] border-primary/10" />
+      <div aria-hidden="true" className="pointer-events-none absolute -end-2 -bottom-4 h-16 w-16 orbit-spin rounded-full border-t border-primary/40" />
 
       <h3 className="relative text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">
         {d2.uptimeCard}

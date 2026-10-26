@@ -3,6 +3,7 @@ import { db, type ClientUser, type Inbound, type SubGroup, type SubGroupMember, 
 import { hashPassword } from "@/lib/auth";
 import { deriveStatus, type UserStatus } from "@/lib/user-types";
 import { buildShareMaterial } from "@/lib/share-links";
+import { makeWgKeypair } from "@/lib/users";
 
 /* ============================================================
    Sephiroth · Phase 5 — Subscription groups (server helpers)
@@ -151,10 +152,40 @@ export interface SubPayload {
   configs: SubConfigDTO[];
 }
 
-function configFromAccess(
+/**
+ * Legacy WG accesses were created without a per-client keypair; mint +
+ * persist one on first share so buildWgConf never has to fall back to the
+ * server secret. Idempotent — writes at most once per access row.
+ */
+async function ensureWgMaterial(access: UserInboundAccess & { inbound: Inbound }): Promise<{
+  wgPrivateKey: string;
+  wgPublicKey: string;
+}> {
+  if (access.inbound.protocol !== "wireguard") {
+    return { wgPrivateKey: "", wgPublicKey: "" };
+  }
+  if (access.wgPrivateKey) {
+    return { wgPrivateKey: access.wgPrivateKey, wgPublicKey: access.wgPublicKey ?? "" };
+  }
+  const kp = makeWgKeypair();
+  try {
+    await db.userInboundAccess.update({
+      where: { id: access.id },
+      data: { wgPrivateKey: kp.privateKey, wgPublicKey: kp.publicKey },
+    });
+  } catch (err) {
+    console.error("[sub-groups] wg backfill failed for access", access.id, err);
+  }
+  return { wgPrivateKey: kp.privateKey, wgPublicKey: kp.publicKey };
+}
+
+async function configFromAccess(
   access: UserInboundAccess & { inbound: Inbound },
-  owner: { username: string; status: UserStatus }
-): SubConfigDTO {
+  owner: { username: string; status: UserStatus },
+  fallbackHost?: string,
+  publicHost?: string
+): Promise<SubConfigDTO> {
+  const wg = await ensureWgMaterial(access);
   const material = buildShareMaterial(
     {
       tag: access.inbound.tag,
@@ -165,7 +196,9 @@ function configFromAccess(
       security: access.inbound.security,
       stream: safeJson(access.inbound.streamJson),
     },
-    { email: access.email, key: access.key, flow: access.flow }
+    { email: access.email, key: access.key, flow: access.flow, ...wg },
+    fallbackHost,
+    publicHost
   );
   return {
     id: access.id,
@@ -208,14 +241,17 @@ function daysLeftOf(u: Pick<ClientUser, "expiryDays" | "createdAt">, now: Date):
   return Math.ceil((end - now.getTime()) / 86_400_000);
 }
 
-export function userSubPayload(
+export async function userSubPayload(
   user: ClientUser & { accesses: (UserInboundAccess & { inbound: Inbound })[] },
-  now = new Date()
-): SubPayload {
+  now = new Date(),
+  fallbackHost?: string,
+  publicHost?: string
+): Promise<SubPayload> {
   const status = userStatusOf(user, now);
-  const configs = user.accesses.map((a) =>
-    configFromAccess(a, { username: user.username, status })
-  );
+  const configs: SubConfigDTO[] = [];
+  for (const a of user.accesses) {
+    configs.push(await configFromAccess(a, { username: user.username, status }, fallbackHost, publicHost));
+  }
   return {
     kind: "user",
     token: user.subId,
@@ -247,14 +283,16 @@ function aggregateStatus(statuses: UserStatus[]): UserStatus {
   return "disabled";
 }
 
-export function groupSubPayload(
+export async function groupSubPayload(
   group: SubGroup & {
     members: (SubGroupMember & {
       user: ClientUser & { accesses: (UserInboundAccess & { inbound: Inbound })[] };
     })[];
   },
-  now = new Date()
-): SubPayload {
+  now = new Date(),
+  fallbackHost?: string,
+  publicHost?: string
+): Promise<SubPayload> {
   const members: SubMemberDTO[] = group.members.map((m) => ({
     username: m.user.username,
     status: userStatusOf(m.user, now),
@@ -268,7 +306,7 @@ export function groupSubPayload(
   for (const m of sorted) {
     const st = userStatusOf(m.user, now);
     for (const a of m.user.accesses) {
-      configs.push(configFromAccess(a, { username: m.user.username, status: st }));
+      configs.push(await configFromAccess(a, { username: m.user.username, status: st }, fallbackHost, publicHost));
     }
   }
 
@@ -305,20 +343,29 @@ function round1(n: number): number {
 
 /* ---------- idempotent demo seed (flag-guarded) ---------- */
 
-const SEED_FLAG_KEY = "subgroups_seeded_v1";
+const SEED_FLAG_KEY = "subgroups_seeded_v2";
 
 /**
- * Seeds one demo group ("VIP Orbit") containing the Phase-4 demo
- * users, so the sub page has real data out of the box.
+ * Seeds one demo group ("VIP Orbit") containing the seeded demo users
+ * (aria_vip / kourosh_pro — falling back to the first two existing users),
+ * so the sub page has real data out of the box. Flag bumped to v2: the old
+ * v1 flag was set by a dead path that referenced never-created users.
  */
 export async function ensureSubSeed(): Promise<void> {
   const flag = await db.serverSetting.findUnique({ where: { key: SEED_FLAG_KEY } });
   if (flag) return;
 
-  const users = await db.clientUser.findMany({
-    where: { username: { in: ["ali_2024", "sara_test"] } },
+  let users = await db.clientUser.findMany({
+    where: { username: { in: ["aria_vip", "kourosh_pro"] } },
     select: { id: true },
   });
+  if (users.length === 0) {
+    users = await db.clientUser.findMany({
+      orderBy: { createdAt: "asc" },
+      take: 2,
+      select: { id: true },
+    });
+  }
   if (users.length > 0) {
     await db.subGroup.create({
       data: {
@@ -329,6 +376,7 @@ export async function ensureSubSeed(): Promise<void> {
         members: { create: users.map((u) => ({ userId: u.id })) },
       },
     });
+    await db.serverSetting.create({ data: { key: SEED_FLAG_KEY, value: "1" } });
   }
-  await db.serverSetting.create({ data: { key: SEED_FLAG_KEY, value: "1" } });
+  // no users yet → flag stays unset so the next pass retries
 }

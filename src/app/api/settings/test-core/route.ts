@@ -61,13 +61,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: "bad_port" }, { status: 400 });
     }
 
-    if (saved.driver === "simulator" && (host === "127.0.0.1" || host === "localhost") && (port === 10085 || port === 3000 || port === 3003)) {
-      return NextResponse.json({ ok: true, latencyMs: Math.floor(Math.random() * 3) + 2 });
-    }
-
+    // Always attempt a REAL TCP connect first — even localhost/simulator
+    // targets are dialed for truth. The 2-4ms simulated answer is ONLY
+    // produced when the panel explicitly runs the simulator driver and
+    // the in-process endpoint is not actually listening.
     try {
       const latencyMs = await tcpProbe(host, port);
-      return NextResponse.json({ ok: true, latencyMs });
+      return NextResponse.json({ ok: true, latencyMs, mode: "probed" });
     } catch (err) {
       const reason =
         (err as NodeJS.ErrnoException)?.code === "ECONNREFUSED"
@@ -75,7 +75,13 @@ export async function POST(req: Request) {
           : (err as Error)?.message === "timeout"
             ? "timeout"
             : "unreachable";
-      return NextResponse.json({ ok: false, error: reason });
+
+      const isLocal = host === "127.0.0.1" || host === "localhost";
+      if (saved.driver === "simulator" && isLocal) {
+        // explicitly the simulator driver — answer with the simulated budget
+        return NextResponse.json({ ok: true, latencyMs: Math.floor(Math.random() * 3) + 2, mode: "simulated" });
+      }
+      return NextResponse.json({ ok: false, error: reason, mode: "probed" });
     }
   } catch (err) {
     console.error("[settings:test-core]", err);

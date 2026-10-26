@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { requireAdmin } from "@/lib/inbounds";
+import { prismaErrorCode, requireAdmin } from "@/lib/inbounds";
 import { ensureNetSeeds } from "@/lib/net-objects";
 import { logActivity } from "@/lib/activity";
 
@@ -25,12 +25,19 @@ export async function POST(req: Request) {
     const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
 
     if (body.action === "probe" && typeof body.id === "string") {
-      const latencyMs = 18 + Math.floor(Math.random() * 28);
-      const updated = await db.relayTunnel.update({
-        where: { id: body.id },
-        data: { latencyMs, status: "active" },
-      });
-      return NextResponse.json({ item: updated, latencyMs });
+      try {
+        const latencyMs = 18 + Math.floor(Math.random() * 28);
+        const updated = await db.relayTunnel.update({
+          where: { id: body.id },
+          data: { latencyMs, status: "active" },
+        });
+        return NextResponse.json({ item: updated, latencyMs });
+      } catch (err) {
+        if (prismaErrorCode(err) === "P2025") {
+          return NextResponse.json({ error: "not_found" }, { status: 404 });
+        }
+        throw err;
+      }
     }
 
     const name = String(body.name || "").trim() || "Iran -> Kharej Relay";
@@ -98,6 +105,9 @@ export async function PATCH(req: Request) {
     const updated = await db.relayTunnel.update({ where: { id }, data });
     return NextResponse.json({ item: updated });
   } catch (err) {
+    if (prismaErrorCode(err) === "P2025") {
+      return NextResponse.json({ error: "not_found" }, { status: 404 });
+    }
     console.error("[tunnels:PATCH]", err);
     return NextResponse.json({ error: "server_error" }, { status: 500 });
   }
@@ -113,6 +123,9 @@ export async function DELETE(req: Request) {
     await db.relayTunnel.delete({ where: { id } });
     return NextResponse.json({ ok: true });
   } catch (err) {
+    if (prismaErrorCode(err) === "P2025") {
+      return NextResponse.json({ error: "not_found" }, { status: 404 });
+    }
     console.error("[tunnels:DELETE]", err);
     return NextResponse.json({ error: "server_error" }, { status: 500 });
   }

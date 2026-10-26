@@ -50,6 +50,7 @@ import {
   type ViewId,
 } from "@/lib/i18n/dictionaries";
 import { useToast } from "@/hooks/use-toast";
+import { useIdentity } from "@/components/sephiroth/dashboard/parts";
 import { cn } from "@/lib/utils";
 
 const THEME_PRESETS: Array<{ id: ThemePreset; label: string; color: string; sub: string }> = [
@@ -97,6 +98,13 @@ const NAV_ORDER: ViewId[] = [
 /* sections governed by Settings → Top-Bar Modules */
 const MODULE_VIEWS = new Set<ViewId>(["hosts", "nodes", "outbounds", "routing"]);
 
+/* module-level palette openers — lets dashboard quick-actions (mid-row)
+   open the ⌘K command palette without adding a global store flag */
+const paletteOpeners = new Set<() => void>();
+export function openCommandPalette() {
+  for (const open of paletteOpeners) open();
+}
+
 export function TopNav() {
   const lang = useAppStore((s) => s.lang);
   const view = useAppStore((s) => s.view);
@@ -116,6 +124,13 @@ export function TopNav() {
 
   const t = useMemo(() => dictionaries[lang], [lang]);
 
+  /* real signed-in identity (GET /api/profile, shared cache in dashboard/parts)
+     — falls back to the translated "Commander" badge while loading / on failure */
+  const identity = useIdentity();
+  const who = identity ? identity.displayName.trim() || identity.username : t.profile.badge;
+  const roleLabel =
+    identity?.role === "reseller" ? t.profile.roleReseller : t.profile.roleAdmin;
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
@@ -125,6 +140,15 @@ export function TopNav() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  /* register as an opener for the dashboard quick-action button */
+  useEffect(() => {
+    const open = () => setSearchOpen(true);
+    paletteOpeners.add(open);
+    return () => {
+      paletteOpeners.delete(open);
+    };
   }, []);
 
   /* Phase 8 — pull module visibility from the server (admin only) */
@@ -201,7 +225,7 @@ export function TopNav() {
           >
             <Search className="h-3.5 w-3.5" />
             <span className="hidden 2xl:inline">{t.topbar.search}</span>
-            <span className="kbd ml-1 hidden 2xl:inline-flex">⌘K</span>
+            <span className="kbd me-1 hidden 2xl:inline-flex">⌘K</span>
           </button>
 
           {/* donate */}
@@ -294,7 +318,7 @@ export function TopNav() {
               className="glass relative flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Bell className="h-4 w-4" />
-              <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary glow-cyan" />
+              <span className="absolute end-2 top-2 h-1.5 w-1.5 rounded-full bg-primary glow-cyan" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="glass-strong w-64">
               <DropdownMenuLabel className="text-xs text-muted-foreground">
@@ -320,11 +344,11 @@ export function TopNav() {
             <DropdownMenuContent align="end" className="glass-strong w-52">
               <div className="flex items-center gap-3 px-3 py-2.5">
                 <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-primary/30 to-chart-2/10 font-mono text-sm font-bold text-primary ring-1 ring-primary/30">
-                  S
+                  {who.charAt(0).toUpperCase()}
                 </span>
                 <span className="leading-tight">
-                  <span className="block text-sm font-semibold">Commander</span>
-                  <span className="block text-[11px] text-muted-foreground">admin@sephiroth</span>
+                  <span className="block text-sm font-semibold">{who}</span>
+                  <span className="block text-[11px] text-muted-foreground">{roleLabel}</span>
                 </span>
               </div>
               {role === "reseller" && (
@@ -336,14 +360,14 @@ export function TopNav() {
               )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setView("profile")}>
-                <CircleUser className="mr-2 h-4 w-4" /> {t.topbar.profile}
+                <CircleUser className="ms-2 h-4 w-4" /> {t.topbar.profile}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setView("settings")}>
-                <Settings className="mr-2 h-4 w-4" /> {t.topbar.accountSettings}
+                <Settings className="ms-2 h-4 w-4" /> {t.topbar.accountSettings}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={signOut} className="text-destructive">
-                <LogOut className="mr-2 h-4 w-4" /> {t.topbar.signOut}
+                <LogOut className="ms-2 h-4 w-4" /> {t.topbar.signOut}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -412,6 +436,7 @@ export function TopNav() {
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Jump to workspace, theme, or module…"
               className="glass border-white/10"
+              aria-label={t.topbar.search}
             />
             <div className="max-h-64 space-y-1 overflow-y-auto">
               {navIds
@@ -431,7 +456,7 @@ export function TopNav() {
                         setSearchOpen(false);
                         setSearchQuery("");
                       }}
-                      className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs transition-colors hover:bg-primary/15"
+                      className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-start text-xs transition-colors hover:bg-primary/15"
                     >
                       <span className="flex items-center gap-2.5">
                         <Icon className="h-4 w-4 text-primary" />

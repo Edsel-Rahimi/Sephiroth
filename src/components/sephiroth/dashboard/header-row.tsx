@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Clock3, Users, Radio, DatabaseZap } from "lucide-react";
-import { D2Card, StatPill, TrendBadge } from "@/components/sephiroth/dashboard/parts";
+import { D2Card, StatPill, useIdentity } from "@/components/sephiroth/dashboard/parts";
 import { useAppStore } from "@/lib/store/app-store";
 import { useCoreStore } from "@/lib/store/core-store";
 import { splitUptime } from "@/lib/i18n/live-strings";
@@ -26,29 +26,43 @@ export function HeaderRow() {
   const upLabel = `${up.dd}d ${up.hh}:${up.mm}:${up.ss}`;
 
   const kpis = [
-    { icon: Users, val: String(totals.users), label: d2.kpiClients, up: true, delta: "+12%" },
-    { icon: Radio, val: String(Math.round(metrics.activeUsers)), label: d2.kpiActive, up: true, delta: "+8%" },
+    { icon: Users, val: String(totals.users), label: d2.kpiClients },
+    { icon: Radio, val: String(Math.round(metrics.activeUsers)), label: d2.kpiActive },
     {
       icon: DatabaseZap,
       val: `${metrics.monthTxTb.toFixed(2)} TB`,
       label: d2.kpiTraffic,
-      up: false,
-      delta: "-4%",
     },
   ];
+
+  /* real signed-in identity (GET /api/profile) — falls back to the
+     translated "Commander" badge while loading / on failure */
+  const identity = useIdentity();
+  const who = identity
+    ? identity.displayName.trim() || identity.username
+    : dict.profile.badge;
+  const roleLabel =
+    identity?.role === "reseller" ? dict.profile.roleReseller : dict.profile.roleAdmin;
 
   return (
     <>
       {/* welcome header */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/8 px-3 py-1 text-[10px] font-bold tracking-[0.18em] text-primary">
-            <span className="h-1 w-1 rounded-full bg-primary glow-cyan" />
-            {dict.dash.phaseBadge}
+          <div className="mb-2 flex items-center gap-2">
+            <span className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/8 px-3 py-1 text-[10px] font-bold tracking-[0.18em] text-primary">
+              <span className="h-1 w-1 rounded-full bg-primary glow-cyan" />
+              {dict.dash.phaseBadge}
+            </span>
+            {identity && (
+              <span className="inline-flex items-center rounded-full border border-border/60 bg-muted/60 px-3 py-1 text-[10px] font-bold tracking-[0.18em] text-muted-foreground">
+                {roleLabel}
+              </span>
+            )}
           </div>
           <h1 className="text-2xl font-bold md:text-[32px] md:leading-tight">
             <span className="text-muted-foreground">{d2.welcome}</span>{" "}
-            <span className="text-silver">Commander</span>
+            <span className="text-silver">{who}</span>
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">{dict.dash.subtitle}</p>
         </div>
@@ -81,19 +95,13 @@ export function HeaderRow() {
                   <k.icon className="h-4.5 w-4.5 text-primary" />
                 </span>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-2xl font-bold tabular-nums leading-none">
-                      {k.val}
-                    </span>
-                    <TrendBadge up={k.up} val={k.delta} />
-                  </div>
+                  <span className="font-mono text-2xl font-bold tabular-nums leading-none">
+                    {k.val}
+                  </span>
                   <p className="mt-1 text-[11px] text-muted-foreground">{k.label}</p>
                 </div>
               </div>
             ))}
-            <span className="hidden text-[10px] text-muted-foreground/70 xl:block">
-              {d2.vsWeek}
-            </span>
           </div>
         </D2Card>
       </div>

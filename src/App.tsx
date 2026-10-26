@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
+import { DirectionProvider } from "@radix-ui/react-direction";
 import Home from "@/app/page";
 import SubscriptionPortalPage from "@/app/sub/[token]/page";
 import { Toaster } from "@/components/ui/toaster";
+import { useAppStore } from "@/lib/store/app-store";
+import { RTL_LANGS } from "@/lib/i18n/dictionaries";
 
 export default function App() {
   const [pathname, setPathname] = useState(() =>
@@ -16,10 +19,16 @@ export default function App() {
 
   const isSubRoute = pathname.startsWith("/sub/");
 
+  /* Radix direction follows the same source of truth as <html dir>
+     (RTL_LANGS ∋ lang in src/app/page.tsx) so every popper-based
+     primitive — dropdown/select/popover/sheet/toast — mirrors in RTL. */
+  const lang = useAppStore((s) => s.lang);
+  const dir = RTL_LANGS.has(lang) ? "rtl" : "ltr";
+
   return (
-    <>
+    <DirectionProvider dir={dir}>
       {isSubRoute ? <SubscriptionPortalPage /> : <Home />}
       <Toaster />
-    </>
+    </DirectionProvider>
   );
 }

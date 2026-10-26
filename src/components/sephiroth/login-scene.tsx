@@ -163,7 +163,13 @@ function OrDivider({ label }: { label: string }) {
 const fieldCls =
   "h-11 rounded-xl border-border/60 bg-white/[.03] ps-10 text-[15px] placeholder:text-muted-foreground/60 focus-visible:border-primary/50 focus-visible:ring-primary/25";
 
-export function LoginScene({ onSuccess }: { onSuccess: (username: string) => void }) {
+export function LoginScene({
+  onSuccess,
+  previewHints = false,
+}: {
+  onSuccess: (username: string) => void;
+  previewHints?: boolean;
+}) {
   const lang = useAppStore((s) => s.lang);
   const t = useMemo(() => dictionaries[lang].auth, [lang]);
   const { toast } = useToast();
@@ -513,7 +519,7 @@ export function LoginScene({ onSuccess }: { onSuccess: (username: string) => voi
                   </div>
 
                   {/* utility row (in place of social logins) */}
-                  <div className="mt-6 grid grid-cols-2 gap-3">
+                  <div className={cn("mt-6 grid gap-3", previewHints ? "grid-cols-2" : "grid-cols-1")}>
                     <Button
                       type="button"
                       variant="outline"
@@ -527,24 +533,28 @@ export function LoginScene({ onSuccess }: { onSuccess: (username: string) => voi
                       <ShieldCheck className="me-2 h-4 w-4 text-primary" />
                       {t.useRecovery}
                     </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={autofill}
-                      disabled={lockSecs !== null}
-                      className="glass hover-glow h-11 rounded-xl border-border/60 bg-transparent text-[13px] font-medium text-foreground"
-                    >
-                      <WandSparkles className="me-2 h-4 w-4 text-primary" />
-                      {t.demoFill}
-                    </Button>
+                    {previewHints && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={autofill}
+                        disabled={lockSecs !== null}
+                        className="glass hover-glow h-11 rounded-xl border-border/60 bg-transparent text-[13px] font-medium text-foreground"
+                      >
+                        <WandSparkles className="me-2 h-4 w-4 text-primary" />
+                        {t.demoFill}
+                      </Button>
+                    )}
                   </div>
 
-                  {/* preview credentials */}
-                  <p className="mt-5 text-center text-[11px] text-muted-foreground/85">
-                    {t.demoLabel}
-                    <span className="mx-1.5 text-border">·</span>
-                    <span className="font-mono text-foreground/80">admin / sephiroth</span>
-                  </p>
+                  {/* preview credentials — only in preview environments */}
+                  {previewHints && (
+                    <p className="mt-5 text-center text-[11px] text-muted-foreground/85">
+                      {t.demoLabel}
+                      <span className="mx-1.5 text-border">·</span>
+                      <span className="font-mono text-foreground/80">admin / sephiroth</span>
+                    </p>
+                  )}
                 </div>
               ) : (
                 /* ── recovery mode ── */
@@ -633,11 +643,13 @@ export function LoginScene({ onSuccess }: { onSuccess: (username: string) => voi
                     </Button>
                   </form>
 
-                  {/* preview key hint */}
-                  <div className="mt-6 flex items-center gap-2 rounded-xl border border-dashed border-primary/25 bg-primary/[.05] px-3.5 py-2.5 text-[11px] leading-relaxed text-muted-foreground">
-                    <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
-                    <span className="font-mono">{t.previewHint}</span>
-                  </div>
+                  {/* preview key hint — only in preview environments */}
+                  {previewHints && (
+                    <div className="mt-6 flex items-center gap-2 rounded-xl border border-dashed border-primary/25 bg-primary/[.05] px-3.5 py-2.5 text-[11px] leading-relaxed text-muted-foreground">
+                      <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
+                      <span className="font-mono">{t.previewHint}</span>
+                    </div>
+                  )}
 
                   <button
                     type="button"

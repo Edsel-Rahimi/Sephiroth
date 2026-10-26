@@ -126,6 +126,7 @@ docker compose up -d --build
 - [x] سابسکریپشن چندفرمتی — Clash Meta و Sing-Box + هدر userinfo
 - [x] ترمینال ربات تلگرام + درگاه‌های پرداخت ریسلر + تانل‌های ایران→خارج
 - [x] موتور ۶ تم کهکشانی + ⌘K پرش سریع
+- [x] **v2.1 — پالایش انتشار عمومی**: دیالوگ اینباند از نو (پیش‌نمایش زنده‌ی لینک + مراحل شماره‌دار)، درایورهای واقعی Probe (TCP بجای تصادف)، نگهدارنده‌ی خودکار انقضا/بازه‌ی ترافیک، پشتیبان‌گیری کامل (Hosts/Nodes/Outbounds/Routing/Tunnels)، هدرهای برند (`X-Sephiroth` · `content-disposition` · `profile-web-page-url`)، کلید اختصاصی WireGuard برای هر کاربر، RTL کامل primitives و موبایل‌کارت کاربران
 - [ ] 🧠 درایور هسته‌ی واقعی Xray (فعلاً شبیه‌ساز زنده)
 - [ ] 📱 PWA
 
@@ -158,6 +159,8 @@ TWdqYu5H6emRHd6jFfkHjfG8Yg2285DFmT
 <div dir="ltr" align="center">
 
 **Sephiroth** is an open-source Xray control panel — a single-process full-stack app (React 19 + Vite + Express + Socket.IO, atomic local JSON store, zero external DB). 9 inbound protocols, multi-format subscriptions (raw list, Clash Meta YAML, Sing-Box JSON with `Subscription-Userinfo`), password-locked sub groups, hosts/nodes/outbounds/routing with one-click presets (block ads, block porn, Iran→direct…), Iran→foreign relay tunnels, a Telegram bot terminal, reseller payment gateways, a realtime telemetry cockpit, a 13-chapter field manual, 6 languages with first-class RTL and 6 cosmic themes. Every generated config is branded with the **Sephiroth** tag.
+
+**License: MIT** — v2.1.0 ships the release polish pass: redesigned New-Inbound forge with live share-link preview, real TCP probes, automatic expiry/traffic-reset maintenance, full-scope backups, branded export headers (`X-Sephiroth`, `content-disposition`, `profile-web-page-url`), per-client WireGuard keypairs and full RTL primitive coverage.
 
 </div>
 

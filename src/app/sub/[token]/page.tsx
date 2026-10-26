@@ -246,6 +246,11 @@ export default function SubPage() {
     if (token) void fetchPayload();
   }, [token, fetchPayload]);
 
+  /* branded page title — "Sephiroth · <profile>" (reacts to payload) */
+  useEffect(() => {
+    document.title = payload?.name ? `Sephiroth · ${payload.name}` : "Sephiroth";
+  }, [payload?.name]);
+
   const unlock = async () => {
     setUnlocking(true);
     setPwErr(false);
@@ -672,6 +677,9 @@ export default function SubPage() {
         <p className="flex items-center justify-center gap-1.5 text-[10px] tracking-wide text-muted-foreground/60">
           <Orbit className="h-3 w-3" aria-hidden="true" />
           {t.poweredBy}
+        </p>
+        <p className="mt-1 text-[9px] uppercase tracking-[0.24em] text-muted-foreground/40">
+          Crafted by EPODONIOS
         </p>
       </footer>
     </div>

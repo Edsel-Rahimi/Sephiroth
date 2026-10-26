@@ -7,9 +7,12 @@ import { requireAdmin } from "@/lib/inbounds";
    POST /api/settings/restore  { confirm: "RESTORE", backup: <json> }
    Validates a Sephiroth backup file, then replaces ALL panel
    data inside one transaction (inbounds, users+accesses, sub
-   groups+members, resellers, sale templates, settings — the
+   groups+members, resellers, sale templates, hosts, nodes,
+   outbounds, routing rules, relay tunnels, settings — the
    session secret is preserved, never overwritten). IDs from
-   the backup are kept so cross-references survive.
+   the backup are kept so cross-references survive. Network
+   tables (hosts/nodes/outbounds/rules/tunnels) are OPTIONAL —
+   older v1 backups without them still restore.
    ============================================================ */
 
 interface BackupUserAccess {
@@ -45,6 +48,11 @@ interface BackupPayload {
     subGroups?: (Record<string, unknown> & { memberUserIds?: string[] })[];
     resellers?: Record<string, unknown>[];
     saleTemplates?: Record<string, unknown>[];
+    hosts?: Record<string, unknown>[];
+    nodes?: Record<string, unknown>[];
+    outbounds?: Record<string, unknown>[];
+    routingRules?: Record<string, unknown>[];
+    relayTunnels?: Record<string, unknown>[];
     settings?: Record<string, string>;
   };
 }
@@ -98,6 +106,11 @@ export async function POST(req: Request) {
     const subGroups = toRows<Record<string, unknown> & { memberUserIds?: string[] }>(d.subGroups);
     const resellers = toRows<Record<string, unknown>>(d.resellers);
     const saleTemplates = toRows<Record<string, unknown>>(d.saleTemplates);
+    const hosts = toRows<Record<string, unknown>>(d.hosts);
+    const nodes = toRows<Record<string, unknown>>(d.nodes);
+    const outbounds = toRows<Record<string, unknown>>(d.outbounds);
+    const routingRules = toRows<Record<string, unknown>>(d.routingRules);
+    const relayTunnels = toRows<Record<string, unknown>>(d.relayTunnels);
     const settings = (d.settings && typeof d.settings === "object" ? d.settings : {}) as Record<string, string>;
 
     // structural sanity — every user access must reference a known user
@@ -124,10 +137,15 @@ export async function POST(req: Request) {
         await tx.subGroupMember.deleteMany();
         await tx.subGroup.deleteMany();
         await tx.userInboundAccess.deleteMany();
+        await tx.host.deleteMany();
+        await tx.inbound.deleteMany();
         await tx.clientUser.deleteMany();
         await tx.saleTemplate.deleteMany();
         await tx.reseller.deleteMany();
-        await tx.inbound.deleteMany();
+        await tx.node.deleteMany();
+        await tx.outbound.deleteMany();
+        await tx.routingRule.deleteMany();
+        await tx.relayTunnel.deleteMany();
 
         for (const b of inbounds) {
           await tx.inbound.create({
@@ -234,6 +252,120 @@ export async function POST(req: Request) {
           });
         }
 
+        for (const h of hosts) {
+          await tx.host.create({
+            data: {
+              id: String(h.id),
+              inboundId: String(h.inboundId ?? ""),
+              remark: String(h.remark ?? ""),
+              address: String(h.address ?? ""),
+              port: asNum(h.port, 0) as number,
+              security: String(h.security ?? "same"),
+              sni: String(h.sni ?? ""),
+              hostHeader: String(h.hostHeader ?? ""),
+              path: String(h.path ?? ""),
+              alpn: String(h.alpn ?? ""),
+              fingerprint: String(h.fingerprint ?? ""),
+              enable: h.enable !== false,
+              sortOrder: asNum(h.sortOrder, 0) as number,
+              createdAt: asDate(h.createdAt),
+              updatedAt: asDate(h.updatedAt),
+            },
+          });
+        }
+
+        for (const n of nodes) {
+          await tx.node.create({
+            data: {
+              id: String(n.id),
+              name: String(n.name ?? "Node"),
+              scheme: String(n.scheme ?? "https"),
+              address: String(n.address ?? ""),
+              port: asNum(n.port, 443) as number,
+              basePath: String(n.basePath ?? "/"),
+              apiToken: String(n.apiToken ?? ""),
+              enable: n.enable !== false,
+              syncAll: n.syncAll !== false,
+              inboundTags: String(n.inboundTags ?? "[]"),
+              outboundTag: String(n.outboundTag ?? ""),
+              tlsVerify: String(n.tlsVerify ?? "verify"),
+              status: String(n.status ?? "online"),
+              latencyMs: asNum(n.latencyMs, 0) as number,
+              xrayVersion: String(n.xrayVersion ?? ""),
+              lastSeen: n.lastSeen ? asDate(n.lastSeen) : null,
+              createdAt: asDate(n.createdAt),
+              updatedAt: asDate(n.updatedAt),
+            },
+          });
+        }
+
+        for (const o of outbounds) {
+          await tx.outbound.create({
+            data: {
+              id: String(o.id),
+              tag: String(o.tag ?? "outbound"),
+              protocol: String(o.protocol ?? "freedom"),
+              sendThrough: String(o.sendThrough ?? ""),
+              domainStrategy: String(o.domainStrategy ?? "AsIs"),
+              settingsJson: String(o.settingsJson ?? "{}"),
+              streamJson: String(o.streamJson ?? "{}"),
+              muxEnabled: o.muxEnabled === true,
+              muxConcurrency: asNum(o.muxConcurrency, 8) as number,
+              sortOrder: asNum(o.sortOrder, 0) as number,
+              upBytes: asNum(o.upBytes, 0) as number,
+              downBytes: asNum(o.downBytes, 0) as number,
+              createdAt: asDate(o.createdAt),
+              updatedAt: asDate(o.updatedAt),
+            },
+          });
+        }
+
+        for (const r of routingRules) {
+          await tx.routingRule.create({
+            data: {
+              id: String(r.id),
+              enabled: r.enabled !== false,
+              comment: String(r.comment ?? ""),
+              outboundTag: String(r.outboundTag ?? "direct"),
+              domainJson: String(r.domainJson ?? "[]"),
+              ipJson: String(r.ipJson ?? "[]"),
+              port: String(r.port ?? ""),
+              network: String(r.network ?? ""),
+              protocolJson: String(r.protocolJson ?? "[]"),
+              inboundTagJson: String(r.inboundTagJson ?? "[]"),
+              sourceJson: String(r.sourceJson ?? "[]"),
+              sortOrder: asNum(r.sortOrder, 0) as number,
+              createdAt: asDate(r.createdAt),
+              updatedAt: asDate(r.updatedAt),
+            },
+          });
+        }
+
+        for (const t of relayTunnels) {
+          await tx.relayTunnel.create({
+            data: {
+              id: String(t.id),
+              name: String(t.name ?? "Tunnel"),
+              mode: String(t.mode ?? "tcp-relay"),
+              entryNode: String(t.entryNode ?? ""),
+              entryAddress: String(t.entryAddress ?? ""),
+              entryPort: asNum(t.entryPort, 443) as number,
+              exitNode: String(t.exitNode ?? ""),
+              exitAddress: String(t.exitAddress ?? ""),
+              exitPort: asNum(t.exitPort, 443) as number,
+              inboundTag: String(t.inboundTag ?? ""),
+              lbStrategy: String(t.lbStrategy ?? "least-ping"),
+              enabled: t.enabled !== false,
+              latencyMs: asNum(t.latencyMs, 0) as number,
+              upBytes: asNum(t.upBytes, 0) as number,
+              downBytes: asNum(t.downBytes, 0) as number,
+              status: String(t.status ?? "active"),
+              createdAt: asDate(t.createdAt),
+              updatedAt: asDate(t.updatedAt),
+            },
+          });
+        }
+
         // restore settings — never touch the session secret
         for (const [key, value] of Object.entries(settings)) {
           if (key === "session_secret") continue;
@@ -250,6 +382,11 @@ export async function POST(req: Request) {
           subGroups: subGroups.length,
           resellers: resellers.length,
           saleTemplates: saleTemplates.length,
+          hosts: hosts.length,
+          nodes: nodes.length,
+          outbounds: outbounds.length,
+          routingRules: routingRules.length,
+          relayTunnels: relayTunnels.length,
         };
       },
       { timeout: 30000, maxWait: 10000 }

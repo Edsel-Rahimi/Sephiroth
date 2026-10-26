@@ -1,3 +1,4 @@
+import "dotenv/config";
 import http from "node:http";
 import path from "node:path";
 import express, { type Request as ExpressRequest, type Response as ExpressResponse } from "express";
@@ -10,6 +11,7 @@ import type { ActivityEvent } from "./mini-services/core-sim/types";
 import { ensureSeed } from "./src/lib/auth";
 import { ensureNetSeeds } from "./src/lib/net-objects";
 import { db } from "./src/lib/db";
+import { logActivity } from "./src/lib/activity";
 
 // Import all Next-style route handlers
 import * as apiRoot from "./src/app/api/route";
@@ -31,6 +33,7 @@ import * as apiNodesIdProbe from "./src/app/api/nodes/[id]/probe/route";
 import * as apiOutbounds from "./src/app/api/outbounds/route";
 import * as apiOutboundsTrafficReset from "./src/app/api/outbounds/traffic-reset/route";
 import * as apiOutboundsId from "./src/app/api/outbounds/[id]/route";
+import * as apiOutboundsIdTest from "./src/app/api/outbounds/[id]/test/route";
 import * as apiProfile from "./src/app/api/profile/route";
 import * as apiResellers from "./src/app/api/resellers/route";
 import * as apiResellersId from "./src/app/api/resellers/[id]/route";
@@ -50,6 +53,7 @@ import * as apiTunnels from "./src/app/api/tunnels/route";
 import * as apiUsers from "./src/app/api/users/route";
 import * as apiUsersBulk from "./src/app/api/users/bulk/route";
 import * as apiUsersId from "./src/app/api/users/[id]/route";
+import * as apiRefProxy from "./src/app/ref/[panel]/[[...path]]/route";
 
 type RouteHandler = (req: Request, ctx: { params: Promise<any> }) => Promise<Response> | Response;
 
@@ -126,26 +130,72 @@ function mountRoute(app: express.Express, expressPath: string, mod: unknown) {
   });
 }
 
-async function runPeriodicUserMaintenance() {
+async function runPeriodicUserMaintenance(): Promise<void> {
   try {
-    const outbounds = await db.outbound.findMany();
-    const now = Date.now();
-    for (const ob of outbounds) {
-      if (ob.resetPeriod && ob.resetPeriod !== "none") {
-        const refTime = ob.lastResetAt ? new Date(ob.lastResetAt).getTime() : new Date(ob.createdAt).getTime();
-        const periodMs =
-          ob.resetPeriod === "daily"
-            ? 86_400_000
-            : ob.resetPeriod === "weekly"
-              ? 7 * 86_400_000
-              : 30 * 86_400_000;
-        if (now - refTime >= periodMs) {
-          await db.outbound.update({
-            where: { id: ob.id },
-            data: { usedTrafficGb: 0, lastResetAt: new Date(now) },
+    const users = await db.clientUser.findMany();
+    const now = new Date();
+    const nowMs = now.getTime();
+    let expiredCount = 0;
+    let resetCount = 0;
+
+    for (const user of users) {
+      // 1) expiry enforcement — idempotent: expired users get disabled once
+      if (user.enabled && user.expiryDays !== null) {
+        const endsAt = new Date(user.createdAt).getTime() + user.expiryDays * 86_400_000;
+        if (nowMs >= endsAt) {
+          await db.clientUser.update({ where: { id: user.id }, data: { enabled: false } });
+          expiredCount += 1;
+          console.log(`[cron] user "${user.username}" expired — disabled`);
+          void logActivity({
+            kind: "user.updated",
+            level: "warn",
+            actor: "system",
+            message: `User "${user.username}" expired and was disabled by maintenance`,
+            meta: { userId: user.id, username: user.username, reason: "expired" },
           });
+          continue;
         }
       }
+
+      // 2) traffic counter reset by period (daily=1d, weekly=7d,
+      //    monthly=calendar month — NOT a fixed 30 days)
+      const period = user.resetPeriod;
+      if (period && period !== "none") {
+        const refTime = new Date(user.lastResetAt ?? user.createdAt).getTime();
+        let due = false;
+        if (period === "daily") {
+          due = nowMs - refTime >= 86_400_000;
+        } else if (period === "weekly") {
+          due = nowMs - refTime >= 7 * 86_400_000;
+        } else if (period === "monthly") {
+          const ref = new Date(refTime);
+          due =
+            now.getFullYear() > ref.getFullYear() ||
+            (now.getFullYear() === ref.getFullYear() && now.getMonth() > ref.getMonth());
+        }
+        if (due) {
+          const hadTraffic = (Number(user.usedTrafficGb) || 0) !== 0;
+          await db.clientUser.update({
+            where: { id: user.id },
+            data: { usedTrafficGb: 0, lastResetAt: now },
+          });
+          if (hadTraffic) {
+            resetCount += 1;
+            console.log(`[cron] traffic counter reset for "${user.username}" (${period})`);
+            void logActivity({
+              kind: "user.updated",
+              level: "info",
+              actor: "system",
+              message: `Traffic counter reset for "${user.username}" (${period})`,
+              meta: { userId: user.id, username: user.username, period },
+            });
+          }
+        }
+      }
+    }
+
+    if (expiredCount || resetCount) {
+      console.log(`[cron] user maintenance: ${expiredCount} expired, ${resetCount} traffic reset(s)`);
     }
   } catch (err) {
     console.error("[cron] user maintenance error:", err);
@@ -163,6 +213,8 @@ async function startServer() {
 
   // Raw body parser for /api/* so Web Request can consume body stream directly
   app.use("/api", express.raw({ type: "*/*", limit: "25mb" }));
+  // Same for /ref/* so proxied POST/PUT/PATCH bodies reach the reference panels
+  app.use("/ref", express.raw({ type: "*/*", limit: "25mb" }));
 
   // Mount specific routes before parameterized routes
   mountRoute(app, "/api", apiRoot);
@@ -187,6 +239,7 @@ async function startServer() {
 
   mountRoute(app, "/api/outbounds/traffic-reset", apiOutboundsTrafficReset);
   mountRoute(app, "/api/outbounds", apiOutbounds);
+  mountRoute(app, "/api/outbounds/:id/test", apiOutboundsIdTest);
   mountRoute(app, "/api/outbounds/:id", apiOutboundsId);
 
   mountRoute(app, "/api/profile", apiProfile);
@@ -215,6 +268,10 @@ async function startServer() {
   mountRoute(app, "/api/users/bulk", apiUsersBulk);
   mountRoute(app, "/api/users", apiUsers);
   mountRoute(app, "/api/users/:id", apiUsersId);
+
+  // Reference-panel proxy (Next-style catch-all: /ref/[panel]/[[...path]])
+  mountRoute(app, "/ref/:panel", apiRefProxy);
+  mountRoute(app, "/ref/:panel/*", apiRefProxy);
 
   // Attach Socket.IO live Xray-core telemetry simulator
   const io = new SocketIOServer(httpServer, {
