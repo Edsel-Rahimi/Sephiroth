@@ -1,0 +1,640 @@
+   714→          })}
+   715→        </ul>
+   716→      </nav>
+   717→
+   718→      {/* ═══ GENERAL ═══ */}
+   719→      {tab === "general" && (
+   720→        <div className="grid gap-4 lg:grid-cols-2">
+   721→          <SectionCard icon={Settings2} title={u.langTitle} desc={u.langDesc}>
+   722→            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+   723→              {LANGS.map((l: Lang) => {
+   724→                const active = l === lang;
+   725→                return (
+   726→                  <button
+   727→                    key={l}
+   728→                    type="button"
+   729→                    onClick={() => setLang(l)}
+   730→                    aria-pressed={active}
+   731→                    className={cn(
+   732→                      "flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-sm outline-none transition-all focus-visible:ring-2 focus-visible:ring-ring",
+   733→                      active
+   734→                        ? "bg-gradient-to-br from-primary/25 to-primary/5 text-foreground ring-1 ring-primary/40"
+   735→                        : "text-muted-foreground ring-1 ring-border hover:bg-white/5 hover:text-foreground"
+   736→                    )}
+   737→                  >
+   738→                    <span className="flex min-w-0 items-center gap-2">
+   739→                      <span className="font-mono text-[10px] text-muted-foreground">
+   740→                        {LANG_META[l].code}
+   741→                      </span>
+   742→                      <span className="truncate">{LANG_META[l].native}</span>
+   743→                    </span>
+   744→                    {active ? (
+   745→                      <Check className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />
+   746→                    ) : (
+   747→                      <span className="shrink-0 text-[10px] uppercase text-muted-foreground/60">
+   748→                        {LANG_META[l].dir}
+   749→                      </span>
+   750→                    )}
+   751→                  </button>
+   752→                );
+   753→              })}
+   754→            </div>
+   755→            <Tip className="mt-4">{u.tipLang}</Tip>
+   756→          </SectionCard>
+   757→
+   758→          <SectionCard icon={Palette} title={u.lookTitle} desc={u.lookDesc}>
+   759→            <div className="divide-y divide-border/60">
+   760→              <SwitchRow
+   761→                label={u.starfield}
+   762→                desc={u.starfieldDesc}
+   763→                checked={starfield}
+   764→                onCheckedChange={setStarfield}
+   765→              />
+   766→              <div className="flex items-center justify-between gap-4 py-2.5">
+   767→                <p className="text-sm font-medium text-foreground">{u.glow}</p>
+   768→                <div className="flex items-center gap-1.5">
+   769→                  <Chip active={glow === "on"} onClick={() => setGlow("on" as GlowPref)}>
+   770→                    {u.glowOn}
+   771→                  </Chip>
+   772→                  <Chip active={glow === "soft"} onClick={() => setGlow("soft" as GlowPref)}>
+   773→                    {u.glowSoft}
+   774→                  </Chip>
+   775→                  <Chip active={glow === "off"} onClick={() => setGlow("off" as GlowPref)}>
+   776→                    {u.glowOff}
+   777→                  </Chip>
+   778→                </div>
+   779→              </div>
+   780→              <SwitchRow
+   781→                label={u.motion}
+   782→                desc={u.motionDesc}
+   783→                checked={reduceMotion}
+   784→                onCheckedChange={setReduceMotion}
+   785→              />
+   786→            </div>
+   787→            <Tip className="mt-4">{u.tipLook}</Tip>
+   788→          </SectionCard>
+   789→        </div>
+   790→      )}
+   791→
+   792→      {/* ═══ CORE ═══ */}
+   793→      {tab === "core" && (
+   794→        <div className="grid gap-4 lg:grid-cols-2">
+   795→          <SectionCard icon={RadioTower} title={u.coreTitle} desc={u.coreDesc}>
+   796→            <div className="space-y-4">
+   797→              <div className="grid gap-4 sm:grid-cols-2">
+   798→                <div className="space-y-1.5">
+   799→                  <Label htmlFor="core-driver">{u.driver}</Label>
+   800→                  <Select
+   801→                    value={coreForm.driver}
+   802→                    onValueChange={(v) =>
+   803→                      setCoreForm((p) => ({ ...p, driver: v as CoreForm["driver"] }))
+   804→                    }
+   805→                  >
+   806→                    <SelectTrigger id="core-driver" className="w-full">
+   807→                      <SelectValue />
+   808→                    </SelectTrigger>
+   809→                    <SelectContent className="glass-strong">
+   810→                      <SelectItem value="simulator">{u.driverSim}</SelectItem>
+   811→                      <SelectItem value="xray">{u.driverXray}</SelectItem>
+   812→                    </SelectContent>
+   813→                  </Select>
+   814→                </div>
+   815→                <div className="space-y-1.5">
+   816→                  <Label htmlFor="core-host">{u.apiHost}</Label>
+   817→                  <Input
+   818→                    id="core-host"
+   819→                    dir="ltr"
+   820→                    className="font-mono"
+   821→                    value={coreForm.apiHost}
+   822→                    onChange={(e) => setCoreForm((p) => ({ ...p, apiHost: e.target.value }))}
+   823→                    placeholder="127.0.0.1"
+   824→                  />
+   825→                </div>
+   826→                <div className="space-y-1.5">
+   827→                  <Label htmlFor="core-port">{u.apiPort}</Label>
+   828→                  <Input
+   829→                    id="core-port"
+   830→                    dir="ltr"
+   831→                    inputMode="numeric"
+   832→                    className="font-mono"
+   833→                    value={coreForm.apiPort}
+   834→                    onChange={(e) =>
+   835→                      setCoreForm((p) => ({ ...p, apiPort: e.target.value.replace(/[^0-9]/g, "") }))
+   836→                    }
+   837→                    placeholder="10085"
+   838→                  />
+   839→                </div>
+   840→                <div className="space-y-1.5">
+   841→                  <Label htmlFor="core-tick">{u.tick}</Label>
+   842→                  <Select
+   843→                    value={coreForm.tickSeconds}
+   844→                    onValueChange={(v) => setCoreForm((p) => ({ ...p, tickSeconds: v }))}
+   845→                  >
+   846→                    <SelectTrigger id="core-tick" className="w-full">
+   847→                      <SelectValue />
+   848→                    </SelectTrigger>
+   849→                    <SelectContent className="glass-strong">
+   850→                      {["1", "2", "3", "5"].map((s) => (
+   851→                        <SelectItem key={s} value={s} dir="ltr">
+   852→                          {s} {u.tickSec}
+   853→                        </SelectItem>
+   854→                      ))}
+   855→                    </SelectContent>
+   856→                  </Select>
+   857→                </div>
+   858→              </div>
+   859→
+   860→              <div className="flex flex-wrap items-center gap-2 pt-1">
+   861→                <Button onClick={() => void saveCore()} disabled={savingCore} className="gap-2">
+   862→                  {savingCore ? (
+   863→                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+   864→                  ) : (
+   865→                    <Check className="h-4 w-4" aria-hidden="true" />
+   866→                  )}
+   867→                  {t.subgroups.save}
+   868→                </Button>
+   869→                <Button
+   870→                  variant="outline"
+   871→                  onClick={() => void testCore()}
+   872→                  disabled={coreTest.busy}
+   873→                  className="gap-2 rounded-full border-border bg-white/4 hover:bg-white/8"
+   874→                >
+   875→                  {coreTest.busy ? (
+   876→                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+   877→                  ) : (
+   878→                    <Wifi className="h-4 w-4" aria-hidden="true" />
+   879→                  )}
+   880→                  {coreTest.busy ? u.testing : u.coreTest}
+   881→                </Button>
+   882→              </div>
+   883→
+   884→              {coreTest.result && (
+   885→                <p
+   886→                  role="status"
+   887→                  className={cn(
+   888→                    "flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs ring-1",
+   889→                    coreTest.result.ok
+   890→                      ? "bg-chart-3/10 text-chart-3 ring-chart-3/30"
+   891→                      : "bg-chart-5/10 text-chart-5 ring-chart-5/30"
+   892→                  )}
+   893→                  dir="auto"
+   894→                >
+   895→                  {coreTest.result.ok ? (
+   896→                    <Wifi className="h-3.5 w-3.5" aria-hidden="true" />
+   897→                  ) : (
+   898→                    <WifiOff className="h-3.5 w-3.5" aria-hidden="true" />
+   899→                  )}
+   900→                  {coreTest.result.ok ? sfmt(u.testOk, { ms: coreTest.result.ms }) : coreTest.result.msg}
+   901→                </p>
+   902→              )}
+   903→            </div>
+   904→            <Tip className="mt-4">{u.tipCore}</Tip>
+   905→          </SectionCard>
+   906→
+   907→          <SectionCard icon={Sparkles} title={u.feedTitle} desc={u.feedDesc}>
+   908→            <div className="flex items-center justify-between gap-4 rounded-xl bg-white/[0.03] px-4 py-3.5 ring-1 ring-border/70">
+   909→              <div className="flex items-center gap-2.5">
+   910→                <span className="relative flex h-2.5 w-2.5">
+   911→                  {feedLive && (
+   912→                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+   913→                  )}
+   914→                  <span
+   915→                    className={cn(
+   916→                      "relative inline-flex h-2.5 w-2.5 rounded-full",
+   917→                      feedLive ? "bg-emerald-400" : "bg-chart-5"
+   918→                    )}
+   919→                  />
+   920→                </span>
+   921→                <span className="text-sm font-medium text-foreground">
+   922→                  {feedLive ? u.statusLive : u.statusDown}
+   923→                </span>
+   924→              </div>
+   925→              <span className="font-mono text-xs text-muted-foreground" dir="ltr">
+   926→                {coreForm.tickSeconds} {u.tickSec}
+   927→              </span>
+   928→            </div>
+   929→            <div className="mt-4 space-y-2 text-xs text-muted-foreground">
+   930→              <p className="flex items-center justify-between gap-2">
+   931→                <span>{u.driver}</span>
+   932→                <span className="font-medium text-foreground">
+   933→                  {coreForm.driver === "simulator" ? u.driverSim : u.driverXray}
+   934→                </span>
+   935→              </p>
+   936→              <p className="flex items-center justify-between gap-2">
+   937→                <span>{u.apiHost}</span>
+   938→                <span className="font-mono text-foreground" dir="ltr">
+   939→                  {coreForm.apiHost}
+   940→                </span>
+   941→              </p>
+   942→              <p className="flex items-center justify-between gap-2">
+   943→                <span>{u.apiPort}</span>
+   944→                <span className="font-mono text-foreground" dir="ltr">
+   945→                  {coreForm.apiPort}
+   946→                </span>
+   947→              </p>
+   948→            </div>
+   949→          </SectionCard>
+   950→        </div>
+   951→      )}
+   952→
+   953→      {/* ═══ TELEGRAM ═══ */}
+   954→      {tab === "telegram" && (
+   955→        <div className="grid gap-4 lg:grid-cols-2">
+   956→          <SectionCard icon={Send} title={u.tgTitle} desc={u.tgDesc}>
+   957→            <div className="space-y-4">
+   958→              <SwitchRow
+   959→                label={u.tgEnabled}
+   960→                checked={tgForm.enabled}
+   961→                onCheckedChange={(v) => setTgForm((p) => ({ ...p, enabled: v }))}
+   962→              />
+   963→              <div className="space-y-1.5">
+   964→                <Label htmlFor="tg-token">{u.tgToken}</Label>
+   965→                <Input
+   966→                  id="tg-token"
+   967→                  dir="ltr"
+   968→                  type="password"
+   969→                  autoComplete="off"
+   970→                  className="font-mono"
+   971→                  value={tgForm.token}
+   972→                  onChange={(e) => setTgForm((p) => ({ ...p, token: e.target.value }))}
+   973→                  placeholder={tokenConfigured ? tokenMasked : u.tgTokenPh}
+   974→                />
+   975→                {tokenConfigured ? (
+   976→                  <p className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+   977→                    <span>{u.tgTokenKeep}</span>
+   978→                    <button
+   979→                      type="button"
+   980→                      onClick={() => void saveTelegram(null)}
+   981→                      disabled={savingTg}
+   982→                      className="text-chart-5 underline-offset-2 hover:underline"
+   983→                    >
+   984→                      {u.tgRemoveToken}
+   985→                    </button>
+   986→                  </p>
+   987→                ) : null}
+   988→              </div>
+   989→              <div className="space-y-1.5">
+   990→                <Label htmlFor="tg-chat">{u.tgChatId}</Label>
+   991→                <Input
+   992→                  id="tg-chat"
+   993→                  dir="ltr"
+   994→                  className="font-mono"
+   995→                  value={tgForm.chatId}
+   996→                  onChange={(e) => setTgForm((p) => ({ ...p, chatId: e.target.value }))}
+   997→                  placeholder={u.tgChatIdPh}
+   998→                />
+   999→              </div>
+  1000→              <div className="flex flex-wrap items-center gap-2 pt-1">
+  1001→                <Button onClick={() => void saveTelegram()} disabled={savingTg} className="gap-2">
+  1002→                  {savingTg ? (
+  1003→                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+  1004→                  ) : (
+  1005→                    <Check className="h-4 w-4" aria-hidden="true" />
+  1006→                  )}
+  1007→                  {t.subgroups.save}
+  1008→                </Button>
+  1009→                <Button
+  1010→                  variant="outline"
+  1011→                  onClick={() => void testTelegram()}
+  1012→                  disabled={tgTest.busy}
+  1013→                  className="gap-2 rounded-full border-border bg-white/4 hover:bg-white/8"
+  1014→                >
+  1015→                  {tgTest.busy ? (
+  1016→                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+  1017→                  ) : (
+  1018→                    <Send className="h-4 w-4" aria-hidden="true" />
+  1019→                  )}
+  1020→                  {tgTest.busy ? u.testing : u.tgTest}
+  1021→                </Button>
+  1022→              </div>
+  1023→              {tgTest.result && (
+  1024→                <p
+  1025→                  role="status"
+  1026→                  className={cn(
+  1027→                    "rounded-lg px-2.5 py-2 text-xs ring-1",
+  1028→                    tgTest.result.ok
+  1029→                      ? "bg-chart-3/10 text-chart-3 ring-chart-3/30"
+  1030→                      : "bg-chart-5/10 text-chart-5 ring-chart-5/30"
+  1031→                  )}
+  1032→                  dir="auto"
+  1033→                >
+  1034→                  {tgTest.result.ok ? sfmt(u.testOk, { ms: tgTest.result.ms }) : tgTest.result.msg}
+  1035→                </p>
+  1036→              )}
+  1037→            </div>
+  1038→            <Tip className="mt-4">{u.tipTg}</Tip>
+  1039→          </SectionCard>
+  1040→
+  1041→          <SectionCard icon={Sparkles} title={u.tgNotify}>
+  1042→            <div className="divide-y divide-border/60">
+  1043→              <SwitchRow
+  1044→                label={u.tgNCreated}
+  1045→                checked={tgForm.notify.userCreated}
+  1046→                onCheckedChange={(v) =>
+  1047→                  setTgForm((p) => ({ ...p, notify: { ...p.notify, userCreated: v } }))
+  1048→                }
+  1049→              />
+  1050→              <SwitchRow
+  1051→                label={u.tgNExpired}
+  1052→                checked={tgForm.notify.userExpired}
+  1053→                onCheckedChange={(v) =>
+  1054→                  setTgForm((p) => ({ ...p, notify: { ...p.notify, userExpired: v } }))
+  1055→                }
+  1056→              />
+  1057→              <SwitchRow
+  1058→                label={u.tgNTraffic}
+  1059→                checked={tgForm.notify.trafficAlert}
+  1060→                onCheckedChange={(v) =>
+  1061→                  setTgForm((p) => ({ ...p, notify: { ...p.notify, trafficAlert: v } }))
+  1062→                }
+  1063→              />
+  1064→              <SwitchRow
+  1065→                label={u.tgNLogin}
+  1066→                checked={tgForm.notify.loginAlert}
+  1067→                onCheckedChange={(v) =>
+  1068→                  setTgForm((p) => ({ ...p, notify: { ...p.notify, loginAlert: v } }))
+  1069→                }
+  1070→              />
+  1071→            </div>
+  1072→            <p className="mt-3 text-[11px] text-muted-foreground">{u.tgTestDesc}</p>
+  1073→          </SectionCard>
+  1074→        </div>
+  1075→      )}
+  1076→
+  1077→      {/* ═══ BACKUP ═══ */}
+  1078→      {tab === "backup" && (
+  1079→        <div className="grid gap-4 lg:grid-cols-2">
+  1080→          <SectionCard icon={Download} title={u.bkTitle} desc={u.bkDesc}>
+  1081→            <Button onClick={() => void downloadBackup()} disabled={exporting} className="glow-cyan gap-2">
+  1082→              {exporting ? (
+  1083→                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+  1084→              ) : (
+  1085→                <Download className="h-4 w-4" aria-hidden="true" />
+  1086→              )}
+  1087→              {exporting ? u.bkDownloading : u.bkDownload}
+  1088→            </Button>
+  1089→            <Tip className="mt-4">{u.tipBackup}</Tip>
+  1090→          </SectionCard>
+  1091→
+  1092→          <SectionCard
+  1093→            icon={DatabaseBackup}
+  1094→            title={u.bkRestoreTitle}
+  1095→            desc={u.bkRestoreDesc}
+  1096→            className="ring-1 ring-chart-5/25"
+  1097→          >
+  1098→            <div className="space-y-3">
+  1099→              <input
+  1100→                ref={fileInputRef}
+  1101→                type="file"
+  1102→                accept=".json,application/json"
+  1103→                className="sr-only"
+  1104→                id="restore-file"
+  1105→                onChange={(e) => void onFilePicked(e.target.files?.[0])}
+  1106→              />
+  1107→              <Button
+  1108→                variant="outline"
+  1109→                onClick={() => fileInputRef.current?.click()}
+  1110→                className="gap-2 rounded-xl border-border bg-white/4 hover:bg-white/8"
+  1111→              >
+  1112→                <DatabaseBackup className="h-4 w-4" aria-hidden="true" />
+  1113→                {u.bkPick}
+  1114→              </Button>
+  1115→
+  1116→              {backupErr && (
+  1117→                <p role="alert" className="rounded-lg bg-chart-5/10 px-2.5 py-2 text-xs text-chart-5 ring-1 ring-chart-5/30" dir="auto">
+  1118→                  {backupErr}
+  1119→                </p>
+  1120→              )}
+  1121→
+  1122→              {backup && (
+  1123→                <div className="space-y-3 rounded-xl bg-white/[0.03] p-4 ring-1 ring-border/70">
+  1124→                  <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+  1125→                    <span>{u.bkExportedAt}</span>
+  1126→                    <span className="font-mono text-foreground" dir="ltr">
+  1127→                      {backup.exportedAt ? backup.exportedAt.slice(0, 19).replace("T", " ") : "—"}
+  1128→                    </span>
+  1129→                  </div>
+  1130→                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+  1131→                    {[
+  1132→                      [u.bkInbounds, backup.counts.inbounds],
+  1133→                      [u.bkUsers, backup.counts.users],
+  1134→                      [u.bkGroups, backup.counts.subGroups],
+  1135→                      [u.bkResellers, backup.counts.resellers],
+  1136→                      [u.bkTemplates, backup.counts.saleTemplates],
+  1137→                    ].map(([label, value]) => (
+  1138→                      <div
+  1139→                        key={String(label)}
+  1140→                        className="rounded-lg bg-white/[0.03] px-3 py-2 ring-1 ring-border/60"
+  1141→                      >
+  1142→                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+  1143→                          {label}
+  1144→                        </p>
+  1145→                        <p className="font-mono text-sm font-semibold text-foreground" dir="ltr">
+  1146→                          {value}
+  1147→                        </p>
+  1148→                      </div>
+  1149→                    ))}
+  1150→                  </div>
+  1151→                  <div className="space-y-1.5">
+  1152→                    <Label htmlFor="restore-confirm">{u.bkConfirmPh}</Label>
+  1153→                    <Input
+  1154→                      id="restore-confirm"
+  1155→                      dir="ltr"
+  1156→                      autoComplete="off"
+  1157→                      className="font-mono"
+  1158→                      value={confirmText}
+  1159→                      onChange={(e) => setConfirmText(e.target.value.toUpperCase())}
+  1160→                      placeholder="RESTORE"
+  1161→                    />
+  1162→                    <p className="flex items-center gap-1.5 text-[11px] text-chart-5">
+  1163→                      <TriangleAlert className="h-3 w-3 shrink-0" aria-hidden="true" />
+  1164→                      {u.bkConfirmHint}
+  1165→                    </p>
+  1166→                  </div>
+  1167→                  <Button
+  1168→                    variant="destructive"
+  1169→                    onClick={() => void doRestore()}
+  1170→                    disabled={restoring || confirmText !== "RESTORE"}
+  1171→                    className="gap-2"
+  1172→                  >
+  1173→                    {restoring ? (
+  1174→                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+  1175→                    ) : (
+  1176→                      <DatabaseBackup className="h-4 w-4" aria-hidden="true" />
+  1177→                    )}
+  1178→                    {restoring ? u.bkRestoring : u.bkRestore}
+  1179→                  </Button>
+  1180→                </div>
+  1181→              )}
+  1182→            </div>
+  1183→          </SectionCard>
+  1184→        </div>
+  1185→      )}
+  1186→
+  1187→      {/* ═══ SECURITY ═══ */}
+  1188→      {tab === "security" && (
+  1189→        <div className="grid gap-4 lg:grid-cols-2">
+  1190→          <SectionCard icon={ShieldCheck} title={u.pwTitle} desc={u.pwDesc}>
+  1191→            <div className="space-y-3">
+  1192→              <div className="space-y-1.5">
+  1193→                <Label htmlFor="pw-current">{u.pwCurrent}</Label>
+  1194→                <Input
+  1195→                  id="pw-current"
+  1196→                  type="password"
+  1197→                  autoComplete="current-password"
+  1198→                  value={pw.current}
+  1199→                  onChange={(e) => setPw((p) => ({ ...p, current: e.target.value }))}
+  1200→                />
+  1201→                {pwErr.current && <p className="text-xs text-chart-5">{pwErr.current}</p>}
+  1202→              </div>
+  1203→              <div className="space-y-1.5">
+  1204→                <Label htmlFor="pw-next">{u.pwNew}</Label>
+  1205→                <Input
+  1206→                  id="pw-next"
+  1207→                  type="password"
+  1208→                  autoComplete="new-password"
+  1209→                  value={pw.next}
+  1210→                  onChange={(e) => setPw((p) => ({ ...p, next: e.target.value }))}
+  1211→                />
+  1212→                {pwErr.next && <p className="text-xs text-chart-5">{pwErr.next}</p>}
+  1213→              </div>
+  1214→              <div className="space-y-1.5">
+  1215→                <Label htmlFor="pw-confirm">{u.pwConfirm}</Label>
+  1216→                <Input
+  1217→                  id="pw-confirm"
+  1218→                  type="password"
+  1219→                  autoComplete="new-password"
+  1220→                  value={pw.confirm}
+  1221→                  onChange={(e) => setPw((p) => ({ ...p, confirm: e.target.value }))}
+  1222→                />
+  1223→                {pwErr.confirm && <p className="text-xs text-chart-5">{pwErr.confirm}</p>}
+  1224→              </div>
+  1225→              <Button onClick={() => void changePassword()} disabled={pwSaving} className="gap-2">
+  1226→                {pwSaving ? (
+  1227→                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+  1228→                ) : (
+  1229→                  <Check className="h-4 w-4" aria-hidden="true" />
+  1230→                )}
+  1231→                {t.subgroups.save}
+  1232→              </Button>
+  1233→            </div>
+  1234→          </SectionCard>
+  1235→
+  1236→          <div className="space-y-4">
+  1237→            <SectionCard icon={KeyRound} title={u.rkTitle} desc={u.rkDesc}>
+  1238→              {newKey ? (
+  1239→                <div className="space-y-3">
+  1240→                  <div className="flex items-center justify-between gap-3 rounded-xl bg-primary/[0.06] px-4 py-3 ring-1 ring-primary/30">
+  1241→                    <code className="font-mono text-sm font-bold tracking-wider text-primary" dir="ltr">
+  1242→                      {newKey}
+  1243→                    </code>
+  1244→                    <button
+  1245→                      type="button"
+  1246→                      onClick={() => void copyKey()}
+  1247→                      aria-label={t.inbounds.toastCopied}
+  1248→                      className="glass flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-primary transition-shadow hover:glow-cyan"
+  1249→                    >
+  1250→                      <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+  1251→                    </button>
+  1252→                  </div>
+  1253→                  <p className="flex items-center gap-1.5 text-[11px] text-chart-4">
+  1254→                    <CircleAlert className="h-3 w-3 shrink-0" aria-hidden="true" />
+  1255→                    {u.rkOnce}
+  1256→                  </p>
+  1257→                </div>
+  1258→              ) : (
+  1259→                <div className="flex flex-wrap items-center gap-3">
+  1260→                  <Button
+  1261→                    variant="outline"
+  1262→                    onClick={() => setRkConfirmOpen(true)}
+  1263→                    disabled={rkBusy}
+  1264→                    className="gap-2 rounded-full border-border bg-white/4 hover:bg-white/8"
+  1265→                  >
+  1266→                    {rkBusy ? (
+  1267→                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+  1268→                    ) : (
+  1269→                      <RotateCw className="h-4 w-4" aria-hidden="true" />
+  1270→                    )}
+  1271→                    {rkBusy ? u.rkRotating : u.rkRotate}
+  1272→                  </Button>
+  1273→                  <span className="font-mono text-xs text-muted-foreground" dir="ltr">
+  1274→                    SEPH-••••-••••-••••
+  1275→                  </span>
+  1276→                </div>
+  1277→              )}
+  1278→            </SectionCard>
+  1279→
+  1280→            <SectionCard icon={LogOut} title={u.ssTitle} desc={u.ssDesc}>
+  1281→              <Button
+  1282→                variant="outline"
+  1283→                onClick={() => setSsConfirmOpen(true)}
+  1284→                disabled={ssBusy}
+  1285→                className="gap-2 rounded-full border-chart-5/40 text-chart-5 hover:bg-chart-5/10 hover:text-chart-5"
+  1286→              >
+  1287→                {ssBusy ? (
+  1288→                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+  1289→                ) : (
+  1290→                  <LogOut className="h-4 w-4" aria-hidden="true" />
+  1291→                )}
+  1292→                {ssBusy ? u.ssRevoking : u.ssRevoke}
+  1293→              </Button>
+  1294→            </SectionCard>
+  1295→          </div>
+  1296→        </div>
+  1297→      )}
+  1298→
+  1299→      {/* recovery key rotate confirm */}
+  1300→      <AlertDialog open={rkConfirmOpen} onOpenChange={setRkConfirmOpen}>
+  1301→        <AlertDialogContent className="glass-strong">
+  1302→          <AlertDialogHeader>
+  1303→            <AlertDialogTitle>{u.rkConfirmTitle}</AlertDialogTitle>
+  1304→            <AlertDialogDescription>{u.rkConfirmDesc}</AlertDialogDescription>
+  1305→          </AlertDialogHeader>
+  1306→          <AlertDialogFooter>
+  1307→            <AlertDialogCancel>{t.inbounds.cancel}</AlertDialogCancel>
+  1308→            <AlertDialogAction onClick={() => void rotateKey()}>{u.rkConfirmBtn}</AlertDialogAction>
+  1309→          </AlertDialogFooter>
+  1310→        </AlertDialogContent>
+  1311→      </AlertDialog>
+  1312→
+  1313→      {/* revoke sessions confirm */}
+  1314→      <AlertDialog open={ssConfirmOpen} onOpenChange={setSsConfirmOpen}>
+  1315→        <AlertDialogContent className="glass-strong">
+  1316→          <AlertDialogHeader>
+  1317→            <AlertDialogTitle>{u.ssConfirmTitle}</AlertDialogTitle>
+  1318→            <AlertDialogDescription>{u.ssConfirmDesc}</AlertDialogDescription>
+  1319→          </AlertDialogHeader>
+  1320→          <AlertDialogFooter>
+  1321→            <AlertDialogCancel>{t.inbounds.cancel}</AlertDialogCancel>
+  1322→            <AlertDialogAction
+  1323→              onClick={() => void revokeSessions()}
+  1324→              className="bg-chart-5 text-white hover:bg-chart-5/90"
+  1325→            >
+  1326→              {u.ssConfirmBtn}
+  1327→            </AlertDialogAction>
+  1328→          </AlertDialogFooter>
+  1329→        </AlertDialogContent>
+  1330→      </AlertDialog>
+  1331→    </div>
+  1332→  );
+  1333→}
+  1334→
+  1335→/* tab labels resolve from the settings dict */
+  1336→function tabLabel(
+  1337→  u: (typeof dictionaries)["en"]["settings"],
+  1338→  id: Tab
+  1339→): string {
+  1340→  switch (id) {
+  1341→    case "general":
+  1342→      return u.tabGeneral;
+  1343→    case "core":
+  1344→      return u.tabCore;
+  1345→    case "telegram":
+  1346→      return u.tabTelegram;
+  1347→    case "backup":
+  1348→      return u.tabBackup;
+  1349→    case "security":
+  1350→      return u.tabSecurity;
+  1351→  }
+  1352→}
+  1353→

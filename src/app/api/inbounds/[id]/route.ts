@@ -8,6 +8,7 @@ import {
   validateInbound,
 } from "@/lib/inbounds";
 import { reprojectInbound } from "@/lib/user-sync";
+import { logActivity } from "@/lib/activity";
 
 /* ============================================================
    Sephiroth · Phase 3 — Inbounds item API
@@ -72,6 +73,13 @@ export async function PATCH(
       // every ClientUser's projected entries so user configs survive
       await reprojectInbound(id);
       const fresh = await db.inbound.findUnique({ where: { id } });
+      await logActivity({
+        kind: "inbound.updated",
+        level: "info",
+        actor: admin,
+        message: `Inbound "${updated.tag}" updated`,
+        meta: { inboundId: id, tag: updated.tag },
+      });
       return NextResponse.json({ inbound: toDTO(fresh ?? updated) });
     } catch (err) {
       const kind = mapInboundWriteError(err); // Prisma P2002 race
@@ -102,7 +110,17 @@ export async function DELETE(
     const { id } = await params;
 
     try {
+      const existing = await db.inbound.findUnique({ where: { id } });
       await db.inbound.delete({ where: { id } });
+      if (existing) {
+        await logActivity({
+          kind: "inbound.deleted",
+          level: "warn",
+          actor: admin,
+          message: `Inbound "${existing.tag}" deleted`,
+          meta: { inboundId: id, tag: existing.tag },
+        });
+      }
     } catch (err) {
       if (prismaErrorCode(err) === "P2025") {
         return NextResponse.json({ error: "not_found" }, { status: 404 });

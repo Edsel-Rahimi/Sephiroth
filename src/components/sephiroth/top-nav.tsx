@@ -1,17 +1,22 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import {
   Activity,
+  ArrowRightLeft,
   Bell,
   Check,
   CircleUser,
   FlaskConical,
+  GraduationCap,
   Globe,
   LayoutDashboard,
   LogOut,
+  Network,
   RadioTower,
+  Route,
   Search,
+  Server,
   Settings,
   Store,
   Users,
@@ -40,40 +45,71 @@ import { cn } from "@/lib/utils";
 const NAV_ICONS: Record<ViewId, React.ComponentType<{ className?: string }>> = {
   dashboard: LayoutDashboard,
   inbounds: RadioTower,
+  hosts: Network,
+  nodes: Server,
+  outbounds: ArrowRightLeft,
+  routing: Route,
   users: Users,
   subgroups: Boxes,
   resellers: Store,
   activity: Activity,
+  guide: GraduationCap,
   settings: Settings,
   panels: FlaskConical,
+  profile: CircleUser,
 };
 
 const NAV_ORDER: ViewId[] = [
   "dashboard",
   "inbounds",
+  "hosts",
+  "nodes",
+  "outbounds",
+  "routing",
   "users",
   "subgroups",
   "resellers",
   "activity",
-  "panels",
+  "guide",
   "settings",
+  "panels",
 ];
+
+/* sections governed by Settings → Top-Bar Modules */
+const MODULE_VIEWS = new Set<ViewId>(["hosts", "nodes", "outbounds", "routing"]);
 
 export function TopNav() {
   const lang = useAppStore((s) => s.lang);
   const view = useAppStore((s) => s.view);
   const role = useAppStore((s) => s.role);
+  const modules = useAppStore((s) => s.modules);
+  const setModules = useAppStore((s) => s.setModules);
   const setLang = useAppStore((s) => s.setLang);
   const setView = useAppStore((s) => s.setView);
   const { toast } = useToast();
 
   const t = useMemo(() => dictionaries[lang], [lang]);
 
+  /* Phase 8 — pull module visibility from the server (admin only) */
+  useEffect(() => {
+    if (role !== "admin") return;
+    let alive = true;
+    fetch("/api/settings", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { nav?: typeof modules } | null) => {
+        if (alive && d?.nav) setModules(d.nav);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [role, setModules]);
+
   /* Phase 6 — resellers only get their users workspace */
-  const navIds = useMemo(
-    () => (role === "reseller" ? NAV_ORDER.filter((id) => id === "users") : NAV_ORDER),
-    [role]
-  );
+  const navIds = useMemo<ViewId[]>(() => {
+    if (role === "reseller") return ["users"];
+    return NAV_ORDER.filter((id) => !MODULE_VIEWS.has(id) || modules[id as keyof typeof modules]);
+  }, [role, modules]);
 
   const soon = () =>
     toast({
@@ -95,7 +131,7 @@ export function TopNav() {
     <header className="sticky top-0 z-40">
       <div className="glass-strong border-x-0 border-t-0">
         {/* ── row 1 : brand · actions ─────────────────────────── */}
-        <div className="mx-auto flex h-16 max-w-[1440px] items-center gap-3 px-4 md:px-6">
+        <div className="mx-auto flex h-16 max-w-[1440px] items-center gap-2 px-4 md:gap-3 md:px-6">
           {/* brand */}
           <button
             onClick={() => setView(role === "reseller" ? "users" : "dashboard")}
@@ -126,15 +162,15 @@ export function TopNav() {
             <span className="text-emerald-400">· {t.status.online}</span>
           </div>
 
-          {/* search (visual, phase 2) */}
+          {/* search (visual) */}
           <button
             onClick={soon}
-            className="glass hidden h-9 items-center gap-2.5 rounded-full px-3.5 text-sm text-muted-foreground transition-colors hover:text-foreground md:flex"
+            className="glass hidden h-9 items-center gap-2.5 rounded-full px-3.5 text-sm text-muted-foreground transition-colors hover:text-foreground xl:flex"
             aria-label={t.topbar.search}
           >
             <Search className="h-3.5 w-3.5" />
-            <span className="hidden xl:inline">{t.topbar.search}</span>
-            <span className="kbd ml-1 hidden xl:inline-flex">⌘K</span>
+            <span className="hidden 2xl:inline">{t.topbar.search}</span>
+            <span className="kbd ml-1 hidden 2xl:inline-flex">⌘K</span>
           </button>
 
           {/* language */}
@@ -217,10 +253,10 @@ export function TopNav() {
                 </div>
               )}
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={soon}>
+              <DropdownMenuItem onClick={() => setView("profile")}>
                 <CircleUser className="mr-2 h-4 w-4" /> {t.topbar.profile}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={soon}>
+              <DropdownMenuItem onClick={() => setView("settings")}>
                 <Settings className="mr-2 h-4 w-4" /> {t.topbar.accountSettings}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
@@ -250,17 +286,18 @@ export function TopNav() {
                   <button
                     onClick={() => setView(id)}
                     aria-current={active ? "page" : undefined}
+                    title={t.nav[id]}
                     className={cn(
-                      "flex h-9 items-center gap-2 rounded-full px-3.5 text-[13px] font-medium outline-none transition-all focus-visible:ring-2 focus-visible:ring-ring md:px-4",
+                      "flex h-9 min-w-9 items-center justify-center gap-2 rounded-full px-3 text-[13px] font-medium outline-none transition-all focus-visible:ring-2 focus-visible:ring-ring md:px-4",
                       active
                         ? "bg-gradient-to-br from-primary/20 to-primary/5 text-foreground glow-cyan"
                         : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
                     )}
                   >
                     <Icon
-                      className={cn("h-3.5 w-3.5", active ? "text-primary" : "opacity-70")}
+                      className={cn("h-3.5 w-3.5 shrink-0", active ? "text-primary" : "opacity-70")}
                     />
-                    <span className="whitespace-nowrap">{t.nav[id]}</span>
+                    <span className="hidden whitespace-nowrap xl:inline">{t.nav[id]}</span>
                   </button>
                   {active && <span className="orbit-dot" aria-hidden="true" />}
                 </li>

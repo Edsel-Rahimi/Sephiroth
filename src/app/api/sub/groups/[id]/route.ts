@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/inbounds";
 import { groupPasswordHash, toGroupDTO, validateGroup } from "@/lib/sub-groups";
+import { logActivity } from "@/lib/activity";
 
 /* ============================================================
    Sephiroth · Phase 5 — Sub Group item API (admin)
@@ -97,6 +98,13 @@ export async function DELETE(req: Request, ctx: Ctx) {
     if (!existing) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
     await db.subGroup.delete({ where: { id } }); // members cascade
+    await logActivity({
+      kind: "sub.deleted",
+      level: "warn",
+      actor: admin,
+      message: `Sub group deleted (id ${id})`,
+      meta: { groupId: id },
+    });
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[sub/groups:id:DELETE]", err);

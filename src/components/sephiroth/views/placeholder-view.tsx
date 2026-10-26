@@ -5,9 +5,15 @@ import {
   Activity,
   ArrowLeft,
   ArrowRight,
+  ArrowRightLeft,
   Boxes,
+  CircleUser,
   FlaskConical,
+  GraduationCap,
+  Network,
   RadioTower,
+  Route,
+  Server,
   Settings,
   Store,
   Users,
@@ -19,12 +25,18 @@ import { dictionaries, type ViewId } from "@/lib/i18n/dictionaries";
 
 const PHASE_MAP: Record<Exclude<ViewId, "dashboard">, { phase: number; icon: LucideIcon }> = {
   inbounds: { phase: 3, icon: RadioTower },
+  hosts: { phase: 8, icon: Network },
+  nodes: { phase: 8, icon: Server },
+  outbounds: { phase: 8, icon: ArrowRightLeft },
+  routing: { phase: 8, icon: Route },
   users: { phase: 4, icon: Users },
   subgroups: { phase: 5, icon: Boxes },
   resellers: { phase: 6, icon: Store },
-  activity: { phase: 2, icon: Activity },
+  activity: { phase: 8, icon: Activity },
+  guide: { phase: 8, icon: GraduationCap },
   settings: { phase: 7, icon: Settings },
   panels: { phase: 9, icon: FlaskConical },
+  profile: { phase: 8, icon: CircleUser },
 };
 
 export function PlaceholderView({ view }: { view: Exclude<ViewId, "dashboard"> }) {

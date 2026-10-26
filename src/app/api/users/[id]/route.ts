@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { emailFor, flowFor, genKey, toUserDTO } from "@/lib/users";
 import { parseClients, validateUser } from "@/lib/user-types";
 import { stripUserEverywhere, syncUserProjection } from "@/lib/user-sync";
+import { logActivity } from "@/lib/activity";
 
 /* ============================================================
    Sephiroth · Phase 4 — Users item API
@@ -135,6 +136,13 @@ export async function PATCH(
     if (!updated) {
       return NextResponse.json({ error: "not_found" }, { status: 404 });
     }
+    await logActivity({
+      kind: "user.updated",
+      level: "info",
+      actor: actor.username,
+      message: `User "${updated.username}" updated`,
+      meta: { userId: id, username: updated.username },
+    });
     return NextResponse.json({ user: toUserDTO(updated) });
   } catch (err) {
     console.error("[users:PATCH]", err);
@@ -167,6 +175,13 @@ export async function DELETE(
 
     await stripUserEverywhere(id);
     await db.clientUser.delete({ where: { id } }); // cascades accesses
+    await logActivity({
+      kind: "user.deleted",
+      level: "warn",
+      actor: actor.username,
+      message: `User deleted (id ${id})`,
+      meta: { userId: id },
+    });
 
     return NextResponse.json({ ok: true });
   } catch (err) {

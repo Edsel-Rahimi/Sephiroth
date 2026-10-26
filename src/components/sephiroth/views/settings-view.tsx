@@ -2,31 +2,42 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ArrowRightLeft,
+  Braces,
   Check,
-  CircleAlert,
-  Copy,
   DatabaseBackup,
   Download,
+  FileJson,
   KeyRound,
+  Languages,
+  LayoutDashboard,
   Lightbulb,
   Loader2,
-  LogOut,
+  Network,
   Palette,
+  PanelsTopLeft,
   RadioTower,
   RotateCw,
+  Route,
   Send,
+  Server,
   Settings2,
-  ShieldCheck,
+  SlidersHorizontal,
   Sparkles,
+  Timer,
   TriangleAlert,
   Wifi,
   WifiOff,
+  Wrench,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -44,7 +55,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useAppStore, type GlowPref } from "@/lib/store/app-store";
+import {
+  useAppStore,
+  type GlowPref,
+  type ModuleVisibility,
+} from "@/lib/store/app-store";
 import { useCoreStore } from "@/lib/store/core-store";
 import { dictionaries, LANGS, LANG_META, type Lang } from "@/lib/i18n/dictionaries";
 import { sfmt } from "@/lib/i18n/sub-dictionary";
@@ -52,16 +67,27 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 /* ============================================================
-   Sephiroth · Phase 7 — Settings & System (admin)
-   Five orbit tabs: General (language + appearance), Core Driver
-   (adapter + real TCP test + live-feed interval that the core
-   simulator applies live), Telegram (bot + notifications +
-   real test message), Backup (full export / typed-confirm
-   restore) and Security (password, one-time recovery key,
-   revoke all sessions). All strings ×6 languages.
+   Sephiroth · Phase 8 — Settings & System (admin)
+   Two tabs: General (language, appearance, top-bar modules,
+   panel preferences, Telegram bot, backup) and Expert (core
+   driver + real TCP test, Xray configs, raw JSON template,
+   TLS certificates, session lifetime). Password / recovery
+   key / session-revocation moved to the Profile view.
+   All strings ×6 languages.
    ============================================================ */
 
-type Tab = "general" | "core" | "telegram" | "backup" | "security";
+type TabId = "general" | "expert";
+
+type XrayLogLevel = "none" | "warning" | "info" | "debug";
+type DomStrategy = "AsIs" | "IPIfNonMatch" | "IPOnDemand";
+type FreedomStrategy = "AsIs" | "UseIP" | "UseIPv4" | "UseIPv6";
+type XrayField =
+  | "logLevel"
+  | "dnsServers"
+  | "domainStrategy"
+  | "freedomStrategy"
+  | "connIdle"
+  | "bufferSize";
 
 interface CoreSettingsDTO {
   driver: "simulator" | "xray";
@@ -83,6 +109,31 @@ interface TelegramSettingsDTO {
   };
 }
 
+interface GeneralSettingsDTO {
+  datepicker: "gregorian" | "jalalian";
+  pageSize: number;
+}
+
+interface ExpertSettingsDTO {
+  logLevel: XrayLogLevel;
+  dnsServers: string;
+  domainStrategy: DomStrategy;
+  freedomStrategy: FreedomStrategy;
+  connIdle: number;
+  bufferSize: number;
+  rawJson: string;
+  certFile: string;
+  keyFile: string;
+  sessionMaxAge: number;
+}
+
+interface NavDTO {
+  hosts: boolean;
+  nodes: boolean;
+  outbounds: boolean;
+  routing: boolean;
+}
+
 interface CoreForm {
   driver: "simulator" | "xray";
   apiHost: string;
@@ -95,6 +146,20 @@ interface TgForm {
   token: string;
   chatId: string;
   notify: TelegramSettingsDTO["notify"];
+}
+
+interface GeneralForm {
+  datepicker: "gregorian" | "jalalian";
+  pageSize: string;
+}
+
+interface ExpertForm {
+  logLevel: XrayLogLevel;
+  dnsServers: string;
+  domainStrategy: DomStrategy;
+  freedomStrategy: FreedomStrategy;
+  connIdle: string;
+  bufferSize: string;
 }
 
 interface BackupSummary {
@@ -120,13 +185,16 @@ type TgTestState =
   | { busy: false; result: { ok: true; ms: number } }
   | { busy: false; result: { ok: false; msg: string } };
 
-const TAB_ICONS: Record<Tab, React.ComponentType<{ className?: string }>> = {
-  general: Settings2,
-  core: RadioTower,
-  telegram: Send,
-  backup: DatabaseBackup,
-  security: ShieldCheck,
-};
+function expertFromDTO(e: ExpertSettingsDTO): ExpertForm {
+  return {
+    logLevel: e.logLevel,
+    dnsServers: e.dnsServers,
+    domainStrategy: e.domainStrategy,
+    freedomStrategy: e.freedomStrategy,
+    connIdle: String(e.connIdle),
+    bufferSize: String(e.bufferSize),
+  };
+}
 
 function Tip({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
@@ -177,18 +245,27 @@ function SwitchRow({
   checked,
   onCheckedChange,
   disabled,
+  icon: Icon,
 }: {
   label: string;
   desc?: string;
   checked: boolean;
   onCheckedChange: (v: boolean) => void;
   disabled?: boolean;
+  icon?: React.ComponentType<{ className?: string }>;
 }) {
   return (
     <div className="flex items-center justify-between gap-4 py-2.5">
-      <div className="min-w-0">
-        <p className="text-sm font-medium text-foreground">{label}</p>
-        {desc && <p className="mt-0.5 text-xs text-muted-foreground">{desc}</p>}
+      <div className="flex min-w-0 items-center gap-2.5">
+        {Icon && (
+          <span className="glass flex h-7 w-7 shrink-0 items-center justify-center rounded-lg">
+            <Icon className="h-3.5 w-3.5 text-primary/90" aria-hidden="true" />
+          </span>
+        )}
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-foreground">{label}</p>
+          {desc && <p className="mt-0.5 text-xs text-muted-foreground">{desc}</p>}
+        </div>
       </div>
       <Switch
         checked={checked}
@@ -236,13 +313,16 @@ export function SettingsView() {
   const setGlow = useAppStore((s) => s.setGlow);
   const reduceMotion = useAppStore((s) => s.reduceMotion);
   const setReduceMotion = useAppStore((s) => s.setReduceMotion);
+  const modules = useAppStore((s) => s.modules);
+  const setModule = useAppStore((s) => s.setModule);
+  const setModules = useAppStore((s) => s.setModules);
   const coreStatus = useCoreStore((s) => s.status);
   const { toast } = useToast();
 
   const t = useMemo(() => dictionaries[lang], [lang]);
   const u = t.settings;
 
-  const [tab, setTab] = useState<Tab>("general");
+  const [tab, setTab] = useState<TabId>("general");
   const [loading, setLoading] = useState(true);
   const [loadErr, setLoadErr] = useState(false);
 
@@ -261,6 +341,37 @@ export function SettingsView() {
   const [tokenConfigured, setTokenConfigured] = useState(false);
   const [tokenMasked, setTokenMasked] = useState("");
 
+  const [generalForm, setGeneralForm] = useState<GeneralForm>({
+    datepicker: "gregorian",
+    pageSize: "25",
+  });
+  const [generalErr, setGeneralErr] = useState<string | null>(null);
+  const [savingGeneral, setSavingGeneral] = useState(false);
+
+  const [expertForm, setExpertForm] = useState<ExpertForm>({
+    logLevel: "warning",
+    dnsServers: "1.1.1.1\n8.8.8.8",
+    domainStrategy: "AsIs",
+    freedomStrategy: "AsIs",
+    connIdle: "300",
+    bufferSize: "512",
+  });
+  const [xrayErrs, setXrayErrs] = useState<Partial<Record<XrayField, string>>>({});
+  const [savingXray, setSavingXray] = useState(false);
+
+  const [rawJson, setRawJson] = useState("");
+  const [jsonErr, setJsonErr] = useState<string | null>(null);
+  const [savingJson, setSavingJson] = useState(false);
+  const [jsonResetOpen, setJsonResetOpen] = useState(false);
+
+  const [certForm, setCertForm] = useState({ certFile: "", keyFile: "" });
+  const [certErr, setCertErr] = useState<string | null>(null);
+  const [savingCert, setSavingCert] = useState(false);
+
+  const [sessionAge, setSessionAge] = useState("360");
+  const [sessionErr, setSessionErr] = useState<string | null>(null);
+  const [savingSession, setSavingSession] = useState(false);
+
   const [savingCore, setSavingCore] = useState(false);
   const [savingTg, setSavingTg] = useState(false);
   const [coreTest, setCoreTest] = useState<CoreTestState>({ busy: false, result: null });
@@ -275,23 +386,19 @@ export function SettingsView() {
   const [exporting, setExporting] = useState(false);
   const [restoring, setRestoring] = useState(false);
 
-  /* security */
-  const [pw, setPw] = useState({ current: "", next: "", confirm: "" });
-  const [pwErr, setPwErr] = useState<Partial<Record<"current" | "next" | "confirm", string>>>({});
-  const [pwSaving, setPwSaving] = useState(false);
-  const [rkBusy, setRkBusy] = useState(false);
-  const [rkConfirmOpen, setRkConfirmOpen] = useState(false);
-  const [newKey, setNewKey] = useState<string | null>(null);
-  const [ssBusy, setSsBusy] = useState(false);
-  const [ssConfirmOpen, setSsConfirmOpen] = useState(false);
-
   const load = useCallback(async () => {
     setLoading(true);
     setLoadErr(false);
     try {
       const res = await fetch("/api/settings", { cache: "no-store" });
       if (!res.ok) throw new Error("load");
-      const d = (await res.json()) as { core: CoreSettingsDTO; telegram: TelegramSettingsDTO };
+      const d = (await res.json()) as {
+        core: CoreSettingsDTO;
+        telegram: TelegramSettingsDTO;
+        nav: NavDTO;
+        general: GeneralSettingsDTO;
+        expert: ExpertSettingsDTO;
+      };
       setCoreForm({
         driver: d.core.driver,
         apiHost: d.core.apiHost,
@@ -306,15 +413,90 @@ export function SettingsView() {
       });
       setTokenConfigured(d.telegram.tokenConfigured);
       setTokenMasked(d.telegram.tokenMasked);
+      setGeneralForm({
+        datepicker: d.general.datepicker,
+        pageSize: String(d.general.pageSize),
+      });
+      setExpertForm(expertFromDTO(d.expert));
+      setRawJson(d.expert.rawJson);
+      setCertForm({ certFile: d.expert.certFile, keyFile: d.expert.keyFile });
+      setSessionAge(String(d.expert.sessionMaxAge));
+      /* sync the zustand store so the top bar matches the server */
+      setModules({
+        hosts: d.nav.hosts,
+        nodes: d.nav.nodes,
+        outbounds: d.nav.outbounds,
+        routing: d.nav.routing,
+      });
     } catch {
       setLoadErr(true);
     }
     setLoading(false);
-  }, []);
+  }, [setModules]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  /* ---------- top-bar modules (optimistic, live) ---------- */
+
+  const toggleModule = (key: keyof ModuleVisibility, v: boolean) => {
+    const prev = { ...useAppStore.getState().modules };
+    setModule(key, v); /* top bar reacts instantly */
+    void (async () => {
+      try {
+        const res = await fetch("/api/settings", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ section: "nav", ...prev, [key]: v }),
+        });
+        if (!res.ok) throw new Error("nav");
+      } catch {
+        setModules(prev); /* revert on failure */
+        toast({ description: t.inbounds.errGeneric });
+      }
+    })();
+  };
+
+  /* ---------- general panel preferences ---------- */
+
+  const saveGeneral = async () => {
+    const pageSize = Number(generalForm.pageSize);
+    if (!Number.isInteger(pageSize) || pageSize < 10 || pageSize > 100) {
+      setGeneralErr(u.pageSizeDesc);
+      return;
+    }
+    setGeneralErr(null);
+    setSavingGeneral(true);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          section: "general",
+          datepicker: generalForm.datepicker,
+          pageSize,
+        }),
+      });
+      if (!res.ok) {
+        if (res.status === 400) {
+          setGeneralErr(u.pageSizeDesc);
+          return;
+        }
+        throw new Error("save");
+      }
+      const d = (await res.json()) as { general: GeneralSettingsDTO };
+      setGeneralForm({
+        datepicker: d.general.datepicker,
+        pageSize: String(d.general.pageSize),
+      });
+      toast({ description: u.generalSaved });
+    } catch {
+      toast({ description: t.inbounds.errGeneric });
+    } finally {
+      setSavingGeneral(false);
+    }
+  };
 
   /* ---------- core ---------- */
 
@@ -371,6 +553,183 @@ export function SettingsView() {
       }
     } catch {
       setCoreTest({ busy: false, result: { ok: false, msg: u.testFail } });
+    }
+  };
+
+  /* ---------- expert · xray configs ---------- */
+
+  const expertFieldError = (field: string): string => {
+    switch (field) {
+      case "dnsServers":
+        return u.dnsDesc;
+      case "connIdle":
+        return u.connIdleDesc;
+      case "bufferSize":
+        return u.bufferSizeDesc;
+      case "rawJson":
+        return u.jsonDesc;
+      case "certFile":
+      case "keyFile":
+        return u.certDesc;
+      case "sessionMaxAge":
+        return u.sessionAgeDesc;
+      case "logLevel":
+      case "domainStrategy":
+      case "freedomStrategy":
+        return u.xrayDesc;
+      default:
+        return t.inbounds.errGeneric;
+    }
+  };
+
+  const saveXray = async () => {
+    const errs: Partial<Record<XrayField, string>> = {};
+    const connIdle = Number(expertForm.connIdle);
+    if (!Number.isInteger(connIdle) || connIdle < 4 || connIdle > 86400) {
+      errs.connIdle = u.connIdleDesc;
+    }
+    const bufferSize = Number(expertForm.bufferSize);
+    if (!Number.isInteger(bufferSize) || bufferSize < 4 || bufferSize > 65535) {
+      errs.bufferSize = u.bufferSizeDesc;
+    }
+    setXrayErrs(errs);
+    if (Object.keys(errs).length > 0) return;
+    setSavingXray(true);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          section: "expert",
+          logLevel: expertForm.logLevel,
+          dnsServers: expertForm.dnsServers,
+          domainStrategy: expertForm.domainStrategy,
+          freedomStrategy: expertForm.freedomStrategy,
+          connIdle,
+          bufferSize,
+        }),
+      });
+      if (!res.ok) {
+        if (res.status === 400) {
+          const d = (await res.json()) as { fields?: { field: string; code: string }[] };
+          const mapped: Partial<Record<XrayField, string>> = {};
+          for (const f of d.fields ?? []) {
+            mapped[f.field as XrayField] = expertFieldError(f.field);
+          }
+          setXrayErrs(mapped);
+          return;
+        }
+        throw new Error("save");
+      }
+      const d = (await res.json()) as { expert: ExpertSettingsDTO };
+      setExpertForm(expertFromDTO(d.expert));
+      toast({ description: u.expertSaved });
+    } catch {
+      toast({ description: t.inbounds.errGeneric });
+    } finally {
+      setSavingXray(false);
+    }
+  };
+
+  /* ---------- expert · raw JSON template ---------- */
+
+  const saveRawJson = async (override?: string) => {
+    const value = override ?? rawJson;
+    if (value.trim() !== "") {
+      try {
+        JSON.parse(value);
+      } catch (e) {
+        setJsonErr(e instanceof Error ? e.message : String(e));
+        return;
+      }
+    }
+    setJsonErr(null);
+    setSavingJson(true);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ section: "expert", rawJson: value }),
+      });
+      if (!res.ok) {
+        if (res.status === 400) {
+          setJsonErr(u.jsonDesc);
+          return;
+        }
+        throw new Error("save");
+      }
+      const d = (await res.json()) as { expert: ExpertSettingsDTO };
+      setRawJson(d.expert.rawJson);
+      toast({ description: override !== undefined ? u.jsonResetDone : u.jsonSaved });
+    } catch {
+      toast({ description: t.inbounds.errGeneric });
+    } finally {
+      setSavingJson(false);
+    }
+  };
+
+  /* ---------- expert · certificates ---------- */
+
+  const saveCert = async () => {
+    setCertErr(null);
+    setSavingCert(true);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          section: "expert",
+          certFile: certForm.certFile.trim(),
+          keyFile: certForm.keyFile.trim(),
+        }),
+      });
+      if (!res.ok) {
+        if (res.status === 400) {
+          setCertErr(u.certDesc);
+          return;
+        }
+        throw new Error("save");
+      }
+      const d = (await res.json()) as { expert: ExpertSettingsDTO };
+      setCertForm({ certFile: d.expert.certFile, keyFile: d.expert.keyFile });
+      toast({ description: u.expertSaved });
+    } catch {
+      toast({ description: t.inbounds.errGeneric });
+    } finally {
+      setSavingCert(false);
+    }
+  };
+
+  /* ---------- expert · sessions ---------- */
+
+  const saveSession = async () => {
+    const n = Number(sessionAge);
+    if (!Number.isInteger(n) || n < 5 || n > 43200) {
+      setSessionErr(u.sessionAgeDesc);
+      return;
+    }
+    setSessionErr(null);
+    setSavingSession(true);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ section: "expert", sessionMaxAge: n }),
+      });
+      if (!res.ok) {
+        if (res.status === 400) {
+          setSessionErr(u.sessionAgeDesc);
+          return;
+        }
+        throw new Error("save");
+      }
+      const d = (await res.json()) as { expert: ExpertSettingsDTO };
+      setSessionAge(String(d.expert.sessionMaxAge));
+      toast({ description: u.expertSaved });
+    } catch {
+      toast({ description: t.inbounds.errGeneric });
+    } finally {
+      setSavingSession(false);
     }
   };
 
@@ -538,95 +897,15 @@ export function SettingsView() {
     setRestoring(false);
   };
 
-  /* ---------- security ---------- */
-
-  const changePassword = async () => {
-    setPwErr({});
-    if (!pw.current) {
-      setPwErr({ current: u.errCurrent });
-      return;
-    }
-    if (pw.next.length < 6) {
-      setPwErr({ next: u.errShort });
-      return;
-    }
-    if (pw.next !== pw.confirm) {
-      setPwErr({ confirm: u.errMismatch });
-      return;
-    }
-    setPwSaving(true);
-    try {
-      const res = await fetch("/api/auth/change-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ current: pw.current, next: pw.next }),
-      });
-      if (res.status === 403) {
-        setPwErr({ current: u.errCurrent });
-        return;
-      }
-      if (res.status === 400) {
-        setPwErr({ next: u.errShort });
-        return;
-      }
-      if (!res.ok) throw new Error("pw");
-      setPw({ current: "", next: "", confirm: "" });
-      toast({ description: u.pwChanged });
-    } catch {
-      toast({ description: t.inbounds.errGeneric });
-    }
-    setPwSaving(false);
-  };
-
-  const rotateKey = async () => {
-    setRkConfirmOpen(false);
-    setRkBusy(true);
-    try {
-      const res = await fetch("/api/auth/recovery/rotate", { method: "POST" });
-      if (!res.ok) throw new Error("rk");
-      const d = (await res.json()) as { recoveryKey?: string };
-      if (d.recoveryKey) setNewKey(d.recoveryKey);
-    } catch {
-      toast({ description: t.inbounds.errGeneric });
-    }
-    setRkBusy(false);
-  };
-
-  const copyKey = async () => {
-    if (!newKey) return;
-    try {
-      await navigator.clipboard.writeText(newKey);
-      toast({ description: t.inbounds.toastCopied });
-    } catch {
-      /* clipboard unavailable */
-    }
-  };
-
-  const revokeSessions = async () => {
-    setSsConfirmOpen(false);
-    setSsBusy(true);
-    try {
-      const res = await fetch("/api/auth/revoke-sessions", { method: "POST" });
-      if (!res.ok) throw new Error("ss");
-      toast({ description: u.ssDone });
-      setTimeout(async () => {
-        try {
-          await fetch("/api/auth/logout", { method: "POST" });
-        } catch {
-          /* session already invalid */
-        }
-        window.location.reload();
-      }, 600);
-      return;
-    } catch {
-      toast({ description: t.inbounds.errGeneric });
-    }
-    setSsBusy(false);
-  };
-
   /* ---------- render helpers ---------- */
 
   const feedLive = coreStatus === "live";
+  const xrayErr = (k: XrayField) =>
+    xrayErrs[k] ? (
+      <p role="alert" className="text-xs text-chart-5">
+        {xrayErrs[k]}
+      </p>
+    ) : null;
 
   if (loading) {
     return (
@@ -636,7 +915,7 @@ export function SettingsView() {
           <Skeleton className="h-9 w-64" />
           <Skeleton className="h-4 w-80" />
         </div>
-        <Skeleton className="h-11 w-full max-w-xl rounded-full" />
+        <Skeleton className="h-11 w-full max-w-md rounded-full" />
         <div className="grid gap-4 lg:grid-cols-2">
           <Skeleton className="h-64 rounded-2xl" />
           <Skeleton className="h-64 rounded-2xl" />
@@ -683,670 +962,891 @@ export function SettingsView() {
         <Tip className="mt-3 max-w-2xl">{u.tipTab}</Tip>
       </section>
 
-      {/* orbit tabs */}
-      <nav aria-label={t.nav.settings}>
-        <ul className="orbit-pill glass no-scrollbar flex list-none items-center gap-1 overflow-x-auto rounded-full p-1.5 lg:w-fit">
-          {(Object.keys(TAB_ICONS) as Tab[]).map((id) => {
-            const Icon = TAB_ICONS[id];
-            const active = tab === id;
-            return (
-              <li key={id} className="relative shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setTab(id)}
-                  aria-current={active ? "true" : undefined}
-                  className={cn(
-                    "flex h-9 items-center gap-2 rounded-full px-3.5 text-[13px] font-medium outline-none transition-all focus-visible:ring-2 focus-visible:ring-ring md:px-4",
-                    active
-                      ? "bg-gradient-to-br from-primary/20 to-primary/5 text-foreground glow-cyan"
-                      : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
-                  )}
-                >
-                  <Icon
-                    className={cn("h-3.5 w-3.5", active ? "text-primary" : "opacity-70")}
-                    aria-hidden="true"
-                  />
-                  <span className="whitespace-nowrap">{tabLabel(u, id)}</span>
-                </button>
-                {active && <span className="orbit-dot" aria-hidden="true" />}
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
+      {/* two glass tabs: General / Expert */}
+      <Tabs value={tab} onValueChange={(v) => setTab(v as TabId)} className="gap-5">
+        <TabsList
+          className="orbit-pill glass no-scrollbar h-11 w-full gap-1 overflow-x-auto rounded-full p-1.5 lg:w-fit"
+          aria-label={t.nav.settings}
+        >
+          <TabsTrigger
+            value="general"
+            className={cn(
+              "relative h-8 gap-2 rounded-full border-transparent bg-transparent px-4 text-[13px] font-medium text-muted-foreground hover:text-foreground md:px-5 data-[state=active]:border-transparent data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary/20 data-[state=active]:to-primary/5 data-[state=active]:text-foreground",
+              tab === "general" && "glow-cyan"
+            )}
+          >
+            <LayoutDashboard
+              className={cn("h-3.5 w-3.5", tab === "general" ? "text-primary" : "opacity-70")}
+              aria-hidden="true"
+            />
+            <span className="whitespace-nowrap">{u.tabGeneral}</span>
+            {tab === "general" && <span className="orbit-dot" aria-hidden="true" />}
+          </TabsTrigger>
+          <TabsTrigger
+            value="expert"
+            className={cn(
+              "relative h-8 gap-2 rounded-full border-transparent bg-transparent px-4 text-[13px] font-medium text-muted-foreground hover:text-foreground md:px-5 data-[state=active]:border-transparent data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary/20 data-[state=active]:to-primary/5 data-[state=active]:text-foreground",
+              tab === "expert" && "glow-cyan"
+            )}
+          >
+            <Wrench
+              className={cn("h-3.5 w-3.5", tab === "expert" ? "text-primary" : "opacity-70")}
+              aria-hidden="true"
+            />
+            <span className="whitespace-nowrap">{u.tabExpert}</span>
+            {tab === "expert" && <span className="orbit-dot" aria-hidden="true" />}
+          </TabsTrigger>
+        </TabsList>
 
-      {/* ═══ GENERAL ═══ */}
-      {tab === "general" && (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <SectionCard icon={Settings2} title={u.langTitle} desc={u.langDesc}>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {LANGS.map((l: Lang) => {
-                const active = l === lang;
-                return (
-                  <button
-                    key={l}
-                    type="button"
-                    onClick={() => setLang(l)}
-                    aria-pressed={active}
-                    className={cn(
-                      "flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-sm outline-none transition-all focus-visible:ring-2 focus-visible:ring-ring",
-                      active
-                        ? "bg-gradient-to-br from-primary/25 to-primary/5 text-foreground ring-1 ring-primary/40"
-                        : "text-muted-foreground ring-1 ring-border hover:bg-white/5 hover:text-foreground"
-                    )}
-                  >
-                    <span className="flex min-w-0 items-center gap-2">
-                      <span className="font-mono text-[10px] text-muted-foreground">
-                        {LANG_META[l].code}
+        {/* ═══════════ GENERAL ═══════════ */}
+        <TabsContent value="general">
+          <div className="grid gap-4 lg:grid-cols-2">
+            {/* language */}
+            <SectionCard icon={Languages} title={u.langTitle} desc={u.langDesc}>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {LANGS.map((l: Lang) => {
+                  const active = l === lang;
+                  return (
+                    <button
+                      key={l}
+                      type="button"
+                      onClick={() => setLang(l)}
+                      aria-pressed={active}
+                      className={cn(
+                        "flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-sm outline-none transition-all focus-visible:ring-2 focus-visible:ring-ring",
+                        active
+                          ? "bg-gradient-to-br from-primary/25 to-primary/5 text-foreground ring-1 ring-primary/40"
+                          : "text-muted-foreground ring-1 ring-border hover:bg-white/5 hover:text-foreground"
+                      )}
+                    >
+                      <span className="flex min-w-0 items-center gap-2">
+                        <span className="font-mono text-[10px] text-muted-foreground">
+                          {LANG_META[l].code}
+                        </span>
+                        <span className="truncate">{LANG_META[l].native}</span>
                       </span>
-                      <span className="truncate">{LANG_META[l].native}</span>
-                    </span>
-                    {active ? (
-                      <Check className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />
-                    ) : (
-                      <span className="shrink-0 text-[10px] uppercase text-muted-foreground/60">
-                        {LANG_META[l].dir}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-            <Tip className="mt-4">{u.tipLang}</Tip>
-          </SectionCard>
-
-          <SectionCard icon={Palette} title={u.lookTitle} desc={u.lookDesc}>
-            <div className="divide-y divide-border/60">
-              <SwitchRow
-                label={u.starfield}
-                desc={u.starfieldDesc}
-                checked={starfield}
-                onCheckedChange={setStarfield}
-              />
-              <div className="flex items-center justify-between gap-4 py-2.5">
-                <p className="text-sm font-medium text-foreground">{u.glow}</p>
-                <div className="flex items-center gap-1.5">
-                  <Chip active={glow === "on"} onClick={() => setGlow("on" as GlowPref)}>
-                    {u.glowOn}
-                  </Chip>
-                  <Chip active={glow === "soft"} onClick={() => setGlow("soft" as GlowPref)}>
-                    {u.glowSoft}
-                  </Chip>
-                  <Chip active={glow === "off"} onClick={() => setGlow("off" as GlowPref)}>
-                    {u.glowOff}
-                  </Chip>
-                </div>
+                      {active ? (
+                        <Check className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />
+                      ) : (
+                        <span className="shrink-0 text-[10px] uppercase text-muted-foreground/60">
+                          {LANG_META[l].dir}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
-              <SwitchRow
-                label={u.motion}
-                desc={u.motionDesc}
-                checked={reduceMotion}
-                onCheckedChange={setReduceMotion}
-              />
-            </div>
-            <Tip className="mt-4">{u.tipLook}</Tip>
-          </SectionCard>
-        </div>
-      )}
+              <Tip className="mt-4">{u.tipLang}</Tip>
+            </SectionCard>
 
-      {/* ═══ CORE ═══ */}
-      {tab === "core" && (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <SectionCard icon={RadioTower} title={u.coreTitle} desc={u.coreDesc}>
-            <div className="space-y-4">
+            {/* appearance */}
+            <SectionCard icon={Palette} title={u.lookTitle} desc={u.lookDesc}>
+              <div className="divide-y divide-border/60">
+                <SwitchRow
+                  label={u.starfield}
+                  desc={u.starfieldDesc}
+                  checked={starfield}
+                  onCheckedChange={setStarfield}
+                />
+                <div className="flex items-center justify-between gap-4 py-2.5">
+                  <p className="text-sm font-medium text-foreground">{u.glow}</p>
+                  <div className="flex items-center gap-1.5">
+                    <Chip active={glow === "on"} onClick={() => setGlow("on" as GlowPref)}>
+                      {u.glowOn}
+                    </Chip>
+                    <Chip active={glow === "soft"} onClick={() => setGlow("soft" as GlowPref)}>
+                      {u.glowSoft}
+                    </Chip>
+                    <Chip active={glow === "off"} onClick={() => setGlow("off" as GlowPref)}>
+                      {u.glowOff}
+                    </Chip>
+                  </div>
+                </div>
+                <SwitchRow
+                  label={u.motion}
+                  desc={u.motionDesc}
+                  checked={reduceMotion}
+                  onCheckedChange={setReduceMotion}
+                />
+              </div>
+              <Tip className="mt-4">{u.tipLook}</Tip>
+            </SectionCard>
+
+            {/* top-bar modules (live) */}
+            <SectionCard icon={PanelsTopLeft} title={u.navTitle} desc={u.navDesc}>
+              <div className="divide-y divide-border/60">
+                <SwitchRow
+                  icon={Network}
+                  label={u.navHosts}
+                  desc={u.navHostsDesc}
+                  checked={modules.hosts}
+                  onCheckedChange={(v) => toggleModule("hosts", v)}
+                />
+                <SwitchRow
+                  icon={Server}
+                  label={u.navNodes}
+                  desc={u.navNodesDesc}
+                  checked={modules.nodes}
+                  onCheckedChange={(v) => toggleModule("nodes", v)}
+                />
+                <SwitchRow
+                  icon={ArrowRightLeft}
+                  label={u.navOutbounds}
+                  desc={u.navOutboundsDesc}
+                  checked={modules.outbounds}
+                  onCheckedChange={(v) => toggleModule("outbounds", v)}
+                />
+                <SwitchRow
+                  icon={Route}
+                  label={u.navRouting}
+                  desc={u.navRoutingDesc}
+                  checked={modules.routing}
+                  onCheckedChange={(v) => toggleModule("routing", v)}
+                />
+              </div>
+              <p className="mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <Zap className="h-3 w-3 shrink-0 text-primary/80" aria-hidden="true" />
+                {u.navHint}
+              </p>
+            </SectionCard>
+
+            {/* panel preferences */}
+            <SectionCard icon={SlidersHorizontal} title={u.panelTitle} desc={u.panelDesc}>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <Label htmlFor="core-driver">{u.driver}</Label>
+                  <Label htmlFor="gen-datepicker">{u.datepicker}</Label>
                   <Select
-                    value={coreForm.driver}
+                    value={generalForm.datepicker}
                     onValueChange={(v) =>
-                      setCoreForm((p) => ({ ...p, driver: v as CoreForm["driver"] }))
+                      setGeneralForm((p) => ({
+                        ...p,
+                        datepicker: v as GeneralSettingsDTO["datepicker"],
+                      }))
                     }
                   >
-                    <SelectTrigger id="core-driver" className="w-full">
+                    <SelectTrigger id="gen-datepicker" className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="glass-strong">
-                      <SelectItem value="simulator">{u.driverSim}</SelectItem>
-                      <SelectItem value="xray">{u.driverXray}</SelectItem>
+                      <SelectItem value="gregorian">{u.dpGregorian}</SelectItem>
+                      <SelectItem value="jalalian">{u.dpJalalian}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="core-host">{u.apiHost}</Label>
+                  <Label htmlFor="gen-pagesize">{u.pageSize}</Label>
                   <Input
-                    id="core-host"
-                    dir="ltr"
-                    className="font-mono"
-                    value={coreForm.apiHost}
-                    onChange={(e) => setCoreForm((p) => ({ ...p, apiHost: e.target.value }))}
-                    placeholder="127.0.0.1"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="core-port">{u.apiPort}</Label>
-                  <Input
-                    id="core-port"
+                    id="gen-pagesize"
                     dir="ltr"
                     inputMode="numeric"
                     className="font-mono"
-                    value={coreForm.apiPort}
+                    value={generalForm.pageSize}
                     onChange={(e) =>
-                      setCoreForm((p) => ({ ...p, apiPort: e.target.value.replace(/[^0-9]/g, "") }))
+                      setGeneralForm((p) => ({
+                        ...p,
+                        pageSize: e.target.value.replace(/[^0-9]/g, ""),
+                      }))
                     }
-                    placeholder="10085"
+                    placeholder="25"
                   />
+                  <p className="text-[11px] text-muted-foreground">{u.pageSizeDesc}</p>
+                  {generalErr && (
+                    <p role="alert" className="text-xs text-chart-5">
+                      {generalErr}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="pt-4">
+                <Button onClick={() => void saveGeneral()} disabled={savingGeneral} className="gap-2">
+                  {savingGeneral ? (
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Check className="h-4 w-4" aria-hidden="true" />
+                  )}
+                  {t.subgroups.save}
+                </Button>
+              </div>
+            </SectionCard>
+
+            {/* telegram bot */}
+            <SectionCard icon={Send} title={u.tgTitle} desc={u.tgDesc}>
+              <div className="space-y-4">
+                <SwitchRow
+                  label={u.tgEnabled}
+                  checked={tgForm.enabled}
+                  onCheckedChange={(v) => setTgForm((p) => ({ ...p, enabled: v }))}
+                />
+                <div className="space-y-1.5">
+                  <Label htmlFor="tg-token">{u.tgToken}</Label>
+                  <Input
+                    id="tg-token"
+                    dir="ltr"
+                    type="password"
+                    autoComplete="off"
+                    className="font-mono"
+                    value={tgForm.token}
+                    onChange={(e) => setTgForm((p) => ({ ...p, token: e.target.value }))}
+                    placeholder={tokenConfigured ? tokenMasked : u.tgTokenPh}
+                  />
+                  {tokenConfigured ? (
+                    <p className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                      <span>{u.tgTokenKeep}</span>
+                      <button
+                        type="button"
+                        onClick={() => void saveTelegram(null)}
+                        disabled={savingTg}
+                        className="text-chart-5 underline-offset-2 hover:underline"
+                      >
+                        {u.tgRemoveToken}
+                      </button>
+                    </p>
+                  ) : null}
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="core-tick">{u.tick}</Label>
-                  <Select
-                    value={coreForm.tickSeconds}
-                    onValueChange={(v) => setCoreForm((p) => ({ ...p, tickSeconds: v }))}
-                  >
-                    <SelectTrigger id="core-tick" className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="glass-strong">
-                      {["1", "2", "3", "5"].map((s) => (
-                        <SelectItem key={s} value={s} dir="ltr">
-                          {s} {u.tickSec}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                <Button onClick={() => void saveCore()} disabled={savingCore} className="gap-2">
-                  {savingCore ? (
-                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                  ) : (
-                    <Check className="h-4 w-4" aria-hidden="true" />
-                  )}
-                  {t.subgroups.save}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => void testCore()}
-                  disabled={coreTest.busy}
-                  className="gap-2 rounded-full border-border bg-white/4 hover:bg-white/8"
-                >
-                  {coreTest.busy ? (
-                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                  ) : (
-                    <Wifi className="h-4 w-4" aria-hidden="true" />
-                  )}
-                  {coreTest.busy ? u.testing : u.coreTest}
-                </Button>
-              </div>
-
-              {coreTest.result && (
-                <p
-                  role="status"
-                  className={cn(
-                    "flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs ring-1",
-                    coreTest.result.ok
-                      ? "bg-chart-3/10 text-chart-3 ring-chart-3/30"
-                      : "bg-chart-5/10 text-chart-5 ring-chart-5/30"
-                  )}
-                  dir="auto"
-                >
-                  {coreTest.result.ok ? (
-                    <Wifi className="h-3.5 w-3.5" aria-hidden="true" />
-                  ) : (
-                    <WifiOff className="h-3.5 w-3.5" aria-hidden="true" />
-                  )}
-                  {coreTest.result.ok ? sfmt(u.testOk, { ms: coreTest.result.ms }) : coreTest.result.msg}
-                </p>
-              )}
-            </div>
-            <Tip className="mt-4">{u.tipCore}</Tip>
-          </SectionCard>
-
-          <SectionCard icon={Sparkles} title={u.feedTitle} desc={u.feedDesc}>
-            <div className="flex items-center justify-between gap-4 rounded-xl bg-white/[0.03] px-4 py-3.5 ring-1 ring-border/70">
-              <div className="flex items-center gap-2.5">
-                <span className="relative flex h-2.5 w-2.5">
-                  {feedLive && (
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-                  )}
-                  <span
-                    className={cn(
-                      "relative inline-flex h-2.5 w-2.5 rounded-full",
-                      feedLive ? "bg-emerald-400" : "bg-chart-5"
-                    )}
+                  <Label htmlFor="tg-chat">{u.tgChatId}</Label>
+                  <Input
+                    id="tg-chat"
+                    dir="ltr"
+                    className="font-mono"
+                    value={tgForm.chatId}
+                    onChange={(e) => setTgForm((p) => ({ ...p, chatId: e.target.value }))}
+                    placeholder={u.tgChatIdPh}
                   />
-                </span>
-                <span className="text-sm font-medium text-foreground">
-                  {feedLive ? u.statusLive : u.statusDown}
-                </span>
-              </div>
-              <span className="font-mono text-xs text-muted-foreground" dir="ltr">
-                {coreForm.tickSeconds} {u.tickSec}
-              </span>
-            </div>
-            <div className="mt-4 space-y-2 text-xs text-muted-foreground">
-              <p className="flex items-center justify-between gap-2">
-                <span>{u.driver}</span>
-                <span className="font-medium text-foreground">
-                  {coreForm.driver === "simulator" ? u.driverSim : u.driverXray}
-                </span>
-              </p>
-              <p className="flex items-center justify-between gap-2">
-                <span>{u.apiHost}</span>
-                <span className="font-mono text-foreground" dir="ltr">
-                  {coreForm.apiHost}
-                </span>
-              </p>
-              <p className="flex items-center justify-between gap-2">
-                <span>{u.apiPort}</span>
-                <span className="font-mono text-foreground" dir="ltr">
-                  {coreForm.apiPort}
-                </span>
-              </p>
-            </div>
-          </SectionCard>
-        </div>
-      )}
-
-      {/* ═══ TELEGRAM ═══ */}
-      {tab === "telegram" && (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <SectionCard icon={Send} title={u.tgTitle} desc={u.tgDesc}>
-            <div className="space-y-4">
-              <SwitchRow
-                label={u.tgEnabled}
-                checked={tgForm.enabled}
-                onCheckedChange={(v) => setTgForm((p) => ({ ...p, enabled: v }))}
-              />
-              <div className="space-y-1.5">
-                <Label htmlFor="tg-token">{u.tgToken}</Label>
-                <Input
-                  id="tg-token"
-                  dir="ltr"
-                  type="password"
-                  autoComplete="off"
-                  className="font-mono"
-                  value={tgForm.token}
-                  onChange={(e) => setTgForm((p) => ({ ...p, token: e.target.value }))}
-                  placeholder={tokenConfigured ? tokenMasked : u.tgTokenPh}
-                />
-                {tokenConfigured ? (
-                  <p className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
-                    <span>{u.tgTokenKeep}</span>
-                    <button
-                      type="button"
-                      onClick={() => void saveTelegram(null)}
-                      disabled={savingTg}
-                      className="text-chart-5 underline-offset-2 hover:underline"
-                    >
-                      {u.tgRemoveToken}
-                    </button>
-                  </p>
-                ) : null}
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="tg-chat">{u.tgChatId}</Label>
-                <Input
-                  id="tg-chat"
-                  dir="ltr"
-                  className="font-mono"
-                  value={tgForm.chatId}
-                  onChange={(e) => setTgForm((p) => ({ ...p, chatId: e.target.value }))}
-                  placeholder={u.tgChatIdPh}
-                />
-              </div>
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                <Button onClick={() => void saveTelegram()} disabled={savingTg} className="gap-2">
-                  {savingTg ? (
-                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                  ) : (
-                    <Check className="h-4 w-4" aria-hidden="true" />
-                  )}
-                  {t.subgroups.save}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => void testTelegram()}
-                  disabled={tgTest.busy}
-                  className="gap-2 rounded-full border-border bg-white/4 hover:bg-white/8"
-                >
-                  {tgTest.busy ? (
-                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                  ) : (
-                    <Send className="h-4 w-4" aria-hidden="true" />
-                  )}
-                  {tgTest.busy ? u.testing : u.tgTest}
-                </Button>
-              </div>
-              {tgTest.result && (
-                <p
-                  role="status"
-                  className={cn(
-                    "rounded-lg px-2.5 py-2 text-xs ring-1",
-                    tgTest.result.ok
-                      ? "bg-chart-3/10 text-chart-3 ring-chart-3/30"
-                      : "bg-chart-5/10 text-chart-5 ring-chart-5/30"
-                  )}
-                  dir="auto"
-                >
-                  {tgTest.result.ok ? sfmt(u.testOk, { ms: tgTest.result.ms }) : tgTest.result.msg}
-                </p>
-              )}
-            </div>
-            <Tip className="mt-4">{u.tipTg}</Tip>
-          </SectionCard>
-
-          <SectionCard icon={Sparkles} title={u.tgNotify}>
-            <div className="divide-y divide-border/60">
-              <SwitchRow
-                label={u.tgNCreated}
-                checked={tgForm.notify.userCreated}
-                onCheckedChange={(v) =>
-                  setTgForm((p) => ({ ...p, notify: { ...p.notify, userCreated: v } }))
-                }
-              />
-              <SwitchRow
-                label={u.tgNExpired}
-                checked={tgForm.notify.userExpired}
-                onCheckedChange={(v) =>
-                  setTgForm((p) => ({ ...p, notify: { ...p.notify, userExpired: v } }))
-                }
-              />
-              <SwitchRow
-                label={u.tgNTraffic}
-                checked={tgForm.notify.trafficAlert}
-                onCheckedChange={(v) =>
-                  setTgForm((p) => ({ ...p, notify: { ...p.notify, trafficAlert: v } }))
-                }
-              />
-              <SwitchRow
-                label={u.tgNLogin}
-                checked={tgForm.notify.loginAlert}
-                onCheckedChange={(v) =>
-                  setTgForm((p) => ({ ...p, notify: { ...p.notify, loginAlert: v } }))
-                }
-              />
-            </div>
-            <p className="mt-3 text-[11px] text-muted-foreground">{u.tgTestDesc}</p>
-          </SectionCard>
-        </div>
-      )}
-
-      {/* ═══ BACKUP ═══ */}
-      {tab === "backup" && (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <SectionCard icon={Download} title={u.bkTitle} desc={u.bkDesc}>
-            <Button onClick={() => void downloadBackup()} disabled={exporting} className="glow-cyan gap-2">
-              {exporting ? (
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-              ) : (
-                <Download className="h-4 w-4" aria-hidden="true" />
-              )}
-              {exporting ? u.bkDownloading : u.bkDownload}
-            </Button>
-            <Tip className="mt-4">{u.tipBackup}</Tip>
-          </SectionCard>
-
-          <SectionCard
-            icon={DatabaseBackup}
-            title={u.bkRestoreTitle}
-            desc={u.bkRestoreDesc}
-            className="ring-1 ring-chart-5/25"
-          >
-            <div className="space-y-3">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".json,application/json"
-                className="sr-only"
-                id="restore-file"
-                onChange={(e) => void onFilePicked(e.target.files?.[0])}
-              />
-              <Button
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-                className="gap-2 rounded-xl border-border bg-white/4 hover:bg-white/8"
-              >
-                <DatabaseBackup className="h-4 w-4" aria-hidden="true" />
-                {u.bkPick}
-              </Button>
-
-              {backupErr && (
-                <p role="alert" className="rounded-lg bg-chart-5/10 px-2.5 py-2 text-xs text-chart-5 ring-1 ring-chart-5/30" dir="auto">
-                  {backupErr}
-                </p>
-              )}
-
-              {backup && (
-                <div className="space-y-3 rounded-xl bg-white/[0.03] p-4 ring-1 ring-border/70">
-                  <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                    <span>{u.bkExportedAt}</span>
-                    <span className="font-mono text-foreground" dir="ltr">
-                      {backup.exportedAt ? backup.exportedAt.slice(0, 19).replace("T", " ") : "—"}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    {[
-                      [u.bkInbounds, backup.counts.inbounds],
-                      [u.bkUsers, backup.counts.users],
-                      [u.bkGroups, backup.counts.subGroups],
-                      [u.bkResellers, backup.counts.resellers],
-                      [u.bkTemplates, backup.counts.saleTemplates],
-                    ].map(([label, value]) => (
-                      <div
-                        key={String(label)}
-                        className="rounded-lg bg-white/[0.03] px-3 py-2 ring-1 ring-border/60"
-                      >
-                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                          {label}
-                        </p>
-                        <p className="font-mono text-sm font-semibold text-foreground" dir="ltr">
-                          {value}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="restore-confirm">{u.bkConfirmPh}</Label>
-                    <Input
-                      id="restore-confirm"
-                      dir="ltr"
-                      autoComplete="off"
-                      className="font-mono"
-                      value={confirmText}
-                      onChange={(e) => setConfirmText(e.target.value.toUpperCase())}
-                      placeholder="RESTORE"
-                    />
-                    <p className="flex items-center gap-1.5 text-[11px] text-chart-5">
-                      <TriangleAlert className="h-3 w-3 shrink-0" aria-hidden="true" />
-                      {u.bkConfirmHint}
-                    </p>
-                  </div>
-                  <Button
-                    variant="destructive"
-                    onClick={() => void doRestore()}
-                    disabled={restoring || confirmText !== "RESTORE"}
-                    className="gap-2"
-                  >
-                    {restoring ? (
+                </div>
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <Button onClick={() => void saveTelegram()} disabled={savingTg} className="gap-2">
+                    {savingTg ? (
                       <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                     ) : (
-                      <DatabaseBackup className="h-4 w-4" aria-hidden="true" />
+                      <Check className="h-4 w-4" aria-hidden="true" />
                     )}
-                    {restoring ? u.bkRestoring : u.bkRestore}
+                    {t.subgroups.save}
                   </Button>
-                </div>
-              )}
-            </div>
-          </SectionCard>
-        </div>
-      )}
-
-      {/* ═══ SECURITY ═══ */}
-      {tab === "security" && (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <SectionCard icon={ShieldCheck} title={u.pwTitle} desc={u.pwDesc}>
-            <div className="space-y-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="pw-current">{u.pwCurrent}</Label>
-                <Input
-                  id="pw-current"
-                  type="password"
-                  autoComplete="current-password"
-                  value={pw.current}
-                  onChange={(e) => setPw((p) => ({ ...p, current: e.target.value }))}
-                />
-                {pwErr.current && <p className="text-xs text-chart-5">{pwErr.current}</p>}
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="pw-next">{u.pwNew}</Label>
-                <Input
-                  id="pw-next"
-                  type="password"
-                  autoComplete="new-password"
-                  value={pw.next}
-                  onChange={(e) => setPw((p) => ({ ...p, next: e.target.value }))}
-                />
-                {pwErr.next && <p className="text-xs text-chart-5">{pwErr.next}</p>}
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="pw-confirm">{u.pwConfirm}</Label>
-                <Input
-                  id="pw-confirm"
-                  type="password"
-                  autoComplete="new-password"
-                  value={pw.confirm}
-                  onChange={(e) => setPw((p) => ({ ...p, confirm: e.target.value }))}
-                />
-                {pwErr.confirm && <p className="text-xs text-chart-5">{pwErr.confirm}</p>}
-              </div>
-              <Button onClick={() => void changePassword()} disabled={pwSaving} className="gap-2">
-                {pwSaving ? (
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                ) : (
-                  <Check className="h-4 w-4" aria-hidden="true" />
-                )}
-                {t.subgroups.save}
-              </Button>
-            </div>
-          </SectionCard>
-
-          <div className="space-y-4">
-            <SectionCard icon={KeyRound} title={u.rkTitle} desc={u.rkDesc}>
-              {newKey ? (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-3 rounded-xl bg-primary/[0.06] px-4 py-3 ring-1 ring-primary/30">
-                    <code className="font-mono text-sm font-bold tracking-wider text-primary" dir="ltr">
-                      {newKey}
-                    </code>
-                    <button
-                      type="button"
-                      onClick={() => void copyKey()}
-                      aria-label={t.inbounds.toastCopied}
-                      className="glass flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-primary transition-shadow hover:glow-cyan"
-                    >
-                      <Copy className="h-3.5 w-3.5" aria-hidden="true" />
-                    </button>
-                  </div>
-                  <p className="flex items-center gap-1.5 text-[11px] text-chart-4">
-                    <CircleAlert className="h-3 w-3 shrink-0" aria-hidden="true" />
-                    {u.rkOnce}
-                  </p>
-                </div>
-              ) : (
-                <div className="flex flex-wrap items-center gap-3">
                   <Button
                     variant="outline"
-                    onClick={() => setRkConfirmOpen(true)}
-                    disabled={rkBusy}
+                    onClick={() => void testTelegram()}
+                    disabled={tgTest.busy}
                     className="gap-2 rounded-full border-border bg-white/4 hover:bg-white/8"
                   >
-                    {rkBusy ? (
+                    {tgTest.busy ? (
                       <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                     ) : (
-                      <RotateCw className="h-4 w-4" aria-hidden="true" />
+                      <Send className="h-4 w-4" aria-hidden="true" />
                     )}
-                    {rkBusy ? u.rkRotating : u.rkRotate}
+                    {tgTest.busy ? u.testing : u.tgTest}
                   </Button>
-                  <span className="font-mono text-xs text-muted-foreground" dir="ltr">
-                    SEPH-••••-••••-••••
-                  </span>
                 </div>
-              )}
+                {tgTest.result && (
+                  <p
+                    role="status"
+                    className={cn(
+                      "rounded-lg px-2.5 py-2 text-xs ring-1",
+                      tgTest.result.ok
+                        ? "bg-chart-3/10 text-chart-3 ring-chart-3/30"
+                        : "bg-chart-5/10 text-chart-5 ring-chart-5/30"
+                    )}
+                    dir="auto"
+                  >
+                    {tgTest.result.ok ? sfmt(u.testOk, { ms: tgTest.result.ms }) : tgTest.result.msg}
+                  </p>
+                )}
+              </div>
+              <Tip className="mt-4">{u.tipTg}</Tip>
             </SectionCard>
 
-            <SectionCard icon={LogOut} title={u.ssTitle} desc={u.ssDesc}>
-              <Button
-                variant="outline"
-                onClick={() => setSsConfirmOpen(true)}
-                disabled={ssBusy}
-                className="gap-2 rounded-full border-chart-5/40 text-chart-5 hover:bg-chart-5/10 hover:text-chart-5"
-              >
-                {ssBusy ? (
+            {/* telegram notifications */}
+            <SectionCard icon={Sparkles} title={u.tgNotify}>
+              <div className="divide-y divide-border/60">
+                <SwitchRow
+                  label={u.tgNCreated}
+                  checked={tgForm.notify.userCreated}
+                  onCheckedChange={(v) =>
+                    setTgForm((p) => ({ ...p, notify: { ...p.notify, userCreated: v } }))
+                  }
+                />
+                <SwitchRow
+                  label={u.tgNExpired}
+                  checked={tgForm.notify.userExpired}
+                  onCheckedChange={(v) =>
+                    setTgForm((p) => ({ ...p, notify: { ...p.notify, userExpired: v } }))
+                  }
+                />
+                <SwitchRow
+                  label={u.tgNTraffic}
+                  checked={tgForm.notify.trafficAlert}
+                  onCheckedChange={(v) =>
+                    setTgForm((p) => ({ ...p, notify: { ...p.notify, trafficAlert: v } }))
+                  }
+                />
+                <SwitchRow
+                  label={u.tgNLogin}
+                  checked={tgForm.notify.loginAlert}
+                  onCheckedChange={(v) =>
+                    setTgForm((p) => ({ ...p, notify: { ...p.notify, loginAlert: v } }))
+                  }
+                />
+              </div>
+              <p className="mt-3 text-[11px] text-muted-foreground">{u.tgTestDesc}</p>
+            </SectionCard>
+
+            {/* backup export */}
+            <SectionCard icon={Download} title={u.bkTitle} desc={u.bkDesc}>
+              <Button onClick={() => void downloadBackup()} disabled={exporting} className="glow-cyan gap-2">
+                {exporting ? (
                   <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                 ) : (
-                  <LogOut className="h-4 w-4" aria-hidden="true" />
+                  <Download className="h-4 w-4" aria-hidden="true" />
                 )}
-                {ssBusy ? u.ssRevoking : u.ssRevoke}
+                {exporting ? u.bkDownloading : u.bkDownload}
               </Button>
+              <Tip className="mt-4">{u.tipBackup}</Tip>
+            </SectionCard>
+
+            {/* backup restore */}
+            <SectionCard
+              icon={DatabaseBackup}
+              title={u.bkRestoreTitle}
+              desc={u.bkRestoreDesc}
+              className="ring-1 ring-chart-5/25"
+            >
+              <div className="space-y-3">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".json,application/json"
+                  className="sr-only"
+                  id="restore-file"
+                  onChange={(e) => void onFilePicked(e.target.files?.[0])}
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="gap-2 rounded-xl border-border bg-white/4 hover:bg-white/8"
+                >
+                  <DatabaseBackup className="h-4 w-4" aria-hidden="true" />
+                  {u.bkPick}
+                </Button>
+
+                {backupErr && (
+                  <p role="alert" className="rounded-lg bg-chart-5/10 px-2.5 py-2 text-xs text-chart-5 ring-1 ring-chart-5/30" dir="auto">
+                    {backupErr}
+                  </p>
+                )}
+
+                {backup && (
+                  <div className="space-y-3 rounded-xl bg-white/[0.03] p-4 ring-1 ring-border/70">
+                    <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                      <span>{u.bkExportedAt}</span>
+                      <span className="font-mono text-foreground" dir="ltr">
+                        {backup.exportedAt ? backup.exportedAt.slice(0, 19).replace("T", " ") : "—"}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                      {[
+                        [u.bkInbounds, backup.counts.inbounds],
+                        [u.bkUsers, backup.counts.users],
+                        [u.bkGroups, backup.counts.subGroups],
+                        [u.bkResellers, backup.counts.resellers],
+                        [u.bkTemplates, backup.counts.saleTemplates],
+                      ].map(([label, value]) => (
+                        <div
+                          key={String(label)}
+                          className="rounded-lg bg-white/[0.03] px-3 py-2 ring-1 ring-border/60"
+                        >
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                            {label}
+                          </p>
+                          <p className="font-mono text-sm font-semibold text-foreground" dir="ltr">
+                            {value}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="restore-confirm">{u.bkConfirmPh}</Label>
+                      <Input
+                        id="restore-confirm"
+                        dir="ltr"
+                        autoComplete="off"
+                        className="font-mono"
+                        value={confirmText}
+                        onChange={(e) => setConfirmText(e.target.value.toUpperCase())}
+                        placeholder="RESTORE"
+                      />
+                      <p className="flex items-center gap-1.5 text-[11px] text-chart-5">
+                        <TriangleAlert className="h-3 w-3 shrink-0" aria-hidden="true" />
+                        {u.bkConfirmHint}
+                      </p>
+                    </div>
+                    <Button
+                      variant="destructive"
+                      onClick={() => void doRestore()}
+                      disabled={restoring || confirmText !== "RESTORE"}
+                      className="gap-2"
+                    >
+                      {restoring ? (
+                        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                      ) : (
+                        <DatabaseBackup className="h-4 w-4" aria-hidden="true" />
+                      )}
+                      {restoring ? u.bkRestoring : u.bkRestore}
+                    </Button>
+                  </div>
+                )}
+              </div>
             </SectionCard>
           </div>
-        </div>
-      )}
+        </TabsContent>
 
-      {/* recovery key rotate confirm */}
-      <AlertDialog open={rkConfirmOpen} onOpenChange={setRkConfirmOpen}>
+        {/* ═══════════ EXPERT ═══════════ */}
+        <TabsContent value="expert">
+          <div className="space-y-4">
+            <div className="grid gap-4 lg:grid-cols-2">
+              {/* core driver */}
+              <SectionCard icon={RadioTower} title={u.coreTitle} desc={u.coreDesc}>
+                <div className="space-y-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="core-driver">{u.driver}</Label>
+                      <Select
+                        value={coreForm.driver}
+                        onValueChange={(v) =>
+                          setCoreForm((p) => ({ ...p, driver: v as CoreForm["driver"] }))
+                        }
+                      >
+                        <SelectTrigger id="core-driver" className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="glass-strong">
+                          <SelectItem value="simulator">{u.driverSim}</SelectItem>
+                          <SelectItem value="xray">{u.driverXray}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="core-host">{u.apiHost}</Label>
+                      <Input
+                        id="core-host"
+                        dir="ltr"
+                        className="font-mono"
+                        value={coreForm.apiHost}
+                        onChange={(e) => setCoreForm((p) => ({ ...p, apiHost: e.target.value }))}
+                        placeholder="127.0.0.1"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="core-port">{u.apiPort}</Label>
+                      <Input
+                        id="core-port"
+                        dir="ltr"
+                        inputMode="numeric"
+                        className="font-mono"
+                        value={coreForm.apiPort}
+                        onChange={(e) =>
+                          setCoreForm((p) => ({ ...p, apiPort: e.target.value.replace(/[^0-9]/g, "") }))
+                        }
+                        placeholder="10085"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="core-tick">{u.tick}</Label>
+                      <Select
+                        value={coreForm.tickSeconds}
+                        onValueChange={(v) => setCoreForm((p) => ({ ...p, tickSeconds: v }))}
+                      >
+                        <SelectTrigger id="core-tick" className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="glass-strong">
+                          {["1", "2", "3", "5"].map((s) => (
+                            <SelectItem key={s} value={s} dir="ltr">
+                              {s} {u.tickSec}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <Button onClick={() => void saveCore()} disabled={savingCore} className="gap-2">
+                      {savingCore ? (
+                        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                      ) : (
+                        <Check className="h-4 w-4" aria-hidden="true" />
+                      )}
+                      {t.subgroups.save}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => void testCore()}
+                      disabled={coreTest.busy}
+                      className="gap-2 rounded-full border-border bg-white/4 hover:bg-white/8"
+                    >
+                      {coreTest.busy ? (
+                        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                      ) : (
+                        <Wifi className="h-4 w-4" aria-hidden="true" />
+                      )}
+                      {coreTest.busy ? u.testing : u.coreTest}
+                    </Button>
+                  </div>
+
+                  {coreTest.result && (
+                    <p
+                      role="status"
+                      className={cn(
+                        "flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs ring-1",
+                        coreTest.result.ok
+                          ? "bg-chart-3/10 text-chart-3 ring-chart-3/30"
+                          : "bg-chart-5/10 text-chart-5 ring-chart-5/30"
+                      )}
+                      dir="auto"
+                    >
+                      {coreTest.result.ok ? (
+                        <Wifi className="h-3.5 w-3.5" aria-hidden="true" />
+                      ) : (
+                        <WifiOff className="h-3.5 w-3.5" aria-hidden="true" />
+                      )}
+                      {coreTest.result.ok ? sfmt(u.testOk, { ms: coreTest.result.ms }) : coreTest.result.msg}
+                    </p>
+                  )}
+                </div>
+                <Tip className="mt-4">{u.tipCore}</Tip>
+              </SectionCard>
+
+              {/* live feed */}
+              <SectionCard icon={Sparkles} title={u.feedTitle} desc={u.feedDesc}>
+                <div className="flex items-center justify-between gap-4 rounded-xl bg-white/[0.03] px-4 py-3.5 ring-1 ring-border/70">
+                  <div className="flex items-center gap-2.5">
+                    <span className="relative flex h-2.5 w-2.5">
+                      {feedLive && (
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+                      )}
+                      <span
+                        className={cn(
+                          "relative inline-flex h-2.5 w-2.5 rounded-full",
+                          feedLive ? "bg-emerald-400" : "bg-chart-5"
+                        )}
+                      />
+                    </span>
+                    <span className="text-sm font-medium text-foreground">
+                      {feedLive ? u.statusLive : u.statusDown}
+                    </span>
+                  </div>
+                  <span className="font-mono text-xs text-muted-foreground" dir="ltr">
+                    {coreForm.tickSeconds} {u.tickSec}
+                  </span>
+                </div>
+                <div className="mt-4 space-y-2 text-xs text-muted-foreground">
+                  <p className="flex items-center justify-between gap-2">
+                    <span>{u.driver}</span>
+                    <span className="font-medium text-foreground">
+                      {coreForm.driver === "simulator" ? u.driverSim : u.driverXray}
+                    </span>
+                  </p>
+                  <p className="flex items-center justify-between gap-2">
+                    <span>{u.apiHost}</span>
+                    <span className="font-mono text-foreground" dir="ltr">
+                      {coreForm.apiHost}
+                    </span>
+                  </p>
+                  <p className="flex items-center justify-between gap-2">
+                    <span>{u.apiPort}</span>
+                    <span className="font-mono text-foreground" dir="ltr">
+                      {coreForm.apiPort}
+                    </span>
+                  </p>
+                </div>
+              </SectionCard>
+            </div>
+
+            {/* xray configs */}
+            <SectionCard icon={Braces} title={u.xrayTitle} desc={u.xrayDesc}>
+              <div className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="x-log">{u.logLevel}</Label>
+                    <Select
+                      value={expertForm.logLevel}
+                      onValueChange={(v) =>
+                        setExpertForm((p) => ({ ...p, logLevel: v as ExpertForm["logLevel"] }))
+                      }
+                    >
+                      <SelectTrigger id="x-log" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="glass-strong">
+                        <SelectItem value="none">{u.logNone}</SelectItem>
+                        <SelectItem value="warning">{u.logWarning}</SelectItem>
+                        <SelectItem value="info">{u.logInfo}</SelectItem>
+                        <SelectItem value="debug">{u.logDebug}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {xrayErr("logLevel")}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="x-dom">{u.domStrategy}</Label>
+                    <Select
+                      value={expertForm.domainStrategy}
+                      onValueChange={(v) =>
+                        setExpertForm((p) => ({
+                          ...p,
+                          domainStrategy: v as ExpertForm["domainStrategy"],
+                        }))
+                      }
+                    >
+                      <SelectTrigger id="x-dom" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="glass-strong">
+                        <SelectItem value="AsIs">{u.strategyAsIs}</SelectItem>
+                        <SelectItem value="IPIfNonMatch">{u.strategyIPIfNonMatch}</SelectItem>
+                        <SelectItem value="IPOnDemand">{u.strategyIPOnDemand}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[11px] text-muted-foreground">{u.domStrategyDesc}</p>
+                    {xrayErr("domainStrategy")}
+                  </div>
+                  <div className="space-y-1.5 sm:max-lg:col-span-2">
+                    <Label htmlFor="x-freedom">{u.freedomStrategy}</Label>
+                    <Select
+                      value={expertForm.freedomStrategy}
+                      onValueChange={(v) =>
+                        setExpertForm((p) => ({
+                          ...p,
+                          freedomStrategy: v as ExpertForm["freedomStrategy"],
+                        }))
+                      }
+                    >
+                      <SelectTrigger id="x-freedom" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="glass-strong">
+                        <SelectItem value="AsIs">{u.freedomAsIs}</SelectItem>
+                        <SelectItem value="UseIP">{u.freedomUseIP}</SelectItem>
+                        <SelectItem value="UseIPv4">{u.freedomV4}</SelectItem>
+                        <SelectItem value="UseIPv6">{u.freedomV6}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {xrayErr("freedomStrategy")}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5 rounded-xl bg-white/[0.02] p-3 ring-1 ring-border/50">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    {u.dnsTitle}
+                  </p>
+                  <Label htmlFor="x-dns">{u.dnsServers}</Label>
+                  <Textarea
+                    id="x-dns"
+                    dir="ltr"
+                    rows={4}
+                    className="font-mono text-xs"
+                    value={expertForm.dnsServers}
+                    onChange={(e) =>
+                      setExpertForm((p) => ({ ...p, dnsServers: e.target.value }))
+                    }
+                    placeholder={u.dnsPh}
+                  />
+                  <p className="text-[11px] text-muted-foreground">{u.dnsDesc}</p>
+                  {xrayErr("dnsServers")}
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="x-idle">{u.connIdle}</Label>
+                    <Input
+                      id="x-idle"
+                      dir="ltr"
+                      inputMode="numeric"
+                      className="font-mono"
+                      value={expertForm.connIdle}
+                      onChange={(e) =>
+                        setExpertForm((p) => ({ ...p, connIdle: e.target.value.replace(/[^0-9]/g, "") }))
+                      }
+                      placeholder="300"
+                    />
+                    <p className="text-[11px] text-muted-foreground">{u.connIdleDesc}</p>
+                    {xrayErr("connIdle")}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="x-buf">{u.bufferSize}</Label>
+                    <Input
+                      id="x-buf"
+                      dir="ltr"
+                      inputMode="numeric"
+                      className="font-mono"
+                      value={expertForm.bufferSize}
+                      onChange={(e) =>
+                        setExpertForm((p) => ({ ...p, bufferSize: e.target.value.replace(/[^0-9]/g, "") }))
+                      }
+                      placeholder="512"
+                    />
+                    <p className="text-[11px] text-muted-foreground">{u.bufferSizeDesc}</p>
+                    {xrayErr("bufferSize")}
+                  </div>
+                </div>
+
+                <div className="pt-1">
+                  <Button onClick={() => void saveXray()} disabled={savingXray} className="gap-2">
+                    {savingXray ? (
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Check className="h-4 w-4" aria-hidden="true" />
+                    )}
+                    {t.subgroups.save}
+                  </Button>
+                </div>
+              </div>
+            </SectionCard>
+
+            {/* raw JSON template */}
+            <SectionCard icon={FileJson} title={u.jsonTitle} desc={u.jsonDesc}>
+              <div className="space-y-3">
+                <Textarea
+                  dir="ltr"
+                  rows={8}
+                  className="h-40 resize-y font-mono text-xs"
+                  value={rawJson}
+                  onChange={(e) => {
+                    setRawJson(e.target.value);
+                    if (jsonErr) setJsonErr(null);
+                  }}
+                  placeholder={u.jsonPh}
+                  aria-invalid={jsonErr ? true : undefined}
+                  spellCheck={false}
+                />
+                {jsonErr && (
+                  <p role="alert" className="font-mono text-xs text-chart-5" dir="ltr">
+                    {jsonErr}
+                  </p>
+                )}
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button onClick={() => void saveRawJson()} disabled={savingJson} className="gap-2">
+                    {savingJson ? (
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Check className="h-4 w-4" aria-hidden="true" />
+                    )}
+                    {t.subgroups.save}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => setJsonResetOpen(true)}
+                    disabled={savingJson}
+                    className="gap-2 text-chart-5 hover:bg-chart-5/10 hover:text-chart-5"
+                  >
+                    <RotateCw className="h-4 w-4" aria-hidden="true" />
+                    {u.jsonReset}
+                  </Button>
+                </div>
+              </div>
+            </SectionCard>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              {/* certificates */}
+              <SectionCard icon={KeyRound} title={u.certTitle} desc={u.certDesc}>
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="cert-file">{u.certFile}</Label>
+                    <Input
+                      id="cert-file"
+                      dir="ltr"
+                      className="font-mono"
+                      value={certForm.certFile}
+                      onChange={(e) => setCertForm((p) => ({ ...p, certFile: e.target.value }))}
+                      placeholder={u.certFilePh}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="key-file">{u.keyFile}</Label>
+                    <Input
+                      id="key-file"
+                      dir="ltr"
+                      className="font-mono"
+                      value={certForm.keyFile}
+                      onChange={(e) => setCertForm((p) => ({ ...p, keyFile: e.target.value }))}
+                      placeholder={u.keyFilePh}
+                    />
+                  </div>
+                  {certErr && (
+                    <p role="alert" className="text-xs text-chart-5">
+                      {certErr}
+                    </p>
+                  )}
+                  <div className="pt-1">
+                    <Button onClick={() => void saveCert()} disabled={savingCert} className="gap-2">
+                      {savingCert ? (
+                        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                      ) : (
+                        <Check className="h-4 w-4" aria-hidden="true" />
+                      )}
+                      {t.subgroups.save}
+                    </Button>
+                  </div>
+                </div>
+              </SectionCard>
+
+              {/* sessions */}
+              <SectionCard icon={Timer} title={u.sessionTitle} desc={u.sessionDesc}>
+                <div className="space-y-1.5">
+                  <Label htmlFor="session-age">{u.sessionAge}</Label>
+                  <Input
+                    id="session-age"
+                    dir="ltr"
+                    inputMode="numeric"
+                    className="font-mono"
+                    value={sessionAge}
+                    onChange={(e) =>
+                      setSessionAge(e.target.value.replace(/[^0-9]/g, ""))
+                    }
+                    placeholder="360"
+                  />
+                  <p className="text-[11px] text-muted-foreground">{u.sessionAgeDesc}</p>
+                  {sessionErr && (
+                    <p role="alert" className="text-xs text-chart-5">
+                      {sessionErr}
+                    </p>
+                  )}
+                </div>
+                <div className="pt-4">
+                  <Button onClick={() => void saveSession()} disabled={savingSession} className="gap-2">
+                    {savingSession ? (
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Check className="h-4 w-4" aria-hidden="true" />
+                    )}
+                    {t.subgroups.save}
+                  </Button>
+                </div>
+              </SectionCard>
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* raw JSON reset confirm */}
+      <AlertDialog open={jsonResetOpen} onOpenChange={setJsonResetOpen}>
         <AlertDialogContent className="glass-strong">
           <AlertDialogHeader>
-            <AlertDialogTitle>{u.rkConfirmTitle}</AlertDialogTitle>
-            <AlertDialogDescription>{u.rkConfirmDesc}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t.inbounds.cancel}</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void rotateKey()}>{u.rkConfirmBtn}</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* revoke sessions confirm */}
-      <AlertDialog open={ssConfirmOpen} onOpenChange={setSsConfirmOpen}>
-        <AlertDialogContent className="glass-strong">
-          <AlertDialogHeader>
-            <AlertDialogTitle>{u.ssConfirmTitle}</AlertDialogTitle>
-            <AlertDialogDescription>{u.ssConfirmDesc}</AlertDialogDescription>
+            <AlertDialogTitle>{u.jsonResetTitle}</AlertDialogTitle>
+            <AlertDialogDescription>{u.jsonResetDesc}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t.inbounds.cancel}</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => void revokeSessions()}
-              className="bg-chart-5 text-white hover:bg-chart-5/90"
+              onClick={() => {
+                setJsonResetOpen(false);
+                void saveRawJson("");
+              }}
             >
-              {u.ssConfirmBtn}
+              {u.jsonResetBtn}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
   );
-}
-
-/* tab labels resolve from the settings dict */
-function tabLabel(
-  u: (typeof dictionaries)["en"]["settings"],
-  id: Tab
-): string {
-  switch (id) {
-    case "general":
-      return u.tabGeneral;
-    case "core":
-      return u.tabCore;
-    case "telegram":
-      return u.tabTelegram;
-    case "backup":
-      return u.tabBackup;
-    case "security":
-      return u.tabSecurity;
-  }
 }

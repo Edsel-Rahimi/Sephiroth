@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/auth";
 import { requireAdmin } from "@/lib/inbounds";
+import { logActivity } from "@/lib/activity";
 import { toResellerDTO, validateResellerPatch } from "@/lib/resellers";
 
 /* ============================================================
@@ -53,6 +54,13 @@ export async function PATCH(req: Request, ctx: Ctx) {
       },
       include: { users: { select: { trafficLimitGb: true, usedTrafficGb: true } } },
     });
+    await logActivity({
+      kind: "reseller.updated",
+      level: "info",
+      actor: admin,
+      message: `Reseller "${updated.username}" updated`,
+      meta: { resellerId: id },
+    });
     return NextResponse.json({ reseller: toResellerDTO(updated) });
   } catch (err) {
     console.error("[resellers:PATCH]", err);
@@ -70,6 +78,13 @@ export async function DELETE(req: Request, ctx: Ctx) {
     if (!existing) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
     await db.reseller.delete({ where: { id } }); // users keep existing via SetNull
+    await logActivity({
+      kind: "reseller.deleted",
+      level: "warn",
+      actor: admin,
+      message: `Reseller deleted (id ${id})`,
+      meta: { resellerId: id },
+    });
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[resellers:DELETE]", err);

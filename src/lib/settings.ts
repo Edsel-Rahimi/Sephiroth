@@ -57,6 +57,25 @@ const K = {
   tgToken: "set_tg_token",
   tgChatId: "set_tg_chat_id",
   tgNotify: "set_tg_notify",
+  // top-bar module visibility
+  navHosts: "set_nav_hosts",
+  navNodes: "set_nav_nodes",
+  navOutbounds: "set_nav_outbounds",
+  navRouting: "set_nav_routing",
+  // general panel prefs
+  datepicker: "set_datepicker",
+  pageSize: "set_page_size",
+  // expert
+  xrayLogLevel: "set_xray_log_level",
+  xrayDnsServers: "set_xray_dns_servers",
+  xrayDomainStrategy: "set_xray_domain_strategy",
+  xrayFreedomStrategy: "set_xray_freedom_strategy",
+  xrayConnIdle: "set_xray_conn_idle",
+  xrayBufferSize: "set_xray_buffer_size",
+  xrayRawJson: "set_xray_raw_json",
+  certFile: "set_web_cert_file",
+  keyFile: "set_web_key_file",
+  sessionMaxAge: "set_session_max_age",
 } as const;
 
 async function readSettings(keys: string[]): Promise<Map<string, string>> {
@@ -265,6 +284,249 @@ export async function saveTelegramSettings(patch: {
     await writeSetting(K.tgToken, patch.token);
   }
   await writeSetting(K.tgNotify, JSON.stringify(patch.notify));
+}
+
+/* ---------- nav module visibility ---------- */
+
+export interface NavModules {
+  hosts: boolean;
+  nodes: boolean;
+  outbounds: boolean;
+  routing: boolean;
+}
+
+const NAV_DEFAULT: NavModules = {
+  hosts: true,
+  nodes: true,
+  outbounds: true,
+  routing: true,
+};
+
+export async function getNavModules(): Promise<NavModules> {
+  const m = await readSettings([K.navHosts, K.navNodes, K.navOutbounds, K.navRouting]);
+  const bool = (raw: string | undefined): boolean | undefined =>
+    raw === "1" ? true : raw === "0" ? false : undefined;
+  return {
+    hosts: bool(m.get(K.navHosts)) ?? NAV_DEFAULT.hosts,
+    nodes: bool(m.get(K.navNodes)) ?? NAV_DEFAULT.nodes,
+    outbounds: bool(m.get(K.navOutbounds)) ?? NAV_DEFAULT.outbounds,
+    routing: bool(m.get(K.navRouting)) ?? NAV_DEFAULT.routing,
+  };
+}
+
+export function validateNavPatch(body: unknown): PatchResult<NavModules> {
+  const b = (body ?? {}) as Record<string, unknown>;
+  const out: NavModules = { ...NAV_DEFAULT };
+  for (const key of Object.keys(NAV_DEFAULT) as (keyof NavModules)[]) {
+    if (typeof b[key] === "boolean") out[key] = b[key] as boolean;
+  }
+  return { ok: true, data: out };
+}
+
+export async function saveNavModules(n: NavModules): Promise<void> {
+  await Promise.all([
+    writeSetting(K.navHosts, n.hosts ? "1" : "0"),
+    writeSetting(K.navNodes, n.nodes ? "1" : "0"),
+    writeSetting(K.navOutbounds, n.outbounds ? "1" : "0"),
+    writeSetting(K.navRouting, n.routing ? "1" : "0"),
+  ]);
+}
+
+/* ---------- general panel prefs ---------- */
+
+export interface GeneralSettings {
+  datepicker: "gregorian" | "jalalian";
+  pageSize: number;
+}
+
+const GENERAL_DEFAULT: GeneralSettings = {
+  datepicker: "gregorian",
+  pageSize: 25,
+};
+
+export async function getGeneralSettings(): Promise<GeneralSettings> {
+  const m = await readSettings([K.datepicker, K.pageSize]);
+  return {
+    datepicker: m.get(K.datepicker) === "jalalian" ? "jalalian" : "gregorian",
+    pageSize: toInt(m.get(K.pageSize), GENERAL_DEFAULT.pageSize, 10, 100),
+  };
+}
+
+export function validateGeneralPatch(body: unknown): PatchResult<GeneralSettings> {
+  const b = (body ?? {}) as Record<string, unknown>;
+  const out: GeneralSettings = { ...GENERAL_DEFAULT };
+  if (b.datepicker !== undefined) {
+    if (b.datepicker !== "gregorian" && b.datepicker !== "jalalian") {
+      return { ok: false, fields: [{ field: "datepicker", code: "format" }] };
+    }
+    out.datepicker = b.datepicker;
+  }
+  if (b.pageSize !== undefined) {
+    const n = Number(b.pageSize);
+    if (!Number.isInteger(n) || n < 10 || n > 100) {
+      return { ok: false, fields: [{ field: "pageSize", code: "range" }] };
+    }
+    out.pageSize = n;
+  }
+  return { ok: true, data: out };
+}
+
+export async function saveGeneralSettings(g: GeneralSettings): Promise<void> {
+  await writeSetting(K.datepicker, g.datepicker);
+  await writeSetting(K.pageSize, String(g.pageSize));
+}
+
+/* ---------- expert / xray config ---------- */
+
+export const XRAY_LOG_LEVELS = ["none", "warning", "info", "debug"] as const;
+export const XRAY_STRATEGIES = ["AsIs", "IPIfNonMatch", "IPOnDemand"] as const;
+export const FREEDOM_STRATEGIES = ["AsIs", "UseIP", "UseIPv4", "UseIPv6"] as const;
+
+export interface ExpertSettings {
+  logLevel: (typeof XRAY_LOG_LEVELS)[number];
+  dnsServers: string; // newline separated
+  domainStrategy: (typeof XRAY_STRATEGIES)[number];
+  freedomStrategy: (typeof FREEDOM_STRATEGIES)[number];
+  connIdle: number; // seconds
+  bufferSize: number; // KB
+  rawJson: string; // raw template override, "" = none
+  certFile: string;
+  keyFile: string;
+  sessionMaxAge: number; // minutes
+}
+
+const EXPERT_DEFAULT: ExpertSettings = {
+  logLevel: "warning",
+  dnsServers: "1.1.1.1\n8.8.8.8",
+  domainStrategy: "AsIs",
+  freedomStrategy: "AsIs",
+  connIdle: 300,
+  bufferSize: 512,
+  rawJson: "",
+  certFile: "",
+  keyFile: "",
+  sessionMaxAge: 360,
+};
+
+export async function getExpertSettings(): Promise<ExpertSettings> {
+  const m = await readSettings([
+    K.xrayLogLevel, K.xrayDnsServers, K.xrayDomainStrategy, K.xrayFreedomStrategy,
+    K.xrayConnIdle, K.xrayBufferSize, K.xrayRawJson, K.certFile, K.keyFile, K.sessionMaxAge,
+  ]);
+  const level = m.get(K.xrayLogLevel);
+  const strat = m.get(K.xrayDomainStrategy);
+  const fstrat = m.get(K.xrayFreedomStrategy);
+  return {
+    logLevel: (XRAY_LOG_LEVELS.includes(level as never) ? level : EXPERT_DEFAULT.logLevel) as ExpertSettings["logLevel"],
+    dnsServers: m.get(K.xrayDnsServers) ?? EXPERT_DEFAULT.dnsServers,
+    domainStrategy: (XRAY_STRATEGIES.includes(strat as never) ? strat : EXPERT_DEFAULT.domainStrategy) as ExpertSettings["domainStrategy"],
+    freedomStrategy: (FREEDOM_STRATEGIES.includes(fstrat as never) ? fstrat : EXPERT_DEFAULT.freedomStrategy) as ExpertSettings["freedomStrategy"],
+    connIdle: toInt(m.get(K.xrayConnIdle), EXPERT_DEFAULT.connIdle, 4, 86400),
+    bufferSize: toInt(m.get(K.xrayBufferSize), EXPERT_DEFAULT.bufferSize, 4, 65535),
+    rawJson: m.get(K.xrayRawJson) ?? "",
+    certFile: m.get(K.certFile) ?? "",
+    keyFile: m.get(K.keyFile) ?? "",
+    sessionMaxAge: toInt(m.get(K.sessionMaxAge), EXPERT_DEFAULT.sessionMaxAge, 5, 43200),
+  };
+}
+
+export function validateExpertPatch(body: unknown): PatchResult<ExpertSettings> {
+  const b = (body ?? {}) as Record<string, unknown>;
+  const out: ExpertSettings = { ...EXPERT_DEFAULT };
+
+  if (b.logLevel !== undefined) {
+    if (!XRAY_LOG_LEVELS.includes(b.logLevel as never)) {
+      return { ok: false, fields: [{ field: "logLevel", code: "format" }] };
+    }
+    out.logLevel = b.logLevel as ExpertSettings["logLevel"];
+  }
+  if (b.dnsServers !== undefined) {
+    const raw = String(b.dnsServers).trim();
+    const lines = raw.split(/\n+/).map((s) => s.trim()).filter(Boolean);
+    if (lines.length > 16) {
+      return { ok: false, fields: [{ field: "dnsServers", code: "range" }] };
+    }
+    const dnsRe = /^(?:[a-zA-Z0-9.:-]+|https:\/\/[a-zA-Z0-9.:-]+|localhost)$/;
+    if (lines.some((l) => !dnsRe.test(l))) {
+      return { ok: false, fields: [{ field: "dnsServers", code: "format" }] };
+    }
+    out.dnsServers = lines.join("\n");
+  }
+  if (b.domainStrategy !== undefined) {
+    if (!XRAY_STRATEGIES.includes(b.domainStrategy as never)) {
+      return { ok: false, fields: [{ field: "domainStrategy", code: "format" }] };
+    }
+    out.domainStrategy = b.domainStrategy as ExpertSettings["domainStrategy"];
+  }
+  if (b.freedomStrategy !== undefined) {
+    if (!FREEDOM_STRATEGIES.includes(b.freedomStrategy as never)) {
+      return { ok: false, fields: [{ field: "freedomStrategy", code: "format" }] };
+    }
+    out.freedomStrategy = b.freedomStrategy as ExpertSettings["freedomStrategy"];
+  }
+  if (b.connIdle !== undefined) {
+    const n = Number(b.connIdle);
+    if (!Number.isInteger(n) || n < 4 || n > 86400) {
+      return { ok: false, fields: [{ field: "connIdle", code: "range" }] };
+    }
+    out.connIdle = n;
+  }
+  if (b.bufferSize !== undefined) {
+    const n = Number(b.bufferSize);
+    if (!Number.isInteger(n) || n < 4 || n > 65535) {
+      return { ok: false, fields: [{ field: "bufferSize", code: "range" }] };
+    }
+    out.bufferSize = n;
+  }
+  if (b.rawJson !== undefined) {
+    const raw = String(b.rawJson).trim();
+    if (raw === "") {
+      out.rawJson = "";
+    } else {
+      try {
+        JSON.parse(raw);
+      } catch {
+        return { ok: false, fields: [{ field: "rawJson", code: "format" }] };
+      }
+      if (raw.length > 60_000) {
+        return { ok: false, fields: [{ field: "rawJson", code: "range" }] };
+      }
+      out.rawJson = raw;
+    }
+  }
+  if (b.certFile !== undefined) {
+    const v = String(b.certFile).trim();
+    if (v.length > 200) return { ok: false, fields: [{ field: "certFile", code: "range" }] };
+    out.certFile = v;
+  }
+  if (b.keyFile !== undefined) {
+    const v = String(b.keyFile).trim();
+    if (v.length > 200) return { ok: false, fields: [{ field: "keyFile", code: "range" }] };
+    out.keyFile = v;
+  }
+  if (b.sessionMaxAge !== undefined) {
+    const n = Number(b.sessionMaxAge);
+    if (!Number.isInteger(n) || n < 5 || n > 43200) {
+      return { ok: false, fields: [{ field: "sessionMaxAge", code: "range" }] };
+    }
+    out.sessionMaxAge = n;
+  }
+  return { ok: true, data: out };
+}
+
+export async function saveExpertSettings(e: ExpertSettings): Promise<void> {
+  await Promise.all([
+    writeSetting(K.xrayLogLevel, e.logLevel),
+    writeSetting(K.xrayDnsServers, e.dnsServers),
+    writeSetting(K.xrayDomainStrategy, e.domainStrategy),
+    writeSetting(K.xrayFreedomStrategy, e.freedomStrategy),
+    writeSetting(K.xrayConnIdle, String(e.connIdle)),
+    writeSetting(K.xrayBufferSize, String(e.bufferSize)),
+    writeSetting(K.xrayRawJson, e.rawJson),
+    writeSetting(K.certFile, e.certFile),
+    writeSetting(K.keyFile, e.keyFile),
+    writeSetting(K.sessionMaxAge, String(e.sessionMaxAge)),
+  ]);
 }
 
 /* ---------- recovery key ---------- */

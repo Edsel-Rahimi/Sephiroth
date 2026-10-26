@@ -13,6 +13,7 @@ import {
   verifyPassword,
 } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { logActivity } from "@/lib/activity";
 
 export async function POST(req: Request) {
   await ensureSeed();
@@ -59,6 +60,13 @@ export async function POST(req: Request) {
 
   if (!okUser || !role) {
     const fail = registerFailure(ip);
+    await logActivity({
+      kind: "auth.failed",
+      level: "error",
+      actor: username || "?",
+      message: `Failed sign-in for "${username}" from ${ip}`,
+      meta: { ip },
+    });
     if (fail.locked) {
       return NextResponse.json(
         { error: "locked", retryAfter: fail.retryAfter },
@@ -75,6 +83,14 @@ export async function POST(req: Request) {
 
   const ttl = remember ? SESSION_TTL_LONG : SESSION_TTL_SHORT;
   const token = await signToken(okUser, ttl);
+
+  await logActivity({
+    kind: "auth.login",
+    level: "success",
+    actor: okUser,
+    message: `${role === "admin" ? "Administrator" : "Reseller"} "${okUser}" signed in`,
+    meta: { ip, role },
+  });
 
   const res = NextResponse.json({ ok: true, username: okUser, role });
   res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions(Math.floor(ttl / 1000)));

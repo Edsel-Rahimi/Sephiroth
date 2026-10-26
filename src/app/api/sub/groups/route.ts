@@ -8,6 +8,7 @@ import {
   toGroupDTO,
   validateGroup,
 } from "@/lib/sub-groups";
+import { logActivity } from "@/lib/activity";
 
 /* ============================================================
    Sephiroth · Phase 5 — Sub Groups collection API (admin)
@@ -75,6 +76,14 @@ export async function POST(req: Request) {
         },
         include: { members: { include: { user: { select: { id: true } } } } },
       });
+    });
+
+    await logActivity({
+      kind: "sub.created",
+      level: "success",
+      actor: admin,
+      message: `Sub group "${data.name}" created (${data.memberIds.length} members)`,
+      meta: { groupId: created.id, name: data.name },
     });
 
     return NextResponse.json({ group: toGroupDTO(created) }, { status: 201 });

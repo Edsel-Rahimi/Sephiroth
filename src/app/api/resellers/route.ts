@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/inbounds";
+import { logActivity } from "@/lib/activity";
 import {
   listResellerDTOs,
   resellerCreateData,
@@ -67,6 +68,13 @@ export async function POST(req: Request) {
     const created = await db.reseller.create({
       data: resellerCreateData(data),
       include: { users: { select: { trafficLimitGb: true, usedTrafficGb: true } } },
+    });
+    await logActivity({
+      kind: "reseller.created",
+      level: "success",
+      actor: admin,
+      message: `Reseller "${data.username}" created`,
+      meta: { resellerId: created.id },
     });
     return NextResponse.json({ reseller: toResellerDTO(created) }, { status: 201 });
   } catch (err) {

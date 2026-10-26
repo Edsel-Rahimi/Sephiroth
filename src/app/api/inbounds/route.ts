@@ -8,6 +8,7 @@ import {
   validateInbound,
 } from "@/lib/inbounds";
 import { getSession } from "@/lib/auth";
+import { logActivity } from "@/lib/activity";
 
 /* ============================================================
    Sephiroth · Phase 3 — Inbounds collection API
@@ -77,6 +78,13 @@ export async function POST(req: Request) {
 
     try {
       const created = await db.inbound.create({ data: parsed.data });
+      await logActivity({
+        kind: "inbound.created",
+        level: "success",
+        actor: admin,
+        message: `Inbound "${created.tag}" created (${created.protocol} :${created.port})`,
+        meta: { inboundId: created.id, tag: created.tag },
+      });
       return NextResponse.json({ inbound: toDTO(created) }, { status: 201 });
     } catch (err) {
       const kind = mapInboundWriteError(err); // Prisma P2002 race

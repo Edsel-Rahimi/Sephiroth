@@ -11,6 +11,7 @@ import {
 } from "@/lib/users";
 import { parseClients, seededUsage, validateUser } from "@/lib/user-types";
 import { resellerQuota } from "@/lib/resellers";
+import { logActivity } from "@/lib/activity";
 
 /* ============================================================
    Sephiroth · Phase 4 — Users collection API
@@ -174,6 +175,13 @@ export async function POST(req: Request) {
     if (!created) {
       return NextResponse.json({ error: "server_error" }, { status: 500 });
     }
+    await logActivity({
+      kind: "user.created",
+      level: "success",
+      actor: actor.username,
+      message: `User "${created.username}" created on ${created.accesses.length} inbound(s)`,
+      meta: { userId: created.id, username: created.username },
+    });
     return NextResponse.json({ user: toUserDTO(created) }, { status: 201 });
   } catch (err) {
     console.error("[users:POST]", err);

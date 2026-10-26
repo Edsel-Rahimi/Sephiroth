@@ -9,10 +9,17 @@ import { LoginScene } from "@/components/sephiroth/login-scene";
 import { CoreConnector } from "@/components/sephiroth/realtime/core-connector";
 import { DashboardView } from "@/components/sephiroth/views/dashboard-view";
 import { InboundsView } from "@/components/sephiroth/views/inbounds-view";
+import { HostsView } from "@/components/sephiroth/views/hosts-view";
+import { NodesView } from "@/components/sephiroth/views/nodes-view";
+import { OutboundsView } from "@/components/sephiroth/views/outbounds-view";
+import { RoutingView } from "@/components/sephiroth/views/routing-view";
 import { UsersView } from "@/components/sephiroth/views/users-view";
 import { SubGroupsView } from "@/components/sephiroth/views/subgroups-view";
 import { ResellersView } from "@/components/sephiroth/views/resellers-view";
+import { ActivityView } from "@/components/sephiroth/views/activity-view";
+import { GuideView } from "@/components/sephiroth/views/guide-view";
 import { SettingsView } from "@/components/sephiroth/views/settings-view";
+import { ProfileView } from "@/components/sephiroth/views/profile-view";
 import { PanelsView } from "@/components/sephiroth/views/panels-view";
 import { PlaceholderView } from "@/components/sephiroth/views/placeholder-view";
 import { useAppStore } from "@/lib/store/app-store";
@@ -125,21 +132,48 @@ export default function Home() {
           <DashboardView />
         ) : effectiveView === "inbounds" ? (
           <InboundsView />
+        ) : effectiveView === "hosts" ? (
+          <HostsView />
+        ) : effectiveView === "nodes" ? (
+          <NodesView />
+        ) : effectiveView === "outbounds" ? (
+          <OutboundsView />
+        ) : effectiveView === "routing" ? (
+          <RoutingView />
         ) : effectiveView === "users" ? (
           <UsersView />
         ) : effectiveView === "subgroups" ? (
           <SubGroupsView />
         ) : effectiveView === "resellers" ? (
           <ResellersView />
+        ) : effectiveView === "activity" ? (
+          <ActivityView />
+        ) : effectiveView === "guide" ? (
+          <GuideView />
         ) : effectiveView === "settings" ? (
           <SettingsView />
+        ) : effectiveView === "profile" ? (
+          <ProfileView />
         ) : effectiveView === "panels" ? (
           <PanelsView />
         ) : (
           <PlaceholderView
             view={effectiveView as Exclude<
               ViewId,
-              "dashboard" | "inbounds" | "users" | "subgroups" | "resellers" | "settings" | "panels"
+              | "dashboard"
+              | "inbounds"
+              | "hosts"
+              | "nodes"
+              | "outbounds"
+              | "routing"
+              | "users"
+              | "subgroups"
+              | "resellers"
+              | "activity"
+              | "guide"
+              | "settings"
+              | "profile"
+              | "panels"
             >}
           />
         )}
