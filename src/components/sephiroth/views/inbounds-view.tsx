@@ -32,7 +32,6 @@ import {
   Rows3,
   SlidersHorizontal,
   Trash2,
-  TrendingUp,
   Users,
   Waves,
   Wifi,
@@ -1294,21 +1293,15 @@ export function InboundsView() {
     icon: Icon,
     value,
     label,
-    trend,
   }: {
     icon: LucideIcon;
     value: string;
     label: string;
-    trend: string;
   }) => (
     <div className="glass hover-glow group relative overflow-hidden rounded-2xl px-4 py-4">
       <div className="flex items-start justify-between gap-2">
         <span className="glass flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
           <Icon className="h-4.5 w-4.5 text-primary" />
-        </span>
-        <span className="flex items-center gap-1 text-[11px] font-medium text-chart-3">
-          <TrendingUp className="h-3 w-3" />
-          {trend}
         </span>
       </div>
       <p className="mt-3 truncate font-mono text-2xl font-bold leading-none text-silver tabular-nums md:text-3xl">
@@ -2840,20 +2833,19 @@ export function InboundsView() {
 
       {/* ── KPI strip ──────────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
-        <KPI icon={RadioTower} value={String(counts.all)} label={t.inbounds.kpiTotal} trend={t.inbounds.trendWeek} />
-        <KPI icon={Wifi} value={String(counts.online)} label={t.inbounds.kpiOnline} trend={t.inbounds.trendUptime} />
-        <KPI icon={Users} value={String(totals.users)} label={t.inbounds.kpiUsers} trend={t.inbounds.trendUsers} />
+        <KPI icon={RadioTower} value={String(counts.all)} label={t.inbounds.kpiTotal} />
+        <KPI icon={Wifi} value={String(counts.online)} label={t.inbounds.kpiOnline} />
+        <KPI icon={Users} value={String(totals.users)} label={t.inbounds.kpiUsers} />
         <KPI
           icon={ArrowLeftRight}
           value={fmtTraffic(totals.traffic)}
           label={t.inbounds.kpiTraffic}
-          trend={t.inbounds.trendTraffic}
         />
       </div>
 
       {/* ── toolbar ────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="glass relative h-10 min-w-0 flex-1 rounded-xl sm:max-w-72">
+        <div className="glass relative h-10 min-w-40 flex-1 rounded-xl sm:max-w-72">
           <Search className="pointer-events-none absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <input
             value={q}

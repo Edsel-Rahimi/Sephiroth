@@ -987,4 +987,56 @@ export const db = {
     const row = state.serverSetting.find((s) => s.key === key);
     return row?.value;
   },
+  /** Real aggregate stats for the dashboard telemetry engine (no synthetic data). */
+  _syncReadCoreStats() {
+    const users = state.clientUser ?? [];
+    const accesses = state.userInboundAccess ?? [];
+    const inboundById = new Map(
+      (state.inbound ?? []).map((i) => [String(i.id), i]),
+    );
+    const used = (u: Record<string, unknown>) =>
+      Number(u.usedTrafficGb) || 0;
+    const topUsers = [...users]
+      .sort((a, b) => used(b) - used(a))
+      .slice(0, 5)
+      .map((u) => {
+        const acc = accesses.find(
+          (a) => String(a.userId) === String(u.id),
+        );
+        const inb = acc ? inboundById.get(String(acc.inboundId)) : undefined;
+        return {
+          uid: String(u.id).slice(-6).toUpperCase(),
+          user: String(u.username),
+          protoBase: inb
+            ? {
+                protocol: String(inb.protocol),
+                transport: String(inb.transport || "tcp"),
+                security: String(inb.security || "none"),
+              }
+            : null,
+          gb: Math.round(used(u) * 100) / 100,
+          expiresAtMs:
+            (Number(u.expiryDays) || 0) > 0
+              ? Date.parse(String(u.createdAt)) +
+                (Number(u.expiryDays) || 0) * 86_400_000
+              : null,
+          usagePct:
+            (Number(u.trafficLimitGb) || 0) > 0
+              ? Math.min(
+                  100,
+                  Math.round((used(u) / Number(u.trafficLimitGb)) * 10_000) /
+                    100,
+                )
+              : null,
+        };
+      });
+    return {
+      usersTotal: users.length,
+      groupsTotal: (state.subGroup ?? []).length,
+      monthTxGb:
+        Math.round(users.reduce((acc, u) => acc + used(u), 0) * 10_000) /
+        10_000,
+      topUsers,
+    };
+  },
 };

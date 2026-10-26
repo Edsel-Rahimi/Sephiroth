@@ -327,10 +327,6 @@ export interface Dict {
     fbAlpn: string;
     fbPath: string;
     errConfig: string;
-    trendWeek: string;
-    trendUptime: string;
-    trendUsers: string;
-    trendTraffic: string;
     quickCreate: string;
     quickTitle: string;
     quickSub: string;
@@ -1665,10 +1661,6 @@ export const dictionaries: Record<Lang, Dict> = {
       fbAlpn: "ALPN",
       fbPath: "Path",
       errConfig: "Advanced configuration is invalid",
-      trendWeek: "+1 this week",
-      trendUptime: "83% uptime",
-      trendUsers: "+12.4%",
-      trendTraffic: "+6.1%",
       quickCreate: "Quick Create",
       quickTitle: "Quick Create Inbound",
       quickSub: "Pick a protocol — port, tag, keys and defaults are generated for you.",
@@ -3022,10 +3014,6 @@ export const dictionaries: Record<Lang, Dict> = {
       fbAlpn: "ALPN",
       fbPath: "مسیر",
       errConfig: "پیکربندی پیشرفته نامعتبر است",
-      trendWeek: "+۱ این هفته",
-      trendUptime: "۸۳٪ آپ‌تایم",
-      trendUsers: "+۱۲٫۴٪",
-      trendTraffic: "+۶٫۱٪",
       quickCreate: "ساخت سریع",
       quickTitle: "ساخت سریع اینباند",
       quickSub: "فقط پروتکل را انتخاب کن؛ پورت، تگ، کلید و بقیهٔ تنظیمات خودکار ساخته می‌شوند.",
@@ -4375,10 +4363,6 @@ export const dictionaries: Record<Lang, Dict> = {
       fbAlpn: "ALPN",
       fbPath: "المسار",
       errConfig: "التكوين المتقدم غير صالح",
-      trendWeek: "+1 هذا الأسبوع",
-      trendUptime: "جاهزية 83%",
-      trendUsers: "+12.4%",
-      trendTraffic: "+6.1%",
       quickCreate: "إنشاء سريع",
       quickTitle: "إنشاء سريع للمدخل",
       quickSub: "اختر البروتوكول فقط — يُنشأ المنفذ والوسم والمفاتيح والإعدادات تلقائيًا.",
@@ -5726,10 +5710,6 @@ export const dictionaries: Record<Lang, Dict> = {
       fbAlpn: "ALPN",
       fbPath: "路径",
       errConfig: "高级配置无效",
-      trendWeek: "本周 +1",
-      trendUptime: "83% 在线率",
-      trendUsers: "+12.4%",
-      trendTraffic: "+6.1%",
       quickCreate: "快速创建",
       quickTitle: "快速创建入站",
       quickSub: "只需选择协议——端口、标签、密钥和默认值都会自动生成。",
@@ -7077,10 +7057,6 @@ export const dictionaries: Record<Lang, Dict> = {
       fbAlpn: "ALPN",
       fbPath: "Yol",
       errConfig: "Gelişmiş yapılandırma geçersiz",
-      trendWeek: "bu hafta +1",
-      trendUptime: "%83 uptime",
-      trendUsers: "+%12,4",
-      trendTraffic: "+%6,1",
       quickCreate: "Hızlı Oluştur",
       quickTitle: "Hızlı Inbound Oluştur",
       quickSub: "Sadece protokol seç — port, etiket, anahtarlar ve varsayılanlar otomatik oluşturulur.",
@@ -8431,10 +8407,6 @@ export const dictionaries: Record<Lang, Dict> = {
       fbAlpn: "ALPN",
       fbPath: "Путь",
       errConfig: "Расширенная конфигурация некорректна",
-      trendWeek: "+1 за неделю",
-      trendUptime: "83% аптайм",
-      trendUsers: "+12,4%",
-      trendTraffic: "+6,1%",
       quickCreate: "Быстрое создание",
       quickTitle: "Быстрое создание inbound",
       quickSub: "Просто выберите протокол — порт, тег, ключи и настройки создадутся автоматически.",

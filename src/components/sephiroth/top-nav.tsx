@@ -381,7 +381,7 @@ export function TopNav() {
           <ul
             className={cn(
               "orbit-pill glass no-scrollbar flex list-none items-center gap-1 overflow-x-auto rounded-full p-1.5",
-              "lg:mx-auto lg:w-fit"
+              "max-w-full lg:mx-auto lg:w-fit"
             )}
           >
             {navIds.map((id) => {
@@ -403,7 +403,7 @@ export function TopNav() {
                     <Icon
                       className={cn("h-3.5 w-3.5 shrink-0", active ? "text-primary" : "opacity-70")}
                     />
-                    <span className="hidden whitespace-nowrap xl:inline">{t.nav[id]}</span>
+                    <span className="hidden whitespace-nowrap 2xl:inline">{t.nav[id]}</span>
                   </button>
                   {active && <span className="orbit-dot" aria-hidden="true" />}
                 </li>

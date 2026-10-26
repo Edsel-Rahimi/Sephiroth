@@ -340,7 +340,7 @@ function LiveCard() {
   const badgeLabel = paused ? u.livePaused : isLive ? u.liveLive : status === "offline" ? L.offline : L.connecting;
 
   return (
-    <section className="glass hover-glow flex flex-col rounded-2xl p-5 lg:col-span-2 md:p-6">
+    <section className="glass hover-glow flex min-w-0 flex-col rounded-2xl p-5 lg:col-span-2 md:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
           <Activity className="h-4 w-4 text-primary" aria-hidden="true" />
@@ -579,7 +579,7 @@ export function ActivityView() {
       </section>
 
       {/* two-column: live (2) + history (3) */}
-      <div className="grid gap-4 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         <LiveCard />
 
         <section className="glass hover-glow rounded-2xl p-5 md:p-6 lg:col-span-3">

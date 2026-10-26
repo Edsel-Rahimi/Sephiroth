@@ -24,6 +24,32 @@ export function readInbounds(): DbInboundRow[] | null {
   }
 }
 
+export interface DbTopUser {
+  uid: string;
+  user: string;
+  protoBase: { protocol: string; transport: string; security: string } | null;
+  gb: number;
+  expiresAtMs: number | null;
+  usagePct: number | null;
+}
+
+export interface DbCoreStats {
+  usersTotal: number;
+  groupsTotal: number;
+  monthTxGb: number;
+  topUsers: DbTopUser[];
+}
+
+/** Real aggregate stats from the panel store (users, groups, traffic). */
+export function readCoreStats(): DbCoreStats | null {
+  try {
+    return db._syncReadCoreStats() as DbCoreStats;
+  } catch (err) {
+    console.error("[core-sim/db] readCoreStats error:", err);
+    return null;
+  }
+}
+
 const TICK_DEFAULT_MS = 1000;
 let tickMs = TICK_DEFAULT_MS;
 let lastTickRead = 0;

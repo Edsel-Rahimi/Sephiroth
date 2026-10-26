@@ -12,6 +12,7 @@ import { ensureSeed } from "./src/lib/auth";
 import { ensureNetSeeds } from "./src/lib/net-objects";
 import { db } from "./src/lib/db";
 import { logActivity } from "./src/lib/activity";
+import { appVersion } from "./src/lib/settings";
 
 // Import all Next-style route handlers
 import * as apiRoot from "./src/app/api/route";
@@ -283,7 +284,7 @@ async function startServer() {
     pingInterval: 25000,
   });
 
-  const sim = new CoreSim();
+  const sim = new CoreSim(`${appVersion()}-sim`);
   // Mirror initial DB state into simulator
   sim.mirrorDb();
 
@@ -325,19 +326,6 @@ async function startServer() {
       console.error("[core-sim] mirrorDb error:", err);
     }
   }, 2000);
-
-  function scheduleNextEvent(): void {
-    setTimeout(() => {
-      try {
-        emitEvent(sim.nextEvent());
-      } catch (err) {
-        console.error("[core-sim] event generator error:", err);
-      } finally {
-        scheduleNextEvent();
-      }
-    }, 3200 + Math.random() * 4500);
-  }
-  scheduleNextEvent();
 
   // Periodic user traffic reset & expiry check
   setInterval(() => {

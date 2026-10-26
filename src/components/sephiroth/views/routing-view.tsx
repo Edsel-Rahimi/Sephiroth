@@ -641,7 +641,7 @@ export function RoutingView() {
           <Skeleton className="h-4 w-80" />
         </div>
         <Skeleton className="h-28 w-full rounded-2xl" />
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-24 rounded-2xl" />
           ))}
@@ -775,14 +775,14 @@ export function RoutingView() {
             <p className="mt-0.5 text-xs text-muted-foreground">{t.routingPresets.desc}</p>
           </div>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {PRESETS.map(({ key, icon: Icon, payload }) => {
             const name = t.routingPresets[key];
             const tag = key === "tg" ? (tgTag ?? "") : payload.outboundTag;
             return (
               <div
                 key={key}
-                className="glass hover-glow group flex flex-col rounded-2xl p-4 ring-1 ring-white/10"
+                className="glass hover-glow group flex min-w-0 flex-col rounded-2xl p-4 ring-1 ring-white/10"
               >
                 <div className="flex items-center gap-2.5">
                   <span className="glass flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ring-white/10 transition-shadow duration-300 group-hover:shadow-[0_0_18px_-4px_var(--primary)]">
@@ -1146,7 +1146,7 @@ export function RoutingView() {
               <p className="text-xs text-muted-foreground">{u.conditionsDesc}</p>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1.5 sm:col-span-2">
                 <Label htmlFor="rl-domain">{u.fieldDomain}</Label>
                 <Textarea

@@ -572,7 +572,7 @@ export function HostsView() {
 
       {/* toolbar */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="glass relative h-10 min-w-0 flex-1 rounded-xl sm:max-w-72">
+        <div className="glass relative h-10 min-w-40 flex-1 rounded-xl sm:max-w-72">
           <Search className="pointer-events-none absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <input
             value={q}

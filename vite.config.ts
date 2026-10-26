@@ -27,7 +27,7 @@ export default defineConfig(() => {
       // The panel is always reached through proxies (sandbox preview, nginx,
       // CDN tunnels) whose hostnames change — allow every Host header.
       // (Vite 6+ otherwise blocks unknown hosts with "Blocked request".)
-      allowedHosts: true,
+      allowedHosts: true as const,
     },
   };
 });

@@ -128,45 +128,6 @@ export async function ensureSeed(): Promise<void> {
       },
     });
   }
-
-  // Seed default Sale Templates
-  const tplCount = await db.saleTemplate.count();
-  if (tplCount === 0) {
-    await db.saleTemplate.createMany({
-      data: [
-        { name: "Starter · 30 GB / 30d", trafficLimitGb: 30, expiryDays: 30, ipLimit: 2, enabled: true },
-        { name: "Pro · 100 GB / 30d", trafficLimitGb: 100, expiryDays: 30, ipLimit: 3, enabled: true },
-        { name: "Gamer Low-Ping · 50 GB / 30d", trafficLimitGb: 50, expiryDays: 30, ipLimit: 2, enabled: true },
-        { name: "Family · 250 GB / 60d", trafficLimitGb: 250, expiryDays: 60, ipLimit: 5, enabled: true },
-        { name: "VIP Unlimited / 30d", trafficLimitGb: null, expiryDays: 30, ipLimit: 4, enabled: true },
-      ],
-    });
-  }
-
-  // Seed default Resellers
-  const resCount = await db.reseller.count();
-  if (resCount === 0) {
-    await db.reseller.createMany({
-      data: [
-        {
-          username: "parsa_vpn",
-          passwordHash: hashPassword("parsa1234"),
-          note: "Tehran VIP Reseller · @parsa_vpn",
-          enabled: true,
-          maxUsers: 50,
-          trafficQuotaGb: 2000,
-        },
-        {
-          username: "aria_net",
-          passwordHash: hashPassword("aria1234"),
-          note: "Shiraz Partner · Zarinpal Auto-Topup",
-          enabled: true,
-          maxUsers: 25,
-          trafficQuotaGb: 1000,
-        },
-      ],
-    });
-  }
 }
 
 /* ---------- brute-force lockout (per client IP, in-memory) ---------- */

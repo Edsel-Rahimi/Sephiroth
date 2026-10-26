@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import {
-  ensureInboundSeed,
   mapInboundWriteError,
   requireAdmin,
   toDTO,
@@ -25,8 +24,6 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
 
-    await ensureInboundSeed();
-
     const rows = await db.inbound.findMany({
       orderBy: [{ createdAt: "asc" }, { tag: "asc" }],
     });
@@ -43,8 +40,6 @@ export async function POST(req: Request) {
     if (!admin) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
-
-    await ensureInboundSeed();
 
     let body: unknown;
     try {

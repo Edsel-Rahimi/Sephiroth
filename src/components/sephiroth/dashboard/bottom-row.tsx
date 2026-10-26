@@ -197,7 +197,10 @@ function GoalGauge() {
   const d2 = useMemo(() => d2Dictionaries[lang], [lang]);
   const goal = useCoreStore((s) => s.snapshot.goal);
 
-  const pct = Math.min(100, Math.round((goal.currentGb / goal.targetGb) * 100));
+  const pct =
+    goal.targetGb > 0
+      ? Math.min(100, Math.round((goal.currentGb / goal.targetGb) * 100))
+      : 0;
   const R = 62;
   const C = Math.PI * R; /* semicircle */
   const done = (C * pct) / 100;

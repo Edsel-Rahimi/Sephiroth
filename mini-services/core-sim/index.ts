@@ -75,7 +75,9 @@ safeInterval(() => {
 }, 10000)
 
 // Phase 3 — mirror the SQLite Inbound table every 2s; emit only when the
-// diff produced events (config created/updated/deleted or a status flip)
+// diff produced events (config created/updated/deleted or a status flip).
+// There is NO synthetic event generator — the activity feed only carries
+// real config changes.
 safeInterval(() => {
   const events = sim.mirrorDb()
   if (events.length > 0) {
@@ -83,20 +85,6 @@ safeInterval(() => {
     for (const e of events) emitEvent(e)
   }
 }, 2000)
-
-// activity event generator — one weighted event every 2800-7500ms
-function scheduleNextEvent(): void {
-  setTimeout(() => {
-    try {
-      emitEvent(sim.nextEvent())
-    } catch (err) {
-      console.error('[core-sim] event generator error:', err)
-    } finally {
-      scheduleNextEvent()
-    }
-  }, 2800 + Math.random() * 4700)
-}
-scheduleNextEvent()
 
 process.on('uncaughtException', (err) => {
   console.error('[core-sim] uncaught exception:', err)

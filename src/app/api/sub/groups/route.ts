@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/inbounds";
 import {
-  ensureSubSeed,
   genGroupToken,
   groupPasswordHash,
   toGroupDTO,
@@ -22,7 +21,6 @@ export async function GET(req: Request) {
     const admin = await requireAdmin(req);
     if (!admin) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-    await ensureSubSeed();
     const rows = await db.subGroup.findMany({
       orderBy: { createdAt: "desc" },
       include: { members: { include: { user: { select: { id: true } } } } },
