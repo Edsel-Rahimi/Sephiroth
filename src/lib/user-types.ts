@@ -221,6 +221,42 @@ export function daysLeft(expiryDays: number | null, createdAt: Date | string, no
   return Math.ceil((end - (now ?? new Date()).getTime()) / 86_400_000);
 }
 
+/* ---------- usage forecast (burn-rate) ---------- */
+
+export interface UsageForecast {
+  /** Average GB/day consumed since account creation (≥0, rounded 2dp). */
+  gbPerDay: number;
+  /** Estimated whole days until the traffic cap is hit. null = unlimited, no velocity, or already capped. */
+  daysToCap: number | null;
+  /** Estimated calendar day the cap will be reached (ISO). null = unknown. */
+  capEta: string | null;
+}
+
+/**
+ * Projects when a user's traffic quota will be exhausted based on their
+ * average burn-rate since creation (used ÷ age). Pure arithmetic — no
+ * history tables needed. Unique among Xray panels: turns the dumb
+ * "used / limit" bar into a real forecast.
+ */
+export function forecastUsage(
+  u: Pick<UserDTO, "trafficLimitGb" | "usedTrafficGb" | "createdAt">,
+  now?: Date
+): UsageForecast {
+  const created = new Date(u.createdAt).getTime();
+  const t = (now ?? new Date()).getTime();
+  const ageDays = Math.max(1, (t - created) / 86_400_000);
+  const gbPerDay = Math.round((u.usedTrafficGb / ageDays) * 100) / 100;
+
+  if (u.trafficLimitGb === null || u.trafficLimitGb <= 0 || u.usedTrafficGb >= u.trafficLimitGb) {
+    return { gbPerDay, daysToCap: null, capEta: null };
+  }
+  const remaining = u.trafficLimitGb - u.usedTrafficGb;
+  if (gbPerDay <= 0) return { gbPerDay: 0, daysToCap: null, capEta: null };
+  const daysToCap = Math.ceil(remaining / gbPerDay);
+  const capEta = new Date(t + daysToCap * 86_400_000).toISOString();
+  return { gbPerDay, daysToCap, capEta };
+}
+
 /* ---------- DTO ---------- */
 
 export interface AccessDTO {

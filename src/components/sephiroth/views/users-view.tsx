@@ -18,6 +18,7 @@ import {
   RefreshCw,
   Search,
   Trash2,
+  TrendingUp,
   UserPlus,
   Users as UsersIcon,
   XCircle,
@@ -62,7 +63,7 @@ import {
 import { useAppStore } from "@/lib/store/app-store";
 import { dictionaries } from "@/lib/i18n/dictionaries";
 import { lfmt } from "@/lib/i18n/live-strings";
-import { daysLeft, type AccessDTO, type UserDTO, type UserStatus } from "@/lib/user-types";
+import { daysLeft, forecastUsage, type AccessDTO, type UserDTO, type UserStatus } from "@/lib/user-types";
 import { buildShareLink } from "@/lib/share-links";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -127,6 +128,33 @@ function fmtGb(gb: number): string {
   if (gb >= 1024) return `${(gb / 1024).toFixed(2)} TB`;
   if (gb >= 10) return `${Math.round(gb)} GB`;
   return `${gb.toFixed(1)} GB`;
+}
+
+/* ---------- v2.3 · burn-rate forecast chip ---------- */
+
+function ForecastChip({ user, label, title }: { user: UserDTO; label: string; title: string }) {
+  const fc = forecastUsage(user);
+  if (fc.daysToCap === null || user.status !== "active") return null;
+  const tone =
+    fc.daysToCap <= 3
+      ? "bg-chart-5/10 text-chart-5 ring-chart-5/30"
+      : fc.daysToCap <= 7
+        ? "bg-amber-400/10 text-amber-400 ring-amber-400/30"
+        : "bg-white/[0.04] text-muted-foreground ring-white/10";
+  return (
+    <p
+      className={cn(
+        "mt-1.5 inline-flex max-w-full items-center gap-1 rounded-full px-1.5 py-0.5 text-[9.5px] font-semibold ring-1",
+        tone
+      )}
+      title={title}
+    >
+      <TrendingUp className="h-2.5 w-2.5 shrink-0" aria-hidden="true" />
+      <span className="truncate">
+        {lfmt(label, { n: fc.daysToCap, rate: fmtGb(fc.gbPerDay) })}
+      </span>
+    </p>
+  );
 }
 
 function avatarColor(seed: string): string {
@@ -828,6 +856,7 @@ export function UsersView() {
                               style={{ width: `${pct === null ? 8 : pct}%` }}
                             />
                           </div>
+                          <ForecastChip user={user} label={u.forecastChip} title={u.forecastTip} />
                         </div>
                       </td>
                       <td className="hidden px-3 py-3 lg:table-cell">
@@ -992,6 +1021,7 @@ export function UsersView() {
                           style={{ width: `${pct === null ? 8 : pct}%` }}
                         />
                       </div>
+                      <ForecastChip user={user} label={u.forecastChip} title={u.forecastTip} />
                     </div>
                   </div>
                   <div>

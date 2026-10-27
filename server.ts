@@ -51,6 +51,7 @@ import * as apiSubGroups from "./src/app/api/sub/groups/route";
 import * as apiSubGroupsId from "./src/app/api/sub/groups/[id]/route";
 import * as apiSubToken from "./src/app/api/sub/[token]/route";
 import * as apiSystemBackups from "./src/app/api/system/backups/route";
+import * as apiSystemDoctor from "./src/app/api/system/doctor/route";
 import * as apiSystemRestart from "./src/app/api/system/restart/route";
 import * as apiSystemUpdate from "./src/app/api/system/update/route";
 import * as apiSystemUpdateInfo from "./src/app/api/system/update-info/route";
@@ -270,6 +271,7 @@ async function startServer() {
   mountRoute(app, "/api/sub/:token", apiSubToken);
 
   mountRoute(app, "/api/system/backups", apiSystemBackups);
+  mountRoute(app, "/api/system/doctor", apiSystemDoctor);
   mountRoute(app, "/api/system/restart", apiSystemRestart);
   mountRoute(app, "/api/system/update-info", apiSystemUpdateInfo);
   mountRoute(app, "/api/system/update-status", apiSystemUpdateStatus);

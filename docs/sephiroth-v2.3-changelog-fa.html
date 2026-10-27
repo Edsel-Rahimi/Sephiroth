@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>Sephiroth v2.3.0 — تغییرات و قابلیت‌های جدید</title>
+<style>
+@font-face { font-family: "Vazirmatn"; src: url("../public/fonts/Vazirmatn-Regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Vazirmatn"; src: url("../public/fonts/Vazirmatn-Medium.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Vazirmatn"; src: url("../public/fonts/Vazirmatn-SemiBold.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Vazirmatn"; src: url("../public/fonts/Vazirmatn-Bold.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+
+@page { size: 720px 1020px; margin: 0; }
+:root {
+  --bg: #060b0f;
+  --bg2: #0a1218;
+  --card: rgba(255,255,255,0.035);
+  --line: rgba(255,255,255,0.09);
+  --text: #e7edf2;
+  --muted: #93a4b1;
+  --cyan: #22d8ee;
+  --amber: #fbbf24;
+  --red: #fb5f6b;
+  --green: #34d399;
+}
+html, body {
+  margin: 0; padding: 0;
+  width: 720px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Vazirmatn', 'Tahoma', sans-serif;
+  font-size: 13.5px;
+  line-height: 1.95;
+}
+@media screen {
+  html { height: auto; display: flex; justify-content: center; background: #14181c; }
+  body { margin: 20px auto; box-shadow: 0 20px 80px rgba(0,0,0,.6); }
+}
+* { box-sizing: border-box; }
+
+/* ───── cover ───── */
+.cover {
+  width: 720px; height: 1020px;
+  break-after: page;
+  overflow: hidden;
+  position: relative;
+  display: flex; flex-direction: column;
+  justify-content: center; align-items: center;
+  text-align: center;
+  background:
+    radial-gradient(560px 420px at 78% 12%, rgba(34,216,238,0.14), transparent 62%),
+    radial-gradient(500px 420px at 16% 88%, rgba(34,216,238,0.08), transparent 60%),
+    var(--bg);
+}
+.cover .ring {
+  position: absolute; border-radius: 50%;
+  border: 1px solid rgba(34,216,238,0.16);
+}
+.cover .r1 { width: 460px; height: 460px; top: 44px; left: 44px; }
+.cover .r2 { width: 300px; height: 300px; bottom: 44px; right: 44px; border-color: rgba(34,216,238,0.10); }
+.cover .glow {
+  width: 340px; height: 340px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(34,216,238,0.20), transparent 70%);
+  filter: blur(2px);
+  margin-bottom: -240px;
+}
+.cover .logo {
+  width: 104px; height: 104px; border-radius: 26px;
+  border: 1.5px solid rgba(34,216,238,0.45);
+  background: rgba(34,216,238,0.06);
+  box-shadow: 0 0 60px rgba(34,216,238,0.28);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 46px; font-weight: 700; color: var(--cyan);
+  letter-spacing: 1px;
+}
+.cover h1 {
+  font-size: 40px; font-weight: 700; margin: 34px 0 6px;
+  color: var(--text);
+}
+.cover h1 b { color: var(--cyan); font-weight: 700; }
+.cover .ver {
+  font-size: 15px; color: var(--cyan); letter-spacing: 3px;
+  border: 1px solid rgba(34,216,238,0.35); border-radius: 999px;
+  padding: 6px 22px; margin: 10px 0 26px;
+  background: rgba(34,216,238,0.06);
+}
+.cover p.lead {
+  max-width: 500px; color: var(--muted); font-size: 14.5px; margin: 0 40px;
+}
+.cover .foot {
+  position: absolute; bottom: 42px; left: 0; right: 0;
+  color: var(--muted); font-size: 11.5px; letter-spacing: 2px;
+}
+.cover .foot b { color: var(--text); letter-spacing: 4px; }
+
+/* ───── flowing content ───── */
+.main-content { padding: 54px 58px 32px 58px; }
+.section { margin-top: 26px; }
+.section:first-child { margin-top: 0; }
+.kicker {
+  display: inline-block; color: var(--cyan); font-size: 10.5px; font-weight: 700;
+  letter-spacing: 4px; margin-bottom: 8px;
+}
+h2 {
+  font-size: 23px; font-weight: 700; margin: 0 0 6px;
+  color: var(--text);
+  break-after: avoid;
+}
+h2 .n { color: var(--cyan); }
+.rule { height: 2px; background: linear-gradient(90deg, var(--cyan), transparent 70%); border: 0; margin: 10px 0 18px; break-after: avoid; }
+p { margin: 0 0 12px; color: var(--muted); }
+p b, li b { color: var(--text); font-weight: 600; }
+li { color: var(--muted); margin-bottom: 7px; }
+ul, ol { margin: 0 0 12px; padding-right: 20px; }
+code, .mono {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  direction: ltr; unicode-bidi: embed;
+  background: rgba(34,216,238,0.08); color: var(--cyan);
+  border: 1px solid rgba(34,216,238,0.2);
+  border-radius: 6px; padding: 1px 7px; font-size: 12px;
+}
+.card {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 14px; padding: 16px 18px; margin: 12px 0;
+  break-inside: avoid;
+}
+.card.cy { border-color: rgba(34,216,238,0.35); background: rgba(34,216,238,0.05); }
+.card.warn { border-color: rgba(251,191,36,0.35); background: rgba(251,191,36,0.05); }
+.card.danger { border-color: rgba(251,95,107,0.4); background: rgba(251,95,107,0.05); }
+.card h3 { margin: 0 0 6px; font-size: 15px; font-weight: 700; color: var(--text); }
+.card h3 .tag {
+  font-size: 10px; font-weight: 700; letter-spacing: 2px; color: var(--cyan);
+  border: 1px solid rgba(34,216,238,0.35); border-radius: 999px;
+  padding: 2px 10px; margin-right: 8px; vertical-align: 2px;
+}
+.card.warn h3 .tag { color: var(--amber); border-color: rgba(251,191,36,0.4); }
+.card.danger h3 .tag { color: var(--red); border-color: rgba(251,95,107,0.4); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.steps { counter-reset: st; margin: 0; padding: 0; list-style: none; }
+.steps li {
+  position: relative; padding: 0 40px 14px 0; margin: 0;
+  break-inside: avoid;
+}
+.steps li::before {
+  counter-increment: st; content: counter(st);
+  position: absolute; right: 0; top: 2px;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: rgba(34,216,238,0.1); border: 1px solid rgba(34,216,238,0.45);
+  color: var(--cyan); font-weight: 700; font-size: 12.5px;
+  display: flex; align-items: center; justify-content: center;
+}
+.steps li:not(:last-child)::after {
+  content: ""; position: absolute; right: 13px; top: 30px; bottom: 0;
+  width: 1px; background: rgba(34,216,238,0.18);
+}
+table { width: 100%; border-collapse: collapse; margin: 12px 0; break-inside: avoid; font-size: 12.5px; }
+th {
+  background: rgba(34,216,238,0.09); color: var(--cyan);
+  font-weight: 700; text-align: right; padding: 9px 12px;
+  border-bottom: 1px solid rgba(34,216,238,0.3);
+}
+td { padding: 8px 12px; border-bottom: 1px solid var(--line); color: var(--muted); vertical-align: top; }
+td.yes { color: var(--green); font-weight: 700; white-space: nowrap; }
+td.no { color: var(--red); white-space: nowrap; }
+td.us { color: var(--text); }
+.score-strip {
+  display: flex; gap: 10px; margin: 14px 0;
+}
+.score-strip .sc {
+  flex: 1; text-align: center; border: 1px solid var(--line); border-radius: 12px;
+  padding: 12px 6px; background: var(--card); break-inside: avoid;
+}
+.score-strip .sc b { display: block; font-size: 21px; color: var(--cyan); }
+.score-strip .sc span { font-size: 11px; color: var(--muted); }
+.linkbox {
+  direction: ltr; text-align: left; font-family: 'Courier New', monospace;
+  background: #03070a; border: 1px solid var(--line); border-radius: 10px;
+  padding: 10px 14px; font-size: 11.5px; color: #b8f3fb;
+  word-break: break-all; margin: 8px 0;
+}
+/* ending */
+.ending {
+  width: 720px; height: 1020px;
+  break-before: page;
+  overflow: hidden; position: relative;
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  text-align: center;
+  background:
+    radial-gradient(560px 420px at 20% 20%, rgba(34,216,238,0.10), transparent 60%),
+    var(--bg);
+}
+.ending .big { font-size: 30px; font-weight: 700; margin-bottom: 10px; }
+.ending p { color: var(--muted); max-width: 460px; }
+.ending .brand { color: var(--cyan); letter-spacing: 5px; font-weight: 700; margin-top: 26px; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ COVER ═══════════ -->
+<div class="cover">
+  <div class="ring r1"></div>
+  <div class="ring r2"></div>
+  <div class="glow"></div>
+  <div class="logo">S</div>
+  <h1>تغییرات و قابلیت‌های <b>نسخه ۲.۳</b></h1>
+  <div class="ver">SEPHIROTH · v2.3.0</div>
+  <p class="lead">صحت‌سنج کانفیگ، پیش‌بینی اتمام ترافیک، پروکسی تلگرام SOCKS5، رفع کامل قطعی لایو پریویو و راهنمای نصب تمیز روی کتابامپ — همه در یک سند.</p>
+  <div class="foot"><b>EPODONIOS</b> · اکتبر ۲۰۲۶ · سند رسمی تغییرات</div>
+</div>
+
+<div class="main-content">
+
+  <!-- ═══ ۱. رفع اشکالات ═══ -->
+  <div class="section">
+    <span class="kicker">FIXES</span>
+    <h2><span class="n">۱.</span> رفع اشکالات این نسخه</h2>
+    <hr class="rule">
+    <p>مهم‌ترین مشکل این نسخه، «قطع شدن» خود پنل بود؛ نه فقط لایو پریویو. دو خطای واقعی پیدا و ریشه‌ای حل شد:</p>
+
+    <div class="card danger">
+      <h3><span class="tag">CRITICAL</span> کرش کامل سرور هنگام بوت</h3>
+      <p style="margin-bottom:0">در نسخه ۲.۲.۰ یک مسیر API ناقص باقی مانده بود (<code>/api/outbounds/[id]/test</code>)؛ فایل سرور به آن ارجاع می‌داد ولی فایلش وجود نداشت. نتیجه: کل پروسه سرور موقع استارت‌آپ با خطای <code>ERR_MODULE_NOT_FOUND</code> کرش می‌کرد و پنل هیچ‌چیز نمایش نمی‌داد — همان «لایو پریویو قطع شده و نشون نمی‌ده». فایل ساخته شد و تست اتصال خروجی‌ها هم اکنون واقعاً کار می‌کند (دکمه Test در بخش خروجی‌ها).</p>
+    </div>
+
+    <div class="card warn">
+      <h3><span class="tag">CSS</span> صفحه سفید/خالی به‌خاطر PostCSS خراب</h3>
+      <p style="margin-bottom:0">یک فایل پیکربندی اضافه (<code>postcss.config.mjs</code>) به پوشه پروژه راه پیدا کرده بود که به پکیجی اشاره می‌کرد که اصلاً نصب نیست. موتور Tailwind 4 این پروژه از طریق پلاگین Vite کار می‌کند؛ فایل زائد حذف شد تا کل صفحه سفید نماند.</p>
+    </div>
+
+    <div class="card cy">
+      <h3><span class="tag">OK</span> لایو پریویو الان سالم است</h3>
+      <p style="margin-bottom:0">پیش‌نمایش زنده دیالوگ ساخت کانفیگ تست شد: با تغییر پورت، پروتکل و کلاینت، لینک اشتراک لحظه‌ای و صحیح به‌روز می‌شود (مثل <code>vless://…@host:port?type=tcp#Sephiroth · draft</code>).</p>
+    </div>
+  </div>
+
+  <!-- ═══ ۲. قابلیت‌های منحصربه‌فرد ═══ -->
+  <div class="section">
+    <span class="kicker">UNIQUE FEATURES</span>
+    <h2><span class="n">۲.</span> قابلیت‌هایی که بقیه پنل‌ها ندارند</h2>
+    <hr class="rule">
+    <p>سه قابلیت جدید که هیچ‌کدام از پنل‌های معروف (3x-ui، Marzban، Remnawave، S-UI و…) چیزی شبیه‌شان ندارند:</p>
+
+    <div class="card cy">
+      <h3>⓵ صحت‌سنج کانفیگ — Config Doctor</h3>
+      <p>یک «دکتر» برای کل پنل: دکمه «صحت‌سنج کانفیگ» در صفحه کانفیگ‌ها، کل دیتابیس واقعی شما را اسکن می‌کند و یک <b>امتیاز از ۱۰۰</b> به‌همراه نمره سلامت (A تا D) می‌دهد. ۱۶ سناریوی خطر را می‌گیرد و برای هر مورد یک راه‌حل مشخص پیشنهاد می‌کند:</p>
+      <ul style="margin-bottom:4px">
+        <li><b>پراکسی باز:</b> اینباند SOCKS/HTTP بدون رمز روی همه اینترفیس‌ها (خطر واقعی سوءاستفاده)</li>
+        <li><b>TLS بدون گواهی</b> و <b>REALITY ناقص</b> (serverNames/shortIds/کلیدها)</li>
+        <li><b>فال‌بک خراب</b> در VLESS/Trojan و <b>کلید خصوصی تکراری WireGuard</b> بین اینباندها</li>
+        <li><b>رول مرده و رول همه‌چیزگیر</b> در روتینگ (اشاره به خروجی ناموجود)</li>
+        <li>کاربر <b>منقضی ولی روشن</b>، <b>سقف‌خورده</b>، <b>نزدیک انقضا/سقف</b>، بدون کانفیگ یا وصل به اینباند خاموش</li>
+        <li>اینباند منقضی/خاموش و پورت‌های ممتاز (&lt;۱۰۲۴)</li>
+      </ul>
+    </div>
+
+    <div class="score-strip">
+      <div class="sc"><b>۱۶</b><span>سناریوی بررسی</span></div>
+      <div class="sc"><b>۱۰۰</b><span>امتیاز سلامت</span></div>
+      <div class="sc"><b>A…D</b><span>نمره نهایی</span></div>
+      <div class="sc"><b>۱۲/۵/۱</b><span>جریمه خطر/هشدار/یادداشت</span></div>
+    </div>
+
+    <div class="card cy">
+      <h3>⓶ پیش‌بینی اتمام ترافیک کاربر</h3>
+      <p style="margin-bottom:0">زیر نوار مصرف هر کاربر یک چیپ هوشمند ظاهر می‌شود: <b>«≈۵ روز تا سقف · ۱۱GB در روز»</b>. نرخ سوخت متوسط از روز ساخت حساب محاسبه می‌شود و به شما می‌گوید کاربر کِی حجمش تمام می‌شود — رنگ زرد/قرمز برای فوریت بالا. دیگر لازم نیست حدس بزنید چه کسی باید شارژ شود؛ پنل خودش پیش‌بینی می‌کند. (این قابلیت فقط وقتی نمایش داده می‌شود که کاربر سقف حجم داشته باشد و مصرف واقعی ثبت شده باشد.)</p>
+    </div>
+
+    <div class="card cy">
+      <h3>⓷ پروکسی تلگرام SOCKS5 در خود Forge</h3>
+      <p style="margin-bottom:0">بخش بعدی را کامل بخوانید — سؤال «با پنل خودمان می‌شود پروکسی تلگرام ساخت؟» جواب قاطع دارد: <b>بله، دو راه</b>.</p>
+    </div>
+  </div>
+
+  <!-- ═══ ۳. پروکسی تلگرام ═══ -->
+  <div class="section">
+    <span class="kicker">TELEGRAM PROXY</span>
+    <h2><span class="n">۳.</span> پروکسی تلگرام: SOCKS5 یا MTProto؟</h2>
+    <hr class="rule">
+    <p><b>جواب کوتاه: بله، با همین پنل هر دو شدنی است.</b> تلگرام دو نوع پروکسی می‌فهمد:</p>
+
+    <table>
+      <tr><th style="width:32%"></th><th>SOCKS5 (جدید — در Forge)</th><th>MTProto (ابزار تنظیمات)</th></tr>
+      <tr><td class="us">سرعت</td><td>بسیار سریع (پروکسی ساده TCP)</td><td>سریع</td></tr>
+      <tr><td class="us">پوشش/استتار</td><td>ندارد — قابل شناسایی توسط DPI</td><td>سکرت dd رمزنگاری‌شده شبیه ترافیک HTTPS</td></tr>
+      <tr><td class="us">راه‌اندازی در پنل</td><td>Forge ← پروتکل SOCKS ← بلوک خودکار تلگرام</td><td>تنظیمات ← ابزار MTProto (سکرت + لینک‌ها + دستور mtg)</td></tr>
+      <tr><td class="us">بهترین کاربرد</td><td>فیلترینگ معمولی، اینترنت خانگی/اداری</td><td>شبکه‌های سرکوبگر و DPI فعال (ایران)</td></tr>
+    </table>
+
+    <h3 style="font-size:15px; color:var(--text); margin:16px 0 6px">راه SOCKS5 — سه قدم، داخل خود پنل:</h3>
+    <ol class="steps">
+      <li><b>ساخت کانفیگ جدید ← پروتکل SOCKS</b> را انتخاب کنید و یک پورت آزاد بدهید (مثلاً <code>10808</code>).</li>
+      <li>در همین صفحه، بخش <b>«پروکسی تلگرام (SOCKS5)»</b> خودش ظاهر می‌شود: نام کاربری/رمز بگذارید تا لینک‌ها امن شوند.</li>
+      <li>لینک <code>https://t.me/socks?…</code> را کپی کنید یا <b>QR را با گوشی اسکن کنید</b> — تلگرام خودش پروکسی را اضافه می‌کند. تمام!</li>
+    </ol>
+
+    <div class="card">
+      <h3>شکل لینک تولیدی</h3>
+      <div class="linkbox">https://t.me/socks?server=YOUR-SERVER&port=10808&user=ali&pass=Xy91kQ</div>
+      <div class="linkbox">tg://socks?server=YOUR-SERVER&port=10808&user=ali&pass=Xy91kQ</div>
+      <p style="margin-bottom:0">کلاینت تلگرام هر دو را می‌فهمد؛ لینک t.me برای فرستادن به دوستان و QR برای اسکن حضوری بهترین‌اند.</p>
+    </div>
+
+    <div class="card warn">
+      <h3><span class="tag">HONEST</span> نکته صادقانه درباره SOCKS5</h3>
+      <p style="margin-bottom:0">SOCKS5 هیچ پوششی ندارد؛ در شبکه‌هایی که DPI فعال دارند (مثل ایران) قابل شناسایی و مسدودسازی است. برای آن شرایط، از <b>ابزار MTProto</b> در تنظیمات استفاده کنید: سکرت dd تولید می‌شود و دستور آماده اجرای دیمن <code>mtg</code> را می‌دهد. نکته مهم: Xray از نسخه v24.10 اینباند mtproto داخلی را حذف کرده، پس MTProto به یک پورت TCP خام جداگانه و یک دیمن کوچک نیاز دارد — پنل همه دستوراتش را آماده تحویل می‌دهد.</p>
+    </div>
+  </div>
+
+  <!-- ═══ ۴. کتابامپ ═══ -->
+  <div class="section">
+    <span class="kicker">KETABAMP</span>
+    <h2><span class="n">۴.</span> کتابامپ: حذف کامل و نصب آخرین نسخه</h2>
+    <hr class="rule">
+    <p>چون نسخه قبلی روی کتابامپ همین باگ بوت را داشت، بهترین راه یک <b>نصب تمیز</b> است — نه آپدیت روی نسخه خراب:</p>
+
+    <ol class="steps">
+      <li><b>از داده‌های فعلی یک بکاپ بگیرید</b> (اگر چیزی مهم دارید): در پنل فعلی ← تنظیمات ← بکاپ ← دانلود فایل JSON. اگر پنل قبلاً بالا نمی‌آید، این مرحله را رد کنید.</li>
+      <li><b>پنل قدیمی را کاملاً حذف کنید:</b> در داشبورد کتابامپ، اپلیکیشن Sephiroth را انتخاب و Delete کنید. اگر گزینه «پاک کردن کامل فایل‌ها/دیتابیس» داشت، آن را هم بزنید تا هیچ فایل قدیمی نماند.</li>
+      <li><b>آخرین نسخه را بگیرید:</b> از صفحه GitHub عمومی (<code>Edsel-Rahimi/Sephiroth</code>) بخش Releases، فایل ZIP سورس نسخه <b>2.3.0</b> را دانلود کنید (یا برنچ <code>main</code>).</li>
+      <li><b>در کتابامپ دوباره Deploy کنید:</b> Create App ← آپلود ZIP یا آدرس مخزن ← تنظیمات پیش‌فرض (پورت ۳۰۰۰ ← Start command همان <code>npm run start</code>/<code>bun run start</code> که قبلاً بود).</li>
+      <li><b>بعد از اولین بوت:</b> با <code>admin</code> / <code>sephiroth</code> وارد شوید و <b>فوراً</b> از پروفایل، رمز را عوض کنید. بعد تنظیمات ← بخش‌های بکاپ/۲FA را روشن کنید.</li>
+      <li><b>بازیابی بکاپ (اختیاری):</b> تنظیمات ← Restore ← همان فایل JSON مرحله ۱.</li>
+    </ol>
+
+    <div class="card cy">
+      <h3>راه دوم — بدون حذف (آپدیت از داخل خود پنل)</h3>
+      <p style="margin-bottom:0">از نسخه ۲.۲ به بعد، پنل دکمه بروزرسانی خودکار دارد: تنظیمات ← Software Update ← «Check for updates». چون نسخه فعلی کتابامپ شما (۲.۲.۰) به‌خاطر باگ بوت بالا نمی‌آید، این‌بار از مسیر نصب تمیز بروید؛ از دفعه بعد همین دکمه کار را یک‌کلیکی می‌کند.</p>
+    </div>
+  </div>
+
+  <!-- ═══ ۵. یادآوری تک‌پورت ═══ -->
+  <div class="section">
+    <span class="kicker">ONE PORT</span>
+    <h2><span class="n">۵.</span> چند پروتکل روی یک پورت (یادآوری)</h2>
+    <hr class="rule">
+    <p>از نسخه ۲.۲: در دیالوگ ساخت سریع، کاشی <b>«کمبو تک‌پورت»</b> با یک کلیک این را می‌سازد:</p>
+    <ul>
+      <li><b>پورت اصلی:</b> VLESS + TLS روی پورت عمومی (مثلاً <code>10000</code>)</li>
+      <li><b>فال‌بک اول:</b> مسیر <code>/panel</code> ← خود پنل (همان پورت، بدون پورت اضافه)</li>
+      <li><b>فال‌بک دوم:</b> بقیه ترافیک ← تروجان داخلی روی <code>127.0.0.1:10001</code></li>
+    </ul>
+    <p>یعنی کلاینت‌های VLESS و Trojan هر دو از «یک پورت» سرویس می‌گیرند و nobody نمی‌فهمد پشت آن چه خبر است. در Forge هم تب «پیشرفته» اجازه می‌دهد فال‌بک‌ها را دستی ویرایش کنید و JSON سرور را کپی بگیرید.</p>
+  </div>
+
+  <!-- ═══ ۶. جدول مقایسه ═══ -->
+  <div class="section">
+    <span class="kicker">COMPARISON</span>
+    <h2><span class="n">۶.</span> جدول قابلیت‌های اختصاصی سفیروت</h2>
+    <hr class="rule">
+    <table>
+      <tr><th>قابلیت</th><th style="width:22%">سفیروت ۲.۳</th><th style="width:22%">3x-ui</th><th style="width:22%">Marzban</th></tr>
+      <tr><td class="us">صحت‌سنج کانفیگ با امتیاز</td><td class="yes">✔ دارد</td><td class="no">✖</td><td class="no">✖</td></tr>
+      <tr><td class="us">پیش‌بینی اتمام ترافیک کاربر</td><td class="yes">✔ دارد</td><td class="no">✖</td><td class="no">✖</td></tr>
+      <tr><td class="us">لینک + QR پروکسی تلگرام (t.me/socks)</td><td class="yes">✔ دارد</td><td class="no">✖</td><td class="no">✖</td></tr>
+      <tr><td class="us">کمبو تک‌پورت یک‌کلیکی (fallback خودکار)</td><td class="yes">✔ دارد</td><td class="no">دستی</td><td class="no">دستی</td></tr>
+      <tr><td class="us">دکمه آپدیت خود پنل</td><td class="yes">✔ دارد</td><td class="yes">✔ دارد</td><td class="no">✖</td></tr>
+      <tr><td class="us">بکاپ خودکار روزانه + دانلود/حذف</td><td class="yes">✔ دارد</td><td class="no">✖</td><td class="no">✖</td></tr>
+      <tr><td class="us">ورود دومرحله‌ای TOTP بدون وابستگی</td><td class="yes">✔ دارد</td><td class="no">✖</td><td class="no">✖</td></tr>
+      <tr><td class="us">سیستم نماینده + قالب فروش + درگاه پرداخت</td><td class="yes">✔ دارد</td><td class="no">✖</td><td class="no">✖</td></tr>
+      <tr><td class="us">۶ تم + ۶ زبان + RTL کامل + ⌘K</td><td class="yes">✔ دارد</td><td class="no">✖</td><td class="no">✖</td></tr>
+    </table>
+    <p style="font-size:12px">منبع مقایسه: تحلیل رسمی <code>docs/panel-gap-analysis.md</code> — نسخه‌های پنل‌ها در تاریخ انتشار بررسی و ثبت شده‌اند.</p>
+  </div>
+
+  <!-- ═══ ۷. بعدی ═══ -->
+  <div class="section">
+    <span class="kicker">NEXT</span>
+    <h2><span class="n">۷.</span> چیزی که در راه است</h2>
+    <hr class="rule">
+    <ul>
+      <li><b>ربات فروش تلگرامی</b> — تحقیق کامل در <code>docs/telegram-bot-research.md</code> آماده است (مقایسه ۵ ربات برتر، درگاه‌های پرداخت ایرانی، نقشه فازها). طبق تصمیم شما، ساخت تا فردا که تأیید بدهید شروع نمی‌شود.</li>
+      <li><b>درایور هسته واقعی Xray</b> — اتصال مستقیم پنل به هسته واقعی به‌جای شبیه‌ساز.</li>
+      <li><b>اطلاع‌رسانی تلگرام</b> — اعلان رویدادها (اتمام حجم، انقضا، بکاپ) به چت ادمین.</li>
+    </ul>
+    <p style="font-size:11.5px; margin-top:10px">برای شروع هر کدام کافی است بگویید — همه‌ی تحقیقات و نقشه‌ی راه در پوشه <code>docs/</code> آماده است.</p>
+  </div>
+
+</div>
+
+<!-- ═══════════ ENDING ═══════════ -->
+<div class="ending">
+  <div class="ring r1" style="position:absolute;width:460px;height:460px;border-radius:50%;border:1px solid rgba(34,216,238,0.14);top:44px;right:44px"></div>
+  <div class="big">مدار پایدار بماند 🛰️</div>
+  <p>سفیروت نسخه ۲.۳ — ساخته‌شده با عشق و شب‌های بیداری. اگر این نسخه کارتان را راه انداخت، یک ستاره در گیت‌هاب سوخت مدار را روشن نگه می‌دارد.</p>
+  <div class="brand">EPODONIOS · SEPHIROTH</div>
+</div>
+
+</body>
+</html>

@@ -92,6 +92,26 @@ const KEY_FALLBACK: Record<string, string> = {
   hysteria2: "password",
 };
 
+/**
+ * Telegram-native SOCKS5 proxy links. Telegram clients do NOT understand
+ * socks:// URIs — they need the t.me/socks deep link, optionally with
+ * username/password auth. Works on any host:port reachable by the user.
+ */
+export function buildTelegramSocksLinks(
+  host: string,
+  port: number,
+  user?: string,
+  pass?: string
+): { tg: string; web: string } {
+  const q = new URLSearchParams();
+  q.set("server", host);
+  q.set("port", String(port));
+  if (user) q.set("user", user);
+  if (pass) q.set("pass", pass);
+  const qs = q.toString();
+  return { tg: `tg://socks?${qs}`, web: `https://t.me/socks?${qs}` };
+}
+
 export function buildShareLink(
   row: ShareInbound,
   first?: ShareClient,

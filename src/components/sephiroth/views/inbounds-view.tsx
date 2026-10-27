@@ -23,11 +23,13 @@ import {
   RadioTower,
   RefreshCcw,
   Search,
+  Send,
   ShieldCheck,
   ShieldOff,
   ShieldPlus,
   Sparkles,
   Star,
+  Stethoscope,
   LayoutGrid,
   Rows3,
   SlidersHorizontal,
@@ -83,7 +85,10 @@ import { dictionaries } from "@/lib/i18n/dictionaries";
 import { lfmt } from "@/lib/i18n/live-strings";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { buildDokoSummary, buildShareLink, buildWgConf } from "@/lib/share-links";
+import { buildDokoSummary, buildShareLink, buildTelegramSocksLinks, buildWgConf, hostOf } from "@/lib/share-links";
+import QRCode from "react-qr-code";
+import type { DoctorFinding, DoctorReport } from "@/lib/doctor-types";
+import { Progress } from "@/components/ui/progress";
 
 // moved to lib/share-links.ts (shared with the public sub API) — re-exported for older import paths
 export { buildDokoSummary, buildShareLink, buildWgConf };
@@ -816,6 +821,11 @@ export function InboundsView() {
     subId: "",
   });
   const [quickBusy, setQuickBusy] = useState(false);
+
+  /* v2.3 — config doctor */
+  const [doctorOpen, setDoctorOpen] = useState(false);
+  const [doctorBusy, setDoctorBusy] = useState(false);
+  const [doctorReport, setDoctorReport] = useState<DoctorReport | null>(null);
 
   /* delete confirm */
   const [deleting, setDeleting] = useState<InboundDTO | null>(null);
@@ -1602,6 +1612,78 @@ export function InboundsView() {
             )}
           </div>
           <Tip>{t.inbounds.tipAuth}</Tip>
+        </div>
+      )}
+
+      {/* v2.3 — Telegram SOCKS5 proxy suite (socks only) */}
+      {form.protocol === "socks" && (
+        <div className="space-y-3 rounded-xl border border-primary/25 bg-primary/[0.05] p-4">
+          <div className="flex items-center gap-2 text-xs font-semibold text-silver">
+            <Send className="h-3.5 w-3.5 text-primary" />
+            {t.inbounds.tgTitle}
+          </div>
+          <p className="text-[11px] leading-relaxed text-muted-foreground">{t.inbounds.tgDesc}</p>
+          {(() => {
+            const portNum = Number(form.port) || 0;
+            if (!portNum) return <Tip>{t.inbounds.tgNeedPort}</Tip>;
+            const host = hostOf({ listen: form.listen, stream: form.stream });
+            const tg = buildTelegramSocksLinks(
+              host,
+              portNum,
+              form.stream.authUser || undefined,
+              form.stream.authPass || undefined
+            );
+            const linkRow = (label: string, value: string, zpl: string) => (
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-bold tracking-wide text-muted-foreground">{label}</span>
+                <div className="flex items-stretch gap-2">
+                  <code
+                    dir="ltr"
+                    className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap rounded-lg border border-white/10 bg-black/30 px-2.5 py-2 font-mono text-[10.5px] text-foreground/90"
+                  >
+                    {value}
+                  </code>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="shrink-0 gap-1 rounded-lg px-2.5 text-[11px]"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(value);
+                        toast({ title: zpl });
+                      } catch {
+                        toast({ title: t.inbounds.toastFail, variant: "destructive" });
+                      }
+                    }}
+                  >
+                    <Copy className="h-3 w-3" aria-hidden="true" />
+                    {t.inbounds.tgCopy}
+                  </Button>
+                </div>
+              </div>
+            );
+            return (
+              <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
+                <div className="min-w-0 space-y-3">
+                  {linkRow("Telegram app link (t.me)", tg.web, t.inbounds.toastCopied)}
+                  {linkRow("Deep link (tg://)", tg.tg, t.inbounds.toastCopied)}
+                  <p className="text-[10.5px] leading-relaxed text-muted-foreground">
+                    {t.inbounds.tgNote}
+                  </p>
+                </div>
+                <div className="flex items-start justify-center sm:justify-end">
+                  <div
+                    className="rounded-xl bg-white p-2 shadow-[0_0_24px_-10px_var(--primary)]"
+                    role="img"
+                    aria-label={t.inbounds.tgQrAlt}
+                  >
+                    <QRCode value={tg.web} size={104} bgColor="#ffffff" fgColor="#060b0f" />
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 
@@ -2955,6 +3037,78 @@ export function InboundsView() {
   };
   const hasFieldErrors = Object.keys(fieldErr).length > 0 || dupEmails.size > 0;
 
+  /* ---------- v2.3 · config doctor ---------- */
+  const runDoctor = async () => {
+    setDoctorBusy(true);
+    setDoctorOpen(true);
+    try {
+      const res = await fetch("/api/system/doctor");
+      if (!res.ok) throw new Error("doctor");
+      setDoctorReport((await res.json()) as DoctorReport);
+    } catch {
+      setDoctorReport(null);
+      toast({ title: t.doctor.fail, variant: "destructive" });
+    } finally {
+      setDoctorBusy(false);
+    }
+  };
+  const doctorFindings: Record<DoctorFinding["severity"], string> = {
+    danger: t.doctor.sevDanger,
+    warn: t.doctor.sevWarn,
+    info: t.doctor.sevInfo,
+  };
+  const doctorTone: Record<DoctorFinding["severity"], string> = {
+    danger: "text-chart-5",
+    warn: "text-amber-400",
+    info: "text-primary",
+  };
+  const doctorDot: Record<DoctorFinding["severity"], string> = {
+    danger: "bg-chart-5",
+    warn: "bg-amber-400",
+    info: "bg-primary",
+  };
+  const doctorFindingText = (f: DoctorFinding): { title: string; detail: string; fix: string } => {
+    const d = t.doctor;
+    const m = f.meta;
+    const s = (o: string) => lfmt(o, m as Record<string, string>);
+    switch (f.code) {
+      case "socksOpen":
+        return { title: s(d.socksOpen), detail: s(d.socksOpenD), fix: s(d.socksOpenF) };
+      case "tlsNoCert":
+        return { title: s(d.tlsNoCert), detail: s(d.tlsNoCertD), fix: s(d.tlsNoCertF) };
+      case "realityIncomplete":
+        return { title: s(d.realityIncomplete), detail: s(d.realityIncompleteD), fix: s(d.realityIncompleteF) };
+      case "fallbackBad":
+        return { title: s(d.fallbackBad), detail: s(d.fallbackBadD), fix: s(d.fallbackBadF) };
+      case "wgKeyReuse":
+        return { title: s(d.wgKeyReuse), detail: s(d.wgKeyReuseD), fix: s(d.wgKeyReuseF) };
+      case "ruleDead":
+        return { title: s(d.ruleDead), detail: s(d.ruleDeadD), fix: s(d.ruleDeadF) };
+      case "ruleEmpty":
+        return { title: s(d.ruleEmpty), detail: s(d.ruleEmptyD), fix: s(d.ruleEmptyF) };
+      case "userExpiredOn":
+        return { title: s(d.userExpiredOn), detail: s(d.userExpiredOnD), fix: s(d.userExpiredOnF) };
+      case "userCappedOn":
+        return { title: s(d.userCappedOn), detail: s(d.userCappedOnD), fix: s(d.userCappedOnF) };
+      case "userExpiring":
+        return { title: s(d.userExpiring), detail: s(d.userExpiringD), fix: s(d.userExpiringF) };
+      case "userNearQuota":
+        return { title: s(d.userNearQuota), detail: s(d.userNearQuotaD), fix: s(d.userNearQuotaF) };
+      case "userNoAccess":
+        return { title: s(d.userNoAccess), detail: s(d.userNoAccessD), fix: s(d.userNoAccessF) };
+      case "userOfflineInbound":
+        return { title: s(d.userOfflineInbound), detail: s(d.userOfflineInboundD), fix: s(d.userOfflineInboundF) };
+      case "inboundExpired":
+        return { title: s(d.inboundExpired), detail: s(d.inboundExpiredD), fix: s(d.inboundExpiredF) };
+      case "inboundOffline":
+        return { title: s(d.inboundOffline), detail: s(d.inboundOfflineD), fix: s(d.inboundOfflineF) };
+      case "privilegedPort":
+        return { title: s(d.privilegedPort), detail: s(d.privilegedPortD), fix: s(d.privilegedPortF) };
+      default:
+        return { title: f.code, detail: "", fix: "" };
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* ── header ─────────────────────────────────────────── */}
@@ -2971,6 +3125,15 @@ export function InboundsView() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
+          <Button
+            onClick={() => void runDoctor()}
+            variant="outline"
+            className="gap-2 rounded-xl border-chart-3/30 bg-chart-3/10 px-4 font-semibold text-chart-3 hover:bg-chart-3/15"
+            title={t.doctor.title}
+          >
+            <Stethoscope className="h-4 w-4" />
+            {t.doctor.btn}
+          </Button>
           <Button
             onClick={openQuick}
             variant="outline"
@@ -3913,6 +4076,146 @@ export function InboundsView() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ── v2.3 · config doctor ───────────────────────────── */}
+      <Dialog open={doctorOpen} onOpenChange={setDoctorOpen}>
+        <DialogContent className="glass-strong max-h-[85vh] max-w-xl overflow-hidden border-white/10 sm:rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-silver">
+              <Stethoscope className="h-4 w-4 text-chart-3" aria-hidden="true" />
+              {t.doctor.title}
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              {t.doctor.desc}
+            </DialogDescription>
+          </DialogHeader>
+
+          {doctorBusy && (
+            <div className="flex flex-col items-center gap-3 py-10" role="status">
+              <Loader2 className="h-7 w-7 animate-spin text-primary" aria-hidden="true" />
+              <p className="text-sm text-muted-foreground">{t.doctor.scanning}</p>
+            </div>
+          )}
+
+          {!doctorBusy && !doctorReport && (
+            <div className="py-10 text-center">
+              <Stethoscope className="mx-auto h-10 w-10 text-muted-foreground/40" aria-hidden="true" />
+              <p className="mt-3 text-sm text-muted-foreground">{t.doctor.fail}</p>
+            </div>
+          )}
+
+          {!doctorBusy && doctorReport && (
+            <div className="-mx-1 space-y-4 overflow-y-auto px-1 pb-1" style={{ maxHeight: "60vh" }}>
+              {/* score hero */}
+              <div className="flex items-center gap-4 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                <div
+                  className={cn(
+                    "flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-full border-2 font-bold",
+                    doctorReport.grade === "A"
+                      ? "border-primary text-primary"
+                      : doctorReport.grade === "B"
+                        ? "border-chart-2 text-chart-2"
+                        : doctorReport.grade === "C"
+                          ? "border-amber-400 text-amber-400"
+                          : "border-chart-5 text-chart-5"
+                  )}
+                  aria-label={lfmt(t.doctor.scoreA11y, { score: String(doctorReport.score) })}
+                >
+                  <span className="text-xl leading-none">{doctorReport.score}</span>
+                  <span className="text-[9px] font-medium opacity-70">{t.doctor.of100}</span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold text-silver">
+                    {lfmt(t.doctor.grade, { grade: doctorReport.grade })}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">{t.doctor.scoreDesc}</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    {doctorReport.counts.danger > 0 && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-chart-5/10 px-2 py-0.5 text-[10.5px] font-semibold text-chart-5 ring-1 ring-chart-5/30">
+                        {doctorReport.counts.danger} {t.doctor.sevDanger}
+                      </span>
+                    )}
+                    {doctorReport.counts.warn > 0 && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/10 px-2 py-0.5 text-[10.5px] font-semibold text-amber-400 ring-1 ring-amber-400/30">
+                        {doctorReport.counts.warn} {t.doctor.sevWarn}
+                      </span>
+                    )}
+                    {doctorReport.counts.info > 0 && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10.5px] font-semibold text-primary ring-1 ring-primary/30">
+                        {doctorReport.counts.info} {t.doctor.sevInfo}
+                      </span>
+                    )}
+                    {doctorReport.findings.length === 0 && (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary ring-1 ring-primary/30">
+                        <CircleCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                        {t.doctor.clean}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* findings list */}
+              {doctorReport.findings.length > 0 && (
+                <ul className="space-y-2">
+                  {doctorReport.findings.map((f, i) => {
+                    const txt = doctorFindingText(f);
+                    return (
+                      <li
+                        key={`${f.code}-${i}`}
+                        className="rounded-xl border border-white/10 bg-white/[0.02] p-3"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", doctorDot[f.severity])} aria-hidden="true" />
+                          <p className="min-w-0 flex-1 truncate text-xs font-bold text-foreground" title={txt.title}>
+                            {txt.title}
+                          </p>
+                          <span className={cn("shrink-0 text-[10px] font-bold", doctorTone[f.severity])}>
+                            {doctorFindings[f.severity]}
+                          </span>
+                        </div>
+                        {txt.detail && (
+                          <p className="mt-1 ps-3.5 text-[11px] leading-relaxed text-muted-foreground">{txt.detail}</p>
+                        )}
+                        {txt.fix && (
+                          <p className="mt-1.5 ps-3.5 text-[11px] leading-relaxed text-chart-3">
+                            <Lightbulb className="me-1 inline h-3 w-3 align-[-2px]" aria-hidden="true" />
+                            {txt.fix}
+                          </p>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+
+              <p className="text-center text-[10px] text-muted-foreground/70">
+                {lfmt(t.doctor.scannedAt, {
+                  time: new Date(doctorReport.scannedAt).toLocaleTimeString(),
+                })}
+              </p>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => void runDoctor()}
+              disabled={doctorBusy}
+              className="rounded-full border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"
+            >
+              <RefreshCcw className={cn("h-3.5 w-3.5", doctorBusy && "animate-spin")} aria-hidden="true" />
+              {t.doctor.rerun}
+            </Button>
+            <Button
+              onClick={() => setDoctorOpen(false)}
+              className="glow-cyan min-w-24 rounded-full font-semibold"
+            >
+              {t.inbounds.cancel}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
