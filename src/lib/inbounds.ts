@@ -24,7 +24,7 @@ export const IN_PROTOCOLS = [
   "http",
 ] as const;
 
-export const IN_TRANSPORTS = ["tcp", "ws", "grpc", "httpupgrade", "xhttp"] as const;
+export const IN_TRANSPORTS = ["tcp", "ws", "grpc", "httpupgrade", "xhttp", "kcp"] as const;
 
 export const IN_SECURITIES = ["none", "tls", "reality"] as const;
 
@@ -79,13 +79,15 @@ const STREAM_KEYS: Record<string, { str?: string[]; num?: string[]; bool?: strin
       "path", "host", "earlyDataHeaderName", // ws / httpupgrade / xhttp
       "serviceName", "authority", // grpc
       "mode", // xhttp mode (auto/packet-up/stream-up/stream-one)
+      "kcpSeed", // mKCP obfuscation seed (header type rides headerType)
       "method", // shadowsocks cipher
       "authUser", "authPass", // socks / http proxy auth
       "dokoAddress", "dokoNetwork", // dokodemo-door target
       "wgSecretKey", "wgPublicKey", // wireguard keys
+      "obfsPassword", // hysteria2 salamander obfs (v2.5 sidecar)
       "fallbacksJson", // serialized fallbacks array
     ],
-    num: ["maxEarlyData", "dokoPort", "wgMtu"],
+    num: ["maxEarlyData", "dokoPort", "wgMtu", "upMbps", "downMbps"], // hy2 bandwidth caps (v2.5)
     bool: ["multiMode", "mux", "socksUdp"],
   },
   tls: {
@@ -197,7 +199,8 @@ export type InboundFieldError =
   | "invalid"
   | "tooLong"
   | "tooMany"
-  | "dupEmail";
+  | "dupEmail"
+  | "ss2022Key";
 
 /** Prisma-ready write payload (complex fields pre-serialized). */
 export interface InboundWrite {
@@ -395,6 +398,39 @@ function normClients(value: unknown): InboundClient[] {
   });
 }
 
+/* ---------- shadowsocks-2022 cross-field check ---------- */
+
+const SS2022_PREFIX = "2022-blake3-";
+const SS2022_KEY_PATTERN = /^[A-Za-z0-9+/]+={0,2}$/;
+
+/**
+ * SS2022 ciphers need a STANDARD base64 key of the raw key size:
+ * 2022-blake3-aes-128-gcm → 16 bytes (24 b64 chars),
+ * 2022-blake3-aes-256-gcm / 2022-blake3-chacha20-poly1305 → 32 bytes (44 chars).
+ * Returns "ss2022Key" when any client key violates that shape.
+ */
+function checkSs2022Keys(raw: Record<string, unknown>): InboundFieldError | null {
+  if (raw.protocol !== "shadowsocks") return null;
+  const st =
+    typeof raw.stream === "object" && raw.stream !== null && !Array.isArray(raw.stream)
+      ? (raw.stream as Record<string, unknown>)
+      : {};
+  const method = asString(st.method) ?? "";
+  if (!method.startsWith(SS2022_PREFIX)) return null;
+  const wantBytes = method === "2022-blake3-aes-128-gcm" ? 16 : 32;
+  const wantChars = wantBytes === 16 ? 24 : 44;
+  if (!Array.isArray(raw.clients)) return null;
+  for (const item of raw.clients) {
+    if (typeof item !== "object" || item === null || Array.isArray(item)) continue;
+    const key = (asString((item as Record<string, unknown>).key) ?? "").trim();
+    if (!key) continue; // empty keys are surfaced by the required-check
+    if (key.length !== wantChars || !SS2022_KEY_PATTERN.test(key)) return "ss2022Key";
+    const decoded = Buffer.from(key, "base64");
+    if (decoded.length !== wantBytes) return "ss2022Key";
+  }
+  return null;
+}
+
 function checkSniffing(value: unknown): InboundFieldError | null {
   if (value === undefined) return null;
   if (typeof value !== "object" || value === null || Array.isArray(value))
@@ -528,6 +564,12 @@ function validateFull(raw: Record<string, unknown>): InboundValidation {
   const streamError = checkStream(raw.stream);
   if (streamError) fields.stream = streamError;
 
+  // cross-field: ss2022 client keys must be right-sized base64 (needs protocol+stream+clients)
+  if (!fields.protocol && !fields.stream && !fields.clients) {
+    const ssKeyError = checkSs2022Keys(raw);
+    if (ssKeyError) fields.clients = ssKeyError;
+  }
+
   if (Object.keys(fields).length > 0) return { ok: false, fields };
 
   const data: InboundWrite = {
@@ -623,6 +665,14 @@ function validatePartial(raw: Record<string, unknown>): InboundValidation {
     const err = checkStream(raw.stream);
     if (err) fields.stream = err;
     else data.streamJson = JSON.stringify(normStream(raw.stream));
+  }
+
+  // cross-field ss2022 check — the Forge always sends the full form, so
+  // protocol+stream+clients travel together even in patch mode
+  if (Object.keys(fields).length === 0 &&
+      (raw.protocol !== undefined || raw.stream !== undefined || raw.clients !== undefined)) {
+    const ssKeyError = checkSs2022Keys(raw);
+    if (ssKeyError) fields.clients = ssKeyError;
   }
 
   if (Object.keys(fields).length > 0) return { ok: false, fields };

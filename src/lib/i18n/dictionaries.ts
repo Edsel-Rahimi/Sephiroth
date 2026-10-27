@@ -301,6 +301,10 @@ export interface Dict {
     certPublic: string;
     certPrivate: string;
     certHint: string;
+    certManaged: string;
+    certManagedNone: string;
+    certManagedEmpty: string;
+    certManagedOpen: string;
     realTitle: string;
     realDest: string;
     phDest: string;
@@ -381,6 +385,21 @@ export interface Dict {
     authPass: string;
     udpOn: string;
     ssMethod: string;
+    trKcp: string;
+    trKcpDesc: string;
+    tipKcp: string;
+    kcpHeader: string;
+    kcpSeed: string;
+    /** v2.5 — hysteria2 sidecar engine */
+    hy2Obfs: string;
+    hy2Up: string;
+    hy2Down: string;
+    scRunning: string;
+    scStopped: string;
+    scHint: string;
+    ss2022KeyHint: string;
+    ssKeyGen: string;
+    errSs2022Key: string;
     noClients: string;
     toastQuick: string;
     autoFillIp: string;
@@ -519,6 +538,15 @@ export interface Dict {
     errNoInbounds: string;
     empty: string;
     emptyDesc: string;
+    /** Task 23-g — HWID device limit (sub portal) */
+    fieldHwid: string;
+    hwidUnlimited: string;
+    devicesCount: string;
+    resetDevices: string;
+    toastDevicesReset: string;
+    /** Task 23-g — concurrent-IP usage chip */
+    ipActive: string;
+    ipBreach: string;
   };
 
   resellers: {
@@ -819,6 +847,50 @@ export interface Dict {
     sessionDesc: string;
     sessionAge: string;
     sessionAgeDesc: string;
+    ssl: {
+      cardTitle: string;
+      cardDesc: string;
+      statusInstalled: string;
+      statusMissing: string;
+      installBtn: string;
+      installing: string;
+      issueTitle: string;
+      domain: string;
+      domainPh: string;
+      email: string;
+      mode: string;
+      modeStandalone: string;
+      modeStandaloneDesc: string;
+      modeWebroot: string;
+      modeWebrootDesc: string;
+      webroot: string;
+      webrootPh: string;
+      testToggle: string;
+      testHint: string;
+      issueBtn: string;
+      issuing: string;
+      issuedOk: string;
+      certsTitle: string;
+      certEmpty: string;
+      daysLeft: string;
+      testBadge: string;
+      delTitle: string;
+      delDesc: string;
+      delBtn: string;
+      deleted: string;
+      logTitle: string;
+      logEmpty: string;
+      renewCheck: string;
+      renewCheckDesc: string;
+      tip: string;
+      eDomain: string;
+      eTracked: string;
+      eNotInstalled: string;
+      eBind: string;
+      eChallenge: string;
+      eRate: string;
+      eGeneric: string;
+    };
   };
 
   hosts: {
@@ -921,6 +993,39 @@ export interface Dict {
     created: string;
     updated: string;
     deleted: string;
+    // Multi-node v1 (agent push/pull)
+    fieldBaseUrl: string;
+    phBaseUrl: string;
+    fieldSecret: string;
+    phSecret: string;
+    agentHint: string;
+    apply: string;
+    applying: string;
+    refresh: string;
+    refreshing: string;
+    traffic: string;
+    trafficTitle: string;
+    applyTitle: string;
+    applyDesc: string;
+    appliedOk: string;
+    appliedFail: string;
+    infoTitle: string;
+    coreKind: string;
+    coreSim: string;
+    coreXray: string;
+    coreRunning: string;
+    coreStopped: string;
+    uptime: string;
+    hostnameLabel: string;
+    platformLabel: string;
+    agentVersion: string;
+    trafficInbounds: string;
+    trafficUsers: string;
+    noTraffic: string;
+    lastSync: string;
+    lastErrorLabel: string;
+    pullFail: string;
+    errBaseUrl: string;
   };
 
   outbounds: {
@@ -1358,6 +1463,41 @@ export interface Dict {
     previewNote: string;
   };
 
+  /* Task 23-c — Sephiroth Sales Bot v1 (settings card, template editor, payment wiring) */
+  bot: {
+    modeLabel: string;
+    modeConsole: string;
+    modeSales: string;
+    modeDesc: string;
+    adminChatIds: string;
+    adminChatIdsPh: string;
+    adminChatIdsDesc: string;
+    proxyUrl: string;
+    proxyUrlPh: string;
+    proxyUrlDesc: string;
+    shopLang: string;
+    shopLangFa: string;
+    shopLangEn: string;
+    shopLangDesc: string;
+    worker: string;
+    workerRunning: string;
+    workerStopped: string;
+    workerIdle: string;
+    workerLastPoll: string;
+    workerNever: string;
+    workerHandled: string;
+    workerErrors: string;
+    tplPrice: string;
+    tplPriceDesc: string;
+    tplBotVisible: string;
+    tplBotVisibleDesc: string;
+    tplBotBadge: string;
+    payHolder: string;
+    paySaved: string;
+    payLoadErr: string;
+    payHint: string;
+  };
+
   payment: {
     title: string;
     subtitle: string;
@@ -1539,6 +1679,10 @@ export interface Dict {
     binPathPh: string;
     versionPin: string;
     versionPinPh: string;
+    /** v2.5 — hysteria2 sidecar engine version pin */
+    versionPinHy: string;
+    versionPinHyPh: string;
+    versionPinHyHint: string;
     logTitle: string;
     logEmpty: string;
     hint: string;
@@ -1552,6 +1696,9 @@ export interface Dict {
     actFail: string;
     installOk: string;
     installFail: string;
+    /** Task 23-g — opt-in concurrent-IP enforcement */
+    enforceIp: string;
+    enforceIpHint: string;
   };
 }
 
@@ -1834,6 +1981,10 @@ export const dictionaries: Record<Lang, Dict> = {
       certPublic: "Public key (PEM)",
       certPrivate: "Private key (PEM)",
       certHint: "Leave empty to fall back to the system certificate",
+      certManaged: "Managed certificates",
+      certManagedNone: "None — paste PEM below",
+      certManagedEmpty: "No managed certificates yet — issue one in Settings → SSL",
+      certManagedOpen: "Open SSL settings",
       realTitle: "REALITY settings",
       realDest: "Dest (borrowed handshake)",
       phDest: "yahoo.com:443",
@@ -1914,6 +2065,20 @@ export const dictionaries: Record<Lang, Dict> = {
       authPass: "Password",
       udpOn: "Allow UDP relay",
       ssMethod: "Encryption",
+      trKcp: "mKCP",
+      trKcpDesc: "mKCP — UDP-based, optional obfuscation",
+      tipKcp: "mKCP rides UDP — open the inbound port for UDP in your firewall too. Seed and header type must match the client.",
+      kcpHeader: "Header type (obfuscation)",
+      kcpSeed: "Seed (optional)",
+      hy2Obfs: "Salamander obfs password (optional)",
+      hy2Up: "Uplink cap (Mbps)",
+      hy2Down: "Downlink cap (Mbps)",
+      scRunning: "sidecar: running",
+      scStopped: "sidecar: stopped",
+      scHint: "Hysteria2 runs on its own sidecar engine (the hysteria binary), not inside the Xray core — the panel starts one process per inbound and feeds per-user traffic back into the store.",
+      ss2022KeyHint: "2022 ciphers need a standard base64 key — 24 chars for AES-128, 44 for AES-256/ChaCha20 (use the generate button).",
+      ssKeyGen: "Generate 2022 keys",
+      errSs2022Key: "For 2022 ciphers the key must be valid base64 of the right length (24 or 44 chars).",
       noClients: "Dokodemo-door forwards traffic to a fixed target — it has no client accounts.",
       toastQuick: "Quick inbound “{tag}” created",
       autoFillIp: "Auto-detect server IP",
@@ -2052,6 +2217,13 @@ export const dictionaries: Record<Lang, Dict> = {
       errNoInbounds: "Pick at least one inbound",
       empty: "No users yet",
       emptyDesc: "Create the first user and link it to inbounds — configs and keys are generated for you.",
+      fieldHwid: "Device limit (HWID)",
+      hwidUnlimited: "Empty = unlimited devices",
+      devicesCount: "{n} device(s)",
+      resetDevices: "Reset devices",
+      toastDevicesReset: "Device registrations reset",
+      ipActive: "Active IPs ({n} min)",
+      ipBreach: "Over the IP limit",
     },
     resellers: {
     badge: "PHASE 6",
@@ -2350,6 +2522,50 @@ export const dictionaries: Record<Lang, Dict> = {
       sessionDesc: "How long a sign-in stays valid.",
       sessionAge: "Session lifetime (minutes)",
       sessionAgeDesc: "5 minutes – 30 days (43200). Shorter is safer.",
+      ssl: {
+        cardTitle: "SSL Certificates",
+        cardDesc: "Issue and renew certificates with acme.sh (ACME) — the same engine 3x-ui uses.",
+        statusInstalled: "acme.sh installed",
+        statusMissing: "acme.sh not installed",
+        installBtn: "Install acme.sh",
+        installing: "Installing…",
+        issueTitle: "Issue a certificate",
+        domain: "Domain",
+        domainPh: "panel.example.com",
+        email: "ACME account email",
+        mode: "Challenge mode",
+        modeStandalone: "Standalone (port 80)",
+        modeStandaloneDesc: "acme.sh answers the challenge itself on port 80",
+        modeWebroot: "Webroot",
+        modeWebrootDesc: "a running web server serves the challenge from a folder",
+        webroot: "Webroot path",
+        webrootPh: "/var/www/html",
+        testToggle: "Staging (test) mode",
+        testHint: "Uses the Let's Encrypt staging CA — no rate limits, untrusted certificates.",
+        issueBtn: "Issue certificate",
+        issuing: "Issuing… this can take up to 5 minutes",
+        issuedOk: "Certificate issued",
+        certsTitle: "Managed certificates",
+        certEmpty: "No managed certificates yet.",
+        daysLeft: "{d} days left",
+        testBadge: "staging",
+        delTitle: "Remove managed certificate?",
+        delDesc: "The files in db/certs are deleted and the domain stops being tracked. The acme.sh renewal config is kept — remove it on the server if you want it gone.",
+        delBtn: "Remove",
+        deleted: "Certificate removed",
+        logTitle: "ACME log",
+        logEmpty: "No ACME activity yet.",
+        renewCheck: "Daily renewal check",
+        renewCheckDesc: "Once a day, run acme.sh --renew-all when a certificate is within 30 days of expiry.",
+        tip: "Certificates are written to db/certs and can be selected in any TLS inbound (Forge → TLS → managed certificates).",
+        eDomain: "Enter a valid domain (e.g. panel.example.com)",
+        eTracked: "A certificate for this domain is already tracked — remove it first",
+        eNotInstalled: "Install acme.sh first",
+        eBind: "The challenge port is unavailable (in use, or binding ports below 1024 is not permitted)",
+        eChallenge: "The challenge failed — check DNS and that the domain points at this server",
+        eRate: "ACME rate limit hit — try again later",
+        eGeneric: "Issuance failed — see the ACME log for details",
+      },
     },
 
     hosts: {
@@ -2452,6 +2668,39 @@ export const dictionaries: Record<Lang, Dict> = {
       created: "Node created",
       updated: "Node updated",
       deleted: "Node deleted",
+      // Multi-node v1 (agent push/pull)
+      fieldBaseUrl: "Base URL",
+      phBaseUrl: "http://127.0.0.1:3000",
+      fieldSecret: "Node secret",
+      phSecret: "shared secret",
+      agentHint: "Multi-node v1 pushes this panel's inbound config to the node. Traffic accounting stays per-node and the node runs its own core driver (simulator by default).",
+      apply: "Apply config",
+      applying: "Applying…",
+      refresh: "Refresh",
+      refreshing: "Refreshing…",
+      traffic: "Traffic",
+      trafficTitle: "Node traffic",
+      applyTitle: "Apply config to node?",
+      applyDesc: "This replaces the node's inbounds with this panel's {n} inbound(s). The node's current inbound list will be overwritten.",
+      appliedOk: "Config applied to node",
+      appliedFail: "Apply failed",
+      infoTitle: "Agent info",
+      coreKind: "Core",
+      coreSim: "Simulator",
+      coreXray: "Xray",
+      coreRunning: "running",
+      coreStopped: "stopped",
+      uptime: "Uptime",
+      hostnameLabel: "Hostname",
+      platformLabel: "Platform",
+      agentVersion: "Panel version",
+      trafficInbounds: "Inbounds",
+      trafficUsers: "Users",
+      noTraffic: "No traffic data yet",
+      lastSync: "Last sync",
+      lastErrorLabel: "Last error",
+      pullFail: "Could not reach node",
+      errBaseUrl: "Invalid base URL",
     },
 
     outbounds: {
@@ -2909,6 +3158,41 @@ export const dictionaries: Record<Lang, Dict> = {
       previewNote: "Preview: automation switches are session-only until settings persistence lands.",
     },
 
+    /* Task 23-c — sales bot */
+    bot: {
+      modeLabel: "Bot mode",
+      modeConsole: "Console",
+      modeSales: "Sales shop",
+      modeDesc: "Console answers admin commands from the panel. Sales runs the in-panel shop worker (Telegram long-poll).",
+      adminChatIds: "Admin chat IDs",
+      adminChatIdsPh: "123456789, 987654321",
+      adminChatIdsDesc: "Comma-separated chat IDs allowed to use the admin bot flows (owner first).",
+      proxyUrl: "API proxy (HTTPS)",
+      proxyUrlPh: "https://user:pass@proxy.example:8080",
+      proxyUrlDesc: "Optional HTTPS proxy for api.telegram.org. SOCKS5 is not supported in this release — run a local https-forward instead.",
+      shopLang: "Default shop language",
+      shopLangFa: "Persian",
+      shopLangEn: "English",
+      shopLangDesc: "Used for new bot users until they pick a language.",
+      worker: "Sales worker",
+      workerRunning: "running",
+      workerStopped: "stopped",
+      workerIdle: "idle — console mode or no token",
+      workerLastPoll: "Last poll",
+      workerNever: "no poll yet",
+      workerHandled: "Handled updates",
+      workerErrors: "Poll errors",
+      tplPrice: "Price (Toman)",
+      tplPriceDesc: "0 = free trial template.",
+      tplBotVisible: "Show in bot shop",
+      tplBotVisibleDesc: "Listed in the Telegram sales bot for purchase.",
+      tplBotBadge: "Bot",
+      payHolder: "Card holder",
+      paySaved: "Payment settings saved.",
+      payLoadErr: "Could not load payment settings.",
+      payHint: "These credentials are read by the Telegram sales bot (card-to-card + ZarinPal).",
+    },
+
     payment: {
       title: "Reseller Wallet, Per-GB Tariff & Automated Payment Webhooks",
       subtitle:
@@ -3086,6 +3370,9 @@ export const dictionaries: Record<Lang, Dict> = {
       binPathPh: "/usr/local/bin/xray (empty = auto)",
       versionPin: "Version pin",
       versionPinPh: "e.g. 25.9.11 (empty = latest)",
+      versionPinHy: "Hysteria sidecar pin",
+      versionPinHyPh: "e.g. 2.13.0 (empty = latest)",
+      versionPinHyHint: "Applies to the hysteria2 sidecar binary; empty = latest release.",
       logTitle: "Core log",
       logEmpty: "No log lines yet — the simulator writes nothing here",
       hint: "Simulator = dashboard telemetry without a real proxy core. Real Xray mode runs an actual xray process built from your inbounds.",
@@ -3099,6 +3386,8 @@ export const dictionaries: Record<Lang, Dict> = {
       actFail: "Core action failed",
       installOk: "Xray core {v} ready",
       installFail: "Xray core install failed",
+      enforceIp: "Enforce IP limit",
+      enforceIpHint: "Auto-disable users whose distinct IPs exceed their IP limit (10-minute window). Off = warn only.",
     },
   },
 
@@ -3380,6 +3669,10 @@ export const dictionaries: Record<Lang, Dict> = {
       certPublic: "کلید عمومی (PEM)",
       certPrivate: "کلید خصوصی (PEM)",
       certHint: "خالی بگذار تا گواهی سیستم استفاده شود",
+      certManaged: "گواهی‌های مدیریت‌شده",
+      certManagedNone: "هیچ — PEM را پایین بچسبانید",
+      certManagedEmpty: "هنوز گواهی مدیریتی نیست — از تنظیمات ← SSL صادر کنید",
+      certManagedOpen: "باز کردن تنظیمات SSL",
       realTitle: "تنظیمات REALITY",
       realDest: "مقصد (دست‌داد قرضی)",
       phDest: "yahoo.com:443",
@@ -3460,6 +3753,20 @@ export const dictionaries: Record<Lang, Dict> = {
       authPass: "رمز عبور",
       udpOn: "اجازهٔ رلهٔ UDP",
       ssMethod: "رمزنگاری",
+      trKcp: "mKCP",
+      trKcpDesc: "mKCP — مبتنی بر UDP با استتار اختیاری",
+      tipKcp: "mKCP روی UDP کار می‌کند — پورت اینباند را در فایروال برای UDP هم باز کنید. Seed و نوع هدر باید با کلاینت یکی باشند.",
+      kcpHeader: "نوع هدر (استتار)",
+      kcpSeed: "Seed (اختیاری)",
+      hy2Obfs: "رمز استتار Salamander (اختیاری)",
+      hy2Up: "سقف آپلود (Mbps)",
+      hy2Down: "سقف دانلود (Mbps)",
+      scRunning: "سایدکار: در حال اجرا",
+      scStopped: "سایدکار: متوقف",
+      scHint: "Hysteria2 روی موتور سایدکار مستقل خودش (باینری hysteria) اجرا می‌شود، نه داخل هسته Xray — پنل برای هر اینباند یک پروسس می‌سازد و ترافیک هر کاربر را به مخزن برمی‌گرداند.",
+      ss2022KeyHint: "شیفرهای 2022 کلید Base64 می‌خواهند — 24 نویسه برای AES-128 و 44 نویسه برای AES-256/ChaCha20 (دکمه تولید کلید را بزنید).",
+      ssKeyGen: "تولید کلید 2022",
+      errSs2022Key: "برای شیفرهای 2022 کلید باید Base64 معتبر با طول درست باشد (24 یا 44 نویسه).",
       noClients: "Dokodemo-door ترافیک را به مقصد ثابت می‌فرستد — حساب کاربری ندارد.",
       toastQuick: "کانفیگ سریع «{tag}» ساخته شد",
       autoFillIp: "تشخیص خودکار آی‌پی سرور",
@@ -3598,6 +3905,13 @@ export const dictionaries: Record<Lang, Dict> = {
       errNoInbounds: "حداقل یک اینباند انتخاب کن",
       empty: "هنوز کاربری نیست",
       emptyDesc: "اولین کاربر را بساز و به اینباندها وصل کن — کانفیگ‌ها و کلیدها خودکار ساخته می‌شوند.",
+      fieldHwid: "سقف دستگاه (HWID)",
+      hwidUnlimited: "خالی = تعداد دستگاه نامحدود",
+      devicesCount: "{n} دستگاه",
+      resetDevices: "بازنشانی دستگاه‌ها",
+      toastDevicesReset: "دستگاه‌های ثبت‌شده بازنشانی شد",
+      ipActive: "آی‌پی‌های فعال ({n} دقیقه)",
+      ipBreach: "از سقف آی‌پی گذشته",
     },
     resellers: {
     badge: "فاز ۶",
@@ -3896,6 +4210,50 @@ export const dictionaries: Record<Lang, Dict> = {
       sessionDesc: "یک ورود چقدر معتبر بماند.",
       sessionAge: "طول عمر نشست (دقیقه)",
       sessionAgeDesc: "۵ دقیقه تا ۳۰ روز (۴۳۲۰۰). کوتاه‌تر امن‌تر است.",
+      ssl: {
+        cardTitle: "گواهی‌های SSL",
+        cardDesc: "صدور و تمدید گواهی با acme.sh (ACME) — همان موتوری که 3x-ui استفاده می‌کند.",
+        statusInstalled: "acme.sh نصب شده است",
+        statusMissing: "acme.sh نصب نیست",
+        installBtn: "نصب acme.sh",
+        installing: "در حال نصب…",
+        issueTitle: "صدور گواهی",
+        domain: "دامنه",
+        domainPh: "panel.example.com",
+        email: "ایمیل حساب ACME",
+        mode: "روش اعتبارسنجی",
+        modeStandalone: "مستقل (پورت ۸۰)",
+        modeStandaloneDesc: "acme.sh خودش چالش را روی پورت ۸۰ پاسخ می‌دهد",
+        modeWebroot: "وب‌روت",
+        modeWebrootDesc: "وب‌سرور در حال اجرا چالش را از یک پوشه سرو می‌کند",
+        webroot: "مسیر وب‌روت",
+        webrootPh: "/var/www/html",
+        testToggle: "حالت آزمایشی (Staging)",
+        testHint: "از CA آزمایشی Let's Encrypt استفاده می‌کند — بدون محدودیت، بدون اعتماد.",
+        issueBtn: "صدور گواهی",
+        issuing: "در حال صدور… ممکن است تا ۵ دقیقه طول بکشد",
+        issuedOk: "گواهی صادر شد",
+        certsTitle: "گواهی‌های مدیریت‌شده",
+        certEmpty: "هنوز گواهی مدیریتی وجود ندارد.",
+        daysLeft: "{d} روز مانده",
+        testBadge: "آزمایشی",
+        delTitle: "حذف گواهی مدیریت‌شده؟",
+        delDesc: "فایل‌های داخل db/certs حذف می‌شوند و دامنه دیگر ردیابی نمی‌شود. پیکربندی تمدید acme.sh حفظ می‌شود — در صورت نیاز از سرور حذفش کنید.",
+        delBtn: "حذف",
+        deleted: "گواهی حذف شد",
+        logTitle: "گزارش ACME",
+        logEmpty: "هنوز فعالیتی ثبت نشده است.",
+        renewCheck: "بررسی روزانه تمدید",
+        renewCheckDesc: "روزی یک‌بار، اگر گواهی کمتر از ۳۰ روز اعتبار داشته باشد acme.sh --renew-all اجرا می‌شود.",
+        tip: "گواهی‌ها در db/certs نوشته می‌شوند و در هر ورودی TLS قابل انتخاب‌اند (فورج ← TLS ← گواهی‌های مدیریتی).",
+        eDomain: "دامنه معتبر وارد کنید (مثل panel.example.com)",
+        eTracked: "گواهی این دامنه قبلاً ردیابی می‌شود — اول حذفش کنید",
+        eNotInstalled: "اول acme.sh را نصب کنید",
+        eBind: "پورت چالش در دسترس نیست (اشغال است یا اتصال به پورت‌های زیر ۱۰۲۴ مجاز نیست)",
+        eChallenge: "اعتبارسنجی شکست خورد — DNS و اشاره‌ی دامنه به این سرور را بررسی کنید",
+        eRate: "محدودیت نرخ ACME — بعداً تلاش کنید",
+        eGeneric: "صدور شکست خورد — جزئیات در گزارش ACME",
+      },
     },
 
     hosts: {
@@ -3998,6 +4356,39 @@ export const dictionaries: Record<Lang, Dict> = {
       created: "نود ساخته شد",
       updated: "نود به‌روز شد",
       deleted: "نود حذف شد",
+      // Multi-node v1 (agent push/pull)
+      fieldBaseUrl: "آدرس پایه",
+      phBaseUrl: "http://127.0.0.1:3000",
+      fieldSecret: "رمز نود",
+      phSecret: "رمز مشترک",
+      agentHint: "چند-نودی نسخه ۱ کانفیگ ورودی‌های این پنل را به نود می‌فرستد. شمارش ترافیک در هر نود محلی می‌ماند و نود درایور هسته خودش را دارد (به‌طور پیش‌فرض شبیه‌ساز).",
+      apply: "اعمال کانفیگ",
+      applying: "در حال اعمال…",
+      refresh: "به‌روزرسانی",
+      refreshing: "در حال به‌روزرسانی…",
+      traffic: "ترافیک",
+      trafficTitle: "ترافیک نود",
+      applyTitle: "اعمال کانفیگ روی نود؟",
+      applyDesc: "ورودی‌های نود با {n} ورودیِ این پنل جایگزین می‌شود. لیست فعلی نود بازنویسی خواهد شد.",
+      appliedOk: "کانفیگ روی نود اعمال شد",
+      appliedFail: "اعمال ناموفق بود",
+      infoTitle: "اطلاعات ایجنت",
+      coreKind: "هسته",
+      coreSim: "شبیه‌ساز",
+      coreXray: "Xray",
+      coreRunning: "در حال اجرا",
+      coreStopped: "متوقف",
+      uptime: "آپ‌تایم",
+      hostnameLabel: "نام میزبان",
+      platformLabel: "پلتفرم",
+      agentVersion: "نسخه پنل",
+      trafficInbounds: "ورودی‌ها",
+      trafficUsers: "کاربران",
+      noTraffic: "هنوز داده ترافیکی نیست",
+      lastSync: "آخرین همگام‌سازی",
+      lastErrorLabel: "آخرین خطا",
+      pullFail: "اتصال به نود ممکن نشد",
+      errBaseUrl: "آدرس پایه نامعتبر است",
     },
 
     outbounds: {
@@ -4451,6 +4842,41 @@ export const dictionaries: Record<Lang, Dict> = {
       previewNote: "پیش‌نمایش: کلیدهای اتوماسیون تا اضافه شدن ذخیره‌سازی تنظیمات فقط در همین نشست اعمال می‌شوند.",
     },
 
+    /* Task 23-c — sales bot */
+    bot: {
+      modeLabel: "حالت ربات",
+      modeConsole: "کنسول",
+      modeSales: "فروشگاه",
+      modeDesc: "کنسول به فرمان‌های مدیریتی از پنل پاسخ می‌دهد. فروشگاه، ورکر فروش درون‌پنلی را اجرا می‌کند (اتصال طولانی به تلگرام).",
+      adminChatIds: "شناسه‌های گفتگوی مدیر",
+      adminChatIdsPh: "123456789, 987654321",
+      adminChatIdsDesc: "فهرست شناسه‌های مجاز برای عملیات مدیریتی ربات، جدا شده با ویرگول (مالک اول).",
+      proxyUrl: "پروکسی API (HTTPS)",
+      proxyUrlPh: "https://user:pass@proxy.example:8080",
+      proxyUrlDesc: "پروکسی اختیاری HTTPS برای api.telegram.org. SOCKS5 در این نسخه پشتیبانی نمی‌شود — به‌جای آن یک https-forward محلی اجرا کنید.",
+      shopLang: "زبان پیش‌فرض فروشگاه",
+      shopLangFa: "فارسی",
+      shopLangEn: "انگلیسی",
+      shopLangDesc: "برای کاربران تازه ربات تا زمان انتخاب زبان استفاده می‌شود.",
+      worker: "ورکر فروش",
+      workerRunning: "در حال اجرا",
+      workerStopped: "متوقف",
+      workerIdle: "آماده — حالت کنسول است یا توکن ندارد",
+      workerLastPoll: "آخرین دریافت",
+      workerNever: "هنوز دریافتی نیست",
+      workerHandled: "به‌روزرسانی‌های پردازش‌شده",
+      workerErrors: "خطاهای دریافت",
+      tplPrice: "قیمت (تومان)",
+      tplPriceDesc: "۰ = قالب تست رایگان.",
+      tplBotVisible: "نمایش در فروشگاه ربات",
+      tplBotVisibleDesc: "در ربات فروش تلگرام برای خرید فهرست می‌شود.",
+      tplBotBadge: "ربات",
+      payHolder: "نام صاحب کارت",
+      paySaved: "تنظیمات پرداخت ذخیره شد.",
+      payLoadErr: "بارگذاری تنظیمات پرداخت ممکن نشد.",
+      payHint: "این اطلاعات توسط ربات فروش تلگرام خوانده می‌شود (کارت‌به‌کارت و زرین‌پال).",
+    },
+
     payment: {
       title: "کیف پول نمایندگان، تعرفه ترافیک و وب‌هوک‌های پرداخت خودکار",
       subtitle:
@@ -4628,6 +5054,9 @@ export const dictionaries: Record<Lang, Dict> = {
       binPathPh: "/usr/local/bin/xray (خالی = خودکار)",
       versionPin: "نسخه مشخص",
       versionPinPh: "مثلاً 25.9.11 (خالی = آخرین نسخه)",
+      versionPinHy: "نسخه مشخص سایدکار Hysteria",
+      versionPinHyPh: "مثلاً 2.13.0 (خالی = آخرین نسخه)",
+      versionPinHyHint: "روی باینری سایدکار hysteria2 اعمال می‌شود؛ خالی = آخرین نسخه.",
       logTitle: "لاگ هسته",
       logEmpty: "هنوز لاگی نیست — شبیه‌ساز چیزی اینجا نمی‌نویسد",
       hint: "شبیه‌ساز یعنی تله‌متری داشبورد بدون هسته واقعی پروکسی. حالت Xray واقعی یک فرایند Xray واقعی از اینباند‌های شما اجرا می‌کند.",
@@ -4641,6 +5070,8 @@ export const dictionaries: Record<Lang, Dict> = {
       actFail: "عملیات هسته ناموفق بود",
       installOk: "هسته Xray {v} آماده است",
       installFail: "نصب هسته Xray ناموفق بود",
+      enforceIp: "اجرا بهای سقف آی‌پی",
+      enforceIpHint: "کاربرانی که آی‌پی‌های مجزشان از سقفشان بگذرد خودکار غیرفعال می‌شوند (پنجره ۱۰ دقیقه‌ای). خاموش = فقط هشدار.",
     },
   },
 
@@ -4922,6 +5353,10 @@ export const dictionaries: Record<Lang, Dict> = {
       certPublic: "المفتاح العام (PEM)",
       certPrivate: "المفتاح الخاص (PEM)",
       certHint: "اتركه فارغًا للرجوع إلى شهادة النظام",
+      certManaged: "الشهادات المُدارة",
+      certManagedNone: "لا شيء — الصق PEM أدناه",
+      certManagedEmpty: "لا توجد شهادات مُدارة بعد — أصدر واحدة من الإعدادات ← SSL",
+      certManagedOpen: "فتح إعدادات SSL",
       realTitle: "إعدادات REALITY",
       realDest: "الوجهة (مصافحة مستعارة)",
       phDest: "yahoo.com:443",
@@ -5002,6 +5437,20 @@ export const dictionaries: Record<Lang, Dict> = {
       authPass: "كلمة المرور",
       udpOn: "السماح بتمرير UDP",
       ssMethod: "التشفير",
+      trKcp: "mKCP",
+      trKcpDesc: "mKCP — نقل عبر UDP مع تشويش اختياري",
+      tipKcp: "يعمل mKCP فوق UDP — افتح منفذ نقطة الدخول لـ UDP أيضاً في جدار الحماية. يجب أن يتطابق Seed ونوع الترويسة مع العميل.",
+      kcpHeader: "نوع الترويسة (التشويش)",
+      kcpSeed: "Seed (اختياري)",
+      hy2Obfs: "كلمة تشويش Salamander (اختياري)",
+      hy2Up: "حد الرفع (Mbps)",
+      hy2Down: "حد التنزيل (Mbps)",
+      scRunning: "السايدكار: يعمل",
+      scStopped: "السايدكار: متوقف",
+      scHint: "يعمل Hysteria2 على محرك سايدكار مستقل (ملف hysteria الثنائي)، وليس داخل نواة Xray — ينشئ اللوحة عملية لكل نقطة دخول ويعيد إحصاءات كل مستخدم إلى المخزن.",
+      ss2022KeyHint: "شيفرات 2022 تتطلب مفتاح Base64 — 24 حرفاً لـ AES-128 و44 حرفاً لـ AES-256/ChaCha20 (اضغط زر توليد المفتاح).",
+      ssKeyGen: "توليد مفتاح 2022",
+      errSs2022Key: "لتشفير 2022 يجب أن يكون المفتاح Base64 صحيحاً بالطول الصحيح (24 أو 44 حرفاً).",
       noClients: "‏Dokodemo-door يحوّل الترافيك إلى هدف ثابت — لا يحتوي حسابات عملاء.",
       toastQuick: "تم إنشاء نقطة الدخول السريعة «{tag}»",
       autoFillIp: "اكتشاف تلقائي لعنوان IP الخادم",
@@ -5140,6 +5589,13 @@ export const dictionaries: Record<Lang, Dict> = {
       errNoInbounds: "اختر نقطة دخول واحدة على الأقل",
       empty: "لا يوجد مستخدمون بعد",
       emptyDesc: "أنشئ أول مستخدم واربطه بنقاط الدخول — تُبنى الإعدادات والمفاتيح تلقائياً.",
+      fieldHwid: "حد الأجهزة (HWID)",
+      hwidUnlimited: "فارغ = أجهزة غير محدودة",
+      devicesCount: "{n} جهاز",
+      resetDevices: "إعادة تعيين الأجهزة",
+      toastDevicesReset: "تمت إعادة تعيين الأجهزة المسجلة",
+      ipActive: "عناوين IP نشطة ({n} دقيقة)",
+      ipBreach: "تجاوز حد IP",
     },
     resellers: {
     badge: "المرحلة ٦",
@@ -5438,6 +5894,50 @@ export const dictionaries: Record<Lang, Dict> = {
       sessionDesc: "كم يبقى تسجيل الدخول صالحًا.",
       sessionAge: "عمر الجلسة (دقيقة)",
       sessionAgeDesc: "٥ دقائق – ٣٠ يومًا (٤٣٢٠٠). الأقصر أأمن.",
+      ssl: {
+        cardTitle: "شهادات SSL",
+        cardDesc: "إصدار الشهادات وتجديدها عبر acme.sh (ACME) — المحرك نفسه الذي يستخدمه 3x-ui.",
+        statusInstalled: "acme.sh مُثبَّت",
+        statusMissing: "acme.sh غير مثبَّت",
+        installBtn: "تثبيت acme.sh",
+        installing: "جارٍ التثبيت…",
+        issueTitle: "إصدار شهادة",
+        domain: "النطاق",
+        domainPh: "panel.example.com",
+        email: "بريد حساب ACME",
+        mode: "طريقة التحقق",
+        modeStandalone: "مستقل (المنفذ ٨٠)",
+        modeStandaloneDesc: "يجيب acme.sh عن التحدي بنفسه على المنفذ ٨٠",
+        modeWebroot: "Webroot",
+        modeWebrootDesc: "يقدّم خادم الويب التحدي من مجلد",
+        webroot: "مسار Webroot",
+        webrootPh: "/var/www/html",
+        testToggle: "وضع الاختبار (Staging)",
+        testHint: "يستخدم CA الاختباري من Let's Encrypt — بلا حدود ولا ثقة.",
+        issueBtn: "إصدار الشهادة",
+        issuing: "جارٍ الإصدار… قد يستغرق حتى ٥ دقائق",
+        issuedOk: "تم إصدار الشهادة",
+        certsTitle: "الشهادات المُدارة",
+        certEmpty: "لا توجد شهادات مُدارة بعد.",
+        daysLeft: "{d} يومًا متبقٍ",
+        testBadge: "اختباري",
+        delTitle: "إزالة الشهادة المُدارة؟",
+        delDesc: "تُحذف الملفات من db/certs ويتوقف تتبع النطاق. يُحتفظ بإعداد التجديد في acme.sh — احذفه من الخادم إن أردت.",
+        delBtn: "إزالة",
+        deleted: "تمت إزالة الشهادة",
+        logTitle: "سجل ACME",
+        logEmpty: "لا نشاط بعد.",
+        renewCheck: "فحص التجديد اليومي",
+        renewCheckDesc: "مرة يوميًا، تُشغَّل acme.sh --renew-all إذا كانت شهادة تنتهي خلال ٣٠ يومًا.",
+        tip: "تُكتب الشهادات في db/certs ويمكن اختيارها في أي مدخل TLS (الفورج ← TLS ← الشهادات المُدارة).",
+        eDomain: "أدخل نطاقًا صحيحًا (مثل panel.example.com)",
+        eTracked: "شهادة هذا النطاق متتبعة بالفعل — أزلها أولًا",
+        eNotInstalled: "ثبِّت acme.sh أولًا",
+        eBind: "منفذ التحدي غير متاح (مشغول أو لا صلاحية للمنافذ الأقل من ١٠٢٤)",
+        eChallenge: "فشل التحقق — تحقق من DNS ومن أن النطاق يشير إلى هذا الخادم",
+        eRate: "تم بلوغ حد معدل ACME — حاول لاحقًا",
+        eGeneric: "فشل الإصدار — راجع سجل ACME",
+      },
     },
 
     hosts: {
@@ -5540,6 +6040,39 @@ export const dictionaries: Record<Lang, Dict> = {
       created: "أُنشئت العقدة",
       updated: "حُدّثت العقدة",
       deleted: "حُذفت العقدة",
+      // Multi-node v1 (agent push/pull)
+      fieldBaseUrl: "العنوان الأساسي",
+      phBaseUrl: "http://127.0.0.1:3000",
+      fieldSecret: "سر العقدة",
+      phSecret: "سر مشترك",
+      agentHint: "يدفع إعداد العقد المتعددة v1 تهيئة نقاط الدخول لهذه اللوحة إلى العقدة. يبقى حساب حركة المرور محلياً لكل عقدة وتشغل العقدة محرك نواتها الخاص (المحاكي افتراضياً).",
+      apply: "تطبيق الإعداد",
+      applying: "جارٍ التطبيق…",
+      refresh: "تحديث",
+      refreshing: "جارٍ التحديث…",
+      traffic: "حركة المرور",
+      trafficTitle: "حركة مرور العقدة",
+      applyTitle: "تطبيق الإعداد على العقدة؟",
+      applyDesc: "سيتم استبدال نقاط دخول العقدة بـ {n} من نقاط دخول هذه اللوحة. سيتم الكتابة فوق القائمة الحالية للعقدة.",
+      appliedOk: "تم تطبيق الإعداد على العقدة",
+      appliedFail: "فشل التطبيق",
+      infoTitle: "معلومات الوكيل",
+      coreKind: "النواة",
+      coreSim: "المحاكي",
+      coreXray: "Xray",
+      coreRunning: "يعمل",
+      coreStopped: "متوقف",
+      uptime: "مدة التشغيل",
+      hostnameLabel: "اسم المضيف",
+      platformLabel: "المنصة",
+      agentVersion: "إصدار اللوحة",
+      trafficInbounds: "نقاط الدخول",
+      trafficUsers: "المستخدمون",
+      noTraffic: "لا توجد بيانات حركة مرور بعد",
+      lastSync: "آخر مزامنة",
+      lastErrorLabel: "آخر خطأ",
+      pullFail: "تعذر الوصول إلى العقدة",
+      errBaseUrl: "العنوان الأساسي غير صالح",
     },
 
     outbounds: {
@@ -5992,6 +6525,41 @@ export const dictionaries: Record<Lang, Dict> = {
       previewNote: "معاينة: مفاتيح الأتمتة سارية في هذه الجلسة فقط حتى توفر حفظ الإعدادات.",
     },
 
+    /* Task 23-c — sales bot */
+    bot: {
+      modeLabel: "وضعية البوت",
+      modeConsole: "لوحة التحكم",
+      modeSales: "متجر البيع",
+      modeDesc: "لوحة التحكم تجيب على أوامر المشرف من اللوحة. متجر البيع يشغّل عامل البيع داخل اللوحة (اتصال طويل مع تيليجرام).",
+      adminChatIds: "معرّفات محادثات المشرفين",
+      adminChatIdsPh: "123456789, 987654321",
+      adminChatIdsDesc: "قائمة معرّفات مفصولة بفواصل يُسمح لها بعمليات البوت الإدارية (المالك أولاً).",
+      proxyUrl: "بروكسي API (HTTPS)",
+      proxyUrlPh: "https://user:pass@proxy.example:8080",
+      proxyUrlDesc: "بروكسي HTTPS اختياري لـ api.telegram.org. SOCKS5 غير مدعوم في هذا الإصدار — شغّل تحويلة https محلية بدلاً منه.",
+      shopLang: "لغة المتجر الافتراضية",
+      shopLangFa: "الفارسية",
+      shopLangEn: "الإنجليزية",
+      shopLangDesc: "تُستخدم لمستخدمي البوت الجدد حتى يختاروا لغتهم.",
+      worker: "عامل البيع",
+      workerRunning: "يعمل",
+      workerStopped: "متوقف",
+      workerIdle: "خامل — الوضع لوحة تحكم أو لا يوجد رمز",
+      workerLastPoll: "آخر استطلاع",
+      workerNever: "لا استطلاع بعد",
+      workerHandled: "التحديثات المعالجة",
+      workerErrors: "أخطاء الاستطلاع",
+      tplPrice: "السعر (تومان)",
+      tplPriceDesc: "0 = قالب تجريبي مجاني.",
+      tplBotVisible: "إظهار في متجر البوت",
+      tplBotVisibleDesc: "يُدرج في بوت البيع لتيليجرام للشراء.",
+      tplBotBadge: "بوت",
+      payHolder: "اسم صاحب البطاقة",
+      paySaved: "تم حفظ إعدادات الدفع.",
+      payLoadErr: "تعذر تحميل إعدادات الدفع.",
+      payHint: "تقرأ بوت البيع هذه البيانات (بطاقة إلى بطاقة وزرين بال).",
+    },
+
     payment: {
       title: "محفظة الموزّعين، تعريفة كل غيغابايت، وويب هوكات الدفع التلقائي",
       subtitle:
@@ -6169,6 +6737,9 @@ export const dictionaries: Record<Lang, Dict> = {
       binPathPh: "/usr/local/bin/xray (فارغ = تلقائي)",
       versionPin: "تثبيت إصدار",
       versionPinPh: "مثال 25.9.11 (فارغ = الأحدث)",
+      versionPinHy: "تثبيت إصدار سايدكار Hysteria",
+      versionPinHyPh: "مثال 2.13.0 (فارغ = الأحدث)",
+      versionPinHyHint: "يُطبَّق على الملف الثنائي لسايدكار hysteria2؛ فارغ = أحدث إصدار.",
       logTitle: "سجل النواة",
       logEmpty: "لا سجلات بعد — المحاكي لا يكتب شيئًا هنا",
       hint: "المحاكي = قياسات لوحة القيادة بدون نواة بروكسي حقيقية. وضع Xray الحقيقي يشغّل عملية xray فعلية مبنية من نقاط دخولك.",
@@ -6182,6 +6753,8 @@ export const dictionaries: Record<Lang, Dict> = {
       actFail: "فشل إجراء النواة",
       installOk: "نواة Xray {v} جاهزة",
       installFail: "فشل تثبيت نواة Xray",
+      enforceIp: "فرض حد IP",
+      enforceIpHint: "تعطيل المستخدمين تلقائيًا عند تجاوز عناوين IP المميزة لحدّهم (نافذة ١٠ دقائق). إيقاف = تحذير فقط.",
     },
   },
 
@@ -6462,6 +7035,10 @@ export const dictionaries: Record<Lang, Dict> = {
       certPublic: "公钥（PEM）",
       certPrivate: "私钥（PEM）",
       certHint: "留空则回退使用系统证书",
+      certManaged: "受管证书",
+      certManagedNone: "无 — 在下方粘贴 PEM",
+      certManagedEmpty: "还没有受管证书 — 在设置 → SSL 中签发",
+      certManagedOpen: "打开 SSL 设置",
       realTitle: "REALITY 设置",
       realDest: "目标（借用握手）",
       phDest: "yahoo.com:443",
@@ -6542,6 +7119,20 @@ export const dictionaries: Record<Lang, Dict> = {
       authPass: "密码",
       udpOn: "允许 UDP 中继",
       ssMethod: "加密方式",
+      trKcp: "mKCP",
+      trKcpDesc: "mKCP — 基于 UDP，可加混淆",
+      tipKcp: "mKCP 走 UDP — 记得在防火墙同时放行该端口的 UDP。Seed 与头部类型必须与客户端一致。",
+      kcpHeader: "头部伪装类型",
+      kcpSeed: "Seed（可选）",
+      hy2Obfs: "Salamander 混淆密码（可选）",
+      hy2Up: "上行带宽上限 (Mbps)",
+      hy2Down: "下行带宽上限 (Mbps)",
+      scRunning: "边车：运行中",
+      scStopped: "边车：已停止",
+      scHint: "Hysteria2 由独立的边车引擎（hysteria 二进制）运行，不在 Xray 核心内——面板为每个入站启动一个进程，并把每用户流量写回存储。",
+      ss2022KeyHint: "2022 加密需要标准 Base64 密钥 — AES-128 为 24 字符，AES-256/ChaCha20 为 44 字符（可用生成按钮）。",
+      ssKeyGen: "生成 2022 密钥",
+      errSs2022Key: "2022 加密要求密钥为合法 Base64 且长度正确（24 或 44 字符）。",
       noClients: "Dokodemo-door 把流量转发到固定目标——没有客户端账户。",
       toastQuick: "快速入站“{tag}”已创建",
       autoFillIp: "自动检测服务器 IP",
@@ -6680,6 +7271,13 @@ export const dictionaries: Record<Lang, Dict> = {
       errNoInbounds: "请至少选择一个入站",
       empty: "暂无用户",
       emptyDesc: "创建第一个用户并关联入站——配置和密钥会自动生成。",
+      fieldHwid: "设备数上限（HWID）",
+      hwidUnlimited: "留空 = 不限设备",
+      devicesCount: "{n} 台设备",
+      resetDevices: "重置设备",
+      toastDevicesReset: "设备注册已重置",
+      ipActive: "活跃 IP（{n} 分钟）",
+      ipBreach: "已超出 IP 上限",
     },
     resellers: {
     badge: "阶段 6",
@@ -6978,6 +7576,50 @@ export const dictionaries: Record<Lang, Dict> = {
       sessionDesc: "登录保持有效的时长。",
       sessionAge: "会话时长（分钟）",
       sessionAgeDesc: "5 分钟 – 30 天（43200）。越短越安全。",
+      ssl: {
+        cardTitle: "SSL 证书",
+        cardDesc: "通过 acme.sh（ACME）签发并续期证书 — 与 3x-ui 相同的引擎。",
+        statusInstalled: "acme.sh 已安装",
+        statusMissing: "未安装 acme.sh",
+        installBtn: "安装 acme.sh",
+        installing: "安装中…",
+        issueTitle: "签发证书",
+        domain: "域名",
+        domainPh: "panel.example.com",
+        email: "ACME 账户邮箱",
+        mode: "验证方式",
+        modeStandalone: "独立模式（80 端口）",
+        modeStandaloneDesc: "acme.sh 自己在 80 端口响应验证",
+        modeWebroot: "Webroot",
+        modeWebrootDesc: "由运行中的网站目录提供验证文件",
+        webroot: "Webroot 路径",
+        webrootPh: "/var/www/html",
+        testToggle: "测试（Staging）模式",
+        testHint: "使用 Let's Encrypt 测试 CA — 无速率限制，证书不受信任。",
+        issueBtn: "签发证书",
+        issuing: "签发中… 可能需要最多 5 分钟",
+        issuedOk: "证书已签发",
+        certsTitle: "受管证书",
+        certEmpty: "还没有受管证书。",
+        daysLeft: "剩余 {d} 天",
+        testBadge: "测试",
+        delTitle: "移除受管证书？",
+        delDesc: "db/certs 中的文件将被删除，该域名停止跟踪。acme.sh 的续期配置会保留 — 如需彻底清除请在服务器上删除。",
+        delBtn: "移除",
+        deleted: "证书已移除",
+        logTitle: "ACME 日志",
+        logEmpty: "暂无 ACME 活动。",
+        renewCheck: "每日续期检查",
+        renewCheckDesc: "每天一次，当证书距到期不足 30 天时运行 acme.sh --renew-all。",
+        tip: "证书写入 db/certs，可在任意 TLS 入站的 Forge → TLS → 受管证书中选择。",
+        eDomain: "请输入有效域名（如 panel.example.com）",
+        eTracked: "该域名的证书已被跟踪 — 请先移除",
+        eNotInstalled: "请先安装 acme.sh",
+        eBind: "验证端口不可用（被占用，或无权绑定 1024 以下端口）",
+        eChallenge: "验证失败 — 请检查 DNS 以及域名是否指向本服务器",
+        eRate: "触发 ACME 速率限制 — 请稍后再试",
+        eGeneric: "签发失败 — 详情见 ACME 日志",
+      },
     },
 
     hosts: {
@@ -7080,6 +7722,39 @@ export const dictionaries: Record<Lang, Dict> = {
       created: "节点已创建",
       updated: "节点已更新",
       deleted: "节点已删除",
+      // Multi-node v1 (agent push/pull)
+      fieldBaseUrl: "基础地址",
+      phBaseUrl: "http://127.0.0.1:3000",
+      fieldSecret: "节点密钥",
+      phSecret: "共享密钥",
+      agentHint: "多节点 v1 会把本面板的入站配置推送到节点。流量统计保留在节点本地，节点使用自己的核心驱动（默认为模拟器）。",
+      apply: "应用配置",
+      applying: "应用中…",
+      refresh: "刷新",
+      refreshing: "刷新中…",
+      traffic: "流量",
+      trafficTitle: "节点流量",
+      applyTitle: "将配置应用到节点？",
+      applyDesc: "将用本面板的 {n} 个入站替换该节点的入站。节点当前的入站列表会被覆盖。",
+      appliedOk: "配置已应用到节点",
+      appliedFail: "应用失败",
+      infoTitle: "代理信息",
+      coreKind: "核心",
+      coreSim: "模拟器",
+      coreXray: "Xray",
+      coreRunning: "运行中",
+      coreStopped: "已停止",
+      uptime: "运行时长",
+      hostnameLabel: "主机名",
+      platformLabel: "平台",
+      agentVersion: "面板版本",
+      trafficInbounds: "入站",
+      trafficUsers: "用户",
+      noTraffic: "暂无流量数据",
+      lastSync: "上次同步",
+      lastErrorLabel: "上次错误",
+      pullFail: "无法连接节点",
+      errBaseUrl: "基础地址无效",
     },
 
     outbounds: {
@@ -7531,6 +8206,41 @@ export const dictionaries: Record<Lang, Dict> = {
       previewNote: "预览：在设置持久化上线前，自动化开关仅在本会话内生效。",
     },
 
+    /* Task 23-c — sales bot */
+    bot: {
+      modeLabel: "机器人模式",
+      modeConsole: "控制台",
+      modeSales: "销售商店",
+      modeDesc: "控制台从面板响应管理员命令。销售模式运行面板内商店工作进程（Telegram 长轮询）。",
+      adminChatIds: "管理员会话 ID",
+      adminChatIdsPh: "123456789, 987654321",
+      adminChatIdsDesc: "允许使用机器人管理功能的会话 ID，逗号分隔（所有者在前）。",
+      proxyUrl: "API 代理（HTTPS）",
+      proxyUrlPh: "https://user:pass@proxy.example:8080",
+      proxyUrlDesc: "api.telegram.org 的可选 HTTPS 代理。本版本不支持 SOCKS5 — 请改用本地 https-forward。",
+      shopLang: "商店默认语言",
+      shopLangFa: "波斯语",
+      shopLangEn: "英语",
+      shopLangDesc: "新机器人用户在自行选择语言之前使用该语言。",
+      worker: "销售工作进程",
+      workerRunning: "运行中",
+      workerStopped: "已停止",
+      workerIdle: "空闲 — 模式为控制台或缺少令牌",
+      workerLastPoll: "上次轮询",
+      workerNever: "尚未轮询",
+      workerHandled: "已处理更新",
+      workerErrors: "轮询错误",
+      tplPrice: "价格（土曼）",
+      tplPriceDesc: "0 = 免费试用模板。",
+      tplBotVisible: "在机器人商店展示",
+      tplBotVisibleDesc: "在 Telegram 销售机器人中列出供购买。",
+      tplBotBadge: "机器人",
+      payHolder: "持卡人",
+      paySaved: "支付设置已保存。",
+      payLoadErr: "无法加载支付设置。",
+      payHint: "Telegram 销售机器人会读取这些凭据（卡对卡 + ZarinPal）。",
+    },
+
     payment: {
       title: "代理钱包、每 GB 资费与自动支付 Webhook",
       subtitle:
@@ -7708,6 +8418,9 @@ export const dictionaries: Record<Lang, Dict> = {
       binPathPh: "/usr/local/bin/xray（留空 = 自动）",
       versionPin: "版本锁定",
       versionPinPh: "例如 25.9.11（留空 = 最新）",
+      versionPinHy: "Hysteria 边车版本锁定",
+      versionPinHyPh: "例如 2.13.0（留空 = 最新）",
+      versionPinHyHint: "作用于 hysteria2 边车二进制；留空 = 最新版本。",
       logTitle: "核心日志",
       logEmpty: "暂无日志 —— 模拟器不会在这里输出",
       hint: "模拟器 = 没有真实代理核心的仪表盘遥测。真实 Xray 模式会依据你的入站运行一个真实的 xray 进程。",
@@ -7721,6 +8434,8 @@ export const dictionaries: Record<Lang, Dict> = {
       actFail: "核心操作失败",
       installOk: "Xray 核心 {v} 已就绪",
       installFail: "Xray 核心安装失败",
+      enforceIp: "强制执行 IP 上限",
+      enforceIpHint: "当用户的独立 IP 数超过上限时自动停用（10 分钟窗口）。关闭 = 仅警告。",
     },
   },
 
@@ -8002,6 +8717,10 @@ export const dictionaries: Record<Lang, Dict> = {
       certPublic: "Genel anahtar (PEM)",
       certPrivate: "Özel anahtar (PEM)",
       certHint: "Sistem sertifikasına dönmek için boş bırak",
+      certManaged: "Yönetilen sertifikalar",
+      certManagedNone: "Yok — aşağıya PEM yapıştırın",
+      certManagedEmpty: "Henüz yönetilen sertifika yok — Ayarlar → SSL'den üretin",
+      certManagedOpen: "SSL ayarlarını aç",
       realTitle: "REALITY ayarları",
       realDest: "Hedef (ödünç alınan el sıkışma)",
       phDest: "yahoo.com:443",
@@ -8082,6 +8801,20 @@ export const dictionaries: Record<Lang, Dict> = {
       authPass: "Şifre",
       udpOn: "UDP aktarımına izin ver",
       ssMethod: "Şifreleme",
+      trKcp: "mKCP",
+      trKcpDesc: "mKCP — UDP tabanlı, isteğe bağlı gizleme",
+      tipKcp: "mKCP UDP üzerinden çalışır — güvenlik duvarında bu portun UDP tarafını da açın. Seed ile başlık tipi istemciyle aynı olmalı.",
+      kcpHeader: "Başlık tipi (gizleme)",
+      kcpSeed: "Seed (isteğe bağlı)",
+      hy2Obfs: "Salamander obfs şifresi (isteğe bağlı)",
+      hy2Up: "Yükleme sınırı (Mbps)",
+      hy2Down: "İndirme sınırı (Mbps)",
+      scRunning: "yan motor: çalışıyor",
+      scStopped: "yan motor: durdu",
+      scHint: "Hysteria2, Xray çekirdeğinin içinde değil kendi yan motorunda (hysteria ikili dosyası) çalışır — panel her inbound için bir süreç başlatır ve kullanıcı başına trafiği depoya yazar.",
+      ss2022KeyHint: "2022 şifreleri standart Base64 anahtar ister — AES-128 için 24, AES-256/ChaCha20 için 44 karakter (üret düğmesini kullanın).",
+      ssKeyGen: "2022 anahtarı üret",
+      errSs2022Key: "2022 şifrelerinde anahtar geçerli ve doğru uzunlukta Base64 olmalı (24 veya 44 karakter).",
       noClients: "Dokodemo-door trafiği sabit bir hedefe iletir — istemci hesabı yoktur.",
       toastQuick: "Hızlı inbound “{tag}” oluşturuldu",
       autoFillIp: "Sunucu IP'sini otomatik algıla",
@@ -8220,6 +8953,13 @@ export const dictionaries: Record<Lang, Dict> = {
       errNoInbounds: "En az bir inbound seç",
       empty: "Henüz kullanıcı yok",
       emptyDesc: "İlk kullanıcıyı oluştur ve inboundlara bağla — configler ve anahtarlar otomatik üretilir.",
+      fieldHwid: "Cihaz sınırı (HWID)",
+      hwidUnlimited: "Boş = sınırsız cihaz",
+      devicesCount: "{n} cihaz",
+      resetDevices: "Cihazları sıfırla",
+      toastDevicesReset: "Cihaz kayıtları sıfırlandı",
+      ipActive: "Aktif IP'ler ({n} dk)",
+      ipBreach: "IP sınırı aşıldı",
     },
     resellers: {
     badge: "AŞAMA 6",
@@ -8518,6 +9258,50 @@ export const dictionaries: Record<Lang, Dict> = {
       sessionDesc: "Bir giriş ne kadar geçerli kalır.",
       sessionAge: "Oturum ömrü (dakika)",
       sessionAgeDesc: "5 dakika – 30 gün (43200). Kısa olan daha güvenli.",
+      ssl: {
+        cardTitle: "SSL Sertifikaları",
+        cardDesc: "acme.sh (ACME) ile sertifika üretin ve yenileyin — 3x-ui'nin kullandığı aynı motor.",
+        statusInstalled: "acme.sh kurulu",
+        statusMissing: "acme.sh kurulu değil",
+        installBtn: "acme.sh kur",
+        installing: "Kuruluyor…",
+        issueTitle: "Sertifika üret",
+        domain: "Alan adı",
+        domainPh: "panel.example.com",
+        email: "ACME hesap e-postası",
+        mode: "Doğrulama yöntemi",
+        modeStandalone: "Bağımsız (80. port)",
+        modeStandaloneDesc: "acme.sh doğrulamayı 80. portta kendisi karşılar",
+        modeWebroot: "Webroot",
+        modeWebrootDesc: "Çalışan web sunucusu doğrulamayı bir klasörden sunar",
+        webroot: "Webroot yolu",
+        webrootPh: "/var/www/html",
+        testToggle: "Test (Staging) modu",
+        testHint: "Let's Encrypt staging CA'sını kullanır — limit yok, güven yok.",
+        issueBtn: "Sertifika üret",
+        issuing: "Üretiliyor… 5 dakikaya kadar sürebilir",
+        issuedOk: "Sertifika üretildi",
+        certsTitle: "Yönetilen sertifikalar",
+        certEmpty: "Henüz yönetilen sertifika yok.",
+        daysLeft: "{d} gün kaldı",
+        testBadge: "test",
+        delTitle: "Yönetilen sertifika kaldırılsın mı?",
+        delDesc: "db/certs içindeki dosyalar silinir ve alan adı izlemeyi bırakır. acme.sh yenileme yapılandırması korunur — istemiyorsanız sunucudan silin.",
+        delBtn: "Kaldır",
+        deleted: "Sertifika kaldırıldı",
+        logTitle: "ACME günlüğü",
+        logEmpty: "Henüz ACME etkinliği yok.",
+        renewCheck: "Günlük yenileme kontrolü",
+        renewCheckDesc: "Günde bir kez, bir sertifikanın süresi 30 gün içindeyse acme.sh --renew-all çalışır.",
+        tip: "Sertifikalar db/certs içine yazılır ve her TLS inbound'inde seçilebilir (Forge → TLS → yönetilen sertifikalar).",
+        eDomain: "Geçerli bir alan adı girin (örn. panel.example.com)",
+        eTracked: "Bu alan adının sertifikası zaten izleniyor — önce kaldırın",
+        eNotInstalled: "Önce acme.sh kurun",
+        eBind: "Doğrulama portu kullanılamıyor (meşgul ya da 1024 altı portlar için izin yok)",
+        eChallenge: "Doğrulama başarısız — DNS'i ve alan adının bu sunucuyu gösterdiğini kontrol edin",
+        eRate: "ACME hız limiti aşıldı — sonra deneyin",
+        eGeneric: "Üretim başarısız — ayrıntılar ACME günlüğünde",
+      },
     },
 
     hosts: {
@@ -8620,6 +9404,39 @@ export const dictionaries: Record<Lang, Dict> = {
       created: "Düğüm oluşturuldu",
       updated: "Düğüm güncellendi",
       deleted: "Düğüm silindi",
+      // Multi-node v1 (agent push/pull)
+      fieldBaseUrl: "Temel URL",
+      phBaseUrl: "http://127.0.0.1:3000",
+      fieldSecret: "Düğüm sırrı",
+      phSecret: "paylaşılan sır",
+      agentHint: "Çoklu düğüm v1, bu panelin giriş yapılandırmasını düğüme iletir. Trafik sayımı düğüm başına yerel kalır ve düğüm kendi çekirdek sürücüsünü çalıştırır (varsayılan simülatör).",
+      apply: "Yapılandırmayı uygula",
+      applying: "Uygulanıyor…",
+      refresh: "Yenile",
+      refreshing: "Yenileniyor…",
+      traffic: "Trafik",
+      trafficTitle: "Düğüm trafiği",
+      applyTitle: "Yapılandırma düğüme uygulansın mı?",
+      applyDesc: "Düğümün girişleri bu panelin {n} girişiyle değiştirilecek. Düğümün mevcut listesinin üzerine yazılacak.",
+      appliedOk: "Yapılandırma düğüme uygulandı",
+      appliedFail: "Uygulama başarısız",
+      infoTitle: "Ajan bilgisi",
+      coreKind: "Çekirdek",
+      coreSim: "Simülatör",
+      coreXray: "Xray",
+      coreRunning: "çalışıyor",
+      coreStopped: "durduruldu",
+      uptime: "Çalışma süresi",
+      hostnameLabel: "Ana bilgisayar",
+      platformLabel: "Platform",
+      agentVersion: "Panel sürümü",
+      trafficInbounds: "Girişler",
+      trafficUsers: "Kullanıcılar",
+      noTraffic: "Henüz trafik verisi yok",
+      lastSync: "Son eşitleme",
+      lastErrorLabel: "Son hata",
+      pullFail: "Düğüme erişilemedi",
+      errBaseUrl: "Geçersiz temel URL",
     },
 
     outbounds: {
@@ -9073,6 +9890,41 @@ export const dictionaries: Record<Lang, Dict> = {
       previewNote: "Önizleme: ayar kalıcılığı devreye girene kadar otomasyon anahtarları yalnızca bu oturumda geçerlidir.",
     },
 
+    /* Task 23-c — sales bot */
+    bot: {
+      modeLabel: "Bot modu",
+      modeConsole: "Konsol",
+      modeSales: "Satış mağazası",
+      modeDesc: "Konsol panelden yönetici komutlarını yanıtlar. Satış, panel içi satış işçisini çalıştırır (Telegram long-poll).",
+      adminChatIds: "Yönetici sohbet kimlikleri",
+      adminChatIdsPh: "123456789, 987654321",
+      adminChatIdsDesc: "Botun yönetici işlemlerini kullanmasına izin verilen, virgülle ayrılmış sohbet kimlikleri (önce sahip).",
+      proxyUrl: "API proxy (HTTPS)",
+      proxyUrlPh: "https://user:pass@proxy.example:8080",
+      proxyUrlDesc: "api.telegram.org için isteğe bağlı HTTPS proxy. Bu sürümde SOCKS5 desteklenmez — bunun yerine yerel bir https-forward çalıştırın.",
+      shopLang: "Varsayılan mağaza dili",
+      shopLangFa: "Farsça",
+      shopLangEn: "İngilizce",
+      shopLangDesc: "Kullanıcı dilini seçene kadar yeni bot kullanıcıları için kullanılır.",
+      worker: "Satış işçisi",
+      workerRunning: "çalışıyor",
+      workerStopped: "durdu",
+      workerIdle: "boşta — mod konsol veya token yok",
+      workerLastPoll: "Son yoklama",
+      workerNever: "henüz yoklama yok",
+      workerHandled: "İşlenen güncellemeler",
+      workerErrors: "Yoklama hataları",
+      tplPrice: "Fiyat (Toman)",
+      tplPriceDesc: "0 = ücretsiz deneme şablonu.",
+      tplBotVisible: "Bot mağazasında göster",
+      tplBotVisibleDesc: "Satış için Telegram botunda listelenir.",
+      tplBotBadge: "Bot",
+      payHolder: "Kart sahibi",
+      paySaved: "Ödeme ayarları kaydedildi.",
+      payLoadErr: "Ödeme ayarları yüklenemedi.",
+      payHint: "Bu bilgiler Telegram satış botu tarafından okunur (karttan kartaya + ZarinPal).",
+    },
+
     payment: {
       title: "Bayi Cüzdanı, GB Başına Tarife ve Otomatik Ödeme Webhook'ları",
       subtitle:
@@ -9250,6 +10102,9 @@ export const dictionaries: Record<Lang, Dict> = {
       binPathPh: "/usr/local/bin/xray (boş = otomatik)",
       versionPin: "Sürüm sabitleme",
       versionPinPh: "örn. 25.9.11 (boş = en yeni)",
+      versionPinHy: "Hysteria yan motor sürümü",
+      versionPinHyPh: "örn. 2.13.0 (boş = en yeni)",
+      versionPinHyHint: "hysteria2 yan motor ikili dosyasına uygulanır; boş = en yeni sürüm.",
       logTitle: "Çekirdek günlüğü",
       logEmpty: "Henüz günlük yok — simülatör buraya bir şey yazmaz",
       hint: "Simülatör = gerçek proxy çekirdeği olmadan panel telemetrisi. Gerçek Xray modu, inbound'lerinizden üretilen gerçek bir xray süreci çalıştırır.",
@@ -9263,6 +10118,8 @@ export const dictionaries: Record<Lang, Dict> = {
       actFail: "Çekirdek işlemi başarısız",
       installOk: "Xray çekirdeği {v} hazır",
       installFail: "Xray çekirdeği kurulumu başarısız",
+      enforceIp: "IP sınırını uygula",
+      enforceIpHint: "Farklı IP'leri sınırını aşan kullanıcıları otomatik devre dışı bırak (10 dakikalık pencere). Kapalı = yalnızca uyarı.",
     },
   },
 
@@ -9545,6 +10402,10 @@ export const dictionaries: Record<Lang, Dict> = {
       certPublic: "Публичный ключ (PEM)",
       certPrivate: "Приватный ключ (PEM)",
       certHint: "Оставьте пустым, чтобы использовать системный сертификат",
+      certManaged: "Управляемые сертификаты",
+      certManagedNone: "Нет — вставьте PEM ниже",
+      certManagedEmpty: "Управляемых сертификатов пока нет — выпустите в Настройках → SSL",
+      certManagedOpen: "Открыть настройки SSL",
       realTitle: "Настройки REALITY",
       realDest: "Dest (заимствованное рукопожатие)",
       phDest: "yahoo.com:443",
@@ -9625,6 +10486,20 @@ export const dictionaries: Record<Lang, Dict> = {
       authPass: "Пароль",
       udpOn: "Разрешить UDP-релей",
       ssMethod: "Шифрование",
+      trKcp: "mKCP",
+      trKcpDesc: "mKCP — на базе UDP, с опциональной маскировкой",
+      tipKcp: "mKCP работает поверх UDP — откройте порт инбаунда и для UDP в файрволе. Seed и тип заголовка должны совпадать с клиентом.",
+      kcpHeader: "Тип заголовка (маскировка)",
+      kcpSeed: "Seed (необязательно)",
+      hy2Obfs: "Пароль обфускации Salamander (необязательно)",
+      hy2Up: "Лимит отдачи (Mbps)",
+      hy2Down: "Лимит загрузки (Mbps)",
+      scRunning: "сайдкар: работает",
+      scStopped: "сайдкар: остановлен",
+      scHint: "Hysteria2 работает в собственном сайдкар-движке (бинарник hysteria), а не внутри ядра Xray — панель запускает процесс на каждый инбаунд и записывает трафик по пользователям в хранилище.",
+      ss2022KeyHint: "Шифрам 2022 нужен стандартный ключ Base64 — 24 символа для AES-128 и 44 для AES-256/ChaCha20 (используйте кнопку генерации).",
+      ssKeyGen: "Сгенерировать ключ 2022",
+      errSs2022Key: "Для шифров 2022 ключ должен быть корректным Base64 нужной длины (24 или 44 символа).",
       noClients: "Dokodemo-door пересылает трафик на фиксированную цель — клиентских аккаунтов нет.",
       toastQuick: "Быстрый инбаунд «{tag}» создан",
       autoFillIp: "Автоопределение IP сервера",
@@ -9763,6 +10638,13 @@ export const dictionaries: Record<Lang, Dict> = {
       errNoInbounds: "Выберите хотя бы один инбаунд",
       empty: "Пользователей пока нет",
       emptyDesc: "Создайте первого пользователя и привяжите к инбаундам — конфиги и ключи сгенерируются сами.",
+      fieldHwid: "Лимит устройств (HWID)",
+      hwidUnlimited: "Пусто = безлимит устройств",
+      devicesCount: "Устройств: {n}",
+      resetDevices: "Сбросить устройства",
+      toastDevicesReset: "Регистрации устройств сброшены",
+      ipActive: "Активные IP ({n} мин)",
+      ipBreach: "Превышен лимит IP",
     },
     resellers: {
     badge: "ФАЗА 6",
@@ -10061,6 +10943,50 @@ export const dictionaries: Record<Lang, Dict> = {
       sessionDesc: "Как долго остаётся валидным вход.",
       sessionAge: "Время жизни сессии (минут)",
       sessionAgeDesc: "5 минут – 30 дней (43200). Короче — безопаснее.",
+      ssl: {
+        cardTitle: "SSL-сертификаты",
+        cardDesc: "Выпуск и продление сертификатов через acme.sh (ACME) — тот же движок, что и в 3x-ui.",
+        statusInstalled: "acme.sh установлен",
+        statusMissing: "acme.sh не установлен",
+        installBtn: "Установить acme.sh",
+        installing: "Установка…",
+        issueTitle: "Выпустить сертификат",
+        domain: "Домен",
+        domainPh: "panel.example.com",
+        email: "Email аккаунта ACME",
+        mode: "Способ проверки",
+        modeStandalone: "Standalone (порт 80)",
+        modeStandaloneDesc: "acme.sh сам отвечает на проверку на порту 80",
+        modeWebroot: "Webroot",
+        modeWebrootDesc: "работающий веб-сервер отдаёт проверку из папки",
+        webroot: "Путь webroot",
+        webrootPh: "/var/www/html",
+        testToggle: "Тестовый (staging) режим",
+        testHint: "Использует тестовый CA Let's Encrypt — без лимитов, без доверия.",
+        issueBtn: "Выпустить",
+        issuing: "Выпуск… может занять до 5 минут",
+        issuedOk: "Сертификат выпущен",
+        certsTitle: "Управляемые сертификаты",
+        certEmpty: "Пока нет управляемых сертификатов.",
+        daysLeft: "осталось {d} дн.",
+        testBadge: "тест",
+        delTitle: "Убрать управляемый сертификат?",
+        delDesc: "Файлы в db/certs удаляются, домен перестаёт отслеживаться. Конфиг продления acme.sh сохраняется — при желании удалите его на сервере.",
+        delBtn: "Убрать",
+        deleted: "Сертификат убран",
+        logTitle: "Журнал ACME",
+        logEmpty: "Активности пока нет.",
+        renewCheck: "Ежедневная проверка продления",
+        renewCheckDesc: "Раз в день запускать acme.sh --renew-all, если сертификат истекает в течение 30 дней.",
+        tip: "Сертификаты пишутся в db/certs и выбираются в любом TLS-инбаунде (Forge → TLS → управляемые сертификаты).",
+        eDomain: "Введите корректный домен (напр. panel.example.com)",
+        eTracked: "Сертификат этого домена уже отслеживается — сначала уберите его",
+        eNotInstalled: "Сначала установите acme.sh",
+        eBind: "Порт проверки недоступен (занят или нет прав на порты ниже 1024)",
+        eChallenge: "Проверка не пройдена — проверьте DNS и что домен указывает на этот сервер",
+        eRate: "Сработал лимит ACME — попробуйте позже",
+        eGeneric: "Выпуск не удался — подробности в журнале ACME",
+      },
     },
 
     hosts: {
@@ -10163,6 +11089,39 @@ export const dictionaries: Record<Lang, Dict> = {
       created: "Узел создан",
       updated: "Узел обновлён",
       deleted: "Узел удалён",
+      // Multi-node v1 (agent push/pull)
+      fieldBaseUrl: "Базовый URL",
+      phBaseUrl: "http://127.0.0.1:3000",
+      fieldSecret: "Секрет узла",
+      phSecret: "общий секрет",
+      agentHint: "Мульти-узел v1 отправляет конфигурацию входов этой панели на узел. Учёт трафика остаётся локальным для узла, а узел работает со своим драйвером ядра (по умолчанию симулятор).",
+      apply: "Применить конфиг",
+      applying: "Применение…",
+      refresh: "Обновить",
+      refreshing: "Обновление…",
+      traffic: "Трафик",
+      trafficTitle: "Трафик узла",
+      applyTitle: "Применить конфиг к узлу?",
+      applyDesc: "Входы узла будут заменены {n} входами этой панели. Текущий список входов узла будет перезаписан.",
+      appliedOk: "Конфиг применён к узлу",
+      appliedFail: "Не удалось применить",
+      infoTitle: "Информация об агенте",
+      coreKind: "Ядро",
+      coreSim: "Симулятор",
+      coreXray: "Xray",
+      coreRunning: "работает",
+      coreStopped: "остановлено",
+      uptime: "Аптайм",
+      hostnameLabel: "Имя хоста",
+      platformLabel: "Платформа",
+      agentVersion: "Версия панели",
+      trafficInbounds: "Входы",
+      trafficUsers: "Пользователи",
+      noTraffic: "Данных о трафике пока нет",
+      lastSync: "Последняя синхронизация",
+      lastErrorLabel: "Последняя ошибка",
+      pullFail: "Не удалось связаться с узлом",
+      errBaseUrl: "Неверный базовый URL",
     },
 
     outbounds: {
@@ -10616,6 +11575,41 @@ export const dictionaries: Record<Lang, Dict> = {
       previewNote: "Превью: переключатели автоматики действуют только в этой сессии, пока не появится сохранение настроек.",
     },
 
+    /* Task 23-c — sales bot */
+    bot: {
+      modeLabel: "Режим бота",
+      modeConsole: "Консоль",
+      modeSales: "Магазин",
+      modeDesc: "Консоль отвечает на команды администратора из панели. Магазин запускает встроенный воркер продаж (long-poll Telegram).",
+      adminChatIds: "ID чатов администраторов",
+      adminChatIdsPh: "123456789, 987654321",
+      adminChatIdsDesc: "Список ID чатов (через запятую), которым разрешены админ-функции бота (владелец первым).",
+      proxyUrl: "Прокси для API (HTTPS)",
+      proxyUrlPh: "https://user:pass@proxy.example:8080",
+      proxyUrlDesc: "Необязательный HTTPS-прокси для api.telegram.org. SOCKS5 в этом релизе не поддерживается — используйте локальный https-forward.",
+      shopLang: "Язык магазина по умолчанию",
+      shopLangFa: "Персидский",
+      shopLangEn: "Английский",
+      shopLangDesc: "Используется для новых пользователей бота, пока они не выберут язык.",
+      worker: "Воркер продаж",
+      workerRunning: "работает",
+      workerStopped: "остановлен",
+      workerIdle: "простаивает — режим консоли или нет токена",
+      workerLastPoll: "Последний опрос",
+      workerNever: "опросов ещё не было",
+      workerHandled: "Обработано обновлений",
+      workerErrors: "Ошибки опроса",
+      tplPrice: "Цена (томан)",
+      tplPriceDesc: "0 = бесплатный пробный шаблон.",
+      tplBotVisible: "Показывать в магазине бота",
+      tplBotVisibleDesc: "Добавляется в Telegram-бот продаж для покупки.",
+      tplBotBadge: "Бот",
+      payHolder: "Держатель карты",
+      paySaved: "Платёжные настройки сохранены.",
+      payLoadErr: "Не удалось загрузить платёжные настройки.",
+      payHint: "Эти данные читает Telegram-бот продаж (карточные переводы + ZarinPal).",
+    },
+
     payment: {
       title: "Кошелёк реселлера, тариф за ГБ и автоматические платёжные вебхуки",
       subtitle:
@@ -10793,6 +11787,9 @@ export const dictionaries: Record<Lang, Dict> = {
       binPathPh: "/usr/local/bin/xray (пусто = авто)",
       versionPin: "Фиксация версии",
       versionPinPh: "напр. 25.9.11 (пусто = последняя)",
+      versionPinHy: "Фиксация версии Hysteria-сайдкара",
+      versionPinHyPh: "напр. 2.13.0 (пусто = последняя)",
+      versionPinHyHint: "Применяется к бинарнику сайдкара hysteria2; пусто = последняя версия.",
       logTitle: "Журнал ядра",
       logEmpty: "Записей пока нет — симулятор сюда ничего не пишет",
       hint: "Симулятор = телеметрия панели без реального прокси-ядра. Режим реального Xray запускает настоящий процесс xray, собранный из ваших инбаундов.",
@@ -10806,6 +11803,8 @@ export const dictionaries: Record<Lang, Dict> = {
       actFail: "Действие с ядром не удалось",
       installOk: "Ядро Xray {v} готово",
       installFail: "Не удалось установить ядро Xray",
+      enforceIp: "Принудительный лимит IP",
+      enforceIpHint: "Автоотключение пользователей, чьи уникальные IP превышают лимит (окно 10 минут). Выкл = только предупреждение.",
     },
   },
 };

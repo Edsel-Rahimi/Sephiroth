@@ -43,6 +43,9 @@ export interface SubDict {
   notFoundDesc: string;
   disabledTitle: string;
   disabledDesc: string;
+  blockedTitle: string;
+  blockedDesc: string;
+  blockedContact: string;
   poweredBy: string;
   loading: string;
 }
@@ -90,6 +93,9 @@ const en: SubDict = {
   notFoundDesc: "This subscription link does not exist or is no longer available.",
   disabledTitle: "Pass suspended",
   disabledDesc: "This subscription has been suspended by the administrator.",
+  blockedTitle: "Device limit reached",
+  blockedDesc: "This subscription is already active on the maximum number of devices.",
+  blockedContact: "Contact your administrator to reset your devices and try again.",
   poweredBy: "Powered by Sephiroth Panel",
   loading: "Decrypting pass…",
 };
@@ -130,6 +136,9 @@ const fa: SubDict = {
   notFoundDesc: "این لینک اشتراک وجود ندارد یا دیگر در دسترس نیست.",
   disabledTitle: "کارت تعلیق شده",
   disabledDesc: "این اشتراک توسط مدیر تعلیق شده است.",
+  blockedTitle: "سقف دستگاه‌ها پر شد",
+  blockedDesc: "این اشتراک از قبل روی بیشترین تعداد دستگاه مجاز فعال است.",
+  blockedContact: "برای بازنشانی دستگاه‌هایتان با مدیر تماس بگیرید و دوباره تلاش کنید.",
   poweredBy: "قدرت‌گرفته از پنل Sephiroth",
   loading: "در حال رمزگشایی کارت…",
 };
@@ -170,6 +179,9 @@ const ar: SubDict = {
   notFoundDesc: "رابط الاشتراك غير موجود أو لم يعد متاحًا.",
   disabledTitle: "البطاقة معلّقة",
   disabledDesc: "تم تعليق هذا الاشتراك من قبل المدير.",
+  blockedTitle: "تم بلوغ حد الأجهزة",
+  blockedDesc: "هذا الاشتراك نشط بالفعل على الحد الأقصى لعدد الأجهزة.",
+  blockedContact: "اتصل بالمسؤول لإعادة تعيين أجهزتك ثم حاول مجددًا.",
   poweredBy: "مدعوم من لوحة Sephiroth",
   loading: "جارٍ فك تشفير البطاقة…",
 };
@@ -210,6 +222,9 @@ const zh: SubDict = {
   notFoundDesc: "该订阅链接不存在或已失效。",
   disabledTitle: "通行证已停用",
   disabledDesc: "此订阅已被管理员停用。",
+  blockedTitle: "已达到设备上限",
+  blockedDesc: "此订阅已在最大数量的设备上激活。",
+  blockedContact: "请联系管理员重置你的设备后重试。",
   poweredBy: "由 Sephiroth 面板提供",
   loading: "正在解密通行证…",
 };
@@ -250,6 +265,9 @@ const tr: SubDict = {
   notFoundDesc: "Bu abonelik bağlantısı yok veya artık kullanılamıyor.",
   disabledTitle: "Kart askıda",
   disabledDesc: "Bu abonelik yönetici tarafından askıya alındı.",
+  blockedTitle: "Cihaz sınırına ulaşıldı",
+  blockedDesc: "Bu abonelik zaten izin verilen maksimum cihaz sayısında aktif.",
+  blockedContact: "Cihazlarınızın sıfırlanması için yöneticinizle iletişime geçin.",
   poweredBy: "Sephiroth Panel tarafından",
   loading: "Kart şifresi çözülüyor…",
 };
@@ -290,6 +308,9 @@ const ru: SubDict = {
   notFoundDesc: "Эта ссылка подписки не существует или больше недоступна.",
   disabledTitle: "Карта приостановлена",
   disabledDesc: "Эта подписка приостановлена администратором.",
+  blockedTitle: "Достигнут лимит устройств",
+  blockedDesc: "Эта подписка уже активна на максимальном числе устройств.",
+  blockedContact: "Свяжитесь с администратором, чтобы сбросить ваши устройства.",
   poweredBy: "Работает на панели Sephiroth",
   loading: "Расшифровка карты…",
 };

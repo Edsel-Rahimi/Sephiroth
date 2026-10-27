@@ -6,19 +6,22 @@
  * (single process, so a module singleton is the natural rendezvous).
  */
 
-import type { CoreBackend, CoreStatusPayload } from "@/lib/core/types";
+import type { CoreBackend, CoreStatusPayload, SidecarStatus } from "@/lib/core/types";
+import type { SidecarManager } from "@/lib/core/sidecars";
 
 interface RegistryState {
   backend: CoreBackend | null;
   fallbackActive: boolean;
   fallbackReason: string;
+  /** v2.5 — hysteria2 sidecar engines running next to the core (may be null). */
+  sidecars: SidecarManager | null;
 }
 
 const g = globalThis as unknown as { __sephCoreRegistry?: RegistryState };
 
 function state(): RegistryState {
   if (!g.__sephCoreRegistry) {
-    g.__sephCoreRegistry = { backend: null, fallbackActive: false, fallbackReason: "" };
+    g.__sephCoreRegistry = { backend: null, fallbackActive: false, fallbackReason: "", sidecars: null };
   }
   return g.__sephCoreRegistry;
 }
@@ -43,12 +46,28 @@ export function isFallbackActive(): { active: boolean; reason: string } {
   return { active: s.fallbackActive, reason: s.fallbackReason };
 }
 
+/** Register the sidecar manager (v2.5, called once at boot). */
+export function setSidecarManager(manager: SidecarManager | null): void {
+  state().sidecars = manager;
+}
+
+export function getSidecarManager(): SidecarManager | null {
+  return state().sidecars;
+}
+
 /** Status payload for GET /api/system/core-status (null backend → honest zero state). */
 export function coreStatusPayload(): CoreStatusPayload | null {
   const backend = state().backend;
   if (!backend) return null;
   const fb = isFallbackActive();
-  return { ...backend.status(), fallbackActive: fb.active, fallbackReason: fb.reason };
+  const sidecars: SidecarStatus[] | null = state().sidecars?.statusList() ?? null;
+  return {
+    ...backend.status(),
+    fallbackActive: fb.active,
+    fallbackReason: fb.reason,
+    // additive — consumers that predate sidecars keep working untouched
+    ...(sidecars ? { sidecars } : {}),
+  };
 }
 
 /**

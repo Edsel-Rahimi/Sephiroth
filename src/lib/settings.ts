@@ -26,6 +26,12 @@ export interface CoreSettings {
   xrayVersion: string;
   /** stats poll interval for the real core, 5-120s */
   statsInterval: number;
+  /** Hysteria2 sidecar release pin, e.g. "2.13.0" ("" = latest) — v2.5 */
+  hysteriaVersion: string;
+  /** absolute path to a user-provided hysteria binary ("" = PATH → auto-install) */
+  hysteriaBin: string;
+  /** Task 23-g — auto-disable users that exceed their concurrent-IP limit (default OFF) */
+  enforceIpLimit: boolean;
 }
 
 export interface TelegramNotify {
@@ -41,6 +47,14 @@ export interface TelegramSettings {
   tokenConfigured: boolean;
   tokenMasked: string;
   notify: TelegramNotify;
+  /** "console" (admin tools executor, default) | "sales" (in-panel shop worker). */
+  botMode: "console" | "sales";
+  /** Telegram chat ids allowed to drive the sales bot admin flows (owner first). */
+  adminChatIds: string[];
+  /** Optional HTTPS proxy for api.telegram.org ("" = direct). SOCKS5 not supported in Phase 1. */
+  botProxyUrl: string;
+  /** Default shop language for new bot users ("fa" | "en"). */
+  shopLang: "fa" | "en";
 }
 
 const CORE_DEFAULT: CoreSettings = {
@@ -51,6 +65,9 @@ const CORE_DEFAULT: CoreSettings = {
   xrayBin: "",
   xrayVersion: "",
   statsInterval: 10,
+  hysteriaVersion: "",
+  hysteriaBin: "",
+  enforceIpLimit: false,
 };
 
 const NOTIFY_DEFAULT: TelegramNotify = {
@@ -68,10 +85,24 @@ const K = {
   coreXrayBin: "set_core_xray_bin",
   coreXrayVersion: "set_core_xray_version",
   coreStatsInterval: "set_core_stats_interval",
+  // hysteria2 sidecar engines (v2.5)
+  sidecarHysteriaVersion: "set_sidecar_hysteria_version",
+  sidecarHysteriaBin: "set_sidecar_hysteria_bin",
+  // concurrent-IP limit enforcement (Task 23-g, default OFF)
+  coreEnforceIpLimit: "set_enforce_ip_limit",
   tgEnabled: "set_tg_enabled",
   tgToken: "set_tg_token",
   tgChatId: "set_tg_chat_id",
   tgNotify: "set_tg_notify",
+  // sales bot (23-c)
+  tgBotMode: "set_tg_bot_mode",
+  tgAdminChatIds: "set_tg_admin_chat_ids",
+  tgProxyUrl: "set_tg_proxy_url",
+  tgShopLang: "set_tg_shop_lang",
+  // payment credentials read by the sales bot (card-to-card + ZarinPal)
+  payCardNumber: "set_pay_card_number",
+  payCardHolder: "set_pay_card_holder",
+  payZarinpalMerchant: "set_pay_zarinpal_merchant",
   // top-bar module visibility
   navHosts: "set_nav_hosts",
   navNodes: "set_nav_nodes",
@@ -98,6 +129,10 @@ const K = {
   secAutoKeep: "set_sec_auto_keep",
   secTotpEnabled: "set_sec_totp_enabled",
   secTotpSecret: "set_sec_totp_secret",
+  // ssl / acme section (Task 23-f)
+  sslAdminEmail: "set_ssl_admin_email",
+  sslCerts: "set_ssl_certs",
+  sslRenewCheck: "set_ssl_renew_check",
   // internal bookkeeping (never exposed via the settings API)
   autoBackupLast: "set_auto_backup_last",
   autoBackupLastSize: "set_auto_backup_last_size",
@@ -133,6 +168,8 @@ export async function getCoreSettings(): Promise<CoreSettings> {
     K.coreXrayBin,
     K.coreXrayVersion,
     K.coreStatsInterval,
+    K.sidecarHysteriaVersion,
+    K.sidecarHysteriaBin,
   ]);
   const driver = m.get(K.coreDriver);
   return {
@@ -143,6 +180,9 @@ export async function getCoreSettings(): Promise<CoreSettings> {
     xrayBin: m.get(K.coreXrayBin) ?? CORE_DEFAULT.xrayBin,
     xrayVersion: m.get(K.coreXrayVersion) ?? CORE_DEFAULT.xrayVersion,
     statsInterval: toInt(m.get(K.coreStatsInterval), CORE_DEFAULT.statsInterval, 5, 120),
+    hysteriaVersion: m.get(K.sidecarHysteriaVersion) ?? CORE_DEFAULT.hysteriaVersion,
+    hysteriaBin: m.get(K.sidecarHysteriaBin) ?? CORE_DEFAULT.hysteriaBin,
+    enforceIpLimit: m.get(K.coreEnforceIpLimit) === "1",
   };
 }
 
@@ -211,6 +251,28 @@ export async function validateCorePatch(body: unknown): Promise<PatchResult<Core
     }
     out.statsInterval = n;
   }
+  // hysteria2 sidecar (v2.5) — same pin format as the xray pin
+  if (b.hysteriaVersion !== undefined) {
+    const v = String(b.hysteriaVersion).trim().replace(/^v/i, "").replace(/^app\//i, "");
+    if (v && !/^\d+\.\d+\.\d+$/.test(v)) {
+      return { ok: false, fields: [{ field: "hysteriaVersion", code: "format" }] };
+    }
+    out.hysteriaVersion = v;
+  }
+  if (b.hysteriaBin !== undefined) {
+    const v = String(b.hysteriaBin).trim();
+    if (v.length > 300 || /[\r\n]/.test(v)) {
+      return { ok: false, fields: [{ field: "hysteriaBin", code: "format" }] };
+    }
+    out.hysteriaBin = v;
+  }
+  // Task 23-g — opt-in concurrent-IP enforcement
+  if (b.enforceIpLimit !== undefined) {
+    if (typeof b.enforceIpLimit !== "boolean") {
+      return { ok: false, fields: [{ field: "enforceIpLimit", code: "format" }] };
+    }
+    out.enforceIpLimit = b.enforceIpLimit;
+  }
   return { ok: true, data: out };
 }
 
@@ -223,6 +285,9 @@ export async function saveCoreSettings(s: CoreSettings): Promise<void> {
     writeSetting(K.coreXrayBin, s.xrayBin),
     writeSetting(K.coreXrayVersion, s.xrayVersion),
     writeSetting(K.coreStatsInterval, String(s.statsInterval)),
+    writeSetting(K.sidecarHysteriaVersion, s.hysteriaVersion),
+    writeSetting(K.sidecarHysteriaBin, s.hysteriaBin),
+    writeSetting(K.coreEnforceIpLimit, s.enforceIpLimit ? "1" : "0"),
   ]);
 }
 
@@ -236,7 +301,10 @@ function maskBotToken(token: string): string {
 }
 
 export async function getTelegramSettings(): Promise<TelegramSettings> {
-  const m = await readSettings([K.tgEnabled, K.tgToken, K.tgChatId, K.tgNotify]);
+  const m = await readSettings([
+    K.tgEnabled, K.tgToken, K.tgChatId, K.tgNotify,
+    K.tgBotMode, K.tgAdminChatIds, K.tgProxyUrl, K.tgShopLang,
+  ]);
   const token = m.get(K.tgToken) ?? "";
   let notify = NOTIFY_DEFAULT;
   const raw = m.get(K.tgNotify);
@@ -253,12 +321,21 @@ export async function getTelegramSettings(): Promise<TelegramSettings> {
       /* keep defaults */
     }
   }
+  const modeRaw = m.get(K.tgBotMode);
+  const adminIdsRaw = m.get(K.tgAdminChatIds) ?? "";
   return {
     enabled: m.get(K.tgEnabled) === "1",
     chatId: m.get(K.tgChatId) ?? "",
     tokenConfigured: token.length > 0,
     tokenMasked: token ? maskBotToken(token) : "",
     notify,
+    botMode: modeRaw === "sales" ? "sales" : "console",
+    adminChatIds: adminIdsRaw
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
+    botProxyUrl: m.get(K.tgProxyUrl) ?? "",
+    shopLang: m.get(K.tgShopLang) === "fa" ? "fa" : "en",
   };
 }
 
@@ -274,6 +351,10 @@ export function validateTelegramPatch(
   chatId: string;
   token: string | null | undefined; // undefined = keep, null = clear, string = replace
   notify: TelegramNotify;
+  botMode?: "console" | "sales";
+  adminChatIds?: string[];
+  botProxyUrl?: string;
+  shopLang?: "fa" | "en";
 }> {
   const b = (body ?? {}) as Record<string, unknown>;
   let token: string | null | undefined = undefined;
@@ -315,6 +396,52 @@ export function validateTelegramPatch(
     }
   }
 
+  let botMode: "console" | "sales" | undefined;
+  if (b.botMode !== undefined) {
+    if (b.botMode !== "console" && b.botMode !== "sales") {
+      return { ok: false, fields: [{ field: "botMode", code: "format" }] };
+    }
+    botMode = b.botMode;
+  }
+
+  let adminChatIds: string[] | undefined;
+  if (b.adminChatIds !== undefined) {
+    if (typeof b.adminChatIds !== "string") {
+      return { ok: false, fields: [{ field: "adminChatIds", code: "format" }] };
+    }
+    const ids = b.adminChatIds
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    // same per-id grammar as chatId (numeric id or @channelname), max 16 ids
+    if (ids.length > 16 || ids.some((id) => id.length > 32 || !/^-?\d+$|^@[A-Za-z0-9_]{4,31}$/.test(id))) {
+      return { ok: false, fields: [{ field: "adminChatIds", code: "format" }] };
+    }
+    adminChatIds = ids;
+  }
+
+  let botProxyUrl: string | undefined;
+  if (b.botProxyUrl !== undefined) {
+    const v = String(b.botProxyUrl).trim();
+    if (v !== "" && !/^https:\/\/\S+$/.test(v)) {
+      // Phase 1 accepts HTTPS proxies only (undici ProxyAgent). SOCKS5 needs a
+      // local https-forward; the UI hint says so honestly.
+      return { ok: false, fields: [{ field: "botProxyUrl", code: "format" }] };
+    }
+    if (v.length > 300) {
+      return { ok: false, fields: [{ field: "botProxyUrl", code: "range" }] };
+    }
+    botProxyUrl = v;
+  }
+
+  let shopLang: "fa" | "en" | undefined;
+  if (b.shopLang !== undefined) {
+    if (b.shopLang !== "fa" && b.shopLang !== "en") {
+      return { ok: false, fields: [{ field: "shopLang", code: "format" }] };
+    }
+    shopLang = b.shopLang;
+  }
+
   return {
     ok: true,
     data: {
@@ -322,6 +449,10 @@ export function validateTelegramPatch(
       chatId,
       token,
       notify,
+      botMode,
+      adminChatIds,
+      botProxyUrl,
+      shopLang,
     },
   };
 }
@@ -331,6 +462,10 @@ export async function saveTelegramSettings(patch: {
   chatId: string;
   token: string | null | undefined;
   notify: TelegramNotify;
+  botMode?: "console" | "sales";
+  adminChatIds?: string[];
+  botProxyUrl?: string;
+  shopLang?: "fa" | "en";
 }): Promise<void> {
   await writeSetting(K.tgEnabled, patch.enabled ? "1" : "0");
   await writeSetting(K.tgChatId, patch.chatId);
@@ -340,6 +475,129 @@ export async function saveTelegramSettings(patch: {
     await writeSetting(K.tgToken, patch.token);
   }
   await writeSetting(K.tgNotify, JSON.stringify(patch.notify));
+  if (patch.botMode !== undefined) {
+    await writeSetting(K.tgBotMode, patch.botMode);
+  }
+  if (patch.adminChatIds !== undefined) {
+    await writeSetting(K.tgAdminChatIds, patch.adminChatIds.join(","));
+  }
+  if (patch.botProxyUrl !== undefined) {
+    await writeSetting(K.tgProxyUrl, patch.botProxyUrl);
+  }
+  if (patch.shopLang !== undefined) {
+    await writeSetting(K.tgShopLang, patch.shopLang);
+  }
+}
+
+/* ---------- payment credentials (read by the sales bot) ---------- */
+
+export interface PaymentSettings {
+  /** Card-to-card destination number (digits, formatting free). */
+  cardNumber: string;
+  /** Card holder name shown to buyers. */
+  cardHolder: string;
+  /** ZarinPal merchant id (GUID or 36-char id) — "" = gateway off. */
+  zarinpalMerchant: string;
+}
+
+const PAYMENT_DEFAULT: PaymentSettings = {
+  cardNumber: "",
+  cardHolder: "",
+  zarinpalMerchant: "",
+};
+
+export async function getPaymentSettings(): Promise<PaymentSettings> {
+  const m = await readSettings([K.payCardNumber, K.payCardHolder, K.payZarinpalMerchant]);
+  return {
+    cardNumber: m.get(K.payCardNumber) ?? PAYMENT_DEFAULT.cardNumber,
+    cardHolder: m.get(K.payCardHolder) ?? PAYMENT_DEFAULT.cardHolder,
+    zarinpalMerchant: m.get(K.payZarinpalMerchant) ?? PAYMENT_DEFAULT.zarinpalMerchant,
+  };
+}
+
+export async function validatePaymentPatch(body: unknown): Promise<PatchResult<PaymentSettings>> {
+  const b = (body ?? {}) as Record<string, unknown>;
+  // merge onto the CURRENTLY SAVED values so a partial PUT never wipes fields
+  const out: PaymentSettings = { ...(await getPaymentSettings()) };
+  for (const key of ["cardNumber", "cardHolder", "zarinpalMerchant"] as const) {
+    if (b[key] !== undefined) {
+      const v = String(b[key]).trim();
+      if (v.length > 120 || /[\r\n]/.test(v)) {
+        return { ok: false, fields: [{ field: key, code: "format" }] };
+      }
+      out[key] = v;
+    }
+  }
+  return { ok: true, data: out };
+}
+
+export async function savePaymentSettings(p: PaymentSettings): Promise<void> {
+  await writeSetting(K.payCardNumber, p.cardNumber);
+  await writeSetting(K.payCardHolder, p.cardHolder);
+  await writeSetting(K.payZarinpalMerchant, p.zarinpalMerchant);
+}
+
+/* ---------- ssl / acme (Task 23-f) ---------- */
+
+export interface SslSettings {
+  /** Account email used for ACME registration + expiry notices ("" = unset). */
+  adminEmail: string;
+  /** Daily renewal check (acme.sh --renew-all when a cert is within 30 days). */
+  renewCheck: boolean;
+}
+
+const SSL_DEFAULT: SslSettings = {
+  adminEmail: "",
+  renewCheck: true,
+};
+
+export async function getSslSettings(): Promise<SslSettings> {
+  const m = await readSettings([K.sslAdminEmail, K.sslRenewCheck]);
+  return {
+    adminEmail: m.get(K.sslAdminEmail) ?? SSL_DEFAULT.adminEmail,
+    renewCheck: m.get(K.sslRenewCheck) === null ? SSL_DEFAULT.renewCheck : m.get(K.sslRenewCheck) === "1",
+  };
+}
+
+export async function validateSslPatch(body: unknown): Promise<PatchResult<SslSettings>> {
+  const b = (body ?? {}) as Record<string, unknown>;
+  // merge onto the CURRENTLY SAVED values so a partial PUT never wipes fields
+  const out: SslSettings = { ...(await getSslSettings()) };
+  if (b.adminEmail !== undefined) {
+    const v = String(b.adminEmail).trim();
+    if (v.length > 254 || /[\r\n\s]/.test(v)) {
+      return { ok: false, fields: [{ field: "adminEmail", code: "format" }] };
+    }
+    if (v !== "" && !/^[^@]+@[^@]+\.[^@]+$/.test(v)) {
+      return { ok: false, fields: [{ field: "adminEmail", code: "format" }] };
+    }
+    out.adminEmail = v;
+  }
+  if (b.renewCheck !== undefined) {
+    out.renewCheck = Boolean(b.renewCheck);
+  }
+  return { ok: true, data: out };
+}
+
+export async function saveSslSettings(s: SslSettings): Promise<void> {
+  await writeSetting(K.sslAdminEmail, s.adminEmail);
+  await writeSetting(K.sslRenewCheck, s.renewCheck ? "1" : "0");
+}
+
+/** Tracked managed certs (set_ssl_certs JSON array) — owned by lib/acme.ts. */
+export async function getSslCertsJson(): Promise<unknown[]> {
+  const m = await readSettings([K.sslCerts]);
+  const raw = m.get(K.sslCerts) ?? "[]";
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveSslCertsJson(certs: unknown[]): Promise<void> {
+  await writeSetting(K.sslCerts, JSON.stringify(certs));
 }
 
 /* ---------- nav module visibility ---------- */

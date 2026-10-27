@@ -79,6 +79,7 @@ import { sfmt } from "@/lib/i18n/sub-dictionary";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { TelegramBotPanel } from "@/components/sephiroth/views/telegram-bot-panel";
+import { SslCard } from "@/components/sephiroth/views/ssl-card"; // Task 23-f — SSL/ACME card
 
 /* ============================================================
    Sephiroth · Phase 8 — Settings & System (admin)
@@ -111,6 +112,9 @@ interface CoreSettingsDTO {
   xrayBin?: string;
   xrayVersion?: string;
   statsInterval?: number;
+  hysteriaVersion?: string;
+  hysteriaBin?: string;
+  enforceIpLimit?: boolean;
 }
 
 interface CoreStatusDTO {
@@ -139,6 +143,10 @@ interface TelegramSettingsDTO {
     trafficAlert: boolean;
     loginAlert: boolean;
   };
+  botMode: "console" | "sales";
+  adminChatIds: string[];
+  botProxyUrl: string;
+  shopLang: "fa" | "en";
 }
 
 interface GeneralSettingsDTO {
@@ -202,6 +210,7 @@ interface CoreForm {
   apiHost: string;
   apiPort: string;
   tickSeconds: string;
+  enforceIpLimit: boolean;
 }
 
 interface TgForm {
@@ -209,6 +218,22 @@ interface TgForm {
   token: string;
   chatId: string;
   notify: TelegramSettingsDTO["notify"];
+  botMode: "console" | "sales";
+  adminChatIds: string; // raw comma-separated text
+  botProxyUrl: string;
+  shopLang: "fa" | "en";
+}
+
+interface BotStatusDTO {
+  mode: "console" | "sales";
+  running: boolean;
+  startedAt: string | null;
+  lastPollAt: string | null;
+  handledUpdates: number;
+  errors: number;
+  lastError: string;
+  adminChatIds: number;
+  tokenConfigured: boolean;
 }
 
 interface GeneralForm {
@@ -396,15 +421,21 @@ export function SettingsView() {
     apiHost: "127.0.0.1",
     apiPort: "10085",
     tickSeconds: "1",
+    enforceIpLimit: false,
   });
   const [tgForm, setTgForm] = useState<TgForm>({
     enabled: false,
     token: "",
     chatId: "",
     notify: { userCreated: true, userExpired: true, trafficAlert: true, loginAlert: false },
+    botMode: "console",
+    adminChatIds: "",
+    botProxyUrl: "",
+    shopLang: "en",
   });
   const [tokenConfigured, setTokenConfigured] = useState(false);
   const [tokenMasked, setTokenMasked] = useState("");
+  const [botStatus, setBotStatus] = useState<BotStatusDTO | null>(null);
 
   const [generalForm, setGeneralForm] = useState<GeneralForm>({
     datepicker: "gregorian",
@@ -446,6 +477,7 @@ export function SettingsView() {
   const [coreStat, setCoreStat] = useState<CoreStatusDTO | null>(null);
   const [xrayBinDraft, setXrayBinDraft] = useState("");
   const [xrayVersionDraft, setXrayVersionDraft] = useState("");
+  const [hysteriaVersionDraft, setHysteriaVersionDraft] = useState("");
   const [statsIntervalDraft, setStatsIntervalDraft] = useState("10");
   const [coreBusy, setCoreBusy] = useState<"" | "install" | "start" | "stop" | "restart" | "reload" | "save">("");
   const [logOpen, setLogOpen] = useState(false);
@@ -505,15 +537,21 @@ export function SettingsView() {
         apiHost: d.core.apiHost,
         apiPort: String(d.core.apiPort),
         tickSeconds: String(d.core.tickSeconds),
+        enforceIpLimit: d.core.enforceIpLimit === true,
       });
       setXrayBinDraft(d.core.xrayBin ?? "");
       setXrayVersionDraft(d.core.xrayVersion ?? "");
+      setHysteriaVersionDraft(d.core.hysteriaVersion ?? "");
       setStatsIntervalDraft(String(d.core.statsInterval ?? 10));
       setTgForm({
         enabled: d.telegram.enabled,
         token: "",
         chatId: d.telegram.chatId,
         notify: d.telegram.notify,
+        botMode: d.telegram.botMode ?? "console",
+        adminChatIds: (d.telegram.adminChatIds ?? []).join(", "),
+        botProxyUrl: d.telegram.botProxyUrl ?? "",
+        shopLang: d.telegram.shopLang ?? "en",
       });
       setTokenConfigured(d.telegram.tokenConfigured);
       setTokenMasked(d.telegram.tokenMasked);
@@ -960,7 +998,9 @@ docker run -d --name mtproxy --restart=always -p ${mtpPort || "443"}:443 \\
           tickSeconds: Number(coreForm.tickSeconds),
           xrayBin: xrayBinDraft.trim(),
           xrayVersion: xrayVersionDraft.trim(),
+          hysteriaVersion: hysteriaVersionDraft.trim(),
           statsInterval: Math.max(5, Math.min(120, Number(statsIntervalDraft) || 10)),
+          enforceIpLimit: coreForm.enforceIpLimit,
         }),
       });
       if (!res.ok) throw new Error("save");
@@ -971,9 +1011,11 @@ docker run -d --name mtproxy --restart=always -p ${mtpPort || "443"}:443 \\
         apiHost: d.core.apiHost,
         apiPort: String(d.core.apiPort),
         tickSeconds: String(d.core.tickSeconds),
+        enforceIpLimit: d.core.enforceIpLimit === true,
       }));
       setXrayBinDraft(d.core.xrayBin ?? "");
       setXrayVersionDraft(d.core.xrayVersion ?? "");
+      setHysteriaVersionDraft(d.core.hysteriaVersion ?? "");
       setStatsIntervalDraft(String(d.core.statsInterval ?? 10));
       toast({ description: u.coreSaved });
     } catch {
@@ -993,14 +1035,17 @@ docker run -d --name mtproxy --restart=always -p ${mtpPort || "443"}:443 \\
           driver: coreForm.driver,
           xrayBin: xrayBinDraft.trim(),
           xrayVersion: xrayVersionDraft.trim(),
+          hysteriaVersion: hysteriaVersionDraft.trim(),
           statsInterval: Math.max(5, Math.min(120, Number(statsIntervalDraft) || 10)),
+          enforceIpLimit: coreForm.enforceIpLimit,
         }),
       });
       if (!res.ok) throw new Error("save");
       const d = (await res.json()) as { core: CoreSettingsDTO };
-      setCoreForm((p) => ({ ...p, driver: d.core.driver }));
+      setCoreForm((p) => ({ ...p, driver: d.core.driver, enforceIpLimit: d.core.enforceIpLimit === true }));
       setXrayBinDraft(d.core.xrayBin ?? "");
       setXrayVersionDraft(d.core.xrayVersion ?? "");
+      setHysteriaVersionDraft(d.core.hysteriaVersion ?? "");
       setStatsIntervalDraft(String(d.core.statsInterval ?? 10));
       toast({ description: u.coreSaved });
       void loadCoreStatus();
@@ -1277,6 +1322,10 @@ docker run -d --name mtproxy --restart=always -p ${mtpPort || "443"}:443 \\
           chatId: tgForm.chatId.trim(),
           token: tokenOverride !== undefined ? tokenOverride : tgForm.token.trim(),
           notify: tgForm.notify,
+          botMode: tgForm.botMode,
+          adminChatIds: tgForm.adminChatIds.trim(),
+          botProxyUrl: tgForm.botProxyUrl.trim(),
+          shopLang: tgForm.shopLang,
         }),
       });
       if (res.status === 400) {
@@ -2032,6 +2081,33 @@ docker run -d --name mtproxy --restart=always -p ${mtpPort || "443"}:443 \\
                       placeholder={core.versionPinPh}
                     />
                   </div>
+                  {/* v2.5 — hysteria2 sidecar engine version pin */}
+                  <div className="space-y-1.5 sm:max-lg:col-span-2">
+                    <Label htmlFor="core-hy-version">{core.versionPinHy}</Label>
+                    <Input
+                      id="core-hy-version"
+                      dir="ltr"
+                      className="font-mono"
+                      value={hysteriaVersionDraft}
+                      onChange={(e) => setHysteriaVersionDraft(e.target.value.replace(/[^0-9.]/g, ""))}
+                      placeholder={core.versionPinHyPh}
+                    />
+                    <p className="text-[11px] text-muted-foreground">{core.versionPinHyHint}</p>
+                  </div>
+                  {/* Task 23-g — opt-in concurrent-IP auto-disable (default OFF) */}
+                  <div className="flex items-center justify-between gap-4 rounded-xl bg-white/[0.03] px-4 py-3 ring-1 ring-border/70 sm:col-span-2">
+                    <div className="min-w-0">
+                      <Label htmlFor="core-enforce-ip">{core.enforceIp}</Label>
+                      <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                        {core.enforceIpHint}
+                      </p>
+                    </div>
+                    <Switch
+                      id="core-enforce-ip"
+                      checked={coreForm.enforceIpLimit}
+                      onCheckedChange={(v) => setCoreForm((p) => ({ ...p, enforceIpLimit: v }))}
+                    />
+                  </div>
                 </div>
 
                 {/* action buttons */}
@@ -2180,6 +2256,9 @@ docker run -d --name mtproxy --restart=always -p ${mtpPort || "443"}:443 \\
                 <Tip>{core.hintReload}</Tip>
               </div>
             </SectionCard>
+
+            {/* ── ssl / acme managed certificates (Task 23-f) ── */}
+            <SslCard />
 
             {/* ── software update (v2.2) ── */}
             <SectionCard icon={RefreshCw} title={sys.updTitle} desc={sys.updDesc} className="lg:col-span-2">

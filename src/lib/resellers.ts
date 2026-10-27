@@ -117,6 +117,10 @@ export type ValidatedTemplate = {
   trafficLimitGb: number | null;
   expiryDays: number | null;
   ipLimit: number;
+  /** Price in Toman; 0 = free / trial template (Task 23-c sales bot). */
+  priceToman: number;
+  /** Whether the template is listed in the Telegram sales-bot shop. */
+  botVisible: boolean;
 };
 
 export function validateTemplate(
@@ -141,10 +145,29 @@ export function validateTemplate(
     }
   }
 
+  let priceToman = 0;
+  if (b.priceToman !== undefined && b.priceToman !== null && b.priceToman !== "") {
+    const n = typeof b.priceToman === "number" ? b.priceToman : Number(b.priceToman);
+    if (!Number.isFinite(n) || n < 0 || n > 100000000 || !Number.isInteger(n)) {
+      errs.push({ field: "priceToman", code: "range" });
+    } else {
+      priceToman = n;
+    }
+  }
+
+  const botVisible = b.botVisible === undefined ? false : Boolean(b.botVisible);
+
   if (errs.length) return { ok: false, fields: errs };
   return {
     ok: true,
-    data: { name, trafficLimitGb: trafficLimitGb ?? null, expiryDays: expiryDays ?? null, ipLimit },
+    data: {
+      name,
+      trafficLimitGb: trafficLimitGb ?? null,
+      expiryDays: expiryDays ?? null,
+      ipLimit,
+      priceToman,
+      botVisible,
+    },
   };
 }
 
@@ -155,6 +178,8 @@ export type TemplateDTO = {
   expiryDays: number | null;
   ipLimit: number;
   enabled: boolean;
+  priceToman: number;
+  botVisible: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -167,6 +192,8 @@ export function toTemplateDTO(row: SaleTemplate): TemplateDTO {
     expiryDays: row.expiryDays,
     ipLimit: row.ipLimit,
     enabled: row.enabled,
+    priceToman: row.priceToman ?? 0,
+    botVisible: Boolean(row.botVisible),
     createdAt: new Date(row.createdAt).toISOString(),
     updatedAt: new Date(row.updatedAt).toISOString(),
   };

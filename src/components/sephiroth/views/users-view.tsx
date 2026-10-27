@@ -210,6 +210,17 @@ interface TplLite {
   enabled: boolean;
 }
 
+/* Task 23-g — one /api/users/ip-usage entry (Xray access-log tracker) */
+interface IpUsageRow {
+  email: string;
+  userId: string | null;
+  username: string;
+  ips: string[];
+  count: number;
+  limit: number;
+  breach: boolean;
+}
+
 interface UsrForm {
   username: string;
   note: string;
@@ -217,6 +228,7 @@ interface UsrForm {
   trafficLimitGb: string;
   expiryDays: string;
   ipLimit: string;
+  hwidLimit: string;
   inboundIds: Set<string>;
 }
 
@@ -227,6 +239,7 @@ const EMPTY_FORM: UsrForm = {
   trafficLimitGb: "",
   expiryDays: "",
   ipLimit: "0",
+  hwidLimit: "",
   inboundIds: new Set<string>(),
 };
 
@@ -288,6 +301,8 @@ export function UsersView() {
   const [inbounds, setInbounds] = useState<InboundLite[] | null>(null);
   const [templates, setTemplates] = useState<TplLite[]>([]);
   const [loadErr, setLoadErr] = useState(false);
+  /* Task 23-g — live concurrent-IP usage from the core driver (empty on sim) */
+  const [ipUsage, setIpUsage] = useState<IpUsageRow[]>([]);
 
   /* toolbar */
   const [q, setQ] = useState("");
@@ -314,10 +329,11 @@ export function UsersView() {
 
   const load = useCallback(async () => {
     try {
-      const [ur, ir, tr] = await Promise.all([
+      const [ur, ir, tr, pr] = await Promise.all([
         fetch("/api/users", { cache: "no-store" }),
         fetch("/api/inbounds", { cache: "no-store" }),
         fetch("/api/sale-templates", { cache: "no-store" }).catch(() => null),
+        fetch("/api/users/ip-usage", { cache: "no-store" }).catch(() => null),
       ]);
       if (!ur.ok || !ir.ok) throw new Error("load");
       const uj = (await ur.json()) as { users: UserDTO[] };
@@ -329,6 +345,12 @@ export function UsersView() {
         setTemplates(tj.templates.filter((x) => x.enabled));
       } else {
         setTemplates([]);
+      }
+      if (pr && pr.ok) {
+        const pj = (await pr.json()) as { usage?: IpUsageRow[] };
+        setIpUsage(pj.usage ?? []);
+      } else {
+        setIpUsage([]);
       }
       setLoadErr(false);
     } catch {
@@ -389,6 +411,17 @@ export function UsersView() {
     [users, drawerId]
   );
 
+  /* Task 23-g — per-user IP usage (union of every email's IPs) */
+  const usageByUsername = useMemo(() => {
+    const m = new Map<string, { ips: string[]; breach: boolean }>();
+    for (const row of ipUsage) {
+      const prev = m.get(row.username);
+      const ips = prev ? [...new Set([...prev.ips, ...row.ips])] : row.ips;
+      m.set(row.username, { ips, breach: (prev?.breach ?? false) || row.breach });
+    }
+    return m;
+  }, [ipUsage]);
+
   const FIELD_ERR: Record<string, string> = {
     format: u.errNameFormat,
     taken: u.errNameTaken,
@@ -416,6 +449,7 @@ export function UsersView() {
       trafficLimitGb: user.trafficLimitGb === null ? "" : String(user.trafficLimitGb),
       expiryDays: user.expiryDays === null ? "" : String(user.expiryDays),
       ipLimit: String(user.ipLimit),
+      hwidLimit: user.hwidLimit === null ? "" : String(user.hwidLimit),
       inboundIds: new Set(user.accesses.map((a) => a.inboundId)),
     });
     setFieldErr({});
@@ -449,6 +483,7 @@ export function UsersView() {
         trafficLimitGb: form.trafficLimitGb === "" ? null : Number(form.trafficLimitGb),
         expiryDays: form.expiryDays === "" ? null : Number(form.expiryDays),
         ipLimit: Number(form.ipLimit || "0"),
+        hwidLimit: form.hwidLimit === "" ? null : Number(form.hwidLimit),
         inboundIds: [...form.inboundIds],
       };
       const res = await fetch(editing ? `/api/users/${editing.id}` : "/api/users", {
@@ -574,6 +609,19 @@ export function UsersView() {
   };
 
   const subLinkFor = (user: UserDTO) => `sub:${user.subId}`;
+
+  /* Task 23-g — clear every registered HWID device (sub portal re-registers) */
+  const resetDevices = async (user: UserDTO) => {
+    try {
+      const res = await fetch(`/api/users/${user.id}/reset-devices`, { method: "POST" });
+      if (!res.ok) throw new Error("reset");
+      const j = (await res.json()) as { user: UserDTO };
+      setUsers((prev) => (prev ?? []).map((x) => (x.id === j.user.id ? j.user : x)));
+      toast({ description: u.toastDevicesReset });
+    } catch {
+      toast({ description: t.inbounds.errGeneric });
+    }
+  };
 
   /* ---------- render ---------- */
 
@@ -875,9 +923,37 @@ export function UsersView() {
                         )}
                       </td>
                       <td className="hidden px-3 py-3 lg:table-cell">
-                        <span className="font-mono text-xs">
-                          {user.ipLimit === 0 ? u.unlimited : user.ipLimit}
-                        </span>
+                        {(() => {
+                          const live = usageByUsername.get(user.username);
+                          const count = live?.ips.length ?? 0;
+                          const breach = count > 0 && user.ipLimit > 0 && count > user.ipLimit;
+                          if (count === 0) {
+                            return (
+                              <span className="font-mono text-xs text-muted-foreground">
+                                {user.ipLimit === 0 ? u.unlimited : `0/${user.ipLimit}`}
+                              </span>
+                            );
+                          }
+                          const shown = live!.ips.slice(0, 5);
+                          const more = count - shown.length;
+                          const tip =
+                            `${lfmt(u.ipActive, { n: 10 })}\n${shown.join("\n")}` +
+                            (more > 0 ? `\n+${more}` : "") +
+                            (breach ? `\n${u.ipBreach}` : "");
+                          return (
+                            <span
+                              className={cn(
+                                "inline-flex cursor-help items-center rounded-full px-2 py-0.5 font-mono text-[11px] font-semibold ring-1",
+                                breach
+                                  ? "bg-chart-5/10 text-chart-5 ring-chart-5/40"
+                                  : "bg-primary/10 text-primary ring-primary/30"
+                              )}
+                              title={tip}
+                            >
+                              {count}/{user.ipLimit === 0 ? "∞" : user.ipLimit}
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">
@@ -1149,7 +1225,7 @@ export function UsersView() {
                   <Tip>{t.resellers.tipTemplates}</Tip>
                 </div>
               )}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="u-traffic">{u.fieldTraffic}</Label>
                   <Input
@@ -1185,6 +1261,35 @@ export function UsersView() {
                     placeholder="0"
                   />
                   <p className="text-[10px] text-muted-foreground">{u.ipUnlimited}</p>
+                </div>
+                {/* Task 23-g — sub-portal HWID device limit */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-1">
+                    <Label htmlFor="u-hwid">{u.fieldHwid}</Label>
+                    {editing && (editing.devices.length > 0 || (editing.hwidLimit ?? 0) > 0) && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-6 rounded-full px-2 text-[10px]"
+                        onClick={() => void resetDevices(editing)}
+                        title={lfmt(u.devicesCount, { n: editing.devices.length })}
+                      >
+                        <RefreshCw className="h-2.5 w-2.5" aria-hidden="true" />
+                        {u.resetDevices}
+                      </Button>
+                    )}
+                  </div>
+                  <Input
+                    id="u-hwid"
+                    type="number"
+                    min="0"
+                    value={form.hwidLimit}
+                    onChange={(e) => setForm((f) => ({ ...f, hwidLimit: e.target.value }))}
+                    placeholder="0"
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    {editing ? `${lfmt(u.devicesCount, { n: editing.devices.length })} · ${u.hwidUnlimited}` : u.hwidUnlimited}
+                  </p>
                 </div>
               </div>
               <Tip>{u.tipLimits}</Tip>
@@ -1444,6 +1549,10 @@ export function UsersView() {
                       </span>
                       <span>
                         {u.colIp}: {drawerUser.ipLimit === 0 ? u.unlimited : drawerUser.ipLimit}
+                      </span>
+                      <span>
+                        {lfmt(u.devicesCount, { n: drawerUser.devices.length })}
+                        {drawerUser.hwidLimit ? ` / ${drawerUser.hwidLimit}` : ""}
                       </span>
                     </div>
                   </div>

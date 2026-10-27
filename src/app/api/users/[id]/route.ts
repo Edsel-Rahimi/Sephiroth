@@ -11,7 +11,7 @@ import { logActivity } from "@/lib/activity";
    Phase 6 — role-scoped: resellers may only touch users they
    own (resellerId mismatch → 404, no existence leak).
    PATCH  /api/users/:id → { user: UserDTO }
-     body: { note?, enabled?, trafficLimitGb?, expiryDays?, ipLimit?,
+     body: { note?, enabled?, trafficLimitGb?, expiryDays?, ipLimit?, hwidLimit?,
              resetPeriod?, inboundIds? (replaces the full link set) }
      TRUE partial merge: only keys present in the body are written;
      username is immutable (it names the entries inside inbounds).
@@ -94,6 +94,7 @@ export async function PATCH(
           ...(data.trafficLimitGb !== undefined ? { trafficLimitGb: data.trafficLimitGb } : {}),
           ...(data.expiryDays !== undefined ? { expiryDays: data.expiryDays } : {}),
           ...(data.ipLimit !== undefined ? { ipLimit: data.ipLimit } : {}),
+          ...(data.hwidLimit !== undefined ? { hwidLimit: data.hwidLimit } : {}),
           ...(data.resetPeriod !== undefined ? { resetPeriod: data.resetPeriod } : {}),
         },
       });

@@ -9,8 +9,8 @@ import { requireAdmin } from "@/lib/inbounds";
    users (+ per-inbound accesses), sub groups (+ members),
    resellers, sale templates, hosts, nodes, outbounds (incl.
    WARP), routing rules, relay tunnels and panel settings.
-   Secrets: password hashes & bot token are included so a
-   restore is faithful; the session secret is NEVER exported.
+   Secrets: password hashes are included so a restore is faithful;
+   the session secret AND the Telegram bot token are NEVER exported.
    ============================================================ */
 
 export async function buildBackupPayload() {
@@ -54,6 +54,7 @@ export async function buildBackupPayload() {
   const settings: Record<string, string> = {};
   for (const row of settingsRows) {
     if (row.key === "session_secret") continue; // never exported
+    if (row.key === "set_tg_token") continue; // Task 23-c: the bot token must NEVER leave the panel via backups
     settings[row.key] = row.value;
   }
 

@@ -45,6 +45,7 @@ export type UserFieldKey =
   | "trafficLimitGb"
   | "expiryDays"
   | "ipLimit"
+  | "hwidLimit"
   | "resetPeriod"
   | "inboundIds";
 export type UserFieldError = { field: UserFieldKey; code: string };
@@ -56,6 +57,7 @@ export interface UserWrite {
   trafficLimitGb: number | null;
   expiryDays: number | null;
   ipLimit: number;
+  hwidLimit: number | null;
   resetPeriod: string | null;
   inboundIds: string[];
 }
@@ -93,6 +95,11 @@ export function validateUser(
   if (Number.isNaN(ipLimit) || ipLimit < 0 || ipLimit > 1000 || !Number.isInteger(ipLimit))
     fields.push({ field: "ipLimit", code: "range" });
 
+  // Task 23-g — sub-portal device limit (null/empty = unlimited)
+  const hwidLimit = numField(b.hwidLimit);
+  if (hwidLimit !== null && (Number.isNaN(hwidLimit) || hwidLimit < 0 || hwidLimit > 1000 || !Number.isInteger(hwidLimit)))
+    fields.push({ field: "hwidLimit", code: "range" });
+
   const resetPeriod = normalizeResetPeriod(b.resetPeriod);
   if (resetPeriod === "invalid") fields.push({ field: "resetPeriod", code: "format" });
 
@@ -113,6 +120,7 @@ export function validateUser(
       trafficLimitGb,
       expiryDays: expiryDays === null ? null : Math.round(expiryDays),
       ipLimit,
+      hwidLimit: hwidLimit === null ? null : Math.round(hwidLimit),
       resetPeriod: resetPeriod === "invalid" ? null : resetPeriod,
       inboundIds,
     },
@@ -137,6 +145,7 @@ export type UserPatch = Partial<{
   trafficLimitGb: number | null;
   expiryDays: number | null;
   ipLimit: number;
+  hwidLimit: number | null;
   resetPeriod: string | null;
   inboundIds: string[];
 }>;
@@ -176,6 +185,13 @@ export function validateUserPatch(
     if (Number.isNaN(v) || v < 0 || v > 1000 || !Number.isInteger(v))
       fields.push({ field: "ipLimit", code: "range" });
     else out.ipLimit = v;
+  }
+  if ("hwidLimit" in b) {
+    const v = numField(b.hwidLimit);
+    if (v === null) out.hwidLimit = null;
+    else if (Number.isNaN(v) || v < 0 || v > 1000 || !Number.isInteger(v))
+      fields.push({ field: "hwidLimit", code: "range" });
+    else out.hwidLimit = Math.round(v);
   }
   if ("resetPeriod" in b) {
     const v = normalizeResetPeriod(b.resetPeriod);
@@ -290,6 +306,10 @@ export interface UserDTO {
   trafficLimitGb: number | null;
   expiryDays: number | null;
   ipLimit: number;
+  /** Task 23-g — sub-portal HWID device limit (null/0 = unlimited). */
+  hwidLimit: number | null;
+  /** Task 23-g — parsed sub-portal device registrations. */
+  devices: { id: string; ua: string; firstSeen: string; lastSeen: string }[];
   usedTrafficGb: number;
   resetPeriod: string | null;
   status: UserStatus;

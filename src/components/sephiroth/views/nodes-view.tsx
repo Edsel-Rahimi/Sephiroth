@@ -3,20 +3,24 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Activity,
+  ArrowDownUp,
   Check,
   ChevronDown,
   CircleAlert,
+  Cpu,
   Gauge,
   HelpCircle,
   Info,
   Loader2,
   Pencil,
   Plus,
+  RefreshCw,
   Server,
   ShieldCheck,
   ShieldOff,
   Trash2,
   TriangleAlert,
+  Upload,
   Wifi,
   WifiOff,
   RotateCw,
@@ -87,6 +91,7 @@ interface NodeDTO {
   address: string;
   port: number;
   basePath: string;
+  baseUrl: string;
   tokenConfigured: boolean;
   tokenMasked: string;
   enable: boolean;
@@ -97,17 +102,17 @@ interface NodeDTO {
   status: "online" | "offline" | "unknown";
   latencyMs: number;
   xrayVersion: string;
+  coreKind: string;
   lastSeen: string | null;
+  lastSyncAt: string | null;
+  lastError: string;
   createdAt: string;
   updatedAt: string;
 }
 
 interface NodeForm {
   name: string;
-  scheme: "http" | "https";
-  address: string;
-  port: string;
-  basePath: string;
+  baseUrl: string;
   token: string;
   enable: boolean;
   syncAll: boolean;
@@ -116,14 +121,11 @@ interface NodeForm {
   tlsVerify: "verify" | "skip";
 }
 
-type NodeErrors = Partial<Record<"name" | "address" | "port" | "basePath", boolean>>;
+type NodeErrors = Partial<Record<"name" | "baseUrl", boolean>>;
 
 const EMPTY_FORM: NodeForm = {
   name: "",
-  scheme: "https",
-  address: "",
-  port: "443",
-  basePath: "/",
+  baseUrl: "",
   token: "",
   enable: true,
   syncAll: true,
@@ -131,6 +133,43 @@ const EMPTY_FORM: NodeForm = {
   outboundTag: "",
   tlsVerify: "verify",
 };
+
+/* ---------- master-side agent call payloads (see /api/nodes/[id]/*) ---------- */
+
+interface AgentInfoPayload {
+  version: string;
+  hostname: string;
+  platform: string;
+  arch: string;
+  uptimeMs: number;
+  coreKind: "sim" | "xray";
+  coreRunning: boolean;
+  coreVersion: string;
+}
+
+interface NodeTrafficInbound {
+  tag: string;
+  protocol: string;
+  port: number;
+  status: string;
+  users: number;
+  txGb: number;
+}
+
+interface NodeTrafficUser {
+  username: string;
+  enabled: boolean;
+  usedTrafficGb: number;
+  trafficLimitGb: number | null;
+}
+
+interface NodeTrafficSnapshot {
+  ts: number;
+  coreKind: "sim" | "xray";
+  coreRunning: boolean;
+  inbounds: NodeTrafficInbound[];
+  users: NodeTrafficUser[];
+}
 
 const JSON_HEADERS = { "Content-Type": "application/json" } as const;
 
@@ -155,6 +194,43 @@ function relTime(iso: string): string {
   const d = Math.floor(h / 24);
   if (d < 60) return `${d}d`;
   return new Date(then).toLocaleDateString();
+}
+
+/** "90061" → "1d 1h"; "90000" → "25h" style coarse uptime. */
+function fmtUptime(ms: number): string {
+  if (!Number.isFinite(ms) || ms <= 0) return "0m";
+  const s = Math.floor(ms / 1000);
+  const d = Math.floor(s / 86_400);
+  const h = Math.floor((s % 86_400) / 3_600);
+  const m = Math.floor((s % 3_600) / 60);
+  if (d > 0) return `${d}d ${h}h`;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m`;
+  return `${s}s`;
+}
+
+/** Traffic label — honest zeros render as "0 GB". */
+function fmtGb(gb: number): string {
+  const v = Number(gb) || 0;
+  if (v >= 100) return `${Math.round(v)} GB`;
+  return `${Math.round(v * 100) / 100} GB`;
+}
+
+const BASEURL_RE = /^(https?):\/\/([^\/:?#]+)(?::(\d{1,5}))?(?:\/(.*))?$/;
+
+/** "http://host:3104/panel" → parts (scheme defaults to http, port to 80/443). */
+function parseBaseUrl(
+  raw: string
+): { scheme: "http" | "https"; address: string; port: number; basePath: string } | null {
+  const m = raw.trim().match(BASEURL_RE);
+  if (!m) return null;
+  const scheme = (m[1] ?? "http") as "http" | "https";
+  return {
+    scheme,
+    address: m[2] ?? "",
+    port: m[3] ? Number(m[3]) : scheme === "https" ? 443 : 80,
+    basePath: m[4] ? `/${m[4]}` : "/",
+  };
 }
 
 /* ---------- small local atoms (settings-view patterns) ---------- */
@@ -243,6 +319,17 @@ export function NodesView() {
   const [deleting, setDeleting] = useState(false);
   const [probingId, setProbingId] = useState<string | null>(null);
 
+  /* multi-node v1 — apply / refresh(info) / traffic */
+  const [applyTarget, setApplyTarget] = useState<NodeDTO | null>(null);
+  const [applyingId, setApplyingId] = useState<string | null>(null);
+  const [refreshingId, setRefreshingId] = useState<string | null>(null);
+  const [infoTarget, setInfoTarget] = useState<NodeDTO | null>(null);
+  const [infoData, setInfoData] = useState<AgentInfoPayload | null>(null);
+  const [infoLatency, setInfoLatency] = useState(0);
+  const [trafficTarget, setTrafficTarget] = useState<NodeDTO | null>(null);
+  const [traffic, setTraffic] = useState<NodeTrafficSnapshot | null>(null);
+  const [trafficLoading, setTrafficLoading] = useState(false);
+
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     let ok = true;
@@ -281,12 +368,18 @@ export function NodesView() {
     ? Math.round(online.reduce((sum, n) => sum + n.latencyMs, 0) / online.length)
     : null;
 
-  const addressOf = (n: NodeDTO): string => `${n.scheme}://${n.address}:${n.port}${n.basePath}`;
+  const addressOf = (n: NodeDTO): string =>
+    n.basePath && n.basePath !== "/" ? `${n.baseUrl}${n.basePath}` : n.baseUrl;
+
+  /** How many of this panel's inbounds the node would receive on Apply. */
+  const scopedCount = (n: NodeDTO): number =>
+    n.syncAll ? inbounds.length : inbounds.filter((i) => n.inboundTags.includes(i.tag)).length;
 
   /* ---------- actions ---------- */
 
   const nodeBody = (n: NodeDTO, enable: boolean) => ({
     name: n.name,
+    baseUrl: n.baseUrl,
     scheme: n.scheme,
     address: n.address,
     port: n.port,
@@ -348,10 +441,7 @@ export function NodesView() {
     setEditing(n);
     setForm({
       name: n.name,
-      scheme: n.scheme,
-      address: n.address,
-      port: String(n.port),
-      basePath: n.basePath,
+      baseUrl: addressOf(n),
       token: "",
       enable: n.enable,
       syncAll: n.syncAll,
@@ -375,11 +465,7 @@ export function NodesView() {
   const saveNode = async () => {
     const errs: NodeErrors = {};
     if (!form.name.trim()) errs.name = true;
-    if (!form.address.trim()) errs.address = true;
-    const portNum = Number(form.port);
-    if (form.port !== "" && (!Number.isInteger(portNum) || portNum < 1 || portNum > 65535)) {
-      errs.port = true;
-    }
+    if (!parseBaseUrl(form.baseUrl)) errs.baseUrl = true;
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
 
@@ -387,10 +473,7 @@ export function NodesView() {
     const token = form.token.trim();
     const body = {
       name: form.name.trim(),
-      scheme: form.scheme,
-      address: form.address.trim(),
-      port: form.port === "" ? 443 : portNum,
-      basePath: form.basePath.trim() || "/",
+      baseUrl: form.baseUrl.trim(),
       token: token ? token : editing ? undefined : "",
       enable: form.enable,
       syncAll: form.syncAll,
@@ -410,8 +493,9 @@ export function NodesView() {
         } | null;
         const next: NodeErrors = {};
         for (const f of d?.fields ?? []) {
-          if (f.field === "name" || f.field === "address" || f.field === "port" || f.field === "basePath") {
-            next[f.field] = true;
+          if (f.field === "name") next.name = true;
+          if (f.field === "baseUrl" || f.field === "address" || f.field === "port" || f.field === "basePath") {
+            next.baseUrl = true;
           }
         }
         if (Object.keys(next).length > 0) setErrors(next);
@@ -442,6 +526,78 @@ export function NodesView() {
       toast({ description: t.inbounds.errGeneric });
     }
     setDeleting(false);
+  };
+
+  /* ---------- multi-node v1 actions (apply / refresh / traffic) ---------- */
+
+  const applyNode = async (n: NodeDTO) => {
+    setApplyingId(n.id);
+    try {
+      const res = await fetch(`/api/nodes/${n.id}/apply`, { method: "POST" });
+      const d = (await res.json().catch(() => null)) as {
+        ok?: boolean;
+        applied?: number;
+        coreReloaded?: boolean;
+        error?: string | null;
+        node?: NodeDTO | null;
+      } | null;
+      if (!res.ok || !d?.ok) throw new Error(d?.error ?? "apply");
+      if (d.node) {
+        setNodes((prev) => (prev ? prev.map((x) => (x.id === d.node!.id ? d.node! : x)) : prev));
+      }
+      setApplyTarget(null);
+      toast({
+        title: u.appliedOk,
+        description: `${d.applied ?? 0} · ${u.coreKind}: ${d.coreReloaded ? u.coreRunning : "—"}`,
+      });
+    } catch {
+      toast({ title: u.appliedFail, variant: "destructive" });
+    }
+    setApplyingId(null);
+  };
+
+  const refreshNode = async (n: NodeDTO) => {
+    setRefreshingId(n.id);
+    try {
+      const res = await fetch(`/api/nodes/${n.id}/info`, { cache: "no-store" });
+      const d = (await res.json().catch(() => null)) as {
+        ok?: boolean;
+        info?: AgentInfoPayload | null;
+        latencyMs?: number;
+        error?: string | null;
+        node?: NodeDTO | null;
+      } | null;
+      if (!res.ok || !d?.ok || !d.info) throw new Error(d?.error ?? "info");
+      if (d.node) {
+        setNodes((prev) => (prev ? prev.map((x) => (x.id === d.node!.id ? d.node! : x)) : prev));
+      }
+      setInfoData(d.info);
+      setInfoLatency(d.latencyMs ?? 0);
+      setInfoTarget(n);
+    } catch {
+      toast({ title: u.pullFail, variant: "destructive" });
+    }
+    setRefreshingId(null);
+  };
+
+  const loadTraffic = async (n: NodeDTO) => {
+    setTrafficTarget(n);
+    setTrafficLoading(true);
+    setTraffic(null);
+    try {
+      const res = await fetch(`/api/nodes/${n.id}/stats`, { cache: "no-store" });
+      const d = (await res.json().catch(() => null)) as {
+        ok?: boolean;
+        traffic?: NodeTrafficSnapshot | null;
+        error?: string | null;
+      } | null;
+      if (!res.ok || !d?.ok || !d.traffic) throw new Error(d?.error ?? "stats");
+      setTraffic(d.traffic);
+    } catch {
+      toast({ title: u.pullFail, variant: "destructive" });
+      setTrafficTarget(null);
+    }
+    setTrafficLoading(false);
   };
 
   /* ---------- render ---------- */
@@ -601,6 +757,20 @@ export function NodesView() {
                       {n.xrayVersion}
                     </span>
                   )}
+                  {n.coreKind && (
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1",
+                        n.coreKind === "xray"
+                          ? "bg-primary/10 text-primary ring-primary/30"
+                          : "bg-amber-500/10 text-amber-400 ring-amber-500/25"
+                      )}
+                      title={u.coreKind}
+                    >
+                      <Cpu className="h-3 w-3" aria-hidden="true" />
+                      {n.coreKind === "xray" ? u.coreXray : u.coreSim}
+                    </span>
+                  )}
                   {n.tlsVerify === "verify" ? (
                     <span
                       className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-400 ring-1 ring-emerald-500/25"
@@ -620,21 +790,42 @@ export function NodesView() {
                   )}
                 </div>
 
-                {/* last seen */}
-                <p className="mt-auto text-[11px] text-muted-foreground">
-                  {u.lastSeen}
-                  {": "}
-                  {n.lastSeen ? (
-                    <span className="font-mono" dir="ltr">
-                      {relTime(n.lastSeen)}
-                    </span>
-                  ) : (
-                    <span className="italic">{u.never}</span>
+                {/* last seen + sync state */}
+                <div className="mt-auto space-y-0.5 text-[11px] text-muted-foreground">
+                  <p>
+                    {u.lastSeen}
+                    {": "}
+                    {n.lastSeen ? (
+                      <span className="font-mono" dir="ltr">
+                        {relTime(n.lastSeen)}
+                      </span>
+                    ) : (
+                      <span className="italic">{u.never}</span>
+                    )}
+                  </p>
+                  <p>
+                    {u.lastSync}
+                    {": "}
+                    {n.lastSyncAt ? (
+                      <span className="font-mono" dir="ltr">
+                        {relTime(n.lastSyncAt)}
+                      </span>
+                    ) : (
+                      <span className="italic">{u.never}</span>
+                    )}
+                  </p>
+                  {n.lastError && (
+                    <p className="flex items-center gap-1 text-rose-400" title={n.lastError}>
+                      <TriangleAlert className="h-3 w-3 shrink-0" aria-hidden="true" />
+                      <span className="min-w-0 flex-1 truncate font-mono" dir="ltr">
+                        {n.lastError}
+                      </span>
+                    </p>
                   )}
-                </p>
+                </div>
 
                 {/* actions */}
-                <div className="flex items-center gap-1.5 border-t border-white/5 pt-3">
+                <div className="flex flex-wrap items-center gap-1.5 border-t border-white/5 pt-3">
                   <Button
                     variant="outline"
                     size="sm"
@@ -649,7 +840,51 @@ export function NodesView() {
                     )}
                     {probingId === n.id ? u.probing : u.probe}
                   </Button>
-                  <span className="ms-auto flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5 rounded-full border-primary/30 bg-primary/[0.06] text-primary hover:bg-primary/15 hover:text-primary"
+                    onClick={() => setApplyTarget(n)}
+                    disabled={applyingId === n.id}
+                  >
+                    {applyingId === n.id ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Upload className="h-3.5 w-3.5" aria-hidden="true" />
+                    )}
+                    {applyingId === n.id ? u.applying : u.apply}
+                  </Button>
+                  <span className="ms-auto flex items-center gap-0.5">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover-glow hover:text-primary"
+                      onClick={() => void loadTraffic(n)}
+                      disabled={trafficLoading && trafficTarget?.id === n.id}
+                      aria-label={u.traffic}
+                      title={u.traffic}
+                    >
+                      {trafficLoading && trafficTarget?.id === n.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                      ) : (
+                        <ArrowDownUp className="h-4 w-4" aria-hidden="true" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover-glow hover:text-primary"
+                      onClick={() => void refreshNode(n)}
+                      disabled={refreshingId === n.id}
+                      aria-label={u.refresh}
+                      title={u.refresh}
+                    >
+                      {refreshingId === n.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                      ) : (
+                        <RefreshCw className="h-4 w-4" aria-hidden="true" />
+                      )}
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -708,73 +943,23 @@ export function NodesView() {
               {errors.name && <FieldError label={u.fieldName} />}
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="node-scheme">{u.fieldScheme}</Label>
-                <Select
-                  value={form.scheme}
-                  onValueChange={(v) => setForm((p) => ({ ...p, scheme: v as NodeForm["scheme"] }))}
-                >
-                  <SelectTrigger id="node-scheme" className="w-full font-mono">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="glass-strong">
-                    <SelectItem value="http" dir="ltr" className="font-mono">
-                      http
-                    </SelectItem>
-                    <SelectItem value="https" dir="ltr" className="font-mono">
-                      https
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="node-port">{u.fieldPort}</Label>
-                <Input
-                  id="node-port"
-                  dir="ltr"
-                  inputMode="numeric"
-                  value={form.port}
-                  onChange={(e) => setForm((p) => ({ ...p, port: e.target.value.replace(/[^0-9]/g, "") }))}
-                  placeholder="443"
-                  aria-invalid={errors.port ? "true" : undefined}
-                  className={cn("font-mono", errors.port && "border-destructive ring-destructive/40")}
-                />
-                {errors.port && <FieldError label={u.fieldPort} />}
-              </div>
-            </div>
-
             <div className="space-y-1.5">
-              <Label htmlFor="node-address">{u.fieldAddress}</Label>
+              <Label htmlFor="node-baseurl">{u.fieldBaseUrl}</Label>
               <Input
-                id="node-address"
+                id="node-baseurl"
                 dir="ltr"
-                value={form.address}
-                onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))}
-                placeholder={u.phAddress}
+                value={form.baseUrl}
+                onChange={(e) => setForm((p) => ({ ...p, baseUrl: e.target.value }))}
+                placeholder={u.phBaseUrl}
                 aria-required="true"
-                aria-invalid={errors.address ? "true" : undefined}
-                className={cn("font-mono", errors.address && "border-destructive ring-destructive/40")}
+                aria-invalid={errors.baseUrl ? "true" : undefined}
+                className={cn("font-mono", errors.baseUrl && "border-destructive ring-destructive/40")}
               />
-              {errors.address && <FieldError label={u.fieldAddress} />}
+              {errors.baseUrl && <FieldError label={u.errBaseUrl} />}
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="node-basepath">{u.fieldBasePath}</Label>
-              <Input
-                id="node-basepath"
-                dir="ltr"
-                value={form.basePath}
-                onChange={(e) => setForm((p) => ({ ...p, basePath: e.target.value }))}
-                placeholder={u.phBasePath}
-                aria-invalid={errors.basePath ? "true" : undefined}
-                className={cn("font-mono", errors.basePath && "border-destructive ring-destructive/40")}
-              />
-              {errors.basePath && <FieldError label={u.fieldBasePath} />}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="node-token">{u.fieldToken}</Label>
+              <Label htmlFor="node-token">{u.fieldSecret}</Label>
               <Input
                 id="node-token"
                 type="password"
@@ -783,7 +968,7 @@ export function NodesView() {
                 autoComplete="new-password"
                 value={form.token}
                 onChange={(e) => setForm((p) => ({ ...p, token: e.target.value }))}
-                placeholder={editing?.tokenConfigured ? `••••••${editing.tokenMasked}` : undefined}
+                placeholder={editing?.tokenConfigured ? `••••••${editing.tokenMasked}` : u.phSecret}
               />
               <p className="text-[11px] text-muted-foreground">
                 {form.token.trim() ? u.fieldTokenSet : editing?.tokenConfigured ? u.fieldTokenKeep : u.fieldTokenSet}
@@ -902,6 +1087,196 @@ export function NodesView() {
               {t.subgroups.save}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* apply-config confirm — destructive replace on the node */}
+      <AlertDialog open={applyTarget !== null} onOpenChange={(o) => !o && setApplyTarget(null)}>
+        <AlertDialogContent className="glass-strong border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-silver">
+              <Upload className="h-4 w-4 text-primary" aria-hidden="true" />
+              {u.applyTitle}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <span className="block font-mono text-foreground" dir="ltr">
+                {applyTarget ? addressOf(applyTarget) : ""}
+              </span>
+              <span className="block">
+                {applyTarget ? u.applyDesc.replace("{n}", String(scopedCount(applyTarget))) : ""}
+              </span>
+              <span className="block text-[11px] text-muted-foreground">{u.agentHint}</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-full border-white/10 bg-white/[0.03]">
+              {t.inbounds.cancel}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => applyTarget && void applyNode(applyTarget)}
+              disabled={applyingId === applyTarget?.id}
+              className="gap-2 rounded-full"
+            >
+              {applyingId === applyTarget?.id ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <Upload className="h-4 w-4" aria-hidden="true" />
+              )}
+              {applyingId === applyTarget?.id ? u.applying : u.apply}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* agent info (Refresh) */}
+      <Dialog open={infoTarget !== null} onOpenChange={(o) => !o && setInfoTarget(null)}>
+        <DialogContent className="glass-strong flex max-h-[90vh] flex-col gap-0 overflow-hidden border-white/10 p-0 sm:max-w-[440px]">
+          <DialogHeader className="border-b border-white/5 px-5 py-4 text-start">
+            <DialogTitle className="flex items-center gap-3 text-silver">
+              <span className="glass flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
+                <RefreshCw className="h-4 w-4 text-primary" aria-hidden="true" />
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-base">{u.infoTitle}</span>
+                <DialogDescription className="mt-0.5 block truncate font-mono text-[11px] font-normal text-muted-foreground" dir="ltr">
+                  {infoTarget ? addressOf(infoTarget) : ""}
+                </DialogDescription>
+              </span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1.5 px-5 py-4 text-sm">
+            {infoData ? (
+              <>
+                {[
+                  [u.agentVersion, infoData.version],
+                  [
+                    u.coreKind,
+                    `${
+                      infoData.coreKind === "xray" ? u.coreXray : u.coreSim
+                    } · ${infoData.coreRunning ? u.coreRunning : u.coreStopped}`,
+                  ],
+                  [u.uptime, fmtUptime(infoData.uptimeMs)],
+                  [u.hostnameLabel, infoData.hostname],
+                  [u.platformLabel, `${infoData.platform} · ${infoData.arch}`],
+                ].map(([k, v]) => (
+                  <div
+                    key={k}
+                    className="flex items-center justify-between gap-3 rounded-lg bg-white/[0.03] px-3 py-2"
+                  >
+                    <span className="shrink-0 text-xs text-muted-foreground">{k}</span>
+                    <span className="min-w-0 truncate font-mono text-xs text-foreground" dir="ltr">
+                      {v}
+                    </span>
+                  </div>
+                ))}
+                <p className="pt-1 text-end text-[11px] text-muted-foreground" dir="ltr">
+                  {infoLatency} ms
+                </p>
+              </>
+            ) : (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-hidden="true" />
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* node traffic (pull) */}
+      <Dialog open={trafficTarget !== null} onOpenChange={(o) => !o && setTrafficTarget(null)}>
+        <DialogContent className="glass-strong flex max-h-[90vh] flex-col gap-0 overflow-hidden border-white/10 p-0 sm:max-w-[520px]">
+          <DialogHeader className="border-b border-white/5 px-5 py-4 text-start">
+            <DialogTitle className="flex items-center gap-3 text-silver">
+              <span className="glass flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
+                <ArrowDownUp className="h-4 w-4 text-primary" aria-hidden="true" />
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-base">{u.trafficTitle}</span>
+                <DialogDescription className="mt-0.5 block truncate font-mono text-[11px] font-normal text-muted-foreground" dir="ltr">
+                  {trafficTarget ? addressOf(trafficTarget) : ""}
+                </DialogDescription>
+              </span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="no-scrollbar flex-1 space-y-4 overflow-y-auto px-5 py-4">
+            {traffic ? (
+              <>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1",
+                      traffic.coreKind === "xray"
+                        ? "bg-primary/10 text-primary ring-primary/30"
+                        : "bg-amber-500/10 text-amber-400 ring-amber-500/25"
+                    )}
+                  >
+                    <Cpu className="h-3 w-3" aria-hidden="true" />
+                    {traffic.coreKind === "xray" ? u.coreXray : u.coreSim}
+                    {traffic.coreRunning ? ` · ${u.coreRunning}` : ` · ${u.coreStopped}`}
+                  </span>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">{u.trafficInbounds}</Label>
+                  {traffic.inbounds.length === 0 ? (
+                    <p className="text-[11px] italic text-muted-foreground/70">{u.noTraffic}</p>
+                  ) : (
+                    <div className="max-h-64 space-y-1.5 overflow-y-auto pr-1">
+                      {traffic.inbounds.map((i) => (
+                        <div
+                          key={`${i.tag}:${i.port}`}
+                          className="flex items-center gap-2 rounded-lg bg-white/[0.03] px-3 py-2"
+                        >
+                          <span className="min-w-0 flex-1 truncate font-mono text-xs text-foreground" dir="ltr">
+                            {i.tag}
+                          </span>
+                          <span className="shrink-0 rounded-full bg-white/[0.04] px-2 py-0.5 font-mono text-[10px] text-muted-foreground ring-1 ring-border" dir="ltr">
+                            {i.protocol}:{i.port}
+                          </span>
+                          <span className="shrink-0 font-mono text-[10px] text-muted-foreground" dir="ltr">
+                            {i.users}👤
+                          </span>
+                          <span className="shrink-0 font-mono text-xs font-semibold text-primary" dir="ltr">
+                            {fmtGb(i.txGb)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">{u.trafficUsers}</Label>
+                  {traffic.users.length === 0 ? (
+                    <p className="text-[11px] italic text-muted-foreground/70">{u.noTraffic}</p>
+                  ) : (
+                    <div className="max-h-40 space-y-1.5 overflow-y-auto pr-1">
+                      {traffic.users.map((usr) => (
+                        <div
+                          key={usr.username}
+                          className="flex items-center gap-2 rounded-lg bg-white/[0.03] px-3 py-2"
+                        >
+                          <span className="min-w-0 flex-1 truncate font-mono text-xs text-foreground" dir="ltr">
+                            {usr.username}
+                          </span>
+                          <span className="shrink-0 font-mono text-xs text-muted-foreground" dir="ltr">
+                            {fmtGb(usr.usedTrafficGb)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <p className="text-end text-[11px] text-muted-foreground" dir="ltr">
+                  {new Date(traffic.ts).toLocaleTimeString()}
+                </p>
+              </>
+            ) : (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-hidden="true" />
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 

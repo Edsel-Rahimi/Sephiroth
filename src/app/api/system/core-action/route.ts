@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/inbounds";
 import { logActivity } from "@/lib/activity";
-import { getActiveBackend, isFallbackActive, swapBackend } from "@/lib/core/registry";
+import {
+  getActiveBackend,
+  getSidecarManager,
+  isFallbackActive,
+  swapBackend,
+} from "@/lib/core/registry";
 import { XrayDriver } from "@/lib/core/xray";
 import { CoreSim } from "../../../../../mini-services/core-sim/sim";
 import { SimBackend } from "@/lib/core/sim-backend";
@@ -15,7 +20,9 @@ import { appVersion, getCoreSettings } from "@/lib/settings";
    stop     → SIGTERM/SIGKILL the real core (no-op on the simulator)
    restart  → stop + start
    reload   → regenerate config from the store; restart only when it changed
-   Always answers with the resulting status payload.
+   Every action also drives the v2.5 hysteria2 SIDECAR engines (they serve
+   the inbounds the Xray core cannot) and answers with the resulting
+   status payload incl. the `sidecars` array.
    ============================================================ */
 
 async function startXrayFromSettings(): Promise<{ ok: true; driver: XrayDriver } | { ok: false; reason: string }> {
@@ -62,6 +69,8 @@ export async function POST(req: Request) {
   let ok = true;
 
   try {
+    // Task 23-e — the hysteria2 sidecars ride along with every core action
+    const sidecars = getSidecarManager();
     if (action === "stop") {
       if (backend.kind === "xray") {
         await backend.stop();
@@ -70,41 +79,64 @@ export async function POST(req: Request) {
         ok = false;
         message = "sim_no_stop";
       }
+      if (sidecars) await sidecars.stopAll().catch(() => undefined);
     } else if (action === "start") {
+      let coreMsg = "";
+      let coreOk = true;
       if (backend.kind === "xray") {
         if (backend.status().running) {
-          ok = false;
-          message = "already_running";
+          coreOk = false;
+          coreMsg = "already_running";
         } else {
           await backend.start();
-          message = "started";
+          coreMsg = "started";
         }
       } else if (settings.driver === "xray") {
         const res = await startXrayFromSettings();
         if (res.ok) {
-          message = "started";
+          coreMsg = "started";
         } else {
-          ok = false;
-          message = "start_failed";
+          coreOk = false;
+          coreMsg = "start_failed";
           // surface the reason through the status fallback fields
           const simBackend = new SimBackend(new CoreSim(`${appVersion()}-sim`), `${appVersion()}-sim`);
           await swapBackend(simBackend, { active: true, reason: res.reason });
         }
       } else {
-        ok = false;
-        message = "sim_selected";
+        coreOk = false;
+        coreMsg = "sim_selected";
+      }
+      // sidecars start independently of the core driver
+      let sidecarErr = "";
+      if (sidecars) {
+        try {
+          await sidecars.start();
+        } catch (err) {
+          sidecarErr = err instanceof Error ? err.message : String(err);
+        }
+      }
+      if (coreOk) {
+        ok = true;
+        message = sidecarErr ? `core ${coreMsg}; sidecar error: ${sidecarErr}` : coreMsg;
+      } else {
+        ok = sidecarErr === "" && sidecars !== null; // sidecars may still have started
+        message = sidecarErr
+          ? `core ${coreMsg}; sidecar error: ${sidecarErr}`
+          : `core ${coreMsg}; sidecars ok`;
       }
     } else if (action === "restart") {
+      let coreMsg = "";
+      let coreOk = true;
       if (backend.kind === "xray" && settings.driver === "xray") {
         await backend.restart();
-        message = "restarted";
+        coreMsg = "restarted";
       } else if (settings.driver === "xray") {
         const res = await startXrayFromSettings();
         if (res.ok) {
-          message = "started";
+          coreMsg = "started";
         } else {
-          ok = false;
-          message = "start_failed";
+          coreOk = false;
+          coreMsg = "start_failed";
           const simBackend = new SimBackend(new CoreSim(`${appVersion()}-sim`), `${appVersion()}-sim`);
           await swapBackend(simBackend, { active: true, reason: res.reason });
         }
@@ -112,18 +144,54 @@ export async function POST(req: Request) {
         // settings switched back to the simulator → tear the real core down
         await backend.dispose();
         await swapBackend(new SimBackend(new CoreSim(`${appVersion()}-sim`), `${appVersion()}-sim`));
-        message = "switched to simulator";
+        coreMsg = "switched to simulator";
       } else {
-        ok = false;
-        message = "sim_selected";
+        coreOk = false;
+        coreMsg = "sim_selected";
+      }
+      let sidecarErr = "";
+      if (sidecars) {
+        try {
+          await sidecars.restartAll();
+        } catch (err) {
+          sidecarErr = err instanceof Error ? err.message : String(err);
+        }
+      }
+      if (coreOk) {
+        ok = true;
+        message = sidecarErr ? `core ${coreMsg}; sidecar error: ${sidecarErr}` : coreMsg;
+      } else {
+        ok = sidecarErr === "" && sidecars !== null;
+        message = sidecarErr
+          ? `core ${coreMsg}; sidecar error: ${sidecarErr}`
+          : `core ${coreMsg}; sidecars ok`;
       }
     } else if (action === "reload") {
+      let coreMsg = "";
+      let coreOk = true;
       if (backend.kind === "xray") {
         await backend.reload();
-        message = "reloaded";
+        coreMsg = "reloaded";
       } else {
-        ok = false;
-        message = "sim_selected";
+        coreOk = false;
+        coreMsg = "sim_selected";
+      }
+      let sidecarErr = "";
+      if (sidecars) {
+        try {
+          await sidecars.reload();
+        } catch (err) {
+          sidecarErr = err instanceof Error ? err.message : String(err);
+        }
+      }
+      if (coreOk) {
+        ok = true;
+        message = sidecarErr ? `core ${coreMsg}; sidecar error: ${sidecarErr}` : coreMsg;
+      } else {
+        ok = sidecarErr === "" && sidecars !== null;
+        message = sidecarErr
+          ? `core ${coreMsg}; sidecar error: ${sidecarErr}`
+          : `core ${coreMsg}; sidecars ok`;
       }
     }
   } catch (err) {
@@ -141,11 +209,17 @@ export async function POST(req: Request) {
 
   const status = getActiveBackend()?.status();
   const fb = isFallbackActive();
+  const sidecarList = getSidecarManager()?.statusList() ?? null;
   return NextResponse.json({
     ok,
     message,
     status: status
-      ? { ...status, fallbackActive: fb.active, fallbackReason: fb.reason }
+      ? {
+          ...status,
+          fallbackActive: fb.active,
+          fallbackReason: fb.reason,
+          ...(sidecarList ? { sidecars: sidecarList } : {}),
+        }
       : null,
   });
 }

@@ -14,6 +14,7 @@ import {
   deriveStatus,
   parseClients,
 } from "./user-types";
+import { parseDevices } from "./hwid";
 
 /* ============================================================
    Sephiroth · Phase 4 — server-side user helpers
@@ -140,6 +141,8 @@ export function toUserDTO(row: UserRow, now?: Date): UserDTO & { status: UserSta
     trafficLimitGb: row.trafficLimitGb,
     expiryDays: row.expiryDays,
     ipLimit: row.ipLimit,
+    hwidLimit: row.hwidLimit ?? null,
+    devices: parseDevices(row.devices),
     usedTrafficGb: row.usedTrafficGb,
     resetPeriod: row.resetPeriod ?? null,
     status: deriveStatus(row),

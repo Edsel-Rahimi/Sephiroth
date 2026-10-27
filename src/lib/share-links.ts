@@ -150,6 +150,10 @@ export function buildShareLink(
       if (st.serviceName) q.set("serviceName", String(st.serviceName));
       if (st.multiMode === true) q.set("mode", "multi");
     }
+    if (row.transport === "kcp") {
+      if (st.headerType && st.headerType !== "none") q.set("headerType", String(st.headerType));
+      if (st.kcpSeed) q.set("seed", String(st.kcpSeed));
+    }
     if (row.transport === "tcp" && st.headerType === "http") q.set("headerType", "http");
   };
 
@@ -171,7 +175,13 @@ export function buildShareLink(
         aid: "0",
         scy: "auto",
         net: row.transport,
-        type: row.transport === "tcp" && st.headerType === "http" ? "http" : "none",
+        type:
+          row.transport === "tcp" && st.headerType === "http"
+            ? "http"
+            : row.transport === "kcp"
+              ? String(st.headerType || "none")
+              : "none",
+        ...(row.transport === "kcp" && st.kcpSeed ? { seed: String(st.kcpSeed) } : {}),
         host: String(st.host ?? ""),
         path: String(st.path ?? ""),
         tls: row.security === "none" ? "" : row.security,
@@ -199,6 +209,8 @@ export function buildShareLink(
         q.set("obfs", "salamander");
         q.set("obfs-password", String(st.obfsPassword));
       }
+      if (typeof st.upMbps === "number" && st.upMbps > 0) q.set("upmbps", String(st.upMbps));
+      if (typeof st.downMbps === "number" && st.downMbps > 0) q.set("downmbps", String(st.downMbps));
       if (st.allowInsecure === true || row.security === "none") q.set("insecure", "1");
       return `hy2://${encodeURIComponent(key)}@${host}:${port}?${q.toString()}#${encodeURIComponent(label)}`;
     }
@@ -290,7 +302,7 @@ export interface SubExportItem {
   link?: string | null;
 }
 
-/** Clash ws/grpc transport options — shared by vless/vmess/trojan (httpupgrade rides ws). */
+/** Clash ws/grpc/kcp transport options — shared by vless/vmess/trojan (httpupgrade rides ws). */
 function clashTransportLines(item: SubExportItem, st: Record<string, unknown>, host: string): string[] {
   const lines: string[] = [];
   if (item.transport === "ws" || item.transport === "httpupgrade") {
@@ -304,6 +316,16 @@ function clashTransportLines(item: SubExportItem, st: Record<string, unknown>, h
     lines.push(
       `    grpc-opts:`,
       `      grpc-service-name: "${String(st.serviceName || "grpc")}"`
+    );
+  } else if (item.transport === "kcp") {
+    // mihomo kcp-opts only knows up/down (Mbps) + smux — xray header.type /
+    // seed have no clash equivalent, so they are honestly omitted here
+    lines.push(
+      `    kcp-opts:`,
+      `      up: "5"`,
+      `      down: "5"`,
+      `      smux:`,
+      `        enabled: false`
     );
   }
   return lines;
@@ -402,6 +424,15 @@ export function buildClashMetaYaml(
         `    sni: ${sni}`,
         `    skip-cert-verify: ${Boolean(st.allowInsecure)}`
       );
+      if (st.obfsPassword) {
+        proxyLines.push(`    obfs: salamander`, `    obfs-password: "${String(st.obfsPassword)}"`);
+      }
+      if (typeof st.upMbps === "number" && st.upMbps > 0) {
+        proxyLines.push(`    up: "${st.upMbps} Mbps"`);
+      }
+      if (typeof st.downMbps === "number" && st.downMbps > 0) {
+        proxyLines.push(`    down: "${st.downMbps} Mbps"`);
+      }
     }
   });
 
@@ -456,6 +487,8 @@ export function buildClashMetaYaml(
 /**
  * Sing-Box transport object — vless/vmess/trojan/ss all dial through it.
  * httpupgrade is folded into type "http" (sing-box ≥1.11 merged them).
+ * mKCP is NOT in sing-box's transport set (http/ws/quic/grpc/httpupgrade)
+ * — callers must skip kcp nodes instead of emitting a broken outbound.
  */
 function singboxTransport(st: Record<string, unknown>, transport: string): Record<string, unknown> | undefined {
   if (transport === "ws") {
@@ -491,6 +524,9 @@ export function buildSingboxJson(
     const tag = `${BRAND_TAG}-${item.tag}-${idx + 1}`;
     const host = hostOf({ listen: item.listen || "", stream: item.stream }, fallbackHost, publicHost);
     const st = item.stream || {};
+    // sing-box cannot dial mKCP (no kcp transport) — skip the node rather
+    // than emit an outbound that silently dials plain TCP (use clash/xray)
+    if (item.transport === "kcp") return;
     const tlsEnabled = item.security === "tls" || item.security === "reality";
     const sni = String(st.sni || (typeof st.serverNames === "string" ? st.serverNames.split(",")[0] : "") || host);
     const transport = singboxTransport(st, item.transport);
@@ -566,6 +602,13 @@ export function buildSingboxJson(
         server: host,
         server_port: item.port,
         password: item.key || KEY_FALLBACK.hysteria2,
+        ...(st.obfsPassword
+          ? { obfs: { type: "salamander", password: String(st.obfsPassword) } }
+          : {}),
+        ...(typeof st.upMbps === "number" && st.upMbps > 0 ? { up_mbps: st.upMbps } : {}),
+        ...(typeof st.downMbps === "number" && st.downMbps > 0
+          ? { down_mbps: st.downMbps }
+          : {}),
         tls: {
           enabled: true,
           server_name: sni,
@@ -672,6 +715,19 @@ function xrayStreamSettings(
     stream.httpupgradeSettings = { path: String(st.path || "/"), ...(st.host ? { host: String(st.host) } : {}) };
   } else if (transport === "xhttp") {
     stream.xhttpSettings = { path: String(st.path || "/"), ...(st.host ? { host: String(st.host) } : {}) };
+  } else if (transport === "kcp") {
+    const kcp: Record<string, unknown> = {
+      mtu: 1350,
+      tti: 50,
+      uplinkCapacity: 5,
+      downlinkCapacity: 5,
+      congestion: false,
+      readBufferSize: 2,
+      writeBufferSize: 2,
+      header: { type: String(st.headerType || "none") },
+    };
+    if (st.kcpSeed) kcp.seed = String(st.kcpSeed);
+    stream.kcpSettings = kcp;
   } else if (transport === "http") {
     stream.httpSettings = { path: String(st.path || "/"), ...(st.host ? { host: [String(st.host)] } : {}) };
   }

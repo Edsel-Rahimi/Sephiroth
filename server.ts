@@ -10,10 +10,13 @@ import { getTickMs, refreshTickMs } from "./mini-services/core-sim/db";
 import type { ActivityEvent } from "./mini-services/core-sim/types";
 import { SimBackend } from "./src/lib/core/sim-backend";
 import { XrayDriver } from "./src/lib/core/xray";
+import { SidecarManager } from "./src/lib/core/sidecars"; // Task 23-e — hysteria2 sidecar engines
 import type { CoreBackend } from "./src/lib/core/types";
 import {
   getActiveBackend,
+  getSidecarManager,
   setActiveBackend,
+  setSidecarManager,
   swapBackend,
 } from "./src/lib/core/registry";
 import { ensureSeed } from "./src/lib/auth";
@@ -39,7 +42,14 @@ import * as apiInbounds from "./src/app/api/inbounds/route";
 import * as apiInboundsId from "./src/app/api/inbounds/[id]/route";
 import * as apiNodes from "./src/app/api/nodes/route";
 import * as apiNodesId from "./src/app/api/nodes/[id]/route";
+import * as apiAgentInfo from "./src/app/api/agent/info/route";
+import * as apiAgentInbounds from "./src/app/api/agent/inbounds/route";
+import * as apiAgentApply from "./src/app/api/agent/apply/route";
+import * as apiAgentTraffic from "./src/app/api/agent/traffic/route";
 import * as apiNodesIdProbe from "./src/app/api/nodes/[id]/probe/route";
+import * as apiNodesIdApply from "./src/app/api/nodes/[id]/apply/route";
+import * as apiNodesIdStats from "./src/app/api/nodes/[id]/stats/route";
+import * as apiNodesIdInfo from "./src/app/api/nodes/[id]/info/route";
 import * as apiOutbounds from "./src/app/api/outbounds/route";
 import * as apiOutboundsTrafficReset from "./src/app/api/outbounds/traffic-reset/route";
 import * as apiOutboundsId from "./src/app/api/outbounds/[id]/route";
@@ -70,8 +80,16 @@ import * as apiSystemUpdate from "./src/app/api/system/update/route";
 import * as apiSystemUpdateInfo from "./src/app/api/system/update-info/route";
 import * as apiSystemUpdateStatus from "./src/app/api/system/update-status/route";
 import * as apiTelegramBotAction from "./src/app/api/telegram/bot-action/route";
+import * as apiTelegramBotStatus from "./src/app/api/telegram/bot-status/route";
+import { salesWorkerBoot, salesWorkerShutdown } from "./src/lib/bot/sales-worker"; // Task 23-c — Sephiroth Sales Bot worker
+import { runSslRenewalTick } from "./src/lib/acme"; // Task 23-f — daily ACME renewal watcher
+import * as apiSystemSsl from "./src/app/api/system/ssl/route";
+import * as apiSystemSslInstall from "./src/app/api/system/ssl-install-acme/route";
+import * as apiSystemSslIssue from "./src/app/api/system/ssl-issue/route";
 import * as apiTunnels from "./src/app/api/tunnels/route";
 import * as apiUsers from "./src/app/api/users/route";
+import * as apiUsersIpUsage from "./src/app/api/users/ip-usage/route"; // Task 23-g — concurrent-IP usage
+import * as apiUsersResetDevices from "./src/app/api/users/[id]/reset-devices/route"; // Task 23-g — HWID reset
 import * as apiUsersBulk from "./src/app/api/users/bulk/route";
 import * as apiUsersId from "./src/app/api/users/[id]/route";
 import * as apiRefProxy from "./src/app/ref/[panel]/[[...path]]/route";
@@ -255,8 +273,18 @@ async function startServer() {
   mountRoute(app, "/api/inbounds/:id", apiInboundsId);
 
   mountRoute(app, "/api/nodes", apiNodes);
+  mountRoute(app, "/api/nodes/:id/apply", apiNodesIdApply);
+  mountRoute(app, "/api/nodes/:id/stats", apiNodesIdStats);
+  mountRoute(app, "/api/nodes/:id/info", apiNodesIdInfo);
   mountRoute(app, "/api/nodes/:id/probe", apiNodesIdProbe);
   mountRoute(app, "/api/nodes/:id", apiNodesId);
+
+  // Agent surface (node mode only) — the routes themselves answer 404
+  // when SEPH_NODE_MODE is off, so mounting them unconditionally is safe.
+  mountRoute(app, "/api/agent/info", apiAgentInfo);
+  mountRoute(app, "/api/agent/inbounds", apiAgentInbounds);
+  mountRoute(app, "/api/agent/apply", apiAgentApply);
+  mountRoute(app, "/api/agent/traffic", apiAgentTraffic);
 
   mountRoute(app, "/api/outbounds/traffic-reset", apiOutboundsTrafficReset);
   mountRoute(app, "/api/outbounds", apiOutbounds);
@@ -291,14 +319,20 @@ async function startServer() {
   mountRoute(app, "/api/system/doctor", apiSystemDoctor);
   mountRoute(app, "/api/system/restart", apiSystemRestart);
   mountRoute(app, "/api/system/server-info", apiSystemServerInfo);
+  mountRoute(app, "/api/system/ssl", apiSystemSsl); // Task 23-f — managed certs
+  mountRoute(app, "/api/system/ssl-install-acme", apiSystemSslInstall);
+  mountRoute(app, "/api/system/ssl-issue", apiSystemSslIssue);
   mountRoute(app, "/api/system/update-info", apiSystemUpdateInfo);
   mountRoute(app, "/api/system/update-status", apiSystemUpdateStatus);
   mountRoute(app, "/api/system/update", apiSystemUpdate);
 
   mountRoute(app, "/api/telegram/bot-action", apiTelegramBotAction);
+  mountRoute(app, "/api/telegram/bot-status", apiTelegramBotStatus); // Task 23-c
   mountRoute(app, "/api/tunnels", apiTunnels);
 
   mountRoute(app, "/api/users/bulk", apiUsersBulk);
+  mountRoute(app, "/api/users/ip-usage", apiUsersIpUsage); // Task 23-g — BEFORE :id
+  mountRoute(app, "/api/users/:id/reset-devices", apiUsersResetDevices); // Task 23-g
   mountRoute(app, "/api/users", apiUsers);
   mountRoute(app, "/api/users/:id", apiUsersId);
 
@@ -354,6 +388,30 @@ async function startServer() {
     io.emit("core:event", { event });
   }
 
+  // Task 23-e — hysteria2 sidecar engines. Hysteria2 inbounds can never be
+  // served by the Xray core, so they get one real OS process each, managed
+  // NEXT TO the backend (works with sim AND xray drivers). The 2s mirror
+  // loop hash-diffs the store and reloads only changed sidecars; shutdown
+  // tears them down next to the core.
+  const sidecarManager = new SidecarManager({
+    statsIntervalMs: coreSettings.statsInterval * 1000,
+  });
+  setSidecarManager(sidecarManager);
+  sidecarManager.onEvent = emitEvent;
+  setTimeout(() => {
+    void sidecarManager
+      .start()
+      .then(() => {
+        const n = getSidecarManager()?.statusList().length ?? 0;
+        if (n > 0) {
+          console.log(`[sidecars] ${n} hysteria2 engine(s) running (v${sidecarManager.version()})`);
+        }
+      })
+      .catch((err) =>
+        console.warn("[sidecars] start failed:", err instanceof Error ? err.message : err)
+      );
+  }, 2_000);
+
   io.on("connection", (socket) => {
     socket.emit("core:init", activeCore().snapshot());
   });
@@ -380,6 +438,8 @@ async function startServer() {
   setInterval(() => {
     try {
       const events = activeCore().mirrorDb();
+      // Task 23-e — sidecars hash-diff the same store changes
+      sidecarManager.mirrorDb();
       if (events.length > 0) {
         io.emit("core:inbounds", activeCore().inboundsPayload());
         for (const e of events) emitEvent(e);
@@ -389,9 +449,14 @@ async function startServer() {
     }
   }, 2000);
 
-  // Graceful shutdown — never leave the real xray process orphaned.
+  // Graceful shutdown — never leave the real xray process or the hysteria
+  // sidecars orphaned.
   const shutdownCore = (signal: string): void => {
     console.log(`[sephiroth] ${signal} received — stopping core…`);
+    salesWorkerShutdown(); // Task 23-c — stop the sales bot long-poll first
+    void getSidecarManager()
+      ?.dispose()
+      .catch(() => undefined);
     const backend = getActiveBackend();
     const finish = (): void => process.exit(0);
     if (!backend) {
@@ -416,11 +481,21 @@ async function startServer() {
   setInterval(() => {
     void runPeriodicUserMaintenance();
     void runAutoBackup();
+    void runSslRenewalTick(); // Task 23-f — day-rollover ACME renewal check
   }, 60_000);
   // first auto-backup chance shortly after boot (also primes security settings)
   setTimeout(() => {
     void runAutoBackup();
   }, 20_000);
+
+  // Task 23-c — start the Sephiroth Sales Bot worker when settings say
+  // botMode=sales + a bot token exists (no-op otherwise; also re-synced on
+  // every telegram settings save via the settings API route).
+  setTimeout(() => {
+    void salesWorkerBoot().catch((err) =>
+      console.warn("[sephiroth] sales worker boot failed:", err)
+    );
+  }, 3_000);
 
   // Serve static dist in production (or whenever a built dist/ exists),
   // Vite middleware in development. Vite is imported lazily so the

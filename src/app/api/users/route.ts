@@ -22,7 +22,7 @@ import { logActivity } from "@/lib/activity";
    GET  /api/users  → { users: UserDTO[] }
    POST /api/users  → { user: UserDTO } (201)
       body: { username, note?, enabled?, trafficLimitGb?, expiryDays?,
-              ipLimit?, inboundIds[] }
+              ipLimit?, hwidLimit?, inboundIds[] }
    Creates the ClientUser + one access per selected inbound and
    projects each access into the inbound's clientsJson (ownerId).
    ============================================================ */
@@ -120,6 +120,7 @@ export async function POST(req: Request) {
           trafficLimitGb: data.trafficLimitGb,
           expiryDays: data.expiryDays,
           ipLimit: data.ipLimit,
+          hwidLimit: data.hwidLimit,
           resetPeriod: data.resetPeriod,
           usedTrafficGb: 0,
           resellerId,

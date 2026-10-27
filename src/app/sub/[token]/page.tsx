@@ -73,7 +73,7 @@ interface SubPayload {
   configs: SubConfig[];
 }
 
-type Phase = "loading" | "locked" | "ready" | "notfound" | "error";
+type Phase = "loading" | "locked" | "ready" | "notfound" | "error" | "blocked";
 
 /* ---------- chrome (mirrors users-view) ---------- */
 
@@ -231,6 +231,11 @@ export default function SubPage() {
         setPhase("locked");
         return;
       }
+      if (data?.blocked) {
+        // Task 23-g — HWID device limit reached for this subscription
+        setPhase("blocked");
+        return;
+      }
       if (!res.ok || !data?.configs) {
         setPhase("error");
         return;
@@ -358,6 +363,14 @@ export default function SubPage() {
 
         {phase === "error" && (
           <StateCard icon={<ShieldOff className="h-8 w-8 text-chart-5" />} title={t.notFoundTitle} desc={t.notFoundDesc} />
+        )}
+
+        {phase === "blocked" && (
+          <StateCard
+            icon={<Fingerprint className="h-8 w-8 text-chart-4" />}
+            title={t.blockedTitle}
+            desc={`${t.blockedDesc} ${t.blockedContact}`}
+          />
         )}
 
         {phase === "locked" && (

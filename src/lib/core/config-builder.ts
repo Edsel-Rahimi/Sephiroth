@@ -15,6 +15,7 @@
  */
 
 import net from "node:net";
+import dgram from "node:dgram";
 import { db } from "@/lib/db";
 import type { InboundStream } from "@/lib/inbounds";
 import type { InboundClient } from "@/lib/inbounds";
@@ -106,6 +107,31 @@ export interface PortConflict {
   port: number;
 }
 
+/** Transports that listen on UDP only — a TCP probe can never see them. */
+export const UDP_ONLY_TRANSPORTS = new Set(["kcp", "wireguard"]);
+
+/** True when a UDP listener can bind listen:port right now (mKCP / WireGuard). */
+export function canBindUdp(listen: string, port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const host = listen && listen !== "" ? listen : "0.0.0.0";
+    const sock = dgram.createSocket("udp4");
+    const done = (ok: boolean): void => {
+      try {
+        sock.close();
+      } catch {
+        /* already closed */
+      }
+      resolve(ok);
+    };
+    sock.once("error", () => done(false)); // EADDRINUSE / EACCES → not free
+    try {
+      sock.bind({ port, address: host }, () => done(true));
+    } catch {
+      done(false);
+    }
+  });
+}
+
 /** True when a TCP listener can bind listen:port right now. */
 function canBind(listen: string, port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -126,7 +152,11 @@ export async function checkPortsFree(rows: InboundRowLike[]): Promise<PortConfli
   const conflicts: PortConflict[] = [];
   for (const row of rows) {
     if (row.status !== "online") continue;
-    const free = await canBind(row.listen ?? "", Number(row.port));
+    // UDP-only transports (mKCP / WireGuard) never hold a TCP socket —
+    // probe the UDP bind instead, or conflicts go undetected until spawn
+    const free = UDP_ONLY_TRANSPORTS.has(row.transport)
+      ? await canBindUdp(row.listen ?? "", Number(row.port))
+      : await canBind(row.listen ?? "", Number(row.port));
     if (!free) conflicts.push({ tag: row.tag, listen: row.listen || "0.0.0.0", port: Number(row.port) });
   }
   return conflicts;
@@ -176,12 +206,25 @@ function buildInbound(row: InboundRowLike): InboundBuild {
       break;
     }
     case "shadowsocks": {
-      // multi-client shape (per-client method+password); falls back to a
-      // single server password from stream.method when no clients exist
-      if (clients.length > 0) {
+      const method = str(st.method) || "chacha20-poly1305";
+      if (method.startsWith("2022-blake3-")) {
+        // SS2022 is served from a single SERVER-LEVEL method+password pair —
+        // the core rejects per-client `method` fields for 2022 ciphers
+        // ("unsupported cipher method" at infra/conf). Xray's shadowsocks
+        // inbound has exactly one server key, so the first client's key is it.
+        const password = clients[0]?.key ?? "";
+        if (!password) {
+          return {
+            inbound: null,
+            skipReason: `${row.tag}: ss2022 inbound has no client key to use as the server password — skipped`,
+          };
+        }
+        settings = { method, password, network: "tcp,udp" };
+      } else if (clients.length > 0) {
+        // multi-client shape (per-client method+password)
         settings = {
           clients: clients.map((c) => ({
-            method: str(st.method) || "chacha20-poly1305",
+            method,
             password: c.key,
             email: c.email,
             level: 0,
@@ -190,7 +233,7 @@ function buildInbound(row: InboundRowLike): InboundBuild {
         };
       } else {
         settings = {
-          method: str(st.method) || "chacha20-poly1305",
+          method,
           password: "",
           network: "tcp,udp",
         };
@@ -254,10 +297,15 @@ function buildInbound(row: InboundRowLike): InboundBuild {
       break;
     }
     default: {
-      // hysteria2 and anything else Xray-core cannot serve
+      // hysteria2 and anything else Xray-core cannot serve. hysteria2 is NOT
+      // dead weight — v2.5 serves it through a real sidecar process managed
+      // by src/lib/core/sidecars.ts (one `hysteria server` per inbound).
       return {
         inbound: null,
-        skipReason: `${row.tag}: ${protocol} is not an Xray-core inbound — skipped`,
+        skipReason:
+          protocol === "hysteria2"
+            ? `${row.tag}: hysteria2 is served by the sidecar engine — not part of the Xray config`
+            : `${row.tag}: ${protocol} is not an Xray-core inbound — skipped`,
       };
     }
   }
@@ -275,11 +323,21 @@ function buildInbound(row: InboundRowLike): InboundBuild {
     if (str(st.minVer)) tls.minVersion = str(st.minVer);
     if (str(st.maxVer)) tls.maxVersion = str(st.maxVer);
     if (str(st.certPublic) && str(st.certPrivate)) {
+      const pub = str(st.certPublic).trim();
+      const priv = str(st.certPrivate).trim();
+      // Task 23-f — managed-cert picker fills the fields with absolute file
+      // paths (single line, no PEM armor) → emit certificateFile/keyFile so
+      // Xray loads straight from db/certs; pasted PEM keeps the legacy
+      // inline line-array form.
+      const isPath = (v: string): boolean =>
+        !v.includes("-----BEGIN") && !v.includes("\n") && v.startsWith("/");
       tls.certificates = [
-        {
-          certificate: str(st.certPublic).split("\n").filter(Boolean),
-          key: str(st.certPrivate).split("\n").filter(Boolean),
-        },
+        isPath(pub) && isPath(priv)
+          ? { certificateFile: pub, keyFile: priv }
+          : {
+              certificate: pub.split("\n").filter(Boolean),
+              key: priv.split("\n").filter(Boolean),
+            },
       ];
     }
     stream.tlsSettings = tls;
@@ -327,6 +385,21 @@ function buildInbound(row: InboundRowLike): InboundBuild {
     if (host.length > 0) xh.host = host[0]!;
     if (str(st.mode)) xh.mode = str(st.mode);
     stream.xhttpSettings = xh;
+  } else if (transport === "kcp") {
+    // mKCP rides UDP — panel exposes header.type + seed; the rest stays at
+    // Xray defaults (mtu 1350 / tti 50 / 5 Mbps up+down / no congestion ctl)
+    const kcp: XrayJson = {
+      mtu: 1350,
+      tti: 50,
+      uplinkCapacity: 5,
+      downlinkCapacity: 5,
+      congestion: false,
+      readBufferSize: 2,
+      writeBufferSize: 2,
+      header: { type: str(st.headerType) || "none" },
+    };
+    if (str(st.kcpSeed)) kcp.seed = str(st.kcpSeed);
+    stream.kcpSettings = kcp;
   }
 
   const fallbacks = parseLoose<unknown[]>(str(st.fallbacksJson) ? String(st.fallbacksJson) : "", []);
@@ -446,6 +519,15 @@ export interface BuiltCoreConfig {
   json: string;
 }
 
+export interface BuildCoreOptions {
+  /**
+   * Task 23-g — absolute access-log path written into the log section so the
+   * driver can tail per-connection records for IP-limit tracking. Empty =
+   * omit (no file access log).
+   */
+  accessLogPath?: string;
+}
+
 /** Deep-merge `base` under `over` (arrays/over-values win). */
 function deepMerge(base: XrayJson, over: XrayJson): XrayJson {
   const out: XrayJson = { ...base };
@@ -467,7 +549,7 @@ function deepMerge(base: XrayJson, over: XrayJson): XrayJson {
  * Build the complete server config document. Synchronous — every read goes
  * through the in-process store snapshot, same as the simulator's mirrorDb.
  */
-export function buildXrayServerConfig(apiPort: number): BuiltCoreConfig {
+export function buildXrayServerConfig(apiPort: number, opts: BuildCoreOptions = {}): BuiltCoreConfig {
   const inboundRows = db._syncReadInboundsFull() as InboundRowLike[];
   const expert = buildExpertSnapshot();
 
@@ -493,7 +575,13 @@ export function buildXrayServerConfig(apiPort: number): BuiltCoreConfig {
   const { outbounds } = buildOutbounds();
 
   const config: XrayJson = {
-    log: { loglevel: expert.logLevel },
+    log: {
+      // Task 23-g — file access log feeds the IP-limit tracker. The access
+      // logger is separate from the error log in Xray-core: accepted-connection
+      // records land in the file regardless of the (error-log) loglevel.
+      ...(opts.accessLogPath ? { access: opts.accessLogPath } : {}),
+      loglevel: expert.logLevel,
+    },
     ...(expert.dnsServers.length > 0 ? { dns: { servers: expert.dnsServers } } : {}),
     stats: {},
     api: { tag: "api", services: ["HandlerService", "LoggerService", "StatsService"] },

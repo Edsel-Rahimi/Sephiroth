@@ -92,4 +92,32 @@ export interface CoreStatusPayload extends CoreBackendStatus {
   fallbackActive: boolean;
   /** Human-readable reason for the fallback ("" = none). */
   fallbackReason: string;
+  /**
+   * Sidecar engines (v2.5) — one real process per served hysteria2 inbound,
+   * OUTSIDE the Xray core. Additive field: absent when no manager is wired.
+   */
+  sidecars?: SidecarStatus[];
+}
+
+/** One sidecar engine process (hysteria2 inbound served outside Xray). */
+export interface SidecarStatus {
+  tag: string;
+  protocol: "hysteria2";
+  running: boolean;
+  pid: number | null;
+  /** sidecar binary version ("" before first resolve) */
+  version: string;
+  port: number;
+  lastError: string;
+  restarts: number;
+  logTail: string[];
+  /** session counters from the trafficStats API (deltas accumulated) */
+  rxBytes: number;
+  txBytes: number;
+  /** number of enabled clients served by this sidecar */
+  users: number;
+  lastStatsAt: number;
+  configPath: string;
+  certPath: string;
+  certSource: "managed" | "self-signed";
 }

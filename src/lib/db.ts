@@ -57,6 +57,12 @@ export interface ClientUser {
   /** Anchor for the reset window; falls back to createdAt when null. */
   lastResetAt: Date | null;
   resellerId: string | null;
+  /** Telegram user id when the account was bought/linked via the sales bot (null otherwise). */
+  tgId: string | null;
+  /** Task 23-g — HWID device limit for the sub portal (null/0 = unlimited). */
+  hwidLimit: number | null;
+  /** Task 23-g — registered sub-portal devices, JSON array of {id, ua, firstSeen, lastSeen}. */
+  devices: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -109,6 +115,10 @@ export interface SaleTemplate {
   expiryDays: number | null;
   ipLimit: number;
   enabled: boolean;
+  /** Price in Toman; 0 = free / trial template (sales bot, Task 23-c). */
+  priceToman: number;
+  /** Whether the sales bot lists this template in the shop. */
+  botVisible: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -147,7 +157,13 @@ export interface Node {
   status: string;
   latencyMs: number;
   xrayVersion: string;
+  /** Core driver reported by the agent ("" = never probed): sim | xray */
+  coreKind: string;
   lastSeen: Date | null;
+  /** Last successful config push to the agent (null = never). */
+  lastSyncAt: Date | null;
+  /** Last agent-call error ("" = none). */
+  lastError: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -194,6 +210,43 @@ export interface ActivityLog {
   message: string;
   metaJson: string;
   createdAt: Date;
+}
+
+/** Bot-side profile of a Telegram user (language preference + ban flag). */
+export interface TgUser {
+  id: string;
+  tgId: string;
+  tgUsername: string;
+  /** "fa" | "en" — per-user interface language for the sales bot. */
+  lang: string;
+  banned: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/** One bot purchase. Status machine:
+ *  awaiting_payment (zarinpal) → completed | canceled
+ *  pending_manual  (card)     → completed | rejected
+ *  completed / rejected / canceled are terminal. */
+export interface TgOrder {
+  id: string;
+  tgId: string;
+  tgUsername: string;
+  templateId: string;
+  templateName: string;
+  amountToman: number;
+  /** "zarinpal" | "card" */
+  method: string;
+  /** "awaiting_payment" | "pending_manual" | "completed" | "rejected" | "canceled" */
+  status: string;
+  /** ZarinPal authority token (zarinpal orders only). */
+  authority: string;
+  /** Telegram file_id of the uploaded card-to-card receipt photo. */
+  receiptFileId: string;
+  /** ClientUser created on completion ("provisioning" = claim in-flight). */
+  provisionedUserId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface RelayTunnelRow {
@@ -246,7 +299,9 @@ type TableName =
   | "outbound"
   | "routingRule"
   | "activityLog"
-  | "relayTunnel";
+  | "relayTunnel"
+  | "tgUser"
+  | "tgOrder";
 
 type StoreData = Record<TableName, Record<string, any>[]>;
 
@@ -269,6 +324,8 @@ function emptyStore(): StoreData {
     routingRule: [],
     activityLog: [],
     relayTunnel: [],
+    tgUser: [],
+    tgOrder: [],
   };
 }
 
@@ -358,6 +415,7 @@ const UNIQUE_FIELDS: Partial<Record<TableName, string[]>> = {
   subGroup: ["token"],
   reseller: ["username"],
   outbound: ["tag"],
+  tgUser: ["tgId"],
 };
 
 function checkUniqueness(table: TableName, candidate: Record<string, any>, ignoreId?: string): void {
@@ -412,6 +470,9 @@ const DEFAULTS: Record<TableName, () => Record<string, any>> = {
     resetPeriod: null,
     lastResetAt: null,
     resellerId: null,
+    tgId: null,
+    hwidLimit: null,
+    devices: "[]",
     createdAt: new Date(),
     updatedAt: new Date(),
   }),
@@ -447,6 +508,8 @@ const DEFAULTS: Record<TableName, () => Record<string, any>> = {
     expiryDays: null,
     ipLimit: 0,
     enabled: true,
+    priceToman: 0,
+    botVisible: false,
     createdAt: new Date(),
     updatedAt: new Date(),
   }),
@@ -475,10 +538,13 @@ const DEFAULTS: Record<TableName, () => Record<string, any>> = {
     inboundTags: "[]",
     outboundTag: "",
     tlsVerify: "verify",
-    status: "online",
-    latencyMs: 28,
-    xrayVersion: "25.1.30",
-    lastSeen: new Date(),
+    status: "unknown",
+    latencyMs: 0,
+    xrayVersion: "",
+    coreKind: "",
+    lastSeen: null,
+    lastSyncAt: null,
+    lastError: "",
     createdAt: new Date(),
     updatedAt: new Date(),
   }),
@@ -518,6 +584,24 @@ const DEFAULTS: Record<TableName, () => Record<string, any>> = {
     actor: "",
     metaJson: "{}",
     createdAt: new Date(),
+  }),
+  tgUser: () => ({
+    id: cuid(),
+    tgUsername: "",
+    lang: "en",
+    banned: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }),
+  tgOrder: () => ({
+    id: cuid(),
+    tgUsername: "",
+    amountToman: 0,
+    authority: "",
+    receiptFileId: "",
+    provisionedUserId: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   }),
   relayTunnel: () => ({
     id: cuid(),
@@ -951,6 +1035,8 @@ const baseDb = {
   routingRule: makeDelegate("routingRule"),
   activityLog: makeDelegate("activityLog"),
   relayTunnel: makeDelegate("relayTunnel"),
+  tgUser: makeDelegate("tgUser"),
+  tgOrder: makeDelegate("tgOrder"),
 };
 
 export type DbTransactionClient = typeof baseDb;
@@ -1034,6 +1120,16 @@ export const db = {
       email: String(a.email || ""),
       userId: String(a.userId || ""),
       inboundId: String(a.inboundId || ""),
+    }));
+  },
+  /** Task 23-g — minimal ClientUser rows for the driver's IP-limit enforcement. */
+  _syncReadClientUsers() {
+    return (state.clientUser ?? []).map((u) => ({
+      id: String(u.id || ""),
+      username: String(u.username || ""),
+      enabled: u.enabled === true,
+      ipLimit: Number(u.ipLimit) || 0,
+      resellerId: u.resellerId ? String(u.resellerId) : null,
     }));
   },
   _syncReadSetting(key: string): string | undefined {

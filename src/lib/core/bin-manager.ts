@@ -1,15 +1,21 @@
 /**
- * Sephiroth core adapter — Xray binary acquisition (server-only).
+ * Sephiroth core adapter — engine binary acquisition (server-only).
  *
- * Resolution order for the xray executable:
- *   1. admin-pinned absolute path      (settings · set_core_xray_bin)
- *   2. `xray` on PATH                  (which / where)
- *   3. auto-install into <dbDir>/bin/xray/
- *        → GitHub releases (XTLS/Xray-core), settings-pinned tag or latest
- *        → per-OS/arch asset (Xray-linux-64.zip, Xray-linux-arm64-v8a.zip,
- *          Xray-windows-64.zip, Xray-macos-64.zip, Xray-macos-arm64-v8a.zip)
- *        → extraction fallback chain: unzip → 7z → python3 -m zipfile -e
- *        → chmod +x, `.version` marker, verified via `xray version`
+ * Two engines are managed here:
+ *   1. Xray core  (XTLS/Xray-core)        — ensureXrayBinary()
+ *   2. Hysteria 2 sidecar (apernet/hysteria) — ensureHysteriaBinary()   [v2.5]
+ *
+ * Resolution order (both engines):
+ *   1. admin-pinned absolute path      (settings · set_core_xray_bin /
+ *                                        set_sidecar_hysteria_bin)
+ *   2. `<engine>` on PATH              (which / where)
+ *   3. auto-install into <dbDir>/bin/<engine>/
+ *        → GitHub releases, settings-pinned tag or latest
+ *        → per-OS/arch asset
+ *             Xray:     zip archives → extraction fallback chain
+ *                       unzip → 7z → python3 -m zipfile -e
+ *             Hysteria: flat static binaries (no archive) — direct download
+ *        → chmod +x, `.version` marker, verified via `<engine> version`
  *
  * Idempotent: an installed version that already matches the pin is reused;
  * if the GitHub API is unreachable but a working binary exists, it is kept
@@ -29,10 +35,17 @@ import {
 } from "node:fs";
 import path from "node:path";
 
-const REPO_API = "https://api.github.com/repos/XTLS/Xray-core/releases";
 const UA = "Sephiroth-Panel";
 const DOWNLOAD_TIMEOUT_MS = 180_000;
 const API_TIMEOUT_MS = 15_000;
+
+/* Xray (zip assets) */
+const XRAY_REPO_API = "https://api.github.com/repos/XTLS/Xray-core/releases";
+const XRAY_REPO_WEB = "https://github.com/XTLS/Xray-core";
+
+/* Hysteria 2 sidecar (flat binary assets; apernet/hysteria 301s to HyNetworks) */
+const HY2_REPO_API = "https://api.github.com/repos/apernet/hysteria/releases";
+const HY2_REPO_WEB = "https://github.com/apernet/hysteria";
 
 export interface XrayBinaryInfo {
   path: string;
@@ -168,8 +181,8 @@ async function fetchRelease(versionPin: string): Promise<ReleaseInfo> {
   // primary: GitHub REST API (exact asset metadata)
   try {
     const url = versionPin
-      ? `${REPO_API}/tags/${encodeURIComponent(versionPin)}`
-      : `${REPO_API}/latest`;
+      ? `${XRAY_REPO_API}/tags/${encodeURIComponent(versionPin)}`
+      : `${XRAY_REPO_API}/latest`;
     const res = await fetch(url, {
       headers: { "User-Agent": UA, Accept: "application/vnd.github+json" },
       signal: AbortSignal.timeout(API_TIMEOUT_MS),
@@ -314,4 +327,207 @@ export async function installOrUpdateXray(opts: {
   log?: (msg: string) => void;
 }): Promise<XrayBinaryInfo> {
   return ensureXrayBinary(opts);
+}
+
+/* ============================================================
+   Hysteria 2 sidecar binary (v2.5 — protocol gap analysis §3)
+   ============================================================ */
+
+/**
+ * Hysteria releases ship FLAT static binaries (no zip) — a direct download
+ * is all that is needed. Tags carry an `app/` prefix (`app/v2.13.0`) and
+ * apernet/hysteria 301-redirects to HyNetworks/hysteria, so the REST API is
+ * only the secondary path (it is rate-limited much harder than the website).
+ */
+function hysteriaAssetName(platform: string, arch: string): string {
+  if (platform === "linux") {
+    if (arch === "arm64" || arch === "aarch64") return "hysteria-linux-arm64";
+    if (arch === "arm" || arch === "armv7l") return "hysteria-linux-armv5";
+    if (arch === "ia32") return "hysteria-linux-386";
+    return "hysteria-linux-amd64";
+  }
+  if (platform === "darwin") {
+    if (arch === "arm64") return "hysteria-darwin-arm64";
+    return "hysteria-darwin-amd64";
+  }
+  if (platform === "freebsd") {
+    if (arch === "arm64" || arch === "aarch64") return "hysteria-freebsd-arm64";
+    return "hysteria-freebsd-amd64";
+  }
+  if (platform === "win32") return "hysteria-windows-amd64.exe";
+  return "";
+}
+
+/** Run the binary's `version` command and extract "v2.13.0"-style semver. */
+export async function probeHysteriaVersion(binPath: string): Promise<string> {
+  const r = await execFile(binPath, ["version"], 10_000);
+  if (r.code !== 0) return "";
+  const m = r.stdout.match(/v?(\d+\.\d+\.\d+)/);
+  return m ? m[1]! : "";
+}
+
+async function fetchHysteriaRelease(versionPin: string): Promise<ReleaseInfo> {
+  const assetName = hysteriaAssetName(process.platform, process.arch);
+  if (!assetName) throw new Error(`unsupported platform ${process.platform}/${process.arch}`);
+
+  // secondary: GitHub REST API (rate-limited much harder than the website)
+  try {
+    const url = versionPin
+      ? `${HY2_REPO_API}/tags/${encodeURIComponent(versionPin)}`
+      : `${HY2_REPO_API}/latest`;
+    const res = await fetch(url, {
+      headers: { "User-Agent": UA, Accept: "application/vnd.github+json" },
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
+    });
+    if (res.ok) {
+      const release = (await res.json()) as { tag_name?: string; assets?: ReleaseAsset[] };
+      const asset = (release.assets ?? []).find((a) => a.name === assetName);
+      if (release.tag_name && asset) {
+        return { tag: release.tag_name, assetUrl: asset.browser_download_url };
+      }
+    }
+  } catch {
+    /* fall through to the redirect strategy */
+  }
+
+  // primary: releases/latest redirect → tag → constructed asset URL.
+  // Hysteria tags look like `app/v2.13.0` (the redirect Location carries the
+  // full tag; apernet→HyNetworks repo rename is followed automatically).
+  let tag = versionPin;
+  if (!tag) {
+    // follow up to 3 hops: apernet→HyNetworks repo rename redirects land on
+    // /releases/latest first (no tag); the tag URL only appears on the NEXT hop
+    let tagUrl = "https://github.com/apernet/hysteria/releases/latest";
+    for (let hop = 0; hop < 3 && !tag; hop++) {
+      const res = await fetch(tagUrl, {
+        headers: { "User-Agent": UA },
+        redirect: "manual",
+        signal: AbortSignal.timeout(API_TIMEOUT_MS),
+      });
+      const location = res.headers.get("location") ?? "";
+      const m = location.match(/\/releases\/tag\/(.+?)\/?$/);
+      if (m) {
+        tag = decodeURIComponent(m[1]!);
+        break;
+      }
+      if (!location) throw new Error("could not resolve latest hysteria release tag");
+      tagUrl = location;
+    }
+    if (!tag) throw new Error("could not resolve latest hysteria release tag");
+  }
+  return {
+    tag,
+    assetUrl: `https://github.com/apernet/hysteria/releases/download/${tag}/${assetName}`,
+  };
+}
+
+/**
+ * Resolve the hysteria sidecar binary. Same contract as ensureXrayBinary:
+ * never throws when a usable binary already exists (user path / PATH /
+ * previously auto-installed); throws only when a fresh install is required
+ * and fails.
+ */
+export async function ensureHysteriaBinary(opts: {
+  binPath?: string;
+  versionPin?: string;
+  installDir?: string;
+  log?: (msg: string) => void;
+}): Promise<XrayBinaryInfo> {
+  const log = opts.log ?? (() => {});
+  const pin = normalizeTag(opts.versionPin ?? ""); // "2.13.0" → "v2.13.0"
+
+  // 1) admin-pinned absolute path (set_sidecar_hysteria_bin)
+  const userPath = (opts.binPath ?? "").trim();
+  if (userPath) {
+    if (!existsSync(userPath)) {
+      throw new Error(`hysteria binary path points to a missing file: ${userPath}`);
+    }
+    const version = await probeHysteriaVersion(userPath);
+    if (!version) throw new Error(`${userPath} is not a runnable hysteria binary`);
+    return { path: userPath, version, source: "user" };
+  }
+
+  // 2) PATH lookup
+  if (process.platform !== "win32") {
+    const which = await execFile("which", ["hysteria"], 5000);
+    if (which.code === 0) {
+      const found = which.stdout.trim().split("\n")[0] ?? "";
+      if (found && existsSync(found)) {
+        const version = await probeHysteriaVersion(found);
+        if (version) return { path: found, version, source: "path" };
+      }
+    }
+  }
+
+  // 3) auto-install into <dbDir>/bin/hysteria
+  const installDir = opts.installDir ?? path.resolve(process.cwd(), "db", "bin", "hysteria");
+  const exeName = process.platform === "win32" ? "hysteria.exe" : "hysteria";
+  const exePath = path.join(installDir, exeName);
+  const markerPath = path.join(installDir, ".version");
+
+  const existingVersion = existsSync(exePath) ? await probeHysteriaVersion(exePath) : "";
+  if (existingVersion) {
+    if (pin && existingVersion === pin.replace(/^v/, "")) {
+      return { path: exePath, version: existingVersion, source: "auto" };
+    }
+    if (!pin) {
+      // latest requested but the release may be unreachable — keep working install
+      return { path: exePath, version: existingVersion, source: "auto" };
+    }
+  }
+
+  log(`resolving Hysteria release (${pin || "latest"})…`);
+  const release = await fetchHysteriaRelease(pin);
+
+  // marker + binary already match the resolved release → reuse
+  if (
+    existingVersion &&
+    existsSync(markerPath) &&
+    readFileSync(markerPath, "utf8").trim() === release.tag &&
+    existingVersion === release.tag.replace(/^v/, "").replace(/^app\//, "")
+  ) {
+    return { path: exePath, version: existingVersion, source: "auto" };
+  }
+
+  log(`downloading ${release.assetUrl}…`);
+  mkdirSync(installDir, { recursive: true });
+  const res = await fetch(release.assetUrl, {
+    headers: { "User-Agent": UA },
+    redirect: "follow",
+    signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
+  });
+  if (!res.ok) throw new Error(`download failed: HTTP ${res.status}`);
+  const buf = Buffer.from(await res.arrayBuffer());
+  if (buf.length < 1024) throw new Error("downloaded binary is too small");
+
+  const tmpPath = `${exePath}.dl-${Date.now()}`;
+  try {
+    writeFileSync(tmpPath, buf, { mode: 0o755 });
+    rmSync(exePath, { force: true });
+    try {
+      renameSync(tmpPath, exePath);
+    } catch {
+      copyFileSync(tmpPath, exePath);
+      rmSync(tmpPath, { force: true });
+    }
+    if (process.platform !== "win32") chmodSync(exePath, 0o755);
+    writeFileSync(markerPath, release.tag, { mode: 0o644 });
+
+    const version = await probeHysteriaVersion(exePath);
+    if (!version) throw new Error("installed binary failed to run");
+    log(`Hysteria ${version} installed at ${exePath}`);
+    return { path: exePath, version, source: "auto" };
+  } finally {
+    rmSync(tmpPath, { force: true });
+  }
+}
+
+/** Public wrapper for a sidecar-install API action (download / update only). */
+export async function installOrUpdateHysteria(opts: {
+  binPath?: string;
+  versionPin?: string;
+  installDir?: string;
+  log?: (msg: string) => void;
+}): Promise<XrayBinaryInfo> {
+  return ensureHysteriaBinary(opts);
 }

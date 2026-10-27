@@ -28,20 +28,15 @@ export async function PATCH(req: Request, ctx: Ctx) {
     }
 
     // partial-friendly: merge with existing then validate whole
+    const b = body as Record<string, unknown>;
     const merged = {
-      name: (body as Record<string, unknown>).name ?? existing.name,
+      name: b.name ?? existing.name,
       trafficLimitGb:
-        (body as Record<string, unknown>).trafficLimitGb !== undefined
-          ? (body as Record<string, unknown>).trafficLimitGb
-          : existing.trafficLimitGb,
-      expiryDays:
-        (body as Record<string, unknown>).expiryDays !== undefined
-          ? (body as Record<string, unknown>).expiryDays
-          : existing.expiryDays,
-      ipLimit:
-        (body as Record<string, unknown>).ipLimit !== undefined
-          ? (body as Record<string, unknown>).ipLimit
-          : existing.ipLimit,
+        b.trafficLimitGb !== undefined ? b.trafficLimitGb : existing.trafficLimitGb,
+      expiryDays: b.expiryDays !== undefined ? b.expiryDays : existing.expiryDays,
+      ipLimit: b.ipLimit !== undefined ? b.ipLimit : existing.ipLimit,
+      priceToman: b.priceToman !== undefined ? b.priceToman : existing.priceToman,
+      botVisible: b.botVisible !== undefined ? b.botVisible : existing.botVisible,
     };
 
     const parsed = validateTemplate(merged);

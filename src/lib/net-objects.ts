@@ -1,6 +1,7 @@
 import net from "node:net";
 import { db } from "@/lib/db";
 import type { FieldError } from "@/lib/settings";
+import { nodeInfo } from "@/lib/nodes-sync";
 
 /* ============================================================
    Sephiroth · Core network objects (server-only)
@@ -147,6 +148,8 @@ export interface NodeDTO {
   address: string;
   port: number;
   basePath: string;
+  /** Agent root — http(s)://host:port (agent endpoints hang off it). */
+  baseUrl: string;
   tokenConfigured: boolean;
   tokenMasked: string;
   enable: boolean;
@@ -157,7 +160,13 @@ export interface NodeDTO {
   status: "online" | "offline" | "unknown";
   latencyMs: number;
   xrayVersion: string;
+  /** Core driver reported by the agent ("" = never probed): sim | xray */
+  coreKind: string;
   lastSeen: string | null;
+  /** Last successful config push to the agent. */
+  lastSyncAt: string | null;
+  /** Last agent-call error ("" = none). */
+  lastError: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -173,15 +182,18 @@ export function toNodeDTO(row: {
   basePath: string; apiToken: string; enable: boolean; syncAll: boolean;
   inboundTags: string; outboundTag: string; tlsVerify: string;
   status: string; latencyMs: number; xrayVersion: string; lastSeen: Date | null;
+  coreKind?: string; lastSyncAt?: Date | null; lastError?: string;
   createdAt: Date; updatedAt: Date;
 }): NodeDTO {
+  const scheme = row.scheme === "http" ? "http" : "https";
   return {
     id: row.id,
     name: row.name,
-    scheme: row.scheme === "http" ? "http" : "https",
+    scheme,
     address: row.address,
     port: row.port,
     basePath: row.basePath,
+    baseUrl: `${scheme}://${row.address}:${row.port}`,
     tokenConfigured: row.apiToken.length > 0,
     tokenMasked: maskToken(row.apiToken),
     enable: row.enable,
@@ -194,7 +206,10 @@ export function toNodeDTO(row: {
       : "unknown") as NodeDTO["status"],
     latencyMs: row.latencyMs,
     xrayVersion: row.xrayVersion,
-    lastSeen: row.lastSeen ? row.lastSeen.toISOString() : null,
+    coreKind: typeof row.coreKind === "string" ? row.coreKind : "",
+    lastSeen: row.lastSeen ? new Date(row.lastSeen).toISOString() : null,
+    lastSyncAt: row.lastSyncAt ? new Date(row.lastSyncAt).toISOString() : null,
+    lastError: typeof row.lastError === "string" ? row.lastError : "",
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -214,19 +229,35 @@ export interface NodeInput {
   tlsVerify: "verify" | "skip";
 }
 
+const NODE_BASEURL_RE = /^(https?):\/\/([^\/:?#]+)(?::(\d{1,5}))?(?:\/(.*))?$/;
+
 export function validateNode(body: unknown): { ok: true; data: NodeInput } | { ok: false; fields: FieldError[] } {
   const b = (body ?? {}) as Record<string, unknown>;
   const fields: FieldError[] = [];
 
   const name = typeof b.name === "string" ? b.name.trim() : "";
-  const scheme = b.scheme === "http" ? "http" : "https";
-  const address = typeof b.address === "string" ? b.address.trim() : "";
-  const port = Number(b.port ?? 443);
+  let scheme = b.scheme === "http" ? "http" : "https";
+  let address = typeof b.address === "string" ? b.address.trim() : "";
+  let port = Number(b.port ?? 443);
   let basePath = typeof b.basePath === "string" ? b.basePath.trim() : "/";
   const tlsVerify = b.tlsVerify === "skip" ? "skip" : "verify";
   const syncAll = b.syncAll === undefined ? true : Boolean(b.syncAll);
   const inboundTags = isStrArray(b.inboundTags) ? b.inboundTags : [];
   const outboundTag = typeof b.outboundTag === "string" ? b.outboundTag.trim() : "";
+
+  // Optional one-field baseUrl ("http(s)://host[:port][/path]") — when valid
+  // it wins over the separate scheme/address/port/basePath fields.
+  if (typeof b.baseUrl === "string" && b.baseUrl.trim() !== "") {
+    const m = b.baseUrl.trim().match(NODE_BASEURL_RE);
+    if (!m) {
+      fields.push({ field: "baseUrl", code: "format" });
+    } else {
+      scheme = m[1] as string;
+      address = m[2] as string;
+      port = m[3] ? Number(m[3]) : scheme === "https" ? 443 : 80;
+      basePath = m[4] ? `/${m[4]}` : "/";
+    }
+  }
 
   if (!name || name.length > 48) fields.push({ field: "name", code: "range" });
   if (!address || address.length > 253) fields.push({ field: "address", code: "format" });
@@ -256,10 +287,42 @@ export async function listNodes(): Promise<NodeDTO[]> {
   return rows.map(toNodeDTO);
 }
 
-/** REAL probe — TCP-connects to the node's address:port, reports measured latency. */
+/**
+ * REAL probe — with agent coordinates (apiToken set) it upgrades to a real
+ * /api/agent/info call (version/coreKind/uptime, 5s budget); otherwise it
+ * TCP-connects to the node's address:port and reports measured latency.
+ */
 export async function probeNode(id: string): Promise<{ ok: boolean; latencyMs: number; error?: string }> {
   const node = await db.node.findUnique({ where: { id } });
   if (!node) return { ok: false, latencyMs: 0, error: "not_found" };
+
+  // Agent upgrade path: baseUrl + secret configured → real info call.
+  if (node.apiToken) {
+    const agent = await nodeInfo(node);
+    if (agent.ok) return { ok: true, latencyMs: agent.latencyMs };
+    // fall through to the plain TCP probe, surfacing the agent error if TCP also fails
+    let tcpMs = 0;
+    let tcpErr: string | undefined;
+    try {
+      tcpMs = await tcpProbe(node.address, node.port, 3000);
+    } catch (err) {
+      tcpErr = err instanceof Error ? err.message : "unreachable";
+    }
+    const tcpOnline = tcpErr === undefined && node.enable;
+    await db.node.update({
+      where: { id },
+      data: {
+        status: tcpOnline ? "online" : "offline",
+        latencyMs: tcpOnline ? tcpMs : 0,
+        lastError: agent.error,
+        lastSeen: new Date(),
+      },
+    });
+    return tcpOnline
+      ? { ok: true, latencyMs: tcpMs }
+      : { ok: false, latencyMs: tcpMs, error: tcpErr ?? agent.error };
+  }
+
   let latencyMs = 0;
   let probeError: string | undefined;
   try {

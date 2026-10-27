@@ -21,6 +21,7 @@ import {
   Pencil,
   Plus,
   Radar,
+  Radio,
   RadioTower,
   RefreshCcw,
   Search,
@@ -185,6 +186,26 @@ interface ServerInfoPayload {
   nodeVersion: string;
 }
 
+/* v2.5 — hysteria2 sidecar engine entry from GET /api/system/core-status */
+interface SidecarWire {
+  tag: string;
+  protocol: "hysteria2";
+  running: boolean;
+  pid: number | null;
+  version: string;
+  port: number;
+  lastError: string;
+  restarts: number;
+  logTail: string[];
+  rxBytes: number;
+  txBytes: number;
+  users: number;
+  lastStatsAt: number;
+  configPath: string;
+  certPath: string;
+  certSource: "managed" | "self-signed";
+}
+
 const PROTOCOLS = [
   "vless",
   "vmess",
@@ -196,7 +217,7 @@ const PROTOCOLS = [
   "socks",
   "http",
 ] as const;
-const TRANSPORTS = ["tcp", "ws", "grpc", "httpupgrade", "xhttp"] as const;
+const TRANSPORTS = ["tcp", "ws", "grpc", "httpupgrade", "xhttp", "kcp"] as const;
 const STATUSES = ["online", "maintenance", "disabled"] as const;
 const FLOWS = ["", "xtls-rprx-vision"] as const;
 const SNIFF_DESTS = ["http", "tls", "quic", "fakerd"] as const;
@@ -305,6 +326,7 @@ const TRANSPORT_META: Record<string, { icon: LucideIcon; descKey: string }> = {
   grpc: { icon: Layers, descKey: "trGrpcDesc" },
   httpupgrade: { icon: ArrowUpFromLine, descKey: "trHttpUpDesc" },
   xhttp: { icon: Zap, descKey: "trXhttpDesc" },
+  kcp: { icon: Radio, descKey: "trKcpDesc" },
 };
 
 const STATUS_DOT: Record<string, string> = {
@@ -319,6 +341,7 @@ const TRANSPORT_SHORT: Record<string, string> = {
   grpc: "gRPC",
   httpupgrade: "HTTPUpgrade",
   xhttp: "XHTTP",
+  kcp: "KCP",
 };
 
 /** Same composition the core driver uses for its wire `proto` label. */
@@ -437,14 +460,18 @@ function genReadableKey(): string {
   return Array.from(arr, (b) => alphabet[b % alphabet.length]).join("");
 }
 
-function genClientKey(protocol: string): string {
+function genClientKey(protocol: string, ssMethod?: string): string {
   if (protocol === "vless" || protocol === "vmess") {
     if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
     return b64url(16);
   }
   if (protocol === "wireguard") return b64std(32); // peer public key (44-char base64)
   if (protocol === "socks" || protocol === "http") return genReadableKey();
-  return b64url(18); // trojan / shadowsocks / hysteria2 password
+  if (protocol === "shadowsocks" && isSs2022(ssMethod)) {
+    // ss2022 wants the base64 of the RAW key — 16 bytes (aes-128) or 32
+    return b64std(ssMethod === "2022-blake3-aes-128-gcm" ? 16 : 32);
+  }
+  return b64url(18); // trojan / plain shadowsocks / hysteria2 password
 }
 
 function genSubId(): string {
@@ -473,7 +500,7 @@ function genWgPair(): { priv: string; pub: string } {
 
 /* ---------- form <-> payload ---------- */
 
-const NUM_STREAM_KEYS = new Set(["maxEarlyData", "dokoPort", "wgMtu"]);
+const NUM_STREAM_KEYS = new Set(["maxEarlyData", "dokoPort", "wgMtu", "upMbps", "downMbps"]);
 const BOOL_STREAM_KEYS = new Set(["multiMode", "mux", "allowInsecure", "socksUdp"]);
 
 const SS_METHODS = [
@@ -484,6 +511,28 @@ const SS_METHODS = [
   "aes-256-gcm",
   "chacha20-ietf-poly1305",
 ] as const;
+
+/** Shadowsocks-2022 family — needs a standard base64 key of the raw key size. */
+function isSs2022(method?: string): boolean {
+  return typeof method === "string" && method.startsWith("2022-blake3-");
+}
+
+/**
+ * ss2022 key shape check: base64 of exactly 16 bytes (aes-128 → 24 chars)
+ * or 32 bytes (aes-256 / chacha20 → 44 chars), standard alphabet + padding.
+ */
+function isSs2022KeyValid(method: string, key: string): boolean {
+  const wantBytes = method === "2022-blake3-aes-128-gcm" ? 16 : 32;
+  const wantChars = wantBytes === 16 ? 24 : 44;
+  if (key.length !== wantChars) return false;
+  try {
+    const bin = atob(key);
+    if (bin.length !== wantBytes) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /** One-click presets for Quick Create (simple-panel style defaults). */
 const QUICK_PRESET: Record<string, { transport: string; security: string }> = {
@@ -683,6 +732,113 @@ function MiniField({
   );
 }
 
+/* ---------- Task 23-f — managed-cert picker (Forge TLS tab) ---------- */
+
+interface ManagedCertItem {
+  domain: string;
+  paths: { crt: string; key: string };
+  daysLeft: number | null;
+  test: boolean;
+}
+
+const CERT_NONE = "__seph_none__";
+
+/**
+ * Dropdown of acme-managed certificates (Settings → SSL). Picking one
+ * fills BOTH certPublic/certPrivate stream fields with the .crt/.key
+ * paths from db/certs, which config-builder emits as certificateFile /
+ * keyFile. Self-contained: fetches /api/system/ssl on mount.
+ */
+function ManagedCertPicker({
+  currentCrt,
+  onPick,
+  onClear,
+}: {
+  currentCrt: string;
+  onPick: (crt: string, key: string, domain: string) => void;
+  onClear: () => void;
+}) {
+  const lang = useAppStore((s) => s.lang);
+  const setView = useAppStore((s) => s.setView);
+  const t = dictionaries[lang];
+  const s = t.inbounds;
+  const [items, setItems] = useState<ManagedCertItem[] | null>(null); // null = loading
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/system/ssl", { cache: "no-store" });
+        if (!res.ok) throw new Error("ssl");
+        const d = (await res.json()) as { certs?: ManagedCertItem[] };
+        if (alive) setItems(d.certs ?? []);
+      } catch {
+        if (alive) setItems([]);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const selectedDomain = items?.find((c) => c.paths.crt === currentCrt)?.domain;
+
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor="tls-managed" className="text-xs text-muted-foreground">
+        {s.certManaged}
+      </Label>
+      {items === null ? (
+        <div className="flex h-9 items-center rounded-md border border-input bg-background/40 px-3">
+          <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" aria-hidden="true" />
+        </div>
+      ) : items.length === 0 ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-dashed border-border bg-white/[0.02] px-3 py-2 text-[11px] text-muted-foreground">
+          <span>{s.certManagedEmpty}</span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-6 gap-1 rounded-full px-2.5 text-[10px]"
+            onClick={() => setView("settings")}
+          >
+            <Globe className="h-3 w-3" aria-hidden="true" />
+            {s.certManagedOpen}
+          </Button>
+        </div>
+      ) : (
+        <Select
+          value={selectedDomain ?? CERT_NONE}
+          onValueChange={(domain) => {
+            if (domain === CERT_NONE) {
+              onClear();
+              return;
+            }
+            const c = items.find((x) => x.domain === domain);
+            if (c) onPick(c.paths.crt, c.paths.key, c.domain);
+          }}
+        >
+          <SelectTrigger id="tls-managed" className="w-full font-mono text-xs" dir="ltr">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="glass-strong">
+            <SelectItem value={CERT_NONE} className="text-xs">
+              {s.certManagedNone}
+            </SelectItem>
+            {items.map((c) => (
+              <SelectItem key={c.domain} value={c.domain} className="font-mono text-xs">
+                {c.domain}
+                {c.daysLeft !== null ? ` · ${c.daysLeft}d` : ""}
+                {c.test ? " · test" : ""}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+    </div>
+  );
+}
+
 /** Plain-language helper line — one per section (user-requested guidance). */
 function Tip({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
@@ -848,6 +1004,9 @@ export function InboundsView() {
   const [ipMenuOpen, setIpMenuOpen] = useState(false);
   const [portSuggesting, setPortSuggesting] = useState(false);
 
+  /* v2.5 — hysteria2 sidecar engines (tag → running pill) */
+  const [sidecars, setSidecars] = useState<Map<string, SidecarWire>>(new Map());
+
   /* delete confirm */
   const [deleting, setDeleting] = useState<InboundDTO | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
@@ -863,6 +1022,7 @@ export function InboundsView() {
     tooLong: t.inbounds.errBadValue,
     tooMany: t.inbounds.errBadValue,
     dupEmail: t.inbounds.errBadValue,
+    ss2022Key: t.inbounds.errSs2022Key,
   };
 
   /** which tab owns each server-side field error */
@@ -877,9 +1037,9 @@ export function InboundsView() {
     expiryDays: "general",
     clients: form.protocol === "dokodemo-door" ? "general" : "clients",
     transport: "transport",
-    // per-protocol connection fields (socks/http auth, doko target, wg keys)
-    // live in the General tab for those protocols, otherwise Transport
-    stream: ["dokodemo-door", "wireguard", "socks", "http"].includes(form.protocol)
+    // per-protocol connection fields (socks/http auth, doko target, wg keys,
+    // ss cipher) live in the General tab for those protocols, otherwise Transport
+    stream: ["dokodemo-door", "wireguard", "socks", "http", "shadowsocks"].includes(form.protocol)
       ? "general"
       : "transport",
     security: "security",
@@ -906,6 +1066,27 @@ export function InboundsView() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  /* v2.5 — poll the sidecar engines' status (same cadence as the Core card) */
+  useEffect(() => {
+    let alive = true;
+    const pull = async (): Promise<void> => {
+      try {
+        const res = await fetch("/api/system/core-status", { cache: "no-store" });
+        if (!res.ok) return;
+        const d = (await res.json()) as { status?: { sidecars?: SidecarWire[] } };
+        if (alive) setSidecars(new Map((d.status?.sidecars ?? []).map((s) => [s.tag, s])));
+      } catch {
+        /* keep last known */
+      }
+    };
+    void pull();
+    const iv = setInterval(() => void pull(), 10_000);
+    return () => {
+      alive = false;
+      clearInterval(iv);
+    };
+  }, []);
 
   const statsByTag = useMemo(() => {
     const map = new Map<string, { users: number; txGb: number }>();
@@ -1240,6 +1421,15 @@ export function InboundsView() {
     }
     setDupEmails(dupSet);
 
+    // ss2022 pre-flight: right-sized standard base64 keys (mirrors the API check)
+    if (form.protocol === "shadowsocks" && isSs2022(form.stream.method)) {
+      const method = form.stream.method || "2022-blake3-aes-128-gcm";
+      form.clients.forEach((c, i) => {
+        if (c.key.trim() && !isSs2022KeyValid(method, c.key.trim()))
+          localErrs[`client-${i}-key`] = t.inbounds.errSs2022Key;
+      });
+    }
+
     if (Object.keys(localErrs).length > 0 || dupSet.size > 0) {
       setFieldErr(localErrs);
       setTopErr(t.inbounds.errConfig);
@@ -1424,6 +1614,7 @@ export function InboundsView() {
     grpc: t.inbounds.trGrpc,
     httpupgrade: t.inbounds.trHttpUp,
     xhttp: "XHTTP",
+    kcp: t.inbounds.trKcp,
   };
 
   const SecurityText: Record<string, string> = {
@@ -1553,7 +1744,7 @@ export function InboundsView() {
                             ? [
                                 {
                                   email: "",
-                                  key: genClientKey(p),
+                                  key: genClientKey(p, stream.method),
                                   subId: genSubId(),
                                   flow: "",
                                   ipLimit: "0",
@@ -1564,7 +1755,7 @@ export function InboundsView() {
                               ]
                             : f.clients.map((c) => ({
                                 ...c,
-                                key: genClientKey(p),
+                                key: genClientKey(p, stream.method),
                                 flow: p === "vless" ? c.flow : "",
                               })),
                     };
@@ -1624,7 +1815,11 @@ export function InboundsView() {
       {form.protocol === "shadowsocks" && (
         <div className="space-y-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
           <div className="grid gap-4 sm:grid-cols-2">
-            <MiniField id="ss-method" label={t.inbounds.ssMethod} hint={t.inbounds.tipSs}>
+            <MiniField
+              id="ss-method"
+              label={t.inbounds.ssMethod}
+              hint={isSs2022(form.stream.method) ? t.inbounds.ss2022KeyHint : t.inbounds.tipSs}
+            >
               <Select
                 value={form.stream.method || "2022-blake3-aes-128-gcm"}
                 onValueChange={(v) => setStream("method", v)}
@@ -1641,6 +1836,29 @@ export function InboundsView() {
                 </SelectContent>
               </Select>
             </MiniField>
+            {isSs2022(form.stream.method) && form.clients.length > 0 && (
+              <div className="flex items-end pb-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setForm((f) => ({
+                      ...f,
+                      clients: f.clients.map((c) => ({
+                        ...c,
+                        key: genClientKey("shadowsocks", f.stream.method),
+                      })),
+                    }))
+                  }
+                  className="h-9 gap-1.5 rounded-xl border-white/10 bg-white/[0.03] text-[11px] hover:bg-white/[0.06]"
+                  title={t.inbounds.ssKeyGen}
+                >
+                  <KeyRound className="h-3.5 w-3.5 text-primary" />
+                  {t.inbounds.ssKeyGen}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -2090,7 +2308,7 @@ export function InboundsView() {
                 ...f.clients,
                 {
                   email: "",
-                  key: genClientKey(f.protocol),
+                  key: genClientKey(f.protocol, f.stream.method),
                   subId: genSubId(),
                   flow: "",
                   ipLimit: "0",
@@ -2182,7 +2400,7 @@ export function InboundsView() {
                       setForm((f) => ({
                         ...f,
                         clients: f.clients.map((x, j) =>
-                          j === i ? { ...x, key: genClientKey(f.protocol) } : x
+                          j === i ? { ...x, key: genClientKey(f.protocol, f.stream.method) } : x
                         ),
                       }))
                     }
@@ -2351,7 +2569,7 @@ export function InboundsView() {
 
   const renderTransport = () => (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-5" role="radiogroup" aria-label={t.inbounds.transportHint}>
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-6" role="radiogroup" aria-label={t.inbounds.transportHint}>
         {TRANSPORTS.map((tr) => {
           const meta = TRANSPORT_META[tr] ?? TRANSPORT_META.tcp;
           const TrIcon = meta.icon;
@@ -2440,6 +2658,82 @@ export function InboundsView() {
               </SelectContent>
             </Select>
           </MiniField>
+        </div>
+      )}
+
+      {form.transport === "kcp" && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <MiniField id="st-kcp" label={t.inbounds.kcpHeader}>
+            <Select
+              value={form.stream.headerType || "none"}
+              onValueChange={(v) => setStream("headerType", v)}
+            >
+              <SelectTrigger id="st-kcp" className="w-full font-mono text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="glass-strong">
+                {["none", "srtp", "utp", "wechat-video", "dtls", "wireguard", "dns"].map((h) => (
+                  <SelectItem key={h} value={h} className="font-mono text-xs">
+                    {h}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </MiniField>
+          <MiniField id="st-kcpseed" label={t.inbounds.kcpSeed}>
+            <Input
+              id="st-kcpseed"
+              value={form.stream.kcpSeed ?? ""}
+              onChange={(e) => setStream("kcpSeed", e.target.value)}
+              placeholder="e2eseed"
+              className="font-mono text-xs"
+              autoComplete="off"
+            />
+          </MiniField>
+        </div>
+      )}
+
+      {/* v2.5 — hysteria2 engine fields (served by the sidecar binary, not Xray) */}
+      {form.protocol === "hysteria2" && (
+        <div className="space-y-4 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="flex items-center gap-2 text-xs font-semibold text-silver">
+            <Waves className="h-3.5 w-3.5 text-primary" />
+            Hysteria2
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <MiniField id="st-hy2obfs" label={t.inbounds.hy2Obfs}>
+              <Input
+                id="st-hy2obfs"
+                value={form.stream.obfsPassword ?? ""}
+                onChange={(e) => setStream("obfsPassword", e.target.value)}
+                className="font-mono text-xs"
+                autoComplete="off"
+              />
+            </MiniField>
+            <div className="grid grid-cols-2 gap-3">
+              <MiniField id="st-hy2up" label={t.inbounds.hy2Up}>
+                <Input
+                  id="st-hy2up"
+                  value={form.stream.upMbps ?? ""}
+                  onChange={(e) => setStream("upMbps", e.target.value)}
+                  placeholder="100"
+                  inputMode="numeric"
+                  className="font-mono text-xs"
+                />
+              </MiniField>
+              <MiniField id="st-hy2down" label={t.inbounds.hy2Down}>
+                <Input
+                  id="st-hy2down"
+                  value={form.stream.downMbps ?? ""}
+                  onChange={(e) => setStream("downMbps", e.target.value)}
+                  placeholder="200"
+                  inputMode="numeric"
+                  className="font-mono text-xs"
+                />
+              </MiniField>
+            </div>
+          </div>
+          <Tip>{t.inbounds.scHint}</Tip>
         </div>
       )}
 
@@ -2594,7 +2888,9 @@ export function InboundsView() {
               ? t.inbounds.tipGrpc
               : form.transport === "httpupgrade"
                 ? t.inbounds.tipHttpUp
-                : t.inbounds.tipXhttp}
+                : form.transport === "kcp"
+                  ? t.inbounds.tipKcp
+                  : t.inbounds.tipXhttp}
       </Tip>
     </div>
   );
@@ -2706,9 +3002,25 @@ export function InboundsView() {
 
           <div className="space-y-3 border-t border-white/5 pt-3">
             <p className="text-xs font-semibold text-silver">{t.inbounds.certTitle}</p>
+            <ManagedCertPicker
+              currentCrt={String(form.stream.certPublic ?? "")}
+              onPick={(crt, key) =>
+                setForm((f) => ({
+                  ...f,
+                  stream: { ...f.stream, certPublic: crt, certPrivate: key },
+                }))
+              }
+              onClear={() =>
+                setForm((f) => ({
+                  ...f,
+                  stream: { ...f.stream, certPublic: "", certPrivate: "" },
+                }))
+              }
+            />
             <MiniField id="tls-certpub" label={t.inbounds.certPublic}>
               <Textarea
                 id="tls-certpub"
+                dir="ltr"
                 value={form.stream.certPublic ?? ""}
                 onChange={(e) => setStream("certPublic", e.target.value)}
                 rows={2}
@@ -2718,6 +3030,7 @@ export function InboundsView() {
             <MiniField id="tls-certpriv" label={t.inbounds.certPrivate} hint={t.inbounds.certHint}>
               <Textarea
                 id="tls-certpriv"
+                dir="ltr"
                 value={form.stream.certPrivate ?? ""}
                 onChange={(e) => setStream("certPrivate", e.target.value)}
                 rows={2}
@@ -3534,6 +3847,24 @@ export function InboundsView() {
                 <Chip accent={row.security !== "none"}>
                   {SecurityText[row.security] ?? row.security}
                 </Chip>
+                {row.protocol === "hysteria2" && (
+                  <Chip accent={sidecars.get(row.tag)?.running === true}>
+                    <span className="inline-flex items-center gap-1.5">
+                      <span
+                        className={cn(
+                          "h-1.5 w-1.5 rounded-full",
+                          sidecars.get(row.tag)?.running
+                            ? "bg-chart-3 animate-pulse"
+                            : "bg-muted-foreground"
+                        )}
+                        aria-hidden="true"
+                      />
+                      {sidecars.get(row.tag)?.running
+                        ? t.inbounds.scRunning
+                        : t.inbounds.scStopped}
+                    </span>
+                  </Chip>
+                )}
                 {(row.clients?.length ?? 0) > 0 && (
                   <Chip>
                     <span className="inline-flex items-center gap-1">
@@ -3693,6 +4024,22 @@ export function InboundsView() {
                     >
                       {PROTO_LABEL[row.protocol] ?? row.protocol.toUpperCase()}
                     </span>
+                    {row.protocol === "hysteria2" && (
+                      <span className="mt-1 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                        <span
+                          className={cn(
+                            "h-1.5 w-1.5 rounded-full",
+                            sidecars.get(row.tag)?.running
+                              ? "bg-chart-3 animate-pulse"
+                              : "bg-muted-foreground"
+                          )}
+                          aria-hidden="true"
+                        />
+                        {sidecars.get(row.tag)?.running
+                          ? t.inbounds.scRunning
+                          : t.inbounds.scStopped}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 font-mono text-xs tabular-nums text-silver">{row.port}</td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">

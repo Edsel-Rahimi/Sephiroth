@@ -18,13 +18,16 @@
  */
 
 import { spawn, type ChildProcess } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import dgram from "node:dgram";
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { createHash } from "node:crypto";
 
 import { db } from "@/lib/db";
+import { IpTracker, parseAccessIps } from "@/lib/ip-limit";
+import { logActivity } from "@/lib/activity";
 import type {
   ActivityEvent,
   CoreBackend,
@@ -54,6 +57,7 @@ import {
   buildXrayServerConfig,
   checkPortsFree,
   findFreePort,
+  UDP_ONLY_TRANSPORTS,
   type PortConflict,
 } from "@/lib/core/config-builder";
 import { ensureXrayBinary } from "@/lib/core/bin-manager";
@@ -70,6 +74,12 @@ const STOP_GRACE_MS = 5_000;
 const REGEN_DEBOUNCE_MS = 1_500;
 const RESTART_BACKOFF_MS = [3_000, 10_000, 30_000];
 const RESTART_MAX = 5;
+
+/** Task 23-g — access-log tail cadence + read cap (bytes per poll). */
+const ACCESS_POLL_MS = 5_000;
+const ACCESS_MAX_CHUNK = 512 * 1024;
+/** Settings key — opt-in auto-disable on IP breach (default OFF). */
+const ENFORCE_IP_LIMIT_KEY = "set_enforce_ip_limit";
 
 /**
  * Exact CLI syntax for the stats API (flags verified against the real
@@ -145,6 +155,26 @@ function countClients(clientsJson: string): number {
   }
 }
 
+/**
+ * Rows the built Xray config actually serves (by tag) — used for the port
+ * pre-flight and the spawn wait so sidecar-only protocols (hysteria2, v2.5)
+ * never stall or fail the core lifecycle.
+ */
+function servedInboundRows(
+  rows: FullInboundRow[],
+  built: { config: { inbounds?: unknown } }
+): FullInboundRow[] {
+  const inb = built.config?.inbounds;
+  const tags = new Set<string>(
+    Array.isArray(inb)
+      ? inb
+          .map((i) => (i && typeof i === "object" ? String((i as { tag?: unknown }).tag ?? "") : ""))
+          .filter(Boolean)
+      : []
+  );
+  return rows.filter((r) => tags.has(r.tag));
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
@@ -161,6 +191,32 @@ function tcpOpen(host: string, port: number, timeoutMs: number): Promise<boolean
     socket.once("connect", () => done(true));
     socket.once("timeout", () => done(false));
     socket.once("error", () => done(false));
+  });
+}
+
+/**
+ * UDP "is it listening" probe: UDP has no connect, so we try to BIND the
+ * port — EADDRINUSE means another socket (the core) already holds it.
+ * Binding 0.0.0.0 is the superset probe: it conflicts with any UDP bind
+ * of that port on any address.
+ */
+function udpTaken(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const sock = dgram.createSocket("udp4");
+    const done = (taken: boolean): void => {
+      try {
+        sock.close();
+      } catch {
+        /* already closed */
+      }
+      resolve(taken);
+    };
+    sock.once("error", (err) => done((err as NodeJS.ErrnoException).code === "EADDRINUSE"));
+    try {
+      sock.bind({ port, address: "0.0.0.0" }, () => done(false)); // bound fine → nobody there
+    } catch {
+      done(false);
+    }
   });
 }
 
@@ -259,8 +315,17 @@ export class XrayDriver implements CoreBackend {
   private readonly distribution = { connectedPct: 0, idlePct: 0, limitedPct: 0 };
   private readonly processListeners: Array<() => void> = [];
 
+  // Task 23-g — concurrent-IP tracking from the file access log
+  private readonly ipTracker = new IpTracker();
+  private accessLogPath = "";
+  private accessOffset = 0;
+  private accessTimer: NodeJS.Timeout | null = null;
+  private ipAccessBusy = false;
+  private readonly ipBreached = new Set<string>();
+
   constructor(opts: XrayDriverOptions = {}) {
     this.stateDir = opts.stateDir ?? path.resolve(process.cwd(), "db", "core");
+    this.accessLogPath = path.join(this.stateDir, "access.log");
     this.binPathOpt = opts.binPath ?? "";
     this.versionPinOpt = opts.versionPin ?? "";
     if (opts.statsIntervalMs && opts.statsIntervalMs >= 5_000 && opts.statsIntervalMs <= 120_000) {
@@ -331,13 +396,15 @@ export class XrayDriver implements CoreBackend {
     // 2) stats-api door port
     this.apiPort = await findFreePort();
 
-    // 3) config + pre-flight port check (only meaningful before we own ports)
-    const built = buildXrayServerConfig(this.apiPort);
+    // 3) config + pre-flight port check (only meaningful before we own ports).
+    //    IMPORTANT: only inbounds the built config actually serves are probed
+    //    (v2.5 — hysteria2 rows are sidecar-served, skipped by the builder, and
+    //    must NOT block or stall the core start).
+    const built = buildXrayServerConfig(this.apiPort, { accessLogPath: this.accessLogPath });
     for (const s of built.skipped) this.log(`config: ${s}`);
-    const enabledRows = db
-      ._syncReadInboundsFull()
-      .filter((r) => r.status === "online");
-    const conflicts: PortConflict[] = this.running ? [] : await checkPortsFree(enabledRows);
+    const enabledRows = db._syncReadInboundsFull().filter((r) => r.status === "online");
+    const servedRows = servedInboundRows(enabledRows, built);
+    const conflicts: PortConflict[] = this.running ? [] : await checkPortsFree(servedRows);
     if (conflicts.length > 0) {
       const detail = conflicts
         .map((c) => `${c.tag} → ${c.listen}:${c.port} occupied`)
@@ -378,6 +445,7 @@ export class XrayDriver implements CoreBackend {
       this.proc = null;
       this.removePidFile();
       this.stopStatsTimer();
+      this.stopAccessTail();
       if (this.stopping) {
         this.log(`core stopped (code=${code ?? "-"} signal=${signal ?? "-"})`);
         return;
@@ -389,11 +457,17 @@ export class XrayDriver implements CoreBackend {
       }
     });
 
-    // 6) wait until every enabled inbound port accepts TCP
-    const ports = enabledRows.map((r) => Number(r.port));
-    const ok = await this.waitPorts(ports, PORT_WAIT_MS);
+    // 6) wait until every served inbound port is open — TCP ports are
+    //    connect-probed; UDP-only transports (mKCP / WireGuard) are probed by
+    //    trying to bind their port (EADDRINUSE = the core is listening).
+    //    Sidecar-served rows (hysteria2) never appear here — v2.5.
+    const tcpRows = servedRows.filter((r) => !UDP_ONLY_TRANSPORTS.has(r.transport));
+    const udpRows = servedRows.filter((r) => UDP_ONLY_TRANSPORTS.has(r.transport));
+    const ports = tcpRows.map((r) => Number(r.port));
+    const udpPorts = udpRows.map((r) => Number(r.port));
+    const ok = await this.waitPorts(ports, udpPorts, PORT_WAIT_MS);
     if (!ok) {
-      const msg = `core did not open port(s) [${ports.join(", ")}] within ${PORT_WAIT_MS / 1000}s`;
+      const msg = `core did not open port(s) [${[...ports, ...udpPorts].join(", ")}] within ${PORT_WAIT_MS / 1000}s`;
       this.log(msg);
       await this.killChild();
       throw new Error(msg);
@@ -402,12 +476,14 @@ export class XrayDriver implements CoreBackend {
     this.running = true;
     this.startedAt = Date.now();
     this.startStatsTimer();
+    this.startAccessTail();
   }
 
   /** SIGTERM → grace → SIGKILL. Resolves when the process is really gone. */
   async stop(): Promise<void> {
     this.wantRunning = false;
     this.clearRestartTimer();
+    this.stopAccessTail();
     if (!this.proc && !this.running) {
       this.running = false;
       return;
@@ -434,6 +510,7 @@ export class XrayDriver implements CoreBackend {
   async dispose(): Promise<void> {
     this.wantRunning = false;
     this.clearRestartTimer();
+    this.stopAccessTail();
     if (this.regenTimer) {
       clearTimeout(this.regenTimer);
       this.regenTimer = null;
@@ -471,6 +548,133 @@ export class XrayDriver implements CoreBackend {
   tailLog(n: number): string[] {
     const count = Math.max(1, Math.min(LOG_CAP, n));
     return this.logBuf.slice(-count);
+  }
+
+  /* ---------------------------------------- Task 23-g · per-user IP limit */
+
+  /** email → distinct source IPs seen in the last window (newest first). */
+  get ipSnapshot(): Record<string, string[]> {
+    return this.ipTracker.snapshot();
+  }
+
+  /** Tracker window length in minutes (surfaced by /api/users/ip-usage). */
+  get ipWindowMinutes(): number {
+    return this.ipTracker.windowMinutes;
+  }
+
+  private startAccessTail(): void {
+    this.stopAccessTail();
+    // fresh process → fresh window (in-memory only; breach events persist in
+    // the activity log)
+    this.ipTracker.clear();
+    this.ipBreached.clear();
+    this.accessOffset = 0;
+    this.accessTimer = setInterval(() => void this.pollAccessLog(), ACCESS_POLL_MS);
+    this.accessTimer.unref?.();
+  }
+
+  private stopAccessTail(): void {
+    if (this.accessTimer) {
+      clearInterval(this.accessTimer);
+      this.accessTimer = null;
+    }
+  }
+
+  /**
+   * Tail db/core/access.log by byte offset (size-poll, no fs.watch churn).
+   * Handles truncation/rotation (size < offset → restart from 0) and caps
+   * each read so a hot log can never stall the event loop.
+   */
+  private pollAccessLog(): void {
+    if (this.ipAccessBusy) return;
+    this.ipAccessBusy = true;
+    try {
+      if (!existsSync(this.accessLogPath)) {
+        this.accessOffset = 0;
+        return;
+      }
+      const size = statSync(this.accessLogPath).size;
+      if (size < this.accessOffset) this.accessOffset = 0; // truncated / rotated
+      if (size === this.accessOffset) return;
+      const start = this.accessOffset;
+      const end = Math.min(size, start + ACCESS_MAX_CHUNK);
+      const chunk = readFileSync(this.accessLogPath)
+        .subarray(start, end)
+        .toString("utf8");
+      // only advance past COMPLETE lines — a torn tail is re-read next poll
+      const lastNl = chunk.lastIndexOf("\n");
+      if (lastNl === -1) {
+        if (end - start >= ACCESS_MAX_CHUNK) this.accessOffset = end; // pathological
+        return;
+      }
+      this.accessOffset = start + lastNl + 1;
+      const now = Date.now();
+      const touched = new Set<string>();
+      for (const line of chunk.slice(0, lastNl).split("\n")) {
+        const rec = parseAccessIps(line);
+        if (rec && this.ipTracker.observe(rec.email, rec.ip, now)) {
+          touched.add(rec.email);
+        }
+      }
+      void this.enforceIpLimits([...touched], now);
+    } catch (err) {
+      this.log(`access-log poll failed: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      this.ipAccessBusy = false;
+    }
+  }
+
+  /**
+   * Enforcement hook — every email whose distinct-IP set grew this poll:
+   *   always        logActivity warn (breach list lives in the audit trail)
+   *   enforce ON    (set_enforce_ip_limit=1) → auto-disable the user +
+   *                 trigger the config reload path (mirrorDb → regen)
+   */
+  private async enforceIpLimits(emails: string[], now: number): Promise<void> {
+    if (emails.length === 0) return;
+    try {
+      const accessByEmail = new Map(db._syncReadAccessEmails().map((a) => [a.email, a.userId]));
+      const users = new Map(db._syncReadClientUsers().map((u) => [u.id, u]));
+      const enforce = db._syncReadSetting(ENFORCE_IP_LIMIT_KEY) === "1";
+      for (const email of emails) {
+        const userId = accessByEmail.get(email);
+        const user = userId ? users.get(userId) : undefined;
+        if (!user) continue; // manual client without an owner row
+        const over = this.ipTracker.overLimit(email, user.ipLimit, now);
+        if (over && !this.ipBreached.has(email)) {
+          this.ipBreached.add(email);
+          this.log(`ip-limit breach: ${email} — ${this.ipTracker.count(email, now)} IPs > limit ${user.ipLimit}`);
+          void logActivity({
+            kind: "user.updated",
+            level: "warn",
+            actor: "core",
+            message: `IP limit exceeded for "${user.username}" (${this.ipTracker.count(email, now)} distinct IPs in ${this.ipTracker.windowMinutes}m > limit ${user.ipLimit})`,
+            meta: { userId: user.id, username: user.username, reason: "ip_limit", ips: this.ipTracker.ips(email, now).length },
+          });
+          if (enforce && user.enabled) {
+            await db.clientUser
+              .update({ where: { id: user.id }, data: { enabled: false } })
+              .then(() => {
+                this.log(`ip-limit enforce: user "${user.username}" disabled`);
+                void logActivity({
+                  kind: "user.updated",
+                  level: "warn",
+                  actor: "core",
+                  message: `User "${user.username}" auto-disabled — concurrent-IP limit enforcement`,
+                  meta: { userId: user.id, username: user.username, reason: "ip_limit_enforce" },
+                });
+              })
+              .catch(() => undefined);
+            // mirrorDb path — regen + (hash-diff) restart to drop the user
+            this.scheduleRegen();
+          }
+        } else if (!over && this.ipBreached.has(email)) {
+          this.ipBreached.delete(email); // back under the limit inside the window
+        }
+      }
+    } catch {
+      /* store read raced a write — next poll retries */
+    }
   }
 
   /* -------------------------------------------------------- core backend */
@@ -540,15 +744,16 @@ export class XrayDriver implements CoreBackend {
 
   private async applyConfig(force: boolean): Promise<void> {
     if (!this.binaryPath) return; // never started — nothing to apply yet
-    const built = buildXrayServerConfig(this.apiPort);
+    const built = buildXrayServerConfig(this.apiPort, { accessLogPath: this.accessLogPath });
     for (const s of built.skipped) this.log(`config: ${s}`);
     const hashNew = hash(built.json);
     if (!force && hashNew === this.lastConfigHash) return;
 
     if (!this.running) {
-      // pre-flight again (we don't own any port right now)
+      // pre-flight again (we don't own any port right now) — sidecar-served
+      // rows (hysteria2, v2.5) are excluded, they never belong to this process
       const enabledRows = db._syncReadInboundsFull().filter((r) => r.status === "online");
-      const conflicts = await checkPortsFree(enabledRows);
+      const conflicts = await checkPortsFree(servedInboundRows(enabledRows, built));
       if (conflicts.length > 0) {
         const detail = conflicts.map((c) => `${c.tag}:${c.port}`).join(", ");
         this.lastError = `start blocked — port(s) in use: ${detail}`;
@@ -1178,15 +1383,23 @@ export class XrayDriver implements CoreBackend {
 
   /* ------------------------------------------------------------ helpers */
 
-  private async waitPorts(ports: number[], timeoutMs: number): Promise<boolean> {
-    if (ports.length === 0) return true;
+  private async waitPorts(tcpPorts: number[], udpPorts: number[], timeoutMs: number): Promise<boolean> {
+    if (tcpPorts.length === 0 && udpPorts.length === 0) return true;
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
       let allOpen = true;
-      for (const port of ports) {
+      for (const port of tcpPorts) {
         if (!(await tcpOpen("127.0.0.1", port, 700))) {
           allOpen = false;
           break;
+        }
+      }
+      if (allOpen) {
+        for (const port of udpPorts) {
+          if (!(await udpTaken(port))) {
+            allOpen = false;
+            break;
+          }
         }
       }
       if (allOpen) return true;

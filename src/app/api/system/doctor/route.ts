@@ -50,11 +50,14 @@ export async function GET(req: Request) {
       }
     }
 
-    // 2. TLS without any certificate material
-    if (ib.security === "tls") {
+    // 2. TLS without any certificate material — hysteria2 EXEMPT (v2.5):
+    //    it is served by the sidecar engine, which auto-provisions a
+    //    self-signed cert when the admin did not paste managed PEM material.
+    if (ib.security === "tls" && ib.protocol !== "hysteria2") {
       const hasCert =
         Boolean(st.certFile) ||
         Boolean(st.certificate) ||
+        Boolean(st.certPublic) ||
         (Array.isArray(st.certificates) && st.certificates.length > 0);
       if (!hasCert) {
         push("tlsNoCert", "warn", { tag: ib.tag, port: String(ib.port) });

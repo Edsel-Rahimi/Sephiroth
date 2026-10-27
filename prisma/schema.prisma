@@ -204,11 +204,14 @@ model Node {
   inboundTags String    @default("[]") // JSON array of Inbound.tag when syncAll=false
   outboundTag String    @default("")
   tlsVerify   String    @default("verify") // verify | skip
-  // simulated live state
+  // live state (agent probes / pushes — see src/lib/nodes-sync.ts)
   status      String    @default("unknown") // online | offline | unknown
   latencyMs   Int       @default(0)
-  xrayVersion String    @default("")
+  xrayVersion String    @default("") // core version reported by the agent
+  coreKind    String    @default("") // sim | xray ("" = never probed)
   lastSeen    DateTime?
+  lastSyncAt  DateTime? // last successful config push
+  lastError   String    @default("") // last agent-call error ("" = none)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
