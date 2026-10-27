@@ -1,0 +1,531 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-background-deep: var(--background-deep);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-space);
+  --font-mono: var(--font-jetmono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* ============================================================
+   SEPHIROTH DESIGN SYSTEM — single cosmic theme
+   DNA: obsidian black + electric cyan + platinum silver
+   ============================================================ */
+
+:root {
+  --radius: 0.75rem;
+
+  --background: #060b0f;
+  --background-deep: #04080b;
+  --foreground: #e8eef4;
+
+  --card: rgba(148, 184, 205, 0.055);
+  --card-foreground: #e8eef4;
+  --popover: rgba(8, 14, 19, 0.96);
+  --popover-foreground: #e8eef4;
+
+  --primary: #22d8ee;
+  --primary-foreground: #041014;
+
+  --secondary: rgba(255, 255, 255, 0.06);
+  --secondary-foreground: #dde7ee;
+
+  --muted: rgba(255, 255, 255, 0.05);
+  --muted-foreground: #8c9ba8;
+
+  --accent: rgba(34, 216, 238, 0.1);
+  --accent-foreground: #7fe7f6;
+
+  --destructive: #f43f5e;
+  --destructive-foreground: #ffe4e9;
+
+  --border: rgba(148, 184, 205, 0.14);
+  --input: rgba(148, 184, 205, 0.18);
+  --ring: rgba(34, 216, 238, 0.55);
+
+  --chart-1: #22d8ee;
+  --chart-2: #c9d6e2;
+  --chart-3: #34d399;
+  --chart-4: #fbbf24;
+  --chart-5: #f43f5e;
+
+  --sidebar: rgba(148, 184, 205, 0.05);
+  --sidebar-foreground: #e8eef4;
+  --sidebar-primary: #22d8ee;
+  --sidebar-primary-foreground: #041014;
+  --sidebar-accent: rgba(34, 216, 238, 0.1);
+  --sidebar-accent-foreground: #7fe7f6;
+  --sidebar-border: rgba(148, 184, 205, 0.14);
+  --sidebar-ring: rgba(34, 216, 238, 0.55);
+}
+
+html {
+  background: var(--background-deep);
+  color-scheme: dark;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-space), var(--font-vazir), "Noto Sans SC", "PingFang SC",
+    "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
+  background: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Persian / Arabic → Vazirmatn first */
+html[dir="rtl"] body {
+  font-family: var(--font-vazir), var(--font-space), ui-sans-serif, system-ui, sans-serif;
+}
+
+::selection {
+  background: rgba(34, 216, 238, 0.28);
+  color: #f2fbfd;
+}
+
+/* ---------- scrollbar ---------- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(34, 216, 238, 0.25) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(34, 216, 238, 0.22);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(34, 216, 238, 0.4);
+  background-clip: content-box;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+}
+
+/* ---------- cosmic backdrop ---------- */
+.bg-cosmic {
+  background:
+    radial-gradient(1200px 540px at 50% 118%, rgba(34, 216, 238, 0.14), transparent 62%),
+    radial-gradient(900px 420px at 88% -12%, rgba(34, 216, 238, 0.05), transparent 55%),
+    radial-gradient(760px 400px at 6% -8%, rgba(120, 160, 190, 0.055), transparent 55%),
+    linear-gradient(180deg, #060b0f 0%, #05090d 100%);
+}
+
+/* ---------- glass surfaces ---------- */
+.glass {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(148, 184, 205, 0.14);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.glass-strong {
+  background: linear-gradient(160deg, rgba(16, 28, 36, 0.9), rgba(8, 14, 19, 0.85));
+  border: 1px solid rgba(148, 184, 205, 0.16);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+}
+
+/* @utility → works with Tailwind variants (hover:glow-cyan etc.) */
+@utility hover-glow {
+  transition: border-color 0.2s ease, box-shadow 0.25s ease, transform 0.2s ease;
+  &:hover {
+    border-color: rgba(34, 216, 238, 0.38);
+    box-shadow: 0 0 28px -10px rgba(34, 216, 238, 0.35);
+  }
+}
+
+/* ---------- glow & metallic ---------- */
+@utility glow-cyan {
+  box-shadow: 0 0 24px -6px rgba(34, 216, 238, 0.45);
+}
+
+.text-silver {
+  background: linear-gradient(120deg, #f5f8fb 15%, #aebbc7 45%, #f5f8fb 62%, #cfd9e2 85%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.text-glow {
+  text-shadow: 0 0 18px rgba(34, 216, 238, 0.45);
+}
+
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.4rem;
+  height: 1.4rem;
+  padding: 0 0.35rem;
+  border-radius: 0.375rem;
+  border: 1px solid rgba(148, 184, 205, 0.22);
+  background: rgba(255, 255, 255, 0.05);
+  font-family: var(--font-jetmono), ui-monospace, monospace;
+  font-size: 0.65rem;
+  color: var(--muted-foreground);
+}
+
+/* ---------- orbit motif (top nav) ---------- */
+.orbit-pill {
+  position: relative;
+}
+.orbit-pill::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 14px;
+  right: 14px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(34, 216, 238, 0.55), transparent);
+  pointer-events: none;
+}
+.orbit-dot {
+  position: absolute;
+  top: -4.5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--primary);
+  box-shadow: 0 0 12px 1px rgba(34, 216, 238, 0.8);
+}
+html[dir="rtl"] .orbit-dot {
+  left: auto;
+  right: 50%;
+  transform: translateX(50%);
+}
+
+/* ---------- logo pulse ---------- */
+@keyframes logo-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(34, 216, 238, 0.35), 0 0 22px -4px rgba(34, 216, 238, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 7px rgba(34, 216, 238, 0), 0 0 34px -2px rgba(34, 216, 238, 0.7);
+  }
+}
+.logo-pulse {
+  animation: logo-pulse 2.6s ease-in-out infinite;
+}
+
+/* ---------- orbit spinner (splash) ---------- */
+@keyframes orbit-spin {
+  to { transform: rotate(360deg); }
+}
+.orbit-spin {
+  animation: orbit-spin 1.6s linear infinite;
+}
+
+/* ---------- soft float ---------- */
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.float-y {
+  animation: float-y 5s ease-in-out infinite;
+}
+
+/* ---------- shimmer sweep (cards / pass) ---------- */
+@keyframes shine-sweep {
+  0% { transform: translateX(-120%) skewX(-18deg); }
+  100% { transform: translateX(240%) skewX(-18deg); }
+}
+html[dir="rtl"] .shine-sweep {
+  animation-name: shine-sweep-rtl;
+}
+@keyframes shine-sweep-rtl {
+  0% { transform: translateX(120%) skewX(18deg); }
+  100% { transform: translateX(-240%) skewX(18deg); }
+}
+.shine-sweep {
+  animation: shine-sweep 3.4s ease-in-out infinite;
+}
+
+/* ---------- skeleton shimmer ---------- */
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.skeleton-shimmer {
+  background: linear-gradient(
+    100deg,
+    rgba(148, 184, 205, 0.06) 40%,
+    rgba(148, 184, 205, 0.16) 50%,
+    rgba(148, 184, 205, 0.06) 60%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.8s linear infinite;
+}
+
+/* ---------- line draw (charts) ---------- */
+@keyframes line-draw {
+  to { stroke-dashoffset: 0; }
+}
+.line-draw {
+  stroke-dasharray: 1600;
+  stroke-dashoffset: 1600;
+  animation: line-draw 1.8s ease-out forwards;
+}
+
+@keyframes fade-in-soft {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-in-soft {
+  animation: fade-in-soft 0.7s ease both;
+}
+
+/* ---------- login scene ---------- */
+/* outer showcase frame (reference: clever split card) */
+.glass-frame {
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(148, 184, 205, 0.17);
+  backdrop-filter: blur(26px);
+  -webkit-backdrop-filter: blur(26px);
+  box-shadow:
+    0 40px 90px -34px rgba(0, 0, 0, 0.65),
+    0 0 80px -34px rgba(34, 216, 238, 0.28);
+}
+
+.glass-frame::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 15%;
+  right: 15%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(34, 216, 238, 0.55), transparent);
+  pointer-events: none;
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-up {
+  animation: fade-up 0.7s cubic-bezier(0.22, 0.9, 0.3, 1) both;
+}
+.d-1 { animation-delay: 0.06s; }
+.d-2 { animation-delay: 0.14s; }
+.d-3 { animation-delay: 0.22s; }
+.d-4 { animation-delay: 0.32s; }
+.d-5 { animation-delay: 0.42s; }
+.d-6 { animation-delay: 0.55s; }
+
+@keyframes shake {
+  10%, 90% { transform: translateX(-1px); }
+  20%, 80% { transform: translateX(2px); }
+  30%, 50%, 70% { transform: translateX(-4px); }
+  40%, 60% { transform: translateX(4px); }
+}
+.shake {
+  animation: shake 0.5s ease both;
+}
+
+/* planet horizon glowing at the bottom of the login terminal */
+.login-horizon {
+  position: absolute;
+  left: 50%;
+  bottom: -96vw;
+  width: 150vw;
+  height: 150vw;
+  min-width: 1200px;
+  min-height: 1200px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  border-top: 1px solid rgba(34, 216, 238, 0.4);
+  background: radial-gradient(
+    circle at 50% 30%,
+    rgba(34, 216, 238, 0.14),
+    rgba(6, 11, 15, 0) 55%
+  );
+  box-shadow:
+    0 -22px 110px -22px rgba(34, 216, 238, 0.38),
+    inset 0 26px 70px -34px rgba(34, 216, 238, 0.3);
+  pointer-events: none;
+}
+
+/* concentric orbital rings behind the login brand visual */
+.login-ring {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  border-radius: 50%;
+  border: 1px solid rgba(34, 216, 238, 0.14);
+  pointer-events: none;
+}
+.login-ring.dashed {
+  border-style: dashed;
+  border-color: rgba(148, 184, 205, 0.18);
+}
+.login-sat {
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  border-radius: 999px;
+  background: var(--primary);
+  box-shadow: 0 0 14px 2px rgba(34, 216, 238, 0.75);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo-pulse,
+  .orbit-spin,
+  .float-y,
+  .shine-sweep,
+  .skeleton-shimmer,
+  .line-draw,
+  .fade-in-soft,
+  .fade-up,
+  .shake {
+    animation: none;
+  }
+  .line-draw {
+    stroke-dashoffset: 0;
+  }
+  .fade-up,
+  .fade-in-soft {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------- phase 5 · subscription pass card ---------- */
+.pass-card {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(150deg, rgba(34, 216, 238, 0.1) 0%, rgba(255, 255, 255, 0.045) 28%, rgba(255, 255, 255, 0.02) 55%, rgba(34, 216, 238, 0.07) 100%),
+    linear-gradient(160deg, rgba(16, 28, 36, 0.92), rgba(8, 14, 19, 0.88));
+  border: 1px solid rgba(148, 184, 205, 0.18);
+  box-shadow:
+    0 40px 90px -40px rgba(0, 0, 0, 0.7),
+    0 0 90px -40px rgba(34, 216, 238, 0.35);
+}
+.pass-card::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 15%;
+  right: 15%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(34, 216, 238, 0.6), transparent);
+  pointer-events: none;
+}
+/* holographic sweep */
+.pass-shine {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 32%, rgba(180, 240, 250, 0.09) 46%, rgba(255, 255, 255, 0.14) 50%, rgba(180, 240, 250, 0.09) 54%, transparent 68%);
+  background-size: 240% 100%;
+  animation: pass-shine 5.5s ease-in-out infinite;
+}
+@keyframes pass-shine {
+  0%, 18% { background-position: 130% 0; }
+  55%, 100% { background-position: -130% 0; }
+}
+.qr-glow {
+  box-shadow:
+    0 0 34px -6px rgba(34, 216, 238, 0.5),
+    0 0 90px -30px rgba(34, 216, 238, 0.4);
+}
+@media (prefers-reduced-motion: reduce) {
+  .pass-shine { animation: none; }
+}
+
+/* ---------- Phase 7 — appearance preferences ---------- */
+/* applied on the authenticated shell root via app-store prefs */
+
+/* glow = "soft" */
+.glow-soft .glow-cyan {
+  box-shadow: 0 0 14px -8px rgba(34, 216, 238, 0.26);
+}
+.glow-soft .hover-glow:hover {
+  border-color: rgba(34, 216, 238, 0.24);
+  box-shadow: 0 0 16px -12px rgba(34, 216, 238, 0.18);
+}
+.glow-soft .text-glow {
+  text-shadow: 0 0 10px rgba(34, 216, 238, 0.22);
+}
+.glow-soft .qr-glow {
+  box-shadow: 0 0 20px -8px rgba(34, 216, 238, 0.3);
+}
+
+/* glow = "off" */
+.glow-off .glow-cyan,
+.glow-off .hover-glow:hover,
+.glow-off .text-glow,
+.glow-off .qr-glow {
+  box-shadow: none;
+  text-shadow: none;
+}
+.glow-off .hover-glow:hover {
+  border-color: rgba(34, 216, 238, 0.3);
+}
+
+/* reduce motion — freezes every animation/transition inside the shell */
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
