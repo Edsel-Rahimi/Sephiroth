@@ -1,28 +1,52 @@
-version: "3.8"
+# =============================================================================
+#  Sephiroth — Next-Gen Xray VPN Panel · docker compose deployment
+#
+#  Quick run without compose:
+#    docker run -d --name sephiroth -p 3000:3000 -v sephiroth_data:/app/db \
+#      -e SEPHIROTH_ADMIN_USER=admin -e SEPHIROTH_ADMIN_PASS=change-me \
+#      --restart unless-stopped ghcr.io/edsel-rahimi/sephiroth:latest
+#
+#  Image choice — pick ONE of:
+#    • build: ./  (below)                       → build locally from this repo
+#    • image: ghcr.io/edsel-rahimi/sephiroth:latest → pull the prebuilt release
+#
+#  First-run credentials:
+#    SEPHIROTH_ADMIN_USER / SEPHIROTH_ADMIN_PASS seed the FIRST admin account
+#    only. Once the admin exists in db/sephiroth-store.json they are ignored —
+#    CHANGE THE DEFAULTS BELOW (or export real ones) BEFORE THE FIRST BOOT:
+#      export SEPH_PORT=3000 SEPHIROTH_ADMIN_USER=admin SEPHIROTH_ADMIN_PASS='S3cure-Pass!'
+#      docker compose up -d
+#  Later password changes: panel UI (Profile) or `sephiroth` CLI / maint script.
+# =============================================================================
 
 services:
   sephiroth:
+    # image: ghcr.io/edsel-rahimi/sephiroth:latest   # ← prebuilt GHCR image
     build:
       context: .
       dockerfile: Dockerfile
     container_name: sephiroth-panel
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      # host port ← container port (panel always listens on 3000 inside)
+      - "${SEPH_PORT:-3000}:3000"
     environment:
-      - PORT=3000
-      - NODE_ENV=production
-      - SEPHIROTH_ADMIN_USER=admin
-      - SEPHIROTH_ADMIN_PASS=admin
+      NODE_ENV: production
+      PORT: 3000
+      # first-run admin seed — see note in the header, change before first boot
+      SEPHIROTH_ADMIN_USER: ${SEPHIROTH_ADMIN_USER:-admin}
+      SEPHIROTH_ADMIN_PASS: ${SEPHIROTH_ADMIN_PASS:-sephiroth}
+      # auto = session cookie Secure flag derived from the request protocol
+      SEPH_COOKIE_SECURE: auto
     volumes:
-      # Persistent local database & backups
+      # persistent runtime JSON database + auto backups
       - sephiroth_data:/app/db
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/auth/session"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/api/auth/session || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 15s
 
 volumes:
   sephiroth_data:

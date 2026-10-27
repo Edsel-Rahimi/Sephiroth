@@ -1,0 +1,799 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>کتاب کامل سپیروت — کاتالوگ پنل Sephiroth v2.4.0</title>
+<style>
+@font-face { font-family: "Vazirmatn"; src: url("../public/fonts/Vazirmatn-Regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Vazirmatn"; src: url("../public/fonts/Vazirmatn-Medium.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Vazirmatn"; src: url("../public/fonts/Vazirmatn-SemiBold.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Vazirmatn"; src: url("../public/fonts/Vazirmatn-Bold.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+
+@page { size: 720px 1020px; margin: 0; }
+:root {
+  --bg: #060b0f;
+  --bg2: #0a1218;
+  --card: rgba(255,255,255,0.035);
+  --line: rgba(255,255,255,0.09);
+  --text: #e7edf2;
+  --muted: #93a4b1;
+  --cyan: #22d8ee;
+  --amber: #fbbf24;
+  --red: #fb5f6b;
+  --green: #34d399;
+}
+html, body {
+  margin: 0; padding: 0;
+  width: 720px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Vazirmatn', 'Tahoma', sans-serif;
+  font-size: 13px;
+  line-height: 1.9;
+}
+@media screen {
+  html { height: auto; display: flex; justify-content: center; background: #14181c; }
+  body { margin: 20px auto; box-shadow: 0 20px 80px rgba(0,0,0,.6); }
+}
+* { box-sizing: border-box; }
+
+/* ───── fixed page scaffold ───── */
+.page {
+  width: 720px; height: 1020px;
+  position: relative;
+  overflow: hidden;
+  break-after: page;
+  padding: 44px 54px 58px 54px;
+  background:
+    radial-gradient(520px 380px at 12% -6%, rgba(34,216,238,0.075), transparent 60%),
+    var(--bg);
+}
+.page.last { break-after: auto; }
+.pfoot {
+  position: absolute; bottom: 0; right: 0; left: 0; height: 46px;
+  padding: 0 54px;
+  border-top: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: space-between;
+  color: var(--muted); font-size: 9.5px; letter-spacing: 1.5px;
+  background: rgba(6,11,15,0.85);
+}
+.pfoot .pg { color: var(--cyan); font-weight: 700; letter-spacing: 3px; }
+.pfoot b { color: var(--text); font-weight: 600; }
+
+/* ───── headings ───── */
+.kicker { display: inline-block; color: var(--cyan); font-size: 10px; font-weight: 700; letter-spacing: 4px; margin-bottom: 6px; }
+h2 { font-size: 21px; font-weight: 700; margin: 0 0 4px; color: var(--text); break-after: avoid; }
+h2 .n { color: var(--cyan); font-size: 13px; vertical-align: 4px; letter-spacing: 2px; margin-left: 8px; }
+h3 { font-size: 14.5px; font-weight: 600; color: var(--text); margin: 14px 0 4px; break-after: avoid; }
+.rule { height: 2px; background: linear-gradient(-90deg, var(--cyan), transparent 70%); border: 0; margin: 8px 0 12px; break-after: avoid; }
+p { margin: 0 0 9px; color: var(--muted); }
+p b, li b { color: var(--text); font-weight: 600; }
+li { color: var(--muted); margin-bottom: 4px; }
+ul, ol { margin: 0 0 9px; padding-right: 18px; }
+
+code, .mono {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  direction: ltr; unicode-bidi: embed;
+  background: rgba(34,216,238,0.08); color: var(--cyan);
+  border: 1px solid rgba(34,216,238,0.2);
+  border-radius: 6px; padding: 0 6px; font-size: 11px;
+}
+pre {
+  direction: ltr; text-align: left;
+  background: #0a141b; border: 1px solid var(--line);
+  border-radius: 12px; padding: 12px 14px;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 10.5px; line-height: 1.7; color: #b8e9f2;
+  overflow: hidden; white-space: pre-wrap; break-inside: avoid;
+  margin: 0 0 12px;
+}
+pre .c { color: #5b7280; }
+pre .k { color: var(--cyan); }
+pre .ok { color: var(--green); }
+
+/* ───── cards / callouts / tables ───── */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 0 12px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 0 0 12px; }
+.card {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 14px; padding: 11px 14px; break-inside: avoid;
+}
+.card .t { color: var(--cyan); font-size: 10px; font-weight: 700; letter-spacing: 2px; margin-bottom: 4px; }
+.card .v { color: var(--text); font-size: 12.5px; font-weight: 600; }
+.card .s { color: var(--muted); font-size: 10.5px; line-height: 1.75; }
+.card .s .mono { font-size: 10px; }
+.callout {
+  border: 1px solid rgba(34,216,238,0.3);
+  background: linear-gradient(180deg, rgba(34,216,238,0.07), rgba(34,216,238,0.03));
+  border-radius: 14px; padding: 11px 16px; margin: 0 0 12px; break-inside: avoid;
+}
+.callout.warn { border-color: rgba(251,191,36,0.35); background: linear-gradient(180deg, rgba(251,191,36,0.07), rgba(251,191,36,0.03)); }
+.callout.ok { border-color: rgba(52,211,153,0.35); background: linear-gradient(180deg, rgba(52,211,153,0.07), rgba(52,211,153,0.03)); }
+.callout.red { border-color: rgba(251,95,107,0.35); background: linear-gradient(180deg, rgba(251,95,107,0.07), rgba(251,95,107,0.03)); }
+.callout .h { color: var(--text); font-weight: 700; margin-bottom: 2px; font-size: 12.5px; }
+.callout.warn .h { color: var(--amber); }
+.callout.ok .h { color: var(--green); }
+.callout.red .h { color: var(--red); }
+.callout .h .ico { color: var(--cyan); }
+.callout p { margin: 0; font-size: 11.5px; }
+
+table { width: 100%; border-collapse: collapse; margin: 0 0 12px; break-inside: avoid; }
+th { color: var(--cyan); font-size: 10.5px; font-weight: 700; text-align: right; padding: 6px 9px; border-bottom: 1px solid rgba(34,216,238,0.25); }
+td { color: var(--muted); font-size: 11.5px; padding: 5.5px 9px; border-bottom: 1px solid var(--line); vertical-align: top; line-height: 1.7; }
+td .mono, td code { font-size: 10.5px; }
+tr { break-inside: avoid; }
+th:first-child, td:first-child { color: var(--text); font-weight: 600; }
+.chip {
+  display: inline-block; border: 1px solid rgba(34,216,238,0.35); border-radius: 999px;
+  background: rgba(34,216,238,0.06); color: var(--cyan);
+  font-size: 10px; font-weight: 600; padding: 1px 10px; margin: 0 0 4px 6px;
+}
+.chip.dim { border-color: rgba(255,255,255,0.14); color: var(--muted); background: rgba(255,255,255,0.03); }
+.chip.ok { border-color: rgba(52,211,153,0.4); color: var(--green); background: rgba(52,211,153,0.06); }
+.chip.am { border-color: rgba(251,191,36,0.4); color: var(--amber); background: rgba(251,191,36,0.06); }
+
+/* ───── figures ───── */
+figure { margin: 10px 0 6px; break-inside: avoid; }
+figure .shot {
+  border: 1px solid rgba(34,216,238,0.22);
+  border-radius: 12px; overflow: hidden;
+  background: #0a1218;
+  box-shadow: 0 10px 34px rgba(0,0,0,0.45);
+}
+figure img { display: block; width: 100%; max-width: 100%; height: auto; }
+figcaption {
+  margin-top: 6px; font-size: 10.5px; color: var(--muted);
+  display: flex; gap: 8px; align-items: baseline;
+}
+figcaption .step {
+  flex: 0 0 auto; color: var(--cyan); font-weight: 700; font-size: 9.5px;
+  border: 1px solid rgba(34,216,238,0.35); border-radius: 999px; padding: 0 10px;
+  background: rgba(34,216,238,0.06);
+}
+.duo { display: flex; gap: 12px; align-items: flex-start; }
+.duo figure { flex: 1; margin: 10px 0 0; }
+
+/* ───── architecture diagram (pure HTML/CSS) ───── */
+.diagram { margin: 6px 0 12px; break-inside: avoid; }
+.dbox {
+  border: 1px solid rgba(34,216,238,0.35); border-radius: 14px;
+  background: rgba(34,216,238,0.05);
+  padding: 10px 14px; text-align: center; color: var(--text);
+  font-size: 12px; font-weight: 600;
+}
+.dbox .sub { display: block; color: var(--muted); font-size: 10px; font-weight: 400; margin-top: 2px; }
+.drow { display: flex; gap: 10px; }
+.drow .dbox { flex: 1; font-size: 11px; font-weight: 600; padding: 8px 6px; }
+.darrow { text-align: center; color: var(--cyan); font-size: 13px; line-height: 1.35; }
+.darrow .lbl { color: var(--muted); font-size: 9.5px; display: block; letter-spacing: 1px; }
+.dbox.core {
+  border-color: rgba(251,191,36,0.4);
+  background: rgba(251,191,36,0.05);
+}
+.dbox.core .sub b { color: var(--amber); }
+
+/* ───── TOC ───── */
+.toc { margin-top: 4px; }
+.toc .row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 7.5px 2px; border-bottom: 1px dashed rgba(255,255,255,0.10);
+}
+.toc .num {
+  flex: 0 0 34px; height: 26px; border-radius: 9px;
+  border: 1px solid rgba(34,216,238,0.4); background: rgba(34,216,238,0.07);
+  color: var(--cyan); font-weight: 700; font-size: 11px;
+  display: flex; align-items: center; justify-content: center;
+}
+.toc .tt { color: var(--text); font-weight: 600; font-size: 13px; }
+.toc .dots { flex: 1; border-bottom: 1px dotted rgba(255,255,255,0.16); margin: 0 6px; height: 1px; }
+.toc .pn { color: var(--cyan); font-weight: 700; font-size: 12px; }
+
+/* ───── cover ───── */
+.cover {
+  width: 720px; height: 1020px;
+  break-after: page;
+  overflow: hidden;
+  position: relative;
+  padding: 52px 54px 58px;
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  background:
+    radial-gradient(560px 420px at 78% 10%, rgba(34,216,238,0.14), transparent 62%),
+    radial-gradient(500px 420px at 14% 86%, rgba(34,216,238,0.07), transparent 60%),
+    var(--bg);
+}
+.cover .ring { position: absolute; border-radius: 50%; border: 1px solid rgba(34,216,238,0.16); }
+.cover .r1 { width: 470px; height: 470px; top: 30px; left: 40px; }
+.cover .r2 { width: 300px; height: 300px; bottom: 30px; right: 40px; border-color: rgba(34,216,238,0.10); }
+.cover .logo {
+  width: 88px; height: 88px; border-radius: 24px;
+  border: 1.5px solid rgba(34,216,238,0.45);
+  background: rgba(34,216,238,0.06);
+  box-shadow: 0 0 60px rgba(34,216,238,0.28);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 40px; font-weight: 700; color: var(--cyan);
+  font-family: 'JetBrains Mono','Courier New',monospace;
+}
+.cover .kick { margin-top: 18px; color: var(--muted); font-size: 11px; letter-spacing: 6px; }
+.cover h1 { font-size: 40px; font-weight: 700; margin: 8px 0 2px; color: var(--text); }
+.cover h1 b { color: var(--cyan); }
+.cover .ver {
+  font-size: 13.5px; color: var(--cyan); letter-spacing: 3px;
+  border: 1px solid rgba(34,216,238,0.35); border-radius: 999px;
+  padding: 4px 22px; margin: 10px 0 4px;
+  background: rgba(34,216,238,0.06);
+}
+.cover .date { color: var(--muted); font-size: 11.5px; letter-spacing: 1px; }
+.cover p.lead { max-width: 560px; color: var(--muted); font-size: 12.5px; margin: 12px 0 0; line-height: 2; }
+.cover .herofig {
+  margin-top: 20px; width: 612px;
+  border: 1px solid rgba(34,216,238,0.25); border-radius: 14px; overflow: hidden;
+  box-shadow: 0 18px 60px rgba(0,0,0,0.55), 0 0 40px rgba(34,216,238,0.10);
+  background: #0a1218;
+}
+.cover .herofig img { display: block; width: 100%; height: auto; }
+.cover .foot { position: absolute; bottom: 40px; left: 0; right: 0; color: var(--muted); font-size: 10.5px; letter-spacing: 2px; }
+.cover .foot b { color: var(--text); letter-spacing: 4px; }
+
+/* ───── misc ───── */
+.sechead { margin-bottom: 2px; }
+.steps li { margin-bottom: 7px; }
+.small { font-size: 10.5px; color: var(--muted); }
+.center { text-align: center; }
+.mt6 { margin-top: 6px; } .mt10 { margin-top: 10px; } .mt14 { margin-top: 14px; }
+.mb0 { margin-bottom: 0; }
+.gcheck { color: var(--green); font-weight: 700; }
+.rcyan { color: var(--cyan); font-weight: 700; }
+.ramber { color: var(--amber); font-weight: 700; }
+.badge-end {
+  display: inline-block; margin-top: 4px;
+  border: 1px solid rgba(34,216,238,0.35); border-radius: 999px;
+  color: var(--cyan); background: rgba(34,216,238,0.06);
+  padding: 3px 18px; font-size: 10.5px; letter-spacing: 3px; font-weight: 700;
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ p1 · COVER ═══════════════ -->
+<div class="cover">
+  <div class="ring r1"></div>
+  <div class="ring r2"></div>
+  <div class="logo">S</div>
+  <div class="kick">SEPHIROTH · XRAY CONTROL PANEL</div>
+  <h1>کتاب کامل <b>سپیروت</b></h1>
+  <div class="ver">CATALOG · v2.4.0</div>
+  <div class="date">۶ آبان ۱۴۰۵ — اکتبر ۲۰۲۶</div>
+  <p class="lead">کاتالوگ رسمی و مصورِ پنل مدیریت Xray نسل بعد؛ از فورج ساخت کانفیگ و دکتر پیکربندی تا هسته‌ی واقعی Xray، امنیت دومرحله‌ای، کسب‌وکار نمایندگی و سوییت کامل نصب. همه‌چیز با تصاویر واقعی از خودِ پنل.</p>
+  <div class="herofig"><img src="shot-dashboard.png" alt="داشبورد سپیروت"></div>
+  <div class="foot"><b>EPODONIOS</b> · SEPHIROTH PANEL · 2026</div>
+</div>
+
+<!-- ═══════════════ p2 · TOC ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">TABLE OF CONTENTS</span>
+    <h2>فهرست مطالب</h2>
+    <hr class="rule">
+  </div>
+  <div class="toc">
+    <div class="row"><div class="num">۰۱</div><div class="tt">معرفی — سپیروت چیست؟</div><div class="dots"></div><div class="pn">۳</div></div>
+    <div class="row"><div class="num">۰۲</div><div class="tt">معماری پنل</div><div class="dots"></div><div class="pn">۴</div></div>
+    <div class="row"><div class="num">۰۳</div><div class="tt">پروتکل‌ها و ترنسپورت‌ها</div><div class="dots"></div><div class="pn">۵</div></div>
+    <div class="row"><div class="num">۰۴</div><div class="tt">ساخت اینباند با فورج</div><div class="dots"></div><div class="pn">۶</div></div>
+    <div class="row"><div class="num">۰۵</div><div class="tt">کاربران و اشتراک‌ها</div><div class="dots"></div><div class="pn">۸</div></div>
+    <div class="row"><div class="num">۰۶</div><div class="tt">دکتر پیکربندی (Config Doctor)</div><div class="dots"></div><div class="pn">۱۰</div></div>
+    <div class="row"><div class="num">۰۷</div><div class="tt">هسته‌ی واقعی Xray</div><div class="dots"></div><div class="pn">۱۱</div></div>
+    <div class="row"><div class="num">۰۸</div><div class="tt">امنیت</div><div class="dots"></div><div class="pn">۱۲</div></div>
+    <div class="row"><div class="num">۰۹</div><div class="tt">تلگرام</div><div class="dots"></div><div class="pn">۱۳</div></div>
+    <div class="row"><div class="num">۱۰</div><div class="tt">کسب‌وکار — نماینده‌ها و درگاه‌ها</div><div class="dots"></div><div class="pn">۱۴</div></div>
+    <div class="row"><div class="num">۱۱</div><div class="tt">راه‌اندازی — نصب، CLI، داکر</div><div class="dots"></div><div class="pn">۱۵</div></div>
+    <div class="row"><div class="num">۱۲</div><div class="tt">پنل در ۶ زبان</div><div class="dots"></div><div class="pn">۱۷</div></div>
+    <div class="row"><div class="num">۱۳</div><div class="tt">رفع اشکال · پرسش‌های متداول</div><div class="dots"></div><div class="pn">۱۹</div></div>
+    <div class="row"><div class="num">۱۴</div><div class="tt">نقشه راه · پایان</div><div class="dots"></div><div class="pn">۲۰</div></div>
+  </div>
+  <div class="callout mt14">
+    <div class="h"><span class="ico">◈</span> درباره‌ی این کاتالوگ</div>
+    <p>همه‌ی تصاویر این کتاب، اسکرین‌شات واقعی از خود پنل هستند (نسخه‌ی v2.4.0، حالت روشن و تاریک نداریم — زبان طراحی «آبسیدین + سایان شیشه‌ای» در تمام ۶ تم ثابت است). هیچ رمز، آدرس سرور یا اطلاعات خصوصی‌ای در این سند نیست.</p>
+  </div>
+  <div class="grid2 mt6">
+    <div class="card"><div class="t">FORMAT</div><div class="v">PDF عمودی ۷۲۰×۱۰۲۰</div><div class="s">۲۰ صفحه · ۱۱ تصویر واقعی از پنل · متن کامل فارسی (RTL)</div></div>
+    <div class="card"><div class="t">AUDIENCE</div><div class="s" style="margin-top:2px">مدیران سرور، فروشندگان کانفیگ، علاقه‌مندان خودمیزبانی و هر کسی که یک پنل Xray کامل و فارسی می‌خواهد.</div></div>
+  </div>
+  <div class="pfoot"><span><b>کتاب کامل سپیروت</b> · v2.4.0</span><span class="pg">۰۲</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p3 · 01 معرفی ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 01 — INTRODUCTION</span>
+    <h2><span class="n">۰۱</span>معرفی — سپیروت چیست؟</h2>
+    <hr class="rule">
+  </div>
+  <p><b>Sephiroth</b> یک پنل مدیریت کامل برای <b>Xray</b> است: اینباندها، کاربران و اشتراک‌ها، آمار زنده، امنیت و بکاپ — همه در یک <b>فرآیند واحد Node.js</b>. نه MySQL می‌خواهد، نه Postgres؛ داده‌ها در یک فایل JSON اتمیک ذخیره می‌شود و رابط کاربری هم با همان پورت سرو می‌شود.</p>
+  <div class="grid2">
+    <div class="card"><div class="t">DESIGN LANGUAGE</div><div class="v">آبسیدین + سایانِ شیشه‌ای</div><div class="s">پس‌زمینه‌ی <span class="mono">#060b0f</span> با لهجه‌ی <span class="mono">#22d8ee</span>؛ کارت‌های شیشه‌ای، حلقه‌های مداری و استارفیلد — هویتی که در هر ۶ تم حفظ می‌شود.</div></div>
+    <div class="card"><div class="t">THEMES ×6</div><div class="v" style="margin-bottom:4px">۶ تم تاریک</div><div class="s"><span class="chip dim">Sephiroth</span><span class="chip dim">Jenova</span><span class="chip dim">Masamune</span><span class="chip dim">Terminal</span><span class="chip dim">OLED</span><span class="chip dim">One-Winged</span></div></div>
+    <div class="card"><div class="t">LANGUAGES ×6</div><div class="v" style="margin-bottom:4px">فارسی · English · العربية · 中文 · Türkçe · Русский</div><div class="s">جهت <b>RTL کامل و خودکار</b> برای فارسی و عربی (حتی دیالوگ‌ها و Toastها)؛ جابه‌جایی زبان از نوار بالا، بدون رفرش.</div></div>
+    <div class="card"><div class="t">ZERO-DEP RUNTIME</div><div class="v">بدون node_modules</div><div class="s">در حالت production کل بک‌اند در یک باندل تک‌فایلی (<span class="mono">server.cjs</span>) بیلد می‌شود؛ ideal برای هاست‌های کوچک و تک‌پورت.</div></div>
+  </div>
+  <p>سپیروت برای <b>مدیران سرور شخصی</b> که کنترل دقیق می‌خواهند، برای <b>فروشندگان</b> که سیستم نمایندگی و درگاه پرداخت لازم دارند و برای <b>خودمیزبان‌ها</b> که پنلی زیبا، فارسی و سبک می‌خواهند ساخته شده — با تله‌متری زنده‌ی Socket.IO، دستور مرکب <span class="mono">Ctrl+K</span> و راهنمای میدانی درون‌برنامه‌ای.</p>
+  <figure>
+    <div class="shot"><img src="shot-login.png" alt="صفحه ورود" style="width:86%; display:block; margin:0 auto;"></div>
+    <figcaption><span class="step">تصویر ۱</span><span>صفحه‌ی ورود «پایانه‌ی مداری» — ورود با رمز، ورود دومرحله‌ای TOTP، کلید بازیابی و قفل ضد بروت‌فورس.</span></figcaption>
+  </figure>
+  <div class="pfoot"><span><b>کتاب کامل سپیروت</b> · v2.4.0</span><span class="pg">۰۳</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p4 · 02 معماری ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 02 — ARCHITECTURE</span>
+    <h2><span class="n">۰۲</span>معماری پنل</h2>
+    <hr class="rule">
+  </div>
+  <p>کل پنل یک <b>فرآیند واحد</b> است: سرور Express (REST API) همان پورتی را سرو می‌کند که رابط React ساخته‌شده (SPA) روی آن است، و Socket.IO تله‌متری زنده (CPU/RAM/دیسک، وضعیت اینباندها، رویدادها) را پخش می‌کند. هسته‌ی شبکه دو حالت دارد: <b>شبیه‌ساز</b> (پیش‌فرض؛ امن و بدون باینری) یا <b>درایور Xray واقعی</b> (بهینه‌ی بخش ۰۷).</p>
+  <div class="diagram">
+    <div class="dbox">مرورگر ادمین / اپ اشتراک<span class="sub">SPA React · RTL · ۶ زبان</span></div>
+    <div class="darrow">▼<span class="lbl">HTTP :PORT · یک پورت برای همه‌چیز</span></div>
+    <div class="dbox">فرآیند یکتای Node.js — server.cjs (بدون node_modules)<span class="sub">Express REST API + ۴۰+ مسیر · فایل‌های استاتیک SPA · Socket.IO ریل‌تایم</span></div>
+    <div class="darrow">▼<span class="lbl">خواندن/نوشتن اتمیک</span></div>
+    <div class="drow">
+      <div class="dbox">db/sephiroth-store.json<span class="sub">ذخیره‌ی اتمیک: نوشتن در فایل موقت ← rename + یک نسل .bak</span></div>
+      <div class="dbox core">هسته<span class="sub"><b>شبیه‌ساز</b> (پیش‌فرض) یا <b>Xray واقعی</b> + درِ API مخفی روی 127.0.0.1</span></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card"><div class="t">ATOMIC JSON STORE</div><div class="s">هر تغییر بلافاصله به‌صورت اتمیک روی دیسک می‌نشیند (نوشتن در فایل موقت ← rename)؛ کرش = حداکثر از دست دادن آخرین عملیات، نه کل دیتابیس.</div></div>
+    <div class="card"><div class="t">LIVE BY SOCKET.IO</div><div class="s">گوج‌های CPU/RAM/دیسک، نوار ترافیک اینباندها و فید فعالیت‌ها همه با رویداد زنده به‌روز می‌شوند — بدون رفرش صفحه.</div></div>
+  </div>
+  <h3>گزینه‌های استقرار</h3>
+  <table style="margin-bottom:8px">
+    <tr><th style="width:130px">روش</th><th>مناسب برای</th><th style="width:190px">نکته</th></tr>
+    <tr><td>نصب تک‌خطی install.sh</td><td>سرور مجازی/اختصاصی لینوکس (Ubuntu/Debian/RHEL/Alpine/Arch)</td><td>systemd + CLI <span class="mono">sephiroth</span> + پورت و رمز تصادفی</td></tr>
+    <tr><td>Docker / Compose</td><td>سرورهای داکری و CI</td><td>ایمیج رسمی <span class="mono">ghcr.io/edsel-rahimi/sephiroth</span></td></tr>
+    <tr><td>اجرای دستی</td><td>توسعه و تست</td><td><span class="mono">node server.ts</span> یا باندل <span class="mono">server.cjs</span></td></tr>
+    <tr><td>هاست تک‌پورت</td><td>هاست‌های رایگان اپلیکیشن‌محور (Pterodactyl-مانند)</td><td>باندل بدون node_modules + پورت از <span class="mono">SERVER_PORT</span></td></tr>
+  </table>
+  <div class="callout" style="margin-bottom:0">
+    <div class="h"><span class="ico">◈</span> چرا تک‌فرآیند؟</div>
+    <p>یک پورت، یک فرآیند، یک فایل دیتا — روی هر چیزی که Node داشته باشد، از VPS ۵۱۲ مگابایتی تا کانتینر ۳۰۸ مگابایتی هاست رایگان.</p>
+  </div>
+  <div class="pfoot"><span><b>کتاب کامل سپیروت</b> · v2.4.0</span><span class="pg">۰۴</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p5 · 03 پروتکل‌ها ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 03 — PROTOCOLS</span>
+    <h2><span class="n">۰۳</span>پروتکل‌ها و ترنسپورت‌ها</h2>
+    <hr class="rule">
+  </div>
+  <p>فورج سپیروت <b>۹ پروتکل ورودی</b> را با <b>۵ ترنسپورت</b> و <b>۳ لایه امنیتی</b> ترکیب می‌کند؛ لینک اشتراک، QR و خروجی هسته به‌صورت خودکار از همین ترکیب ساخته می‌شوند.</p>
+  <table>
+    <tr><th style="width:118px">پروتکل</th><th>شخصیت و کاربرد</th></tr>
+    <tr><td>VLESS</td><td>مدرن و سبک؛ پشتیبانی از فلو <span class="mono">xtls-rprx-vision</span> — جفت طلایی با REALITY</td></tr>
+    <tr><td>VMess</td><td>کلاسیک و همه‌جا‌پسند؛ مناسب CDN و WebSocket</td></tr>
+    <tr><td>Trojan</td><td>خودش را شبیه ترافیک عادی HTTPS نشان می‌دهد</td></tr>
+    <tr><td>Shadowsocks</td><td>ساده و سریع؛ رمزهای شناخته‌شده</td></tr>
+    <tr><td>Hysteria2</td><td>مبتنی بر QUIC/UDP برای شبکه‌های پری‌سرعت و پرلگ</td></tr>
+    <tr><td>WireGuard</td><td>تونل رسمی با کلید خصوصی/عمومی و MTU قابل تنظیم</td></tr>
+    <tr><td>SOCKS5 / HTTP</td><td>پروکسی محلی با احراز هویت اختیاری — از جمله «پروکسی تلگرام» (بخش ۰۹)</td></tr>
+    <tr><td>Dokodemo-door</td><td>پورتِ شفاف برای هدایت ترافیک (همچنین درِ API مخفی هسته)</td></tr>
+  </table>
+  <div class="grid2">
+    <div class="card"><div class="t">TRANSPORTS</div><div class="s" style="margin-top:2px"><span class="chip dim">TCP + header</span><span class="chip dim">WebSocket</span><span class="chip dim">gRPC</span><span class="chip dim">HTTPUpgrade</span><span class="chip dim">XHTTP</span><br>با path/host/serviceName و early-data برای هرکدام.</div></div>
+    <div class="card"><div class="t">SECURITY</div><div class="s" style="margin-top:2px"><span class="chip dim">none</span><span class="chip ok">TLS 1.0–1.3</span><span class="chip ok">REALITY</span><br>ALPN، fingerprint ×۹ (chrome/firefox/safari/…)، uTLS؛ REALITY با dest، serverNames، shortIds و جفت‌کلید داخلی.</div></div>
+  </div>
+  <h3>Fallbacks و پیش‌تنظیم «ترکیب یک‌پورت»</h3>
+  <p>هر اینباند TLS می‌تواند <b>fallback</b> داشته باشد (dest/alpn/path) — پایه‌ی <b>پیش‌تنظیم یک‌پورت</b>: چند پروتکل روی <b>یک پورت مشترک</b> (مثلاً ۴۴۳) و مسیر <span class="mono">/panel</span> برای خود پنل. برای هاست‌هایی که فقط یک پورت می‌دهند، همین یک پیش‌تنظیم کل مسئله را حل می‌کند.</p>
+  <div class="callout ok">
+    <div class="h"><span class="ico">✓</span> ساخت آفلاین هسته</div>
+    <p>هر چیزی که در فورج می‌سازید، درایور هسته (بخش ۰۷) به کانفیگ واقعی Xray تبدیل می‌کند — streamSettings، REALITY، sniffing (http/tls/quic/fakerd)، mux و fallbackها بدون دست‌کاری دستی JSON.</p>
+  </div>
+  <div class="pfoot"><span><b>کتاب کامل سپیروت</b> · v2.4.0</span><span class="pg">۰۵</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p6 · 04 فورج (1) ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 04 — THE FORGE</span>
+    <h2><span class="n">۰۴</span>ساخت اینباند با فورج</h2>
+    <hr class="rule">
+  </div>
+  <p>«فورج» دیالوگ ساخت/ویرایش اینباند است — یک فرم هوشمند که در حین تایپ، <b>لینک اشتراک و QR را زنده</b> در سایدبار کنارش می‌سازد. مسیر کار:</p>
+  <ol class="steps">
+    <li><b>پروتکل</b> را انتخاب کنید (۹ گزینه؛ توضیح هرکدام زیر همین فیلد می‌آید).</li>
+    <li>در تب <b>General</b>: تگ، پورت و آدرس گوش‌دادن — با دو دکمه‌ی جادویی که پایین‌تر معرفی می‌شوند.</li>
+    <li>تب‌های <b>Transport</b> و <b>Security</b>: ترنسپورت + none/TLS/REALITY با تمام جزئیات (SNI، ALPN، fingerprint، shortId و…).</li>
+    <li>در حالت پیشرفته: <b>Fallbacks</b> به‌صورت آرایه‌ی واقعی و <b>Sniffing/Mux</b>.</li>
+    <li>ذخیره → اینباند در شبکه‌ی کارت‌ها با نوار ترافیک و چیپ‌های محدودیت می‌نشیند؛ کلاینت‌ها را همان‌جا اضافه کنید.</li>
+  </ol>
+  <figure>
+    <div class="shot"><img src="shot-forge.png" alt="فورج — تب General"></div>
+    <figcaption><span class="step">تصویر ۲</span><span>فورج در تب General (پروتکل VLESS) — پیش‌نمایش زنده‌ی لینک اشتراک در سایدبار و دکمه‌های تشخیص IP و پورت آزاد کنار فیلدها.</span></figcaption>
+  </figure>
+  <h3>ساخت سریع (Quick Create)</h3>
+  <p>اگر حوصله‌ی فرم ندارید، از شبکه‌ی «ساخت سریع» یکی از پیش‌تنظیم‌های آماده را بزنید: <span class="chip dim">VLESS + REALITY :443</span><span class="chip dim">VMess + WS + TLS</span><span class="chip dim">SOCKS5 محلی</span><span class="chip dim">ترکیب یک‌پورت</span> و… — خلاصه‌ی تنظیمات را نشان می‌دهد، تایید می‌کنید و تمام.</p>
+  <div class="pfoot"><span><b>کتاب کامل سپیروت</b> · v2.4.0</span><span class="pg">۰۶</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p7 · 04 فورج (2) ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 04 — THE FORGE · AUTOFILL</span>
+    <h2><span class="n">۰۴</span>تشخیص خودکار IP و پورت آزاد</h2>
+    <hr class="rule">
+  </div>
+  <p>دو دکمه‌ی کوچک در فورج، دردسرهای کلاسیکِ «لینک کار نمی‌کند» را از بین می‌برند:</p>
+  <div class="grid2">
+    <div class="card"><div class="t">✛ SERVER-IP AUTO-DETECT</div><div class="s">کنار فیلد «گوش‌دادن»: یک منو با <b>IP عمومی تشخیص‌داده‌شده</b>، IP خصوصی و <span class="mono">0.0.0.0</span>. آی‌پی عمومی از سرویس‌های echo (با کش ۱۰ دقیقه‌ای) می‌آید — و مهم‌تر: با انتخاب آن، <b>لینک اشتراک همان لحظه</b> به آی‌پی واقعی سوییچ می‌شود تا هیچ‌وقت <span class="mono">0.0.0.0</span> داخل لینک کلاینت درز نکند.</div></div>
+    <div class="card"><div class="t">✦ FREE-PORT WAND</div><div class="s">کنار فیلد «پورت»: چوب‌دانی که <b>اولین پورت آزاد</b> را پیشنهاد می‌دهد (پورت پنل +۱ و +۲، سپس 8443/443/2053/2087/2096/8880). دیگر خبری از خطای «پورت اشغال است» یا پورت‌های تکراری نیست.</div></div>
+  </div>
+  <figure>
+    <div class="shot"><img src="shot-forge-autofill.png" alt="تشخیص خودکار IP در فورج"></div>
+    <figcaption><span class="step">تصویر ۳</span><span>منوی تشخیص IP باز است: «استفاده از IP عمومی — تشخیص داده شد»، IP خصوصی و همه‌ی اینترفیس‌ها — مقادیر واقعی از API داخلی <span class="mono">/api/system/server-info</span>.</span></figcaption>
+  </figure>
+  <div class="callout warn">
+    <div class="h">⚠ نکته‌ی حرفه‌ای</div>
+    <p>اگر پشت CDN یا ریورس‌پروکسی هستید، مقدار «گوش‌دادن» را روی <span class="mono">0.0.0.0</span> یا IP خصوصی بگذارید و فقط آی‌پی/دامنه‌ی عمومی در لینک کلاینت می‌نشیند — فورج این دو مفهوم را از هم جدا نگه می‌دارد.</p>
+  </div>
+  <div class="pfoot"><span><b>کتاب کامل سپیروت</b> · v2.4.0</span><span class="pg">۰۷</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p8 · 05 کاربران (1) ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 05 — USERS &amp; SUBSCRIPTIONS</span>
+    <h2><span class="n">۰۵</span>کاربران و اشتراک‌ها</h2>
+    <hr class="rule">
+  </div>
+  <p>هر کاربر یک <b>مشترک واقعی</b> است: سهمیه‌ی ترافیک، روزِ انقضا، محدودیت آی‌پی و چند اینباند هم‌زمان. جدول کاربران نوار مصرف زنده، وضعیت فعال/منقضی و چیپ‌های هوشمند نشان می‌دهد:</p>
+  <ul>
+    <li><b>چیپ پیش‌بینی مصرف:</b> «≈۴ روز تا سقف · ۳.۲ گیگ/روز» — نرخ سوختن از تقسیم مصرف به عمر حساب به‌دست می‌آید (بدون جدول تاریخچه)؛ زیر ۷ روز کهربایی و زیر ۳ روز قرمز می‌شود.</li>
+    <li><b>چرخه‌ی ریست:</b> سهمیه‌ی هفتگی/ماهانه با کرون داخلی خودکار ریست می‌شود و کاربر منقضی هم‌زمان غیرفعال می‌گردد.</li>
+    <li><b>ساخت گروهی (Bulk):</b> ساخت چند کاربر یک‌جا، فعال/غیرفعال‌سازی و حذف گروهی با یک تایید.</li>
+    <li><b>دسترسی به اینباندها:</b> هر کاربر می‌تواند روی چند اینباند سوار شود؛ کلید هر سوارشدن (UUID/رمز/فلو) از همان‌جا مدیریت می‌شود.</li>
+  </ul>
+  <figure>
+    <div class="shot"><img src="shot-users.png" alt="جدول کاربران"></div>
+    <figcaption><span class="step">تصویر ۴</span><span>جدول کاربران با نوار مصرف، سهمیه/انقضا و چیپ‌های پیش‌بینی «≈N روز تا سقف».</span></figcaption>
+  </figure>
+  <div class="callout">
+    <div class="h"><span class="ico">◈</span> IP-Limit شفاف</div>
+    <p>محدودیت آی‌پی (<span class="mono">0 = ∞</span>) در لینک‌ها و خروجی هسته‌ی هر کلاینت ثبت می‌شود و در فیلترها قابل جست‌وجوست؛ اجرای سخت‌گیرانه‌ی قطع خودکار (به سبک fail2ban) در نقشه‌راه است و صادقانه در همین سند اعلام می‌شود.</p>
+  </div>
+  <div class="pfoot"><span><b>کتاب کامل سپیروت</b> · v2.4.0</span><span class="pg">۰۸</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p9 · 05 کاربران (2) ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 05 — SUBSCRIPTION PORTAL</span>
+    <h2><span class="n">۰۵</span>پورتال اشتراک برندشده</h2>
+    <hr class="rule">
+  </div>
+  <p>هر کاربر یک لینک اشتراک شخصی دارد: <span class="mono">/sub/&lt;subId&gt;</span>. صفحه‌ی اشتراک یک «پاس مداری» برندشده است — نوار مصرف، روزهای باقی‌مانده و ایمپورت یک‌کلیکی به اپ‌های محبوب. گروه‌های ساب هم چند کاربر را پشت <b>یک لینک قفل‌دار با رمز</b> جمع می‌کنند.</p>
+  <figure>
+    <div class="shot"><img src="shot-sub-portal.png" alt="پورتال اشتراک" style="width:80%; display:block; margin:0 auto;"></div>
+    <figcaption><span class="step">تصویر ۵</span><span>پورتال اشتراک کاربر (ORBIT PASS): سهمیه ۶۱ از ۲۰۰ گیگ، ۱۴ روز باقی‌مانده و ایمپورت یک‌کلیکی — با برند سپیروت و امضای EPODONIOS.</span></figcaption>
+  </figure>
+  <h3>فرمت‌های خروجی اشتراک</h3>
+  <table>
+    <tr><th style="width:150px">فرمت</th><th>دریافت با</th><th style="width:170px">مناسب</th></tr>
+    <tr><td>URI خام (raw)</td><td><span class="mono">?format=raw</span></td><td>اشتراک‌گذاری دستی</td></tr>
+    <tr><td>Base64</td><td><span class="mono">?format=b64</span></td><td>اکثر اپ‌های v2ray</td></tr>
+    <tr><td>Clash Meta</td><td><span class="mono">?format=clash</span></td><td>Clash / Mihomo / Verge / Stash</td></tr>
+    <tr><td>Sing-Box</td><td><span class="mono">?format=singbox</span></td><td>Sing-Box 1.10+ / Hiddify / Streisand / V2Box</td></tr>
+    <tr><td>Xray-JSON</td><td><span class="mono">?format=xray</span></td><td>پروفایل کامل v2ray/xray-core</td></tr>
+  </table>
+  <div class="callout ok">
+    <div class="h"><span class="ico">✓</span> تشخیص خودکار User-Agent</div>
+    <p>اپ کلاینت خودش را معرفی می‌کند: Clash/Mihomo/Verge/Stash خروجی <span class="mono">YAML</span> می‌گیرد، sing-box/Hiddify/V2Box خروجی <span class="mono">sing-box</span>، و بقیه Base64 — بدون هیچ تنظیمی از سمت کاربر.</p>
+  </div>
+  <div class="pfoot"><span><b>کتاب کامل سپیروت</b> · v2.4.0</span><span class="pg">۰۹</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p10 · 06 دکتر پیکربندی ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 06 — CONFIG DOCTOR</span>
+    <h2><span class="n">۰۶</span>دکتر پیکربندی</h2>
+    <hr class="rule">
+  </div>
+  <p>دکتر پیکربندی یک <b>ویژگی منحصربه‌فرد</b> سپیروت است: یک اسکن ۱۶ نقطه‌ای روی کل پنل که مشکلات را قبل از اینکه کاربر آن‌ها را کشف کند پیدا می‌کند و برای هر مورد «عنوان + توضیح + راه‌حل» می‌دهد. امتیاز از ۱۰۰ محاسبه می‌شود:</p>
+  <p class="center mono" style="font-size:12px; margin-bottom:8px">score = 100 − ۱۲×خطر − ۵×هشدار − ۱×توجه &nbsp;→&nbsp; گرید A تا D</p>
+  <div class="grid2">
+    <div class="card"><div class="t">اینباندها (۸ بررسی)</div><div class="s">پروکسی باز SOCKS/HTTP بدون احراز هویت · TLS بدون سرتیفیکیت · REALITY ناقص (dest/serverNames/shortIds/کلید) · fallback خراب · استفاده‌ی مجدد کلید خصوصی WireGuard · پورت ممتاز (&lt;1024) · اینباند منقضی · اینباند خاموش</div></div>
+    <div class="card"><div class="t">کاربران (۶ بررسی)</div><div class="s">منقضی ولی هنوز فعال · در آستانه‌ی انقضا (≤۳ روز) · سهمیه‌ی پریده · ≥۹۰٪ مصرف · حساب «روح» بدون دسترسی به هیچ اینباند · کاربر سوار بر اینباند خاموش</div></div>
+    <div class="card"><div class="t">روتینگ (۲ بررسی)</div><div class="s">قاعده‌ی مرده (خروجی ناموجود) و قاعده‌ی خالیِ بی‌شرط — همان‌هایی که بی‌سر‌و‌صدا ترافیک را می‌بلعند یا همه‌چیز را رد می‌کنند.</div></div>
+    <div class="card"><div class="t">خروجی اسکن</div><div class="s">حلقه‌ی امتیاز + گرید + چیپ‌های شدت (خطر/هشدار/توجه) و برای هر یافته: توضیح دقیق و دکمه‌ی اصلاح پیشنهادی. همه‌ی متن‌ها در ۶ زبان ترجمه شده‌اند.</div></div>
+  </div>
+  <figure>
+    <div class="shot"><img src="shot-doctor.png" alt="دکتر پیکربندی"></div>
+    <figcaption><span class="step">تصویر ۶</span><span>دکتر پیکربندی روی یک پنل واقعی: امتیاز ۸۲ (گرید B) با یافته‌های واقعی — پورت ممتاز ۴۴۳، TLS بدون سرت و کاربر منقضی.</span></figcaption>
+  </figure>
+  <div class="pfoot"><span><b>کتاب کامل سپیروت</b> · v2.4.0</span><span class="pg">۱۰</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p11 · 07 هسته واقعی Xray ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 07 — REAL XRAY CORE</span>
+    <h2><span class="n">۰۷</span>هسته‌ی واقعی Xray</h2>
+    <hr class="rule">
+  </div>
+  <p>از v2.4 سپیروت <b>دو درایور هسته</b> دارد. پیش‌فرض همان <b>شبیه‌ساز</b> است (تله‌متری نمایشی امن، بدون باینری — برای هر میزبانی از جمله هاست‌های قفل‌شده) و <b>درایور Xray واقعی</b> به‌صورت opt-in هسته‌ی واقعی را اجرا می‌کند:</p>
+  <table>
+    <tr><th style="width:150px">قابلیت</th><th>شبیه‌ساز (پیش‌فرض)</th><th>Xray واقعی (opt-in)</th></tr>
+    <tr><td>اجرای پروتکل‌ها</td><td>تله‌متری شبیه‌سازی‌شده</td><td class="rcyan">اجرای واقعی — ترافیک از پورت واقعی عبور می‌کند</td></tr>
+    <tr><td>آمار per-user</td><td>نمایشی</td><td class="rcyan">واقعی (دلتای API آمار، پیش‌فرض هر ۱۰ ثانیه، قابل تنظیم ۵–۱۲۰)</td></tr>
+    <tr><td>نیازمندی</td><td>هیچ</td><td>دانلود خودکار باینری از ریلیزهای XTLS/Xray-core (یا مسیر دستی + پین نسخه)</td></tr>
+    <tr><td>اعتبارسنجی کانفیگ</td><td>—</td><td><span class="mono">xray run -test</span> قبل از هر اجرا</td></tr>
+    <tr><td>مناسب برای</td><td>تست، دمو، هاست محدود</td><td class="rcyan">پروداکشن</td></tr>
+  </table>
+  <figure>
+    <div class="shot"><img src="shot-settings-core.png" alt="کارت هسته / Xray"></div>
+    <figcaption><span class="step">تصویر ۷</span><span>کارت «هسته / Xray» در تنظیمات: انتخاب درایور، نصب/شروع/توقف/ری‌استارت، مسیر باینری، پین نسخه و لاگ زنده‌ی جمع‌شونده.</span></figcaption>
+  </figure>
+  <ul>
+    <li><b>ساخت از استور:</b> کانفیگ از همان اینباندها/کاربرانِ پنل تولید می‌شود؛ درِ API آمار مخفی روی <span class="mono">127.0.0.1</span> بالا می‌آید.</li>
+    <li><b>ری‌لود با تغییر:</b> هر تغییر اینباند/کاربر با تاخیر ~۱.۵ ثانیه اعمال می‌شود؛ هسته فقط اگر هش کانفیگ عوض شده باشد ری‌استارت می‌شود.</li>
+  </ul>
+  <div class="pfoot"><span><b>کتاب کامل سپیروت</b> · v2.4.0</span><span class="pg">۱۱</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p12 · 08 امنیت ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 08 — SECURITY</span>
+    <h2><span class="n">۰۸</span>امنیت</h2>
+    <hr class="rule">
+  </div>
+  <div class="grid2">
+    <div class="card"><div class="t">ورود دومرحله‌ای TOTP</div><div class="s">پیاده‌سازی صفر-وابستگیِ RFC-6238 (SHA-1، ۶ رقمی، پنجره ±۱). ثبت‌نام با QR + کد تایید؛ <b>فعال/غیرفعال‌کردن دوباره هم کد می‌خواهد</b> تا نشست دزدیده‌شده نتواند 2FA را خاموش کند. صفحه‌ی ورود بعد از رمز، کد می‌پرسد.</div></div>
+    <div class="card"><div class="t">ضد بروت‌فورس</div><div class="s">۵ تلاش ناموفق در ۵ دقیقه = قفل شدن آی‌پی با شمارش معکوس زنده روی صفحه‌ی ورود؛ لاگ کامل تلاش‌ها در «فعالیت‌ها».</div></div>
+    <div class="card"><div class="t">کلید بازیابی</div><div class="s">کلید <span class="mono">SEPH-XXXX-XXXX-XXXX</span> فقط یک‌بار نمایش داده می‌شود و هر وقت بخواهید می‌چرخانید — فراموشی رمز دیگر یعنی یک ورود ساده، نه از دست دادن پنل.</div></div>
+    <div class="card"><div class="t">نشست‌ها</div><div class="s">کوکی httpOnly امضاشده با HMAC؛ «ابطال همه‌ی نشست‌ها» با چرخاندن secret تمام کوکی‌ها را بی‌اعتبار می‌کند. حالت کوکی <span class="mono">SEPH_COOKIE_SECURE=auto</span> خودش تشخیص می‌دهد پشت HTTPS هستید یا نه.</div></div>
+    <div class="card"><div class="t">بکاپ زمان‌بندی‌شده</div><div class="s">هر ۲۴ ساعت یک خروجی JSON کامل در <span class="mono">db/backups/</span> با نگهداری ۱ تا ۳۰ فایل (قدیمی‌ها حذف می‌شوند) + اجرای فوری، دانلود و حذف از رابط. بکاپ دستی/بازگردانی با تایید <span class="mono">RESTORE</span> هم دارید.</div></div>
+    <div class="card"><div class="t">به‌روزرسانی نرم‌افزار</div><div class="s">دکمه‌ی «بررسی → نصب → ری‌استارت» داخل خود پنل: اسکریپت به‌روزرسانی جدا از فرآیند اصلی اجرا می‌شود، وضعیتش در فایل وضعیت منتشر می‌شود و پنل تا ری‌استارت روی کد قبلی به کار ادامه می‌دهد. نصب‌های non-git با CLI قابل به‌روزرسانی‌اند.</div></div>
+  </div>
+  <figure>
+    <div class="shot"><img src="shot-security-cluster.png" alt="کارت‌های امنیت و سیستم" style="width:74%; display:block; margin:0 auto;"></div>
+    <figcaption><span class="step">تصویر ۸</span><span>خوشه‌ی امنیت/سیستم در تنظیمات (فارسی RTL): به‌روزرسانی نرم‌افزار، ورود دومرحله‌ای، بکاپ زمان‌بندی‌شده و ابزار MTProto.</span></figcaption>
+  </figure>
+  <div class="pfoot"><span><b>کتاب کامل سپیروت</b> · v2.4.0</span><span class="pg">۱۲</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p13 · 09 تلگرام ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 09 — TELEGRAM</span>
+    <h2><span class="n">۰۹</span>تلگرام</h2>
+    <hr class="rule">
+  </div>
+  <p>سوال همیشگی «چطور تلگرام را از فیلترینگ رد کنم؟» در خود پنل جواب داده شده — با یک سوییت کامل و یادداشت‌های صادقانه:</p>
+  <h3>۱) سوییت پروکسی SOCKS5</h3>
+  <p>وقتی در فورج یک اینباند <b>SOCKS5</b> بسازید، بلوک «پروکسی تلگرام» باز می‌شود و علاوه بر لینک استاندارد، دو لینک بومی تلگرام + QR می‌دهد: <span class="mono">t.me/socks?server=…&amp;port=…&amp;user=…&amp;pass=…</span> و <span class="mono">tg://socks?…</span> — کاربر فقط یک تپ می‌کند و تلگرام پروکسی را قبول می‌کند.</p>
+  <h3>۲) ابزار MTProto (تنظیمات → سیستم)</h3>
+  <p>برای شبکه‌های خصمانه‌تر، ابزار داخلی «پروکسی MTProto» یک سکرت واقعی می‌سازد: میزبان، پورت و حالت <span class="mono">dd</span> (استتار با دامنه) یا <span class="mono">plain</span> را می‌گیرید، سکرت + لینک‌های <span class="mono">tg://proxy</span> و <span class="mono">t.me/proxy</span> + QR تحویل می‌گیرید و دستورات آماده‌ی اجرای <span class="mono">mtg v2</span> (داکر) هم داخل همان کارت هست.</p>
+  <div class="callout warn">
+    <div class="h">⚠ صداقت فنی — چیزهایی که باید بدانید</div>
+    <p>۱) SOCKS5 در تلگرام <b>استتار ندارد</b> و برای DPI دیده می‌شود؛ در شبکه‌های سختگیرانه از MTProto استفاده کنید. ۲) خود Xray اینباند MTProto را از نسخه‌ی v24.10 حذف کرده — به همین دلیل سپیروت به‌جای ادعای غیرواقعی، ابزار تولید سکرت + دستورات daemon مستقل می‌دهد. ۳) ربات فروش تلگرام هم‌اکنون در فاز پژوهش است و به‌عنوان قدم بعدی در نقشه‌راه (بخش ۱۴) آمده.</p>
+  </div>
+  <div class="grid2">
+    <div class="card"><div class="t">داخل فورج</div><div class="s">لینک t.me/socks · لینک tg:// · QR · دکمه‌های کپی · یادداشت صادقانه درباره‌ی استتار — همه‌چیز بدون خروج از دیالوگ.</div></div>
+    <div class="card"><div class="t">داخل تنظیمات</div><div class="s">تولید سکرت MTProto با حالت dd/plain، لینک‌های آماده، دستورات اجرای mtg v2 و توضیح فنی محدودیت‌ها.</div></div>
+  </div>
+  <div class="pfoot"><span><b>کتاب کامل سپیروت</b> · v2.4.0</span><span class="pg">۱۳</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p14 · 10 کسب‌وکار ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 10 — BUSINESS</span>
+    <h2><span class="n">۱۰</span>کسب‌وکار — نماینده‌ها و درگاه‌ها</h2>
+    <hr class="rule">
+  </div>
+  <p>سپیروت تنها پنل این فهرست مقایسه‌هاست که <b>سیستم نمایندگی کامل</b> دارد — چیزی که 3x-ui/Marzban/Remnawave ندارند:</p>
+  <h3>نماینده‌ها (Resellers)</h3>
+  <ul>
+    <li><b>نقش دوم با احراز هویت مستقل:</b> نماینده با کاربری خودش وارد می‌شود و ناوبری فقط «کاربران» را می‌بیند.</li>
+    <li><b>سهمیه‌ی سخت:</b> سقف تعداد کاربر و سقف ترافیک تخصیصی — عبور از سهمیه در سطح API (نه فقط رابط) با کد <span class="mono">403</span> رد می‌شود.</li>
+    <li><b>لیست اسکوپ‌شده:</b> نماینده فقط کاربران خودش را می‌بیند و حتی با دست‌کاری درخواست، دسترسی به کاربر بقیه در پاسخ <span class="mono">404</span> گم می‌شود (بدون لو رفتن وجودش).</li>
+    <li><b>نوارهای نظارت ادمین:</b> برای هر نماینده می‌بینید چند کاربر از چند سهمیه و چند گیگ از چند گیگ مصرف شده.</li>
+  </ul>
+  <h3>قالب‌های فروش (Sale Templates)</h3>
+  <p>پکیج‌های آماده («Starter 50G»، «Pro 200G»، …) که در دیالوگ ساخت کاربر به‌صورت چیپ‌های یک‌کلیکی ظاهر می‌شوند و سهمیه/انقضا/آی‌پی‌لیمیت را یک‌جا پر می‌کنند — فروشندگان بدون فکر کردن به اعداد، بسته‌ی درست را می‌سازند.</p>
+  <h3>درگاه‌های پرداخت</h3>
+  <table>
+    <tr><th style="width:170px">درگاه</th><th>نوع اتصال</th></tr>
+    <tr><td>زرین‌پال / IDPay</td><td>وب‌هوک — شحن خودکار سهمیه‌ی نماینده</td></tr>
+    <tr><td>کریپتو USDT (TRC20)</td><td>پیکربندی پرداخت کریپتو در همان پنل</td></tr>
+    <tr><td>کارت‌به‌کارت تلگرام</td><td>اتصال کارت‌به‌کارت از طریق تلگرام</td></tr>
+  </table>
+  <div class="callout">
+    <div class="h"><span class="ico">◈</span> پیش‌بینی مصرف = مدیریت فروش</div>
+    <p>چیپ‌های «≈N روز تا سقف» برای نماینده‌ها هم معنا دارند: قبل از اینکه مشترکِ سهمیه‌اش تمام شود، می‌دانید کدام حساب‌ها فردا تمدید می‌خواهند — آماده‌سازی فاکتور قبل از قطعی.</p>
+  </div>
+  <div class="pfoot"><span><b>کتاب کامل سپیروت</b> · v2.4.0</span><span class="pg">۱۴</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p15 · 11 راه‌اندازی (1) ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 11 — DEPLOYMENT</span>
+    <h2><span class="n">۱۱</span>راه‌اندازی — نصب تک‌خطی و CLI</h2>
+    <hr class="rule">
+  </div>
+  <p>روی هر سرور لینوکسی (Debian/Ubuntu/RHEL/Alpine/Arch، x86_64 و arm64) فقط یک خط:</p>
+  <pre><span class="c"># نصب تعاملی (پورت/کاربری/رمز را می‌پرسد)</span>
+<span class="k">bash &lt;(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh)</span>
+
+<span class="c"># نصب با نسخه‌ی پین‌شده</span>
+<span class="k">bash &lt;(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh)</span> v2.4.0
+
+<span class="c"># نصب بی‌سوال (CI/اسکریپت‌ها) — خروجی: /etc/sephiroth/install-result.env</span>
+<span class="ok">SEPH_NONINTERACTIVE=1</span> bash install.sh</pre>
+  <p><b>اسکریپت چه می‌سازد؟</b></p>
+  <ul>
+    <li><span class="mono">/opt/sephiroth</span> — سورس + بیلد SPA (vite) و باندل تک‌فایلی <span class="mono">server.cjs</span> (esbuild)؛ سپس پاک‌شدن node_modules → اجرای صفر-وابستگی.</li>
+    <li><span class="mono">/etc/sephiroth/sephiroth.env</span> — پورت تصادفی آزاد (۲۰۵۸۰–۲۱۰۰۰)، <b>رمز تصادفی ۱۶ نویسه</b> و <span class="mono">SEPH_COOKIE_SECURE=auto</span> (اجرای مجدد، مقادیر موجود را حفظ می‌کند).</li>
+    <li><b>سرویس systemd سخت‌گیرانه:</b> NoNewPrivileges، ProtectSystem=full، PrivateTmp — و در محیط بدون systemd، حالت daemon با CLI.</li>
+    <li><b>خلاصه‌ی نصب:</b> آدرس پنل و رمزها در <span class="mono">install-result.env</span> با دسترسی ۰۶۰۰ چاپ و ذخیره می‌شود. Node ۲۲ هم اگر نبود نصب می‌شود (NodeSource → مخزن توزیع → تاربال رسمی پین‌شده).</li>
+  </ul>
+  <h3>CLI مدیریت — <span class="mono">sephiroth</span></h3>
+  <pre><span class="c">$ sephiroth          </span><span class="c">← منوی تعاملی</span>
+  <span class="k">1.</span> Start               <span class="k">6.</span>  Logs (follow)
+  <span class="k">2.</span> Stop                <span class="k">7.</span>  Logs (last 100)
+  <span class="k">3.</span> Restart             <span class="k">8.</span>  Change Admin Password
+  <span class="k">4.</span> Force Restart       <span class="k">9.</span>  Change Panel Port
+  <span class="k">5.</span> Status              <span class="k">10.</span> Backup Now
+  <span class="k">0.</span> Exit                <span class="k">11.</span> Restore Backup
+                         <span class="k">12.</span> Check for Update
+                         <span class="k">13.</span> Update Panel
+                         <span class="k">14.</span> Uninstall
+<span class="c"># یا مستقیم:</span> sephiroth start|stop|restart|status|logs|backup|update …</pre>
+  <p>تغییر رمز/پورت از طریق ماژول maint انجام می‌شود (هش scrypt با همان قالب خود پنل)، بکاپ/بازگردانی هم‌قالب با بکاپ‌های داخل پنل است و «بررسی به‌روزرسانی» نسخه را با package.json ریپوی عمومی مقایسه می‌کند.</p>
+  <div class="pfoot"><span><b>کتاب کامل سپیروت</b> · v2.4.0</span><span class="pg">۱۵</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p16 · 11 راه‌اندازی (2) ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 11 — DEPLOYMENT · DOCKER</span>
+    <h2><span class="n">۱۱</span>راه‌اندازی — داکر و به‌روزرسانی</h2>
+    <hr class="rule">
+  </div>
+  <p>ایمیج رسمی چندمرحله‌ای روی <span class="mono">node:22-alpine</span> ساخته می‌شود: مرحله‌ی اول بیلد SPA + esbuild، مرحله‌ی دوم فقط <span class="mono">server.cjs</span> + <span class="mono">dist/</span> — بدون سورس و بدون node_modules. Healthcheck داخلی روی <span class="mono">/api/auth/session</span> و حجم <span class="mono">/app/db</span> برای ماندگاری داده.</p>
+  <pre><span class="c"># سریع‌ترین راه</span>
+<span class="k">docker run -d --name sephiroth -p 3000:3000 -v sephiroth_data:/app/db \
+  ghcr.io/edsel-rahimi/sephiroth:latest</span>
+
+<span class="c"># docker-compose.yml</span>
+<span class="k">services:</span>
+  sephiroth:
+    image: ghcr.io/edsel-rahimi/sephiroth:latest   <span class="c"># یا پین نسخه: :v2.4.0</span>
+    ports: [ "<span class="ok">${SEPH_PORT:-3000}</span>:3000" ]
+    environment:
+      SEPHIROTH_ADMIN_USER: <span class="ok">${SEPHIROTH_ADMIN_USER:-admin}</span>
+      SEPHIROTH_ADMIN_PASS: <span class="ok">${SEPHIROTH_ADMIN_PASS:-sephiroth}</span>  <span class="c"># بعد از اولین ورود عوض کنید!</span>
+      SEPH_COOKIE_SECURE: auto
+    volumes: [ sephiroth_data:/app/db ]</pre>
+  <p>تگ‌ها به‌صورت خودکار روی GitHub Actions ساخته و به GHCR پوشیده می‌شوند: <span class="mono">latest</span> برای main و تگ‌های نسخه‌ی معنایی (<span class="mono">v2.4.0</span>) — پین کردن نسخه در پروداکشن توصیه می‌شود. اسم کاربری/رمز محیطی فقط در <b>اولین بوتِ دیتای خالی</b> seed می‌شود؛ بعد از آن فقط از داخل پنل یا CLI عوضش کنید.</p>
+  <div class="grid2">
+    <div class="card"><div class="t">به‌روزرسانی (نصب اسکریپتی)</div><div class="s">اجرای دوباره‌ی install.sh = آپدیت بی‌خطر: دیتابیس، env و رمزها دست‌نخورده می‌مانند و سرویس ری‌استارت می‌شود. داخل پنل هم دکمه‌ی به‌روزرسانی (بخش ۰۸) هست. حالت non-git: دانلود زیپ + تعویض <span class="mono">server.cjs</span>.</div></div>
+    <div class="card"><div class="t">حذف کامل</div><div class="s"><span class="mono">sephiroth uninstall</span> با دو تایید: سرویس و فایل‌ها پاک می‌شوند؛ حذف دیتا (db) اختیاری و جداگانه پرسیده می‌شود.</div></div>
+  </div>
+  <div class="callout warn">
+    <div class="h">⚠ چک‌لیست بعد از نصب</div>
+    <p>۱) رمز پیش‌فرض را عوض کنید (پروفایل → امنیت). ۲) کلید بازیابی را جایی امن ذخیره کنید. ۳) 2FA را فعال کنید. ۴) یک بکاپ دستی بگیرید تا بازگردانی را یک‌بار تمرین کرده باشید. ۵) روی پروداکشن، درایور Xray واقعی را از کارت «هسته» فعال کنید.</p>
+  </div>
+  <div class="pfoot"><span><b>کتاب کامل سپیروت</b> · v2.4.0</span><span class="pg">۱۶</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p17 · 12 زبان‌ها ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 12 — 6 LANGUAGES</span>
+    <h2><span class="n">۱۲</span>پنل در ۶ زبان</h2>
+    <hr class="rule">
+  </div>
+  <p>رابط پنل، پورتال اشتراک، Toastها، دیالوگ‌ها و حتی متن‌های دکتر پیکربندی در <b>۶ زبان</b> با توازن کامل ترجمه شده‌اند (بررسی خودکار: صفر کلید گم‌شده و صفر ناهم‌خوانی placeholder در هر ۶ زبان):</p>
+  <table>
+    <tr><th style="width:150px">زبان</th><th style="width:80px">کد</th><th style="width:90px">جهت</th><th>نکته</th></tr>
+    <tr><td>فارسی</td><td><span class="mono">fa</span></td><td>RTL</td><td>نیم‌فاصله‌ها و ارقام فارسی استاندارد</td></tr>
+    <tr><td>العربية</td><td><span class="mono">ar</span></td><td>RTL</td><td>اصطلاح‌ها یکدست (نقاط الدخول، الموزّع…)</td></tr>
+    <tr><td>English</td><td><span class="mono">en</span></td><td>LTR</td><td>زبان مرجع</td></tr>
+    <tr><td>中文</td><td><span class="mono">zh</span></td><td>LTR</td><td>پرانتزهای تمام‌عرض و نگارش چینی روان</td></tr>
+    <tr><td>Türkçe</td><td><span class="mono">tr</span></td><td>LTR</td><td>ترمینولوژی یکدست (Giriş / Sorgula…)</td></tr>
+    <tr><td>Русский</td><td><span class="mono">ru</span></td><td>LTR</td><td>اصطلاحات فنی بومی‌سازی‌شده</td></tr>
+  </table>
+  <figure>
+    <div class="shot"><img src="shot-fa-dashboard.png" alt="داشبورد فارسی"></div>
+    <figcaption><span class="step">تصویر ۹</span><span>داشبورد در حالت فارسی — آینه‌سازی کامل RTL: گوج‌ها، چارت‌ها، ناوبری و فید زنده.</span></figcaption>
+  </figure>
+  <div class="callout">
+    <div class="h"><span class="ico">◈</span> RTL واقعی، نه صرفاً راست‌چین</div>
+    <p>جهت صفحه با Radix DirectionProvider از ریشه تزریق می‌شود؛ یعنی دیالوگ‌ها، دراپ‌داون‌ها، تولتیپ‌ها و حتی Toastها هم آینه می‌شوند. اعداد فنی (پورت، نسخه، لینک‌ها) داخل بلوک‌های <span class="mono">dir=ltr</span> می‌مانند تا خوانا بمانند.</p>
+  </div>
+  <div class="pfoot"><span><b>کتاب کامل سپیروت</b> · v2.4.0</span><span class="pg">۱۷</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p18 · 12 موبایل ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 12 — RESPONSIVE</span>
+    <h2><span class="n">۱۲</span>موبایل و ریسپانسیو</h2>
+    <hr class="rule">
+  </div>
+  <p>هر ۱۳ نمای پنل در عرض ۳۹۰ پیکسل هم بازطراحی شده است: جدول‌ها به کارت‌های انباشته تبدیل می‌شوند، نوار بالا جمع می‌شود و دیالوگ‌های بزرگ (مثل فورج) به پیمایش عمودی با فیلدهای تمام‌عرض می‌روند — در هر دو جهت LTR و RTL، بدون سرریز افقی (با بازرسی خودکار چیدمان تست شده است).</p>
+  <div class="duo" style="justify-content:center; margin-top:8px">
+    <figure style="flex:0 0 auto; margin:0">
+      <div class="shot" style="width:236px"><img src="shot-mobile-dashboard.png" alt="موبایل — داشبورد" style="width:100%"></div>
+      <figcaption style="justify-content:center"><span class="step">تصویر ۱۰</span><span>داشبورد موبایل (انگلیسی)</span></figcaption>
+    </figure>
+    <figure style="flex:0 0 auto; margin:0">
+      <div class="shot" style="width:236px"><img src="shot-mobile-forge.png" alt="موبایل — فورج فارسی" style="width:100%"></div>
+      <figcaption style="justify-content:center"><span class="step">تصویر ۱۱</span><span>فورج موبایل — فارسی RTL</span></figcaption>
+    </figure>
+  </div>
+  <div class="grid2 mt14">
+    <div class="card"><div class="t">MOBILE-FIRST TOUCHES</div><div class="s">جست‌وجوی سراسری و پالت فرمان <span class="mono">Ctrl+K</span> روی موبایل هم در دسترس است؛ جابه‌جایی بین نماها از همان ناوبری بالایی و دکمه‌های اکشن سریع داشبورد.</div></div>
+    <div class="card"><div class="t">QA AUTOMATICO</div><div class="s">یک ممیز چیدمان (سرریز، هم‌پوشانی، برش متن) همه‌ی نماها را در EN/FA و ۱۲۸۰px/۳۹۰px اسکن می‌کند — همان ممیزی که این کاتالوگ هم رد شده است.</div></div>
+  </div>
+  <div class="pfoot"><span><b>کتاب کامل سپیروت</b> · v2.4.0</span><span class="pg">۱۸</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p19 · 13 FAQ ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 13 — TROUBLESHOOTING &amp; FAQ</span>
+    <h2><span class="n">۱۳</span>رفع اشکال · پرسش‌های متداول</h2>
+    <hr class="rule">
+  </div>
+  <table>
+    <tr><th style="width:200px">پرسش</th><th>پاسخ کوتاه</th></tr>
+    <tr><td>«پورت اشغال است» می‌گیرم</td><td>در فورج دکمه‌ی چوب‌دان ✦ را بزنید تا اولین پورت آزاد پیشنهاد شود؛ برای بررسی دستی: <span class="mono">ss -tlnp | grep &lt;port&gt;</span></td></tr>
+    <tr><td>دانلود باینری Xray ناموفق است</td><td>در کارت «هسته» مسیر باینری را دستی بدهید یا نسخه را پین کنید؛ تا آن موقع پنل با شبیه‌ساز به کار عادی ادامه می‌دهد.</td></tr>
+    <tr><td>اعداد ترافیک شبیه‌ساز با واقعی فرق دارد؟</td><td>بله — شبیه‌ساز تله‌متری نمایشی است. آمار واقعی per-user فقط از درایور Xray واقعی (بخش ۰۷) می‌آید.</td></tr>
+    <tr><td>رمز ادمین را فراموش کردم</td><td>از سرور: <span class="mono">sephiroth</span> → گزینه ۸ (تغییر رمز)؛ یا در صفحه‌ی ورود «کلید بازیابی» را استفاده کنید.</td></tr>
+    <tr><td>بکاپ را چطور برگردانم؟</td><td>تنظیمات → بازگردانی → فایل JSON + تایید <span class="mono">RESTORE</span>؛ یا روی سرور: <span class="mono">sephiroth</span> → گزینه ۱۱. بازگردانی در یک تراکنش انجام می‌شود و کاربر ادمین دست‌نخورده می‌ماند.</td></tr>
+    <tr><td>HTTPS را چطور فعال کنم؟</td><td>ریورس‌پروکسی (Nginx/Caddy) با TLS بگذارید؛ کوکی امن حالت <span class="mono">auto</span> دارد و با <span class="mono">x-forwarded-proto</span> خودش Secure می‌شود.</td></tr>
+    <tr><td>فقط یک پورت دارم (هاست رایگان)</td><td>پیش‌تنظیم «ترکیب یک‌پورت» (بخش ۰۳) را بسازید: چند پروتکل با fallback روی یک پورت + پنل روی <span class="mono">/panel</span>.</td></tr>
+    <tr><td>پنل بعد از تغییر، باز هم کد قدیمی را اجرا می‌کند</td><td>طبیعی است — به‌روزرسانی درون‌پنلی تا «ری‌استارت» صبر می‌کند تا نشست‌ها نپرد؛ دکمه‌ی ری‌استارت را بزنید.</td></tr>
+  </table>
+  <div class="callout ok">
+    <div class="h"><span class="ico">✓</span> جعبه‌ابزار عیب‌یابی سریع</div>
+    <p><span class="mono">sephiroth logs</span> برای لاگ سرویس · <span class="mono">sephiroth status</span> برای وضعیت · لاگ زنده‌ی هسته در کارت «هسته / Xray» · گزارش دکتر پیکربندی برای پاک‌سازی پیکربندی · فید «فعالیت‌ها» برای اینکه چه‌کسی چه‌کاری کرده.</p>
+  </div>
+  <div class="pfoot"><span><b>کتاب کامل سپیروت</b> · v2.4.0</span><span class="pg">۱۹</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p20 · 14 نقشه راه + پایان ═══════════════ -->
+<div class="page last">
+  <div class="sechead">
+    <span class="kicker">SECTION 14 — ROADMAP &amp; FINALE</span>
+    <h2><span class="n">۱۴</span>نقشه راه · پایان</h2>
+    <hr class="rule">
+  </div>
+  <h3>تحویل‌شده تا v2.4.0</h3>
+  <p><span class="gcheck">✓</span> فورج با REALITY و پیش‌نمایش زنده &nbsp;·&nbsp; <span class="gcheck">✓</span> دکتر پیکربندی ۱۶نقطه‌ای &nbsp;·&nbsp; <span class="gcheck">✓</span> درایور Xray واقعی &nbsp;·&nbsp; <span class="gcheck">✓</span> 2FA (TOTP) &nbsp;·&nbsp; <span class="gcheck">✓</span> بکاپ زمان‌بندی‌شده &nbsp;·&nbsp; <span class="gcheck">✓</span> به‌روزرسانی درون‌پنلی &nbsp;·&nbsp; <span class="gcheck">✓</span> سوییت تلگرام SOCKS5 + ابزار MTProto &nbsp;·&nbsp; <span class="gcheck">✓</span> ۵ فرمت اشتراک + پورتال برندشده &nbsp;·&nbsp; <span class="gcheck">✓</span> نمایندگی/قالب فروش/درگاه‌ها &nbsp;·&nbsp; <span class="gcheck">✓</span> ۶ تم · ۶ زبان (RTL) &nbsp;·&nbsp; <span class="gcheck">✓</span> سوییت نصب (install.sh + CLI + داکر + GHCR) &nbsp;·&nbsp; <span class="gcheck">✓</span> تشخیص خودکار IP/پورت آزاد</p>
+  <h3>در جلو</h3>
+  <ul>
+    <li><b>ربات فروش تلگرام</b> — فروش و تمدید خودکار داخل تلگرام (پژوهش انجام شده؛ منتظر تصمیم نهایی).</li>
+    <li><b>چند-نودی</b> — همگام‌سازی اینباندها بین چند سرور.</li>
+    <li><b>گواهی ACME</b> — صدور/تمدید خودکار Let's Encrypt داخل پنل.</li>
+    <li><b>اجرای IP-Limit</b> — قطع خودکار به سبک fail2ban روی اینباندهای واقعی.</li>
+  </ul>
+  <hr class="rule mt14">
+  <div class="center mt10">
+    <span class="badge-end">SEPHIROTH · v2.4.0</span>
+    <p class="mt10" style="max-width:540px; margin-inline:auto">سپیروت یک پروژه‌ی <b>متن‌باز تحت مجوز MIT</b> است — آن را فورک کنید، تغییر دهید و در پروژه‌ی خودتان استفاده کنید. اگر برایتان مفید بود، از دکمه‌ی «حمایت از Sephiroth» داخل پنل یا ستاره‌ی گیت‌هاب دلگرم‌مان کنید.</p>
+    <p class="small" style="max-width:540px; margin-inline:auto"><b>سلب مسئولیت:</b> این پنل برای استفاده‌ی شخصی و آموزشی منتشر می‌شود؛ مسئولیت هرگونه استفاده‌ی نابجا با کاربر است. تمام تصاویر این کاتالوگ از نسخه‌ی واقعی v2.4.0 گرفته شده و هیچ اطلاعات خصوصی‌ای در آن نیست.</p>
+    <p class="mt6" style="letter-spacing:2px; color:var(--muted); font-size:10.5px">ساخته‌شده با ♥ توسط <b style="color:var(--text)">EPODONIOS</b> · github.com/Edsel-Rahimi/Sephiroth</p>
+  </div>
+  <div class="pfoot"><span><b>کتاب کامل سپیروت</b> · v2.4.0</span><span class="pg">۲۰</span><span>EPODONIOS</span></div>
+</div>
+
+</body>
+</html>

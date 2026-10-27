@@ -8,12 +8,20 @@ import { Server as SocketIOServer } from "socket.io";
 import { CoreSim } from "./mini-services/core-sim/sim";
 import { getTickMs, refreshTickMs } from "./mini-services/core-sim/db";
 import type { ActivityEvent } from "./mini-services/core-sim/types";
+import { SimBackend } from "./src/lib/core/sim-backend";
+import { XrayDriver } from "./src/lib/core/xray";
+import type { CoreBackend } from "./src/lib/core/types";
+import {
+  getActiveBackend,
+  setActiveBackend,
+  swapBackend,
+} from "./src/lib/core/registry";
 import { ensureSeed } from "./src/lib/auth";
 import { ensureNetSeeds } from "./src/lib/net-objects";
 import { runAutoBackup } from "./src/lib/backup-job";
 import { db } from "./src/lib/db";
 import { logActivity } from "./src/lib/activity";
-import { appVersion } from "./src/lib/settings";
+import { appVersion, getCoreSettings } from "./src/lib/settings";
 
 // Import all Next-style route handlers
 import * as apiRoot from "./src/app/api/route";
@@ -51,8 +59,13 @@ import * as apiSubGroups from "./src/app/api/sub/groups/route";
 import * as apiSubGroupsId from "./src/app/api/sub/groups/[id]/route";
 import * as apiSubToken from "./src/app/api/sub/[token]/route";
 import * as apiSystemBackups from "./src/app/api/system/backups/route";
+import * as apiSystemCoreAction from "./src/app/api/system/core-action/route";
+import * as apiSystemCoreInstall from "./src/app/api/system/core-install/route";
+import * as apiSystemCoreLog from "./src/app/api/system/core-log/route";
+import * as apiSystemCoreStatus from "./src/app/api/system/core-status/route";
 import * as apiSystemDoctor from "./src/app/api/system/doctor/route";
 import * as apiSystemRestart from "./src/app/api/system/restart/route";
+import * as apiSystemServerInfo from "./src/app/api/system/server-info/route";
 import * as apiSystemUpdate from "./src/app/api/system/update/route";
 import * as apiSystemUpdateInfo from "./src/app/api/system/update-info/route";
 import * as apiSystemUpdateStatus from "./src/app/api/system/update-status/route";
@@ -271,8 +284,13 @@ async function startServer() {
   mountRoute(app, "/api/sub/:token", apiSubToken);
 
   mountRoute(app, "/api/system/backups", apiSystemBackups);
+  mountRoute(app, "/api/system/core-status", apiSystemCoreStatus);
+  mountRoute(app, "/api/system/core-action", apiSystemCoreAction);
+  mountRoute(app, "/api/system/core-install", apiSystemCoreInstall);
+  mountRoute(app, "/api/system/core-log", apiSystemCoreLog);
   mountRoute(app, "/api/system/doctor", apiSystemDoctor);
   mountRoute(app, "/api/system/restart", apiSystemRestart);
+  mountRoute(app, "/api/system/server-info", apiSystemServerInfo);
   mountRoute(app, "/api/system/update-info", apiSystemUpdateInfo);
   mountRoute(app, "/api/system/update-status", apiSystemUpdateStatus);
   mountRoute(app, "/api/system/update", apiSystemUpdate);
@@ -288,7 +306,9 @@ async function startServer() {
   mountRoute(app, "/ref/:panel", apiRefProxy);
   mountRoute(app, "/ref/:panel/*", apiRefProxy);
 
-  // Attach Socket.IO live Xray-core telemetry simulator
+  // Attach Socket.IO live core telemetry — simulator (default) or a REAL
+  // Xray process (opt-in via settings · core driver). Both implement the
+  // same CoreBackend surface, so the io wiring below is driver-agnostic.
   const io = new SocketIOServer(httpServer, {
     cors: {
       origin: "*",
@@ -298,24 +318,52 @@ async function startServer() {
     pingInterval: 25000,
   });
 
+  const coreSettings = await getCoreSettings();
   const sim = new CoreSim(`${appVersion()}-sim`);
-  // Mirror initial DB state into simulator
+  const simBackend = new SimBackend(sim, `${appVersion()}-sim`);
+
+  // The simulator answers immediately; if the admin opted into the real
+  // Xray core we swap the registry backend once the process is up, falling
+  // back to the simulator (with a surfaced reason) on any failure.
+  // NOTE: never cache the backend in a local — runtime driver switches via
+  // /api/system/core-action swap the REGISTRY, so every loop must re-read it.
+  const activeCore = (): CoreBackend => getActiveBackend() ?? simBackend;
+  setActiveBackend(simBackend);
   sim.mirrorDb();
+
+  if (coreSettings.driver === "xray") {
+    void (async () => {
+      try {
+        const driver = new XrayDriver({
+          binPath: coreSettings.xrayBin,
+          versionPin: coreSettings.xrayVersion,
+          statsIntervalMs: coreSettings.statsInterval * 1000,
+        });
+        await driver.start();
+        await swapBackend(driver);
+        console.log("[core] REAL Xray driver active (v" + driver.status().version + ")");
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : String(err);
+        console.warn(`[core] Xray driver failed to start — simulator fallback: ${reason}`);
+        setActiveBackend(simBackend, { active: true, reason });
+      }
+    })();
+  }
 
   function emitEvent(event: ActivityEvent): void {
     io.emit("core:event", { event });
   }
 
   io.on("connection", (socket) => {
-    socket.emit("core:init", sim.snapshot());
+    socket.emit("core:init", activeCore().snapshot());
   });
 
   function tickLoop(): void {
     refreshTickMs();
     try {
-      io.emit("core:tick", sim.tick());
+      io.emit("core:tick", activeCore().tick());
     } catch (err) {
-      console.error("[core-sim] tick error:", err);
+      console.error("[core] tick error:", err);
     }
     setTimeout(tickLoop, getTickMs());
   }
@@ -323,23 +371,46 @@ async function startServer() {
 
   setInterval(() => {
     try {
-      io.emit("core:inbounds", sim.inboundsPayload());
+      io.emit("core:inbounds", activeCore().inboundsPayload());
     } catch (err) {
-      console.error("[core-sim] inbounds broadcast error:", err);
+      console.error("[core] inbounds broadcast error:", err);
     }
   }, 10000);
 
   setInterval(() => {
     try {
-      const events = sim.mirrorDb();
+      const events = activeCore().mirrorDb();
       if (events.length > 0) {
-        io.emit("core:inbounds", sim.inboundsPayload());
+        io.emit("core:inbounds", activeCore().inboundsPayload());
         for (const e of events) emitEvent(e);
       }
     } catch (err) {
-      console.error("[core-sim] mirrorDb error:", err);
+      console.error("[core] mirrorDb error:", err);
     }
   }, 2000);
+
+  // Graceful shutdown — never leave the real xray process orphaned.
+  const shutdownCore = (signal: string): void => {
+    console.log(`[sephiroth] ${signal} received — stopping core…`);
+    const backend = getActiveBackend();
+    const finish = (): void => process.exit(0);
+    if (!backend) {
+      finish();
+      return;
+    }
+    const killer = setTimeout(finish, 6000);
+    void backend
+      .dispose()
+      .catch(() => {
+        /* best effort */
+      })
+      .finally(() => {
+        clearTimeout(killer);
+        finish();
+      });
+  };
+  process.on("SIGTERM", () => shutdownCore("SIGTERM"));
+  process.on("SIGINT", () => shutdownCore("SIGINT"));
 
   // Periodic user traffic reset & expiry check + daily auto-backup
   setInterval(() => {

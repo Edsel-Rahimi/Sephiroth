@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeftRight,
   ArrowUpFromLine,
@@ -8,6 +8,7 @@ import {
   CircleAlert,
   CircleCheck,
   Copy,
+  Crosshair,
   EllipsisVertical,
   Fingerprint,
   Globe,
@@ -35,6 +36,7 @@ import {
   SlidersHorizontal,
   Trash2,
   Users,
+  Wand2,
   Waves,
   Wifi,
   Zap,
@@ -169,6 +171,18 @@ interface FormState {
   mux: boolean;
   fallbacks: FallbackForm[];
   stream: Record<string, string>;
+}
+
+/* v2.4 — payload of GET /api/system/server-info (Forge auto-fill buttons) */
+interface ServerInfoPayload {
+  publicIp: string | null;
+  privateIps: string[];
+  panelPort: number;
+  suggestedPort: number;
+  hostname: string;
+  platform: string;
+  arch: string;
+  nodeVersion: string;
 }
 
 const PROTOCOLS = [
@@ -827,6 +841,13 @@ export function InboundsView() {
   const [doctorBusy, setDoctorBusy] = useState(false);
   const [doctorReport, setDoctorReport] = useState<DoctorReport | null>(null);
 
+  /* v2.4 — server-info auto-fill (fetched once, cached for the dialog session) */
+  const serverInfoRef = useRef<ServerInfoPayload | null>(null);
+  const [serverInfo, setServerInfo] = useState<ServerInfoPayload | null>(null);
+  const [ipDetecting, setIpDetecting] = useState(false);
+  const [ipMenuOpen, setIpMenuOpen] = useState(false);
+  const [portSuggesting, setPortSuggesting] = useState(false);
+
   /* delete confirm */
   const [deleting, setDeleting] = useState<InboundDTO | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
@@ -1439,6 +1460,56 @@ export function InboundsView() {
   const setStream = (key: string, value: string) =>
     setForm((f) => ({ ...f, stream: { ...f.stream, [key]: value } }));
 
+  /* v2.4 — one-click server IP / free-port auto-fill (Forge general tab) */
+  const loadServerInfo = useCallback(async (): Promise<ServerInfoPayload | null> => {
+    if (serverInfoRef.current) return serverInfoRef.current;
+    try {
+      const res = await fetch("/api/system/server-info");
+      if (!res.ok) return null;
+      const data = (await res.json()) as ServerInfoPayload;
+      serverInfoRef.current = data;
+      setServerInfo(data);
+      return data;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const onListenAuto = async () => {
+    setIpDetecting(true);
+    const info = await loadServerInfo();
+    setIpDetecting(false);
+    if (!info) {
+      toast({ title: t.inbounds.serverInfoFailed, variant: "destructive" });
+      return;
+    }
+    setIpMenuOpen(true);
+  };
+
+  const applyListenIp = (ip: string) => {
+    setS({ listen: ip });
+    setIpMenuOpen(false);
+    toast({ title: lfmt(t.inbounds.ipFilledTo, { ip }) });
+  };
+
+  const onPortAuto = async () => {
+    setPortSuggesting(true);
+    const info = await loadServerInfo();
+    setPortSuggesting(false);
+    if (!info || !(info.suggestedPort > 0)) {
+      toast({ title: t.inbounds.serverInfoFailed, variant: "destructive" });
+      return;
+    }
+    const used = new Set((rows ?? []).map((r) => r.port));
+    let port = info.suggestedPort;
+    while (used.has(port)) port++;
+    setS({ port: String(port) });
+    toast({ title: lfmt(t.inbounds.portFilledTo, { port }) });
+  };
+
+  const serverPublicIp = serverInfo?.publicIp ?? null;
+  const firstPrivateIp = serverInfo?.privateIps[0] ?? null;
+
   const renderGeneral = () => (
     <div className="space-y-5">
       {/* protocol picker — rich per-protocol cards */}
@@ -1824,8 +1895,24 @@ export function InboundsView() {
               onChange={(e) => setS({ port: e.target.value })}
               placeholder={t.inbounds.phPort}
               inputMode="numeric"
-              className="font-mono"
+              className="min-w-0 font-mono"
             />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => void onPortAuto()}
+              disabled={portSuggesting}
+              className="ms-1 h-9 w-9 shrink-0 rounded-xl text-muted-foreground hover:bg-white/[0.06] hover:text-foreground"
+              title={t.inbounds.autoFillPort}
+              aria-label={t.inbounds.autoFillPort}
+            >
+              {portSuggesting ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <Wand2 className="h-4 w-4" aria-hidden="true" />
+              )}
+            </Button>
             <Button
               type="button"
               variant="outline"
@@ -1850,14 +1937,81 @@ export function InboundsView() {
           error={fieldErr.listen}
           hint={t.inbounds.listenHint}
         >
-          <Input
-            id="ib-listen"
-            value={form.listen}
-            onChange={(e) => setS({ listen: e.target.value })}
-            placeholder={t.inbounds.phListen}
-            className="font-mono"
-            autoComplete="off"
-          />
+          <div className="flex gap-2">
+            <Input
+              id="ib-listen"
+              value={form.listen}
+              onChange={(e) => setS({ listen: e.target.value })}
+              placeholder={t.inbounds.phListen}
+              className="min-w-0 font-mono"
+              autoComplete="off"
+            />
+            <DropdownMenu open={ipMenuOpen} onOpenChange={setIpMenuOpen}>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => void onListenAuto()}
+                  onPointerDown={(e) => e.preventDefault()}
+                  disabled={ipDetecting}
+                  className="ms-1 h-9 w-9 shrink-0 rounded-xl text-muted-foreground hover:bg-white/[0.06] hover:text-foreground"
+                  title={t.inbounds.autoFillIp}
+                  aria-label={t.inbounds.autoFillIp}
+                >
+                  {ipDetecting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Crosshair className="h-4 w-4" aria-hidden="true" />
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="glass-strong w-64">
+                <DropdownMenuLabel className="text-xs text-muted-foreground">
+                  {t.inbounds.autoFillIp}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {serverPublicIp ? (
+                  <DropdownMenuItem onClick={() => applyListenIp(serverPublicIp)}>
+                    <div className="flex w-full min-w-0 flex-col gap-0.5">
+                      <span>{t.inbounds.usePublicIp}</span>
+                      <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                        {t.inbounds.ipDetectedLabel}:
+                        <span className="font-mono" dir="ltr">{serverPublicIp}</span>
+                      </span>
+                    </div>
+                  </DropdownMenuItem>
+                ) : serverInfo ? (
+                  <DropdownMenuItem disabled>
+                    <div className="flex w-full min-w-0 flex-col gap-0.5">
+                      <span>{t.inbounds.usePublicIp}</span>
+                      <span className="text-[11px] text-muted-foreground">{t.inbounds.ipNotDetected}</span>
+                    </div>
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem disabled>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                    <span className="text-[11px] text-muted-foreground">{t.inbounds.autoFillIp}</span>
+                  </DropdownMenuItem>
+                )}
+                {firstPrivateIp && (
+                  <DropdownMenuItem
+                    onClick={() => applyListenIp(firstPrivateIp)}
+                    className={cn(!serverPublicIp && "bg-primary/10 focus:bg-primary/15")}
+                  >
+                    <div className="flex w-full min-w-0 flex-col gap-0.5">
+                      <span>{t.inbounds.usePrivateIp}</span>
+                      <span className="font-mono text-[11px] text-muted-foreground" dir="ltr">{firstPrivateIp}</span>
+                    </div>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => applyListenIp("0.0.0.0")}>
+                  {t.inbounds.useAllInterfaces}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </MiniField>
 
         <MiniField id="ib-status" label={t.inbounds.fieldStatus} hint={t.inbounds.tipStatus}>

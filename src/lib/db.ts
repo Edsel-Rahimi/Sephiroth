@@ -983,6 +983,59 @@ export const db = {
       status: String(r.status || "online"),
     }));
   },
+  /** Full inbound rows (incl. JSON blob columns) for the Xray config builder. */
+  _syncReadInboundsFull() {
+    return sortRows(state.inbound, [{ createdAt: "asc" }, { tag: "asc" }]).map((r) => ({
+      id: String(r.id),
+      tag: String(r.tag),
+      protocol: String(r.protocol),
+      port: Number(r.port),
+      listen: String(r.listen || ""),
+      transport: String(r.transport || "tcp"),
+      security: String(r.security || "none"),
+      status: String(r.status || "online"),
+      clientsJson: String(r.clientsJson || "[]"),
+      sniffingJson: String(r.sniffingJson || "{}"),
+      streamJson: String(r.streamJson || "{}"),
+    }));
+  },
+  /** Outbound rows for the Xray config builder (sortOrder → createdAt order). */
+  _syncReadOutbounds() {
+    return sortRows(state.outbound, [{ sortOrder: "asc" }, { createdAt: "asc" }]).map((r) => ({
+      tag: String(r.tag),
+      protocol: String(r.protocol),
+      sendThrough: String(r.sendThrough || ""),
+      domainStrategy: String(r.domainStrategy || "AsIs"),
+      settingsJson: String(r.settingsJson || "{}"),
+      streamJson: String(r.streamJson || "{}"),
+      muxEnabled: Boolean(r.muxEnabled),
+      muxConcurrency: Number(r.muxConcurrency) || 8,
+      sortOrder: Number(r.sortOrder) || 0,
+    }));
+  },
+  /** Routing-rule rows for the Xray config builder. */
+  _syncReadRoutingRules() {
+    return sortRows(state.routingRule, [{ sortOrder: "asc" }, { createdAt: "asc" }]).map((r) => ({
+      enabled: Boolean(r.enabled),
+      outboundTag: String(r.outboundTag || ""),
+      domainJson: String(r.domainJson || "[]"),
+      ipJson: String(r.ipJson || "[]"),
+      port: String(r.port || ""),
+      network: String(r.network || ""),
+      protocolJson: String(r.protocolJson || "[]"),
+      inboundTagJson: String(r.inboundTagJson || "[]"),
+      sourceJson: String(r.sourceJson || "[]"),
+      sortOrder: Number(r.sortOrder) || 0,
+    }));
+  },
+  /** email → {userId} map for the Xray driver's per-user traffic writer. */
+  _syncReadAccessEmails() {
+    return (state.userInboundAccess ?? []).map((a) => ({
+      email: String(a.email || ""),
+      userId: String(a.userId || ""),
+      inboundId: String(a.inboundId || ""),
+    }));
+  },
   _syncReadSetting(key: string): string | undefined {
     const row = state.serverSetting.find((s) => s.key === key);
     return row?.value;
@@ -1033,6 +1086,11 @@ export const db = {
     return {
       usersTotal: users.length,
       groupsTotal: (state.subGroup ?? []).length,
+      /** users at ≥90% of their quota (drives the dashboard distribution donut) */
+      limitedCount: users.filter((u) => {
+        const limit = Number(u.trafficLimitGb) || 0;
+        return limit > 0 && (Number(u.usedTrafficGb) || 0) / limit >= 0.9;
+      }).length,
       monthTxGb:
         Math.round(users.reduce((acc, u) => acc + used(u), 0) * 10_000) /
         10_000,

@@ -20,6 +20,12 @@ export interface CoreSettings {
   apiHost: string;
   apiPort: number;
   tickSeconds: number; // live feed interval, 1-5s
+  /** absolute path to a user-provided xray binary ("" = resolve PATH → auto-install) */
+  xrayBin: string;
+  /** Xray release pin, e.g. "v25.9.11" ("" = latest) */
+  xrayVersion: string;
+  /** stats poll interval for the real core, 5-120s */
+  statsInterval: number;
 }
 
 export interface TelegramNotify {
@@ -42,6 +48,9 @@ const CORE_DEFAULT: CoreSettings = {
   apiHost: "127.0.0.1",
   apiPort: 10085,
   tickSeconds: 1,
+  xrayBin: "",
+  xrayVersion: "",
+  statsInterval: 10,
 };
 
 const NOTIFY_DEFAULT: TelegramNotify = {
@@ -56,6 +65,9 @@ const K = {
   coreHost: "set_core_api_host",
   corePort: "set_core_api_port",
   coreTick: "set_core_tick_seconds",
+  coreXrayBin: "set_core_xray_bin",
+  coreXrayVersion: "set_core_xray_version",
+  coreStatsInterval: "set_core_stats_interval",
   tgEnabled: "set_tg_enabled",
   tgToken: "set_tg_token",
   tgChatId: "set_tg_chat_id",
@@ -118,6 +130,9 @@ export async function getCoreSettings(): Promise<CoreSettings> {
     K.coreHost,
     K.corePort,
     K.coreTick,
+    K.coreXrayBin,
+    K.coreXrayVersion,
+    K.coreStatsInterval,
   ]);
   const driver = m.get(K.coreDriver);
   return {
@@ -125,6 +140,9 @@ export async function getCoreSettings(): Promise<CoreSettings> {
     apiHost: m.get(K.coreHost) ?? CORE_DEFAULT.apiHost,
     apiPort: toInt(m.get(K.corePort), CORE_DEFAULT.apiPort, 1, 65535),
     tickSeconds: toInt(m.get(K.coreTick), CORE_DEFAULT.tickSeconds, 1, 5),
+    xrayBin: m.get(K.coreXrayBin) ?? CORE_DEFAULT.xrayBin,
+    xrayVersion: m.get(K.coreXrayVersion) ?? CORE_DEFAULT.xrayVersion,
+    statsInterval: toInt(m.get(K.coreStatsInterval), CORE_DEFAULT.statsInterval, 5, 120),
   };
 }
 
@@ -172,6 +190,27 @@ export async function validateCorePatch(body: unknown): Promise<PatchResult<Core
     }
     out.tickSeconds = tick;
   }
+  if (b.xrayBin !== undefined) {
+    const v = String(b.xrayBin).trim();
+    if (v.length > 300 || /[\r\n]/.test(v)) {
+      return { ok: false, fields: [{ field: "xrayBin", code: "format" }] };
+    }
+    out.xrayBin = v;
+  }
+  if (b.xrayVersion !== undefined) {
+    const v = String(b.xrayVersion).trim().replace(/^v/i, "");
+    if (v && !/^\d+\.\d+\.\d+$/.test(v)) {
+      return { ok: false, fields: [{ field: "xrayVersion", code: "format" }] };
+    }
+    out.xrayVersion = v;
+  }
+  if (b.statsInterval !== undefined) {
+    const n = Number(b.statsInterval);
+    if (!Number.isInteger(n) || n < 5 || n > 120) {
+      return { ok: false, fields: [{ field: "statsInterval", code: "range" }] };
+    }
+    out.statsInterval = n;
+  }
   return { ok: true, data: out };
 }
 
@@ -181,6 +220,9 @@ export async function saveCoreSettings(s: CoreSettings): Promise<void> {
     writeSetting(K.coreHost, s.apiHost),
     writeSetting(K.corePort, String(s.apiPort)),
     writeSetting(K.coreTick, String(s.tickSeconds)),
+    writeSetting(K.coreXrayBin, s.xrayBin),
+    writeSetting(K.coreXrayVersion, s.xrayVersion),
+    writeSetting(K.coreStatsInterval, String(s.statsInterval)),
   ]);
 }
 

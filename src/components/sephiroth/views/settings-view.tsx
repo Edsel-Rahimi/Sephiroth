@@ -6,7 +6,10 @@ import {
   Braces,
   CalendarClock,
   Check,
+  ChevronDown,
+  ChevronUp,
   Copy,
+  Cpu,
   DatabaseBackup,
   Download,
   ExternalLink,
@@ -19,6 +22,7 @@ import {
   Network,
   Palette,
   PanelsTopLeft,
+  Play,
   RadioTower,
   RefreshCw,
   RotateCw,
@@ -29,6 +33,8 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Sparkles,
+  Square,
+  Terminal,
   Timer,
   Trash2,
   TriangleAlert,
@@ -102,6 +108,24 @@ interface CoreSettingsDTO {
   apiHost: string;
   apiPort: number;
   tickSeconds: number;
+  xrayBin?: string;
+  xrayVersion?: string;
+  statsInterval?: number;
+}
+
+interface CoreStatusDTO {
+  kind: "sim" | "xray";
+  running: boolean;
+  version: string;
+  pid: number | null;
+  startedAt: number;
+  uptimeMs: number;
+  apiPort: number | null;
+  configPath: string | null;
+  lastError: string;
+  restarts: number;
+  fallbackActive: boolean;
+  fallbackReason: string;
 }
 
 interface TelegramSettingsDTO {
@@ -361,6 +385,7 @@ export function SettingsView() {
   const t = useMemo(() => dictionaries[lang], [lang]);
   const u = t.settings;
   const sys = t.system;
+  const core = t.core;
 
   const [tab, setTab] = useState<TabId>("general");
   const [loading, setLoading] = useState(true);
@@ -417,6 +442,15 @@ export function SettingsView() {
   const [coreTest, setCoreTest] = useState<CoreTestState>({ busy: false, result: null });
   const [tgTest, setTgTest] = useState<TgTestState>({ busy: false, result: null });
 
+  /* core / xray driver (v2.4) — real-process controls */
+  const [coreStat, setCoreStat] = useState<CoreStatusDTO | null>(null);
+  const [xrayBinDraft, setXrayBinDraft] = useState("");
+  const [xrayVersionDraft, setXrayVersionDraft] = useState("");
+  const [statsIntervalDraft, setStatsIntervalDraft] = useState("10");
+  const [coreBusy, setCoreBusy] = useState<"" | "install" | "start" | "stop" | "restart" | "reload" | "save">("");
+  const [logOpen, setLogOpen] = useState(false);
+  const [coreLogLines, setCoreLogLines] = useState<string[]>([]);
+
   /* backup */
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [backup, setBackup] = useState<BackupSummary | null>(null);
@@ -472,6 +506,9 @@ export function SettingsView() {
         apiPort: String(d.core.apiPort),
         tickSeconds: String(d.core.tickSeconds),
       });
+      setXrayBinDraft(d.core.xrayBin ?? "");
+      setXrayVersionDraft(d.core.xrayVersion ?? "");
+      setStatsIntervalDraft(String(d.core.statsInterval ?? 10));
       setTgForm({
         enabled: d.telegram.enabled,
         token: "",
@@ -870,6 +907,45 @@ docker run -d --name mtproxy --restart=always -p ${mtpPort || "443"}:443 \\
 
   /* ---------- core ---------- */
 
+  const loadCoreStatus = useCallback(async () => {
+    try {
+      const res = await fetch("/api/system/core-status", { cache: "no-store" });
+      if (!res.ok) return;
+      const d = (await res.json()) as { status: CoreStatusDTO };
+      setCoreStat(d.status);
+    } catch {
+      /* keep last known */
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadCoreStatus();
+    const iv = setInterval(() => void loadCoreStatus(), 10_000);
+    return () => clearInterval(iv);
+  }, [loadCoreStatus]);
+
+  /* collapsible log viewer — refresh on a 5s poll while open */
+  useEffect(() => {
+    if (!logOpen) return;
+    let alive = true;
+    const pull = async (): Promise<void> => {
+      try {
+        const res = await fetch("/api/system/core-log?n=40", { cache: "no-store" });
+        if (!res.ok) return;
+        const d = (await res.json()) as { lines: string[] };
+        if (alive) setCoreLogLines(d.lines ?? []);
+      } catch {
+        /* keep last known */
+      }
+    };
+    void pull();
+    const iv = setInterval(() => void pull(), 5_000);
+    return () => {
+      alive = false;
+      clearInterval(iv);
+    };
+  }, [logOpen]);
+
   const saveCore = async () => {
     setSavingCore(true);
     try {
@@ -882,21 +958,105 @@ docker run -d --name mtproxy --restart=always -p ${mtpPort || "443"}:443 \\
           apiHost: coreForm.apiHost.trim(),
           apiPort: Number(coreForm.apiPort),
           tickSeconds: Number(coreForm.tickSeconds),
+          xrayBin: xrayBinDraft.trim(),
+          xrayVersion: xrayVersionDraft.trim(),
+          statsInterval: Math.max(5, Math.min(120, Number(statsIntervalDraft) || 10)),
         }),
       });
       if (!res.ok) throw new Error("save");
       const d = (await res.json()) as { core: CoreSettingsDTO };
-      setCoreForm({
+      setCoreForm((p) => ({
+        ...p,
         driver: d.core.driver,
         apiHost: d.core.apiHost,
         apiPort: String(d.core.apiPort),
         tickSeconds: String(d.core.tickSeconds),
-      });
+      }));
+      setXrayBinDraft(d.core.xrayBin ?? "");
+      setXrayVersionDraft(d.core.xrayVersion ?? "");
+      setStatsIntervalDraft(String(d.core.statsInterval ?? 10));
       toast({ description: u.coreSaved });
     } catch {
       toast({ description: t.inbounds.errGeneric });
     }
     setSavingCore(false);
+  };
+
+  const saveCoreCard = async () => {
+    setCoreBusy("save");
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          section: "core",
+          driver: coreForm.driver,
+          xrayBin: xrayBinDraft.trim(),
+          xrayVersion: xrayVersionDraft.trim(),
+          statsInterval: Math.max(5, Math.min(120, Number(statsIntervalDraft) || 10)),
+        }),
+      });
+      if (!res.ok) throw new Error("save");
+      const d = (await res.json()) as { core: CoreSettingsDTO };
+      setCoreForm((p) => ({ ...p, driver: d.core.driver }));
+      setXrayBinDraft(d.core.xrayBin ?? "");
+      setXrayVersionDraft(d.core.xrayVersion ?? "");
+      setStatsIntervalDraft(String(d.core.statsInterval ?? 10));
+      toast({ description: u.coreSaved });
+      void loadCoreStatus();
+    } catch {
+      toast({ description: t.inbounds.errGeneric });
+    }
+    setCoreBusy("");
+  };
+
+  const coreAction = async (action: "start" | "stop" | "restart" | "reload") => {
+    setCoreBusy(action);
+    try {
+      const res = await fetch("/api/system/core-action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const d = (await res.json()) as { ok?: boolean; message?: string; status?: CoreStatusDTO };
+      if (d.status) setCoreStat(d.status);
+      if (d.ok) {
+        toast({
+          description:
+            action === "start"
+              ? core.actStart
+              : action === "stop"
+                ? core.actStop
+                : action === "restart"
+                  ? core.actRestart
+                  : core.actReload,
+        });
+      } else {
+        const noop = d.message === "sim_selected" || d.message === "sim_no_stop";
+        toast({ description: noop ? core.actNoop : core.actFail });
+      }
+    } catch {
+      toast({ description: core.actFail });
+    }
+    setCoreBusy("");
+    void loadCoreStatus();
+  };
+
+  const coreInstall = async () => {
+    setCoreBusy("install");
+    try {
+      const res = await fetch("/api/system/core-install", { method: "POST" });
+      const d = (await res.json()) as { ok?: boolean; version?: string };
+      if (d.ok) {
+        toast({ description: sfmt(core.installOk, { v: d.version ?? "" }) });
+      } else {
+        toast({ description: core.installFail });
+      }
+    } catch {
+      toast({ description: core.installFail });
+    }
+    setCoreBusy("");
+    void loadCoreStatus();
   };
 
   const testCore = async () => {
@@ -1767,6 +1927,260 @@ docker run -d --name mtproxy --restart=always -p ${mtpPort || "443"}:443 \\
               </div>
             </SectionCard>
 
+            {/* ── core / xray real driver (v2.4) ── */}
+            <SectionCard icon={Cpu} title={core.cardTitle} desc={core.cardDesc} className="lg:col-span-2">
+              <div className="space-y-4">
+                {/* status strip */}
+                <div className="flex flex-wrap items-center gap-3 rounded-xl bg-white/[0.03] px-4 py-3 ring-1 ring-border/70">
+                  <span className="relative flex h-2.5 w-2.5">
+                    {coreStat?.running && (
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+                    )}
+                    <span
+                      className={cn(
+                        "relative inline-flex h-2.5 w-2.5 rounded-full",
+                        coreStat?.running
+                          ? "bg-emerald-400"
+                          : coreStat?.lastError
+                            ? "bg-chart-5"
+                            : "bg-muted-foreground"
+                      )}
+                    />
+                  </span>
+                  <span
+                    className={cn(
+                      "rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1",
+                      coreStat?.running
+                        ? "bg-emerald-400/10 text-emerald-400 ring-emerald-400/30"
+                        : coreStat?.lastError
+                          ? "bg-chart-5/10 text-chart-5 ring-chart-5/30"
+                          : "bg-muted/10 text-muted-foreground ring-border"
+                    )}
+                  >
+                    {coreStat?.running
+                      ? core.statusRunning
+                      : coreStat?.lastError
+                        ? core.statusFailed
+                        : core.statusStopped}
+                  </span>
+                  {coreStat?.fallbackActive && (
+                    <span className="rounded-full bg-amber-400/10 px-2.5 py-1 text-[11px] font-semibold text-amber-400 ring-1 ring-amber-400/30">
+                      {core.statusFallback}
+                    </span>
+                  )}
+                  <span className="ms-auto font-mono text-xs text-muted-foreground" dir="ltr">
+                    {coreStat?.kind === "xray"
+                      ? `${coreStat.version || "xray"} · ${coreStat.running ? Math.floor(coreStat.uptimeMs / 1000) + "s" : "—"}`
+                      : core.driverSim}
+                  </span>
+                </div>
+
+                {/* driver + runtime fields */}
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="core-driver-real">{core.driver}</Label>
+                    <Select
+                      value={coreForm.driver}
+                      onValueChange={(v) => setCoreForm((p) => ({ ...p, driver: v as CoreForm["driver"] }))}
+                    >
+                      <SelectTrigger id="core-driver-real" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="glass-strong">
+                        <SelectItem value="simulator">{core.driverSim}</SelectItem>
+                        <SelectItem value="xray">{core.driverXray}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="core-stats-interval">{core.statsInterval}</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="core-stats-interval"
+                        dir="ltr"
+                        inputMode="numeric"
+                        className="font-mono"
+                        value={statsIntervalDraft}
+                        onChange={(e) =>
+                          setStatsIntervalDraft(e.target.value.replace(/[^0-9]/g, ""))
+                        }
+                        placeholder="10"
+                      />
+                      <span className="whitespace-nowrap text-xs text-muted-foreground">s</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">{core.statsIntervalHint}</p>
+                  </div>
+                  <div className="space-y-1.5 sm:max-lg:col-span-2">
+                    <Label htmlFor="core-xray-bin">{core.binPath}</Label>
+                    <Input
+                      id="core-xray-bin"
+                      dir="ltr"
+                      className="font-mono"
+                      value={xrayBinDraft}
+                      onChange={(e) => setXrayBinDraft(e.target.value)}
+                      placeholder={core.binPathPh}
+                    />
+                  </div>
+                  <div className="space-y-1.5 sm:max-lg:col-span-2">
+                    <Label htmlFor="core-xray-version">{core.versionPin}</Label>
+                    <Input
+                      id="core-xray-version"
+                      dir="ltr"
+                      className="font-mono"
+                      value={xrayVersionDraft}
+                      onChange={(e) => setXrayVersionDraft(e.target.value.replace(/[^0-9.]/g, ""))}
+                      placeholder={core.versionPinPh}
+                    />
+                  </div>
+                </div>
+
+                {/* action buttons */}
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <Button onClick={() => void saveCoreCard()} disabled={coreBusy !== ""} className="gap-2">
+                    {coreBusy === "save" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Check className="h-4 w-4" aria-hidden="true" />
+                    )}
+                    {t.subgroups.save}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => void coreInstall()}
+                    disabled={coreBusy !== ""}
+                    className="gap-2 rounded-full border-border bg-white/4 hover:bg-white/8"
+                  >
+                    {coreBusy === "install" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Download className="h-4 w-4" aria-hidden="true" />
+                    )}
+                    {coreBusy === "install" ? core.installing : core.install}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => void coreAction("start")}
+                    disabled={coreBusy !== ""}
+                    className="gap-2 rounded-full border-border bg-white/4 hover:bg-white/8"
+                  >
+                    {coreBusy === "start" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Play className="h-4 w-4" aria-hidden="true" />
+                    )}
+                    {core.start}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => void coreAction("stop")}
+                    disabled={coreBusy !== ""}
+                    className="gap-2 rounded-full border-border bg-white/4 hover:bg-white/8"
+                  >
+                    {coreBusy === "stop" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Square className="h-4 w-4" aria-hidden="true" />
+                    )}
+                    {core.stop}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => void coreAction("restart")}
+                    disabled={coreBusy !== ""}
+                    className="gap-2 rounded-full border-border bg-white/4 hover:bg-white/8"
+                  >
+                    {coreBusy === "restart" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <RotateCw className="h-4 w-4" aria-hidden="true" />
+                    )}
+                    {core.restart}
+                  </Button>
+                </div>
+
+                {/* live core details */}
+                {coreStat?.kind === "xray" && (
+                  <div className="grid grid-cols-1 gap-2 rounded-xl bg-white/[0.02] p-3 ring-1 ring-border/50 sm:grid-cols-3">
+                    <p className="flex items-center justify-between gap-2 text-xs">
+                      <span className="text-muted-foreground">{core.version}</span>
+                      <span className="font-mono text-foreground" dir="ltr">{coreStat.version || "—"}</span>
+                    </p>
+                    <p className="flex items-center justify-between gap-2 text-xs sm:col-span-2">
+                      <span className="text-muted-foreground">{core.path}</span>
+                      <span className="truncate font-mono text-foreground" dir="ltr">
+                        {coreStat.configPath?.replace(/\/config\.json$/, "") || "—"}
+                      </span>
+                    </p>
+                    <p className="flex items-center justify-between gap-2 text-xs">
+                      <span className="text-muted-foreground">{core.apiDoor}</span>
+                      <span className="font-mono text-foreground" dir="ltr">{coreStat.apiPort ?? "—"}</span>
+                    </p>
+                    <p className="flex items-center justify-between gap-2 text-xs">
+                      <span className="text-muted-foreground">{core.uptime}</span>
+                      <span className="font-mono text-foreground" dir="ltr">
+                        {coreStat.running ? `${Math.floor(coreStat.uptimeMs / 60000)}m` : "—"}
+                      </span>
+                    </p>
+                    <p className="flex items-center justify-between gap-2 text-xs">
+                      <span className="text-muted-foreground">PID</span>
+                      <span className="font-mono text-foreground" dir="ltr">{coreStat.pid ?? "—"}</span>
+                    </p>
+                  </div>
+                )}
+
+                {/* fallback / error surface */}
+                {coreStat?.fallbackActive && coreStat.fallbackReason && (
+                  <p className="flex items-start gap-1.5 rounded-lg bg-amber-400/10 px-2.5 py-2 text-xs text-amber-400 ring-1 ring-amber-400/30" dir="auto">
+                    <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    <span className="break-all">{coreStat.fallbackReason}</span>
+                  </p>
+                )}
+                {coreStat?.lastError && !coreStat.running && (
+                  <p className="flex items-start gap-1.5 rounded-lg bg-chart-5/10 px-2.5 py-2 text-xs text-chart-5 ring-1 ring-chart-5/30" dir="ltr">
+                    <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    <span className="break-all font-mono">{coreStat.lastError}</span>
+                  </p>
+                )}
+
+                {/* collapsible log viewer */}
+                <div className="rounded-xl bg-white/[0.02] ring-1 ring-border/50">
+                  <button
+                    type="button"
+                    onClick={() => setLogOpen((v) => !v)}
+                    aria-expanded={logOpen}
+                    className="flex w-full items-center justify-between gap-2 px-3.5 py-2.5 text-xs font-medium text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Terminal className="h-3.5 w-3.5 text-primary/80" aria-hidden="true" />
+                      {core.logTitle}
+                    </span>
+                    {logOpen ? (
+                      <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+                    )}
+                  </button>
+                  {logOpen && (
+                    <div className="border-t border-border/50 px-3.5 py-3">
+                      {coreLogLines.length === 0 ? (
+                        <p className="text-[11px] text-muted-foreground">{core.logEmpty}</p>
+                      ) : (
+                        <pre
+                          dir="ltr"
+                          className="max-h-64 overflow-y-auto whitespace-pre-wrap break-all font-mono text-[11px] leading-relaxed text-foreground/90"
+                        >
+                          {coreLogLines.join("\n")}
+                        </pre>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <Tip>{core.hint}</Tip>
+                <Tip>{core.hintReload}</Tip>
+              </div>
+            </SectionCard>
+
             {/* ── software update (v2.2) ── */}
             <SectionCard icon={RefreshCw} title={sys.updTitle} desc={sys.updDesc} className="lg:col-span-2">
               <div className="space-y-4">
@@ -2201,24 +2615,7 @@ docker run -d --name mtproxy --restart=always -p ${mtpPort || "443"}:443 \\
               {/* core driver */}
               <SectionCard icon={RadioTower} title={u.coreTitle} desc={u.coreDesc}>
                 <div className="space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="core-driver">{u.driver}</Label>
-                      <Select
-                        value={coreForm.driver}
-                        onValueChange={(v) =>
-                          setCoreForm((p) => ({ ...p, driver: v as CoreForm["driver"] }))
-                        }
-                      >
-                        <SelectTrigger id="core-driver" className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="glass-strong">
-                          <SelectItem value="simulator">{u.driverSim}</SelectItem>
-                          <SelectItem value="xray">{u.driverXray}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="space-y-1.5">
                       <Label htmlFor="core-host">{u.apiHost}</Label>
                       <Input

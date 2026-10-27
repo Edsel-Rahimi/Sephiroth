@@ -1,0 +1,23 @@
+import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/inbounds";
+import { coreStatusPayload } from "@/lib/core/registry";
+
+/* ============================================================
+   Sephiroth · v2.4 — Core backend status (admin)
+   GET /api/system/core-status
+   Reports which engine drives the telemetry (sim | xray), the
+   real process state (pid/version/uptime/api door), the last
+   error and whether the xray driver fell back to the simulator.
+   ============================================================ */
+
+export async function GET(req: Request) {
+  const admin = await requireAdmin(req);
+  if (!admin) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+  const status = coreStatusPayload();
+  if (!status) {
+    return NextResponse.json({ error: "core_not_ready" }, { status: 503 });
+  }
+  return NextResponse.json({ status });
+}

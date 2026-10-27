@@ -1,0 +1,24 @@
+# keep the Docker build context minimal — stage 1 only needs package.json,
+# bun.lock, source, and configs; everything runtime-sensitive stays out
+node_modules
+dist
+server.cjs
+db
+upload
+download
+tool-results
+docs
+tests
+examples
+skills
+scripts/deploy
+.git
+.github
+.env
+.env.*
+!.env.example
+dev.log
+server.log
+worklog.md
+Dockerfile
+docker-compose.yml
