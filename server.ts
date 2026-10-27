@@ -1,9 +1,9 @@
 import "dotenv/config";
 import http from "node:http";
 import path from "node:path";
+import { existsSync } from "node:fs";
 import express, { type Request as ExpressRequest, type Response as ExpressResponse } from "express";
 import { Server as SocketIOServer } from "socket.io";
-import { createServer as createViteServer } from "vite";
 
 import { CoreSim } from "./mini-services/core-sim/sim";
 import { getTickMs, refreshTickMs } from "./mini-services/core-sim/db";
@@ -351,22 +351,26 @@ async function startServer() {
     void runAutoBackup();
   }, 20_000);
 
-  // Mount Vite middleware in development or static dist in production
-  if (process.env.NODE_ENV !== "production") {
+  // Serve static dist in production (or whenever a built dist/ exists),
+  // Vite middleware in development. Vite is imported lazily so the
+  // production bundle never needs it at runtime.
+  const distPath = path.join(process.cwd(), "dist");
+  if (process.env.NODE_ENV === "production" || existsSync(distPath)) {
+    app.use(express.static(distPath));
+    app.get("*", (_req, res) => {
+      res.sendFile(path.join(distPath, "index.html"));
+    });
+  } else {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
     });
     app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
-    app.get("*", (_req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
   }
 
-  const PORT = Number(process.env.PORT) || 3000;
+  // PORT (generic) / SERVER_PORT (Pterodactyl-style hosts like KataBump)
+  const PORT = Number(process.env.PORT) || Number(process.env.SERVER_PORT) || 3000;
   httpServer.listen(PORT, "0.0.0.0", () => {
     console.log(`[sephiroth] Full-stack panel + Xray core simulator listening on http://0.0.0.0:${PORT}`);
   });

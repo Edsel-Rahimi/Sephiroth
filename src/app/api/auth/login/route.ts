@@ -125,6 +125,6 @@ export async function POST(req: Request) {
   });
 
   const res = NextResponse.json({ ok: true, username: okUser, role });
-  res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions(Math.floor(ttl / 1000)));
+  res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions(Math.floor(ttl / 1000), req));
   return res;
 }

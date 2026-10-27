@@ -215,13 +215,19 @@ export function parseSessionCookie(req: Request): string | undefined {
   return undefined;
 }
 
-export function sessionCookieOptions(maxAgeSec: number) {
+export function sessionCookieOptions(maxAgeSec: number, req?: Request) {
+  // Only mark the cookie Secure when the request actually arrived over
+  // HTTPS (direct or via a proxy that sets x-forwarded-proto). Panels
+  // deployed on plain-HTTP hosts (e.g. KataBump IP:port allocations)
+  // would otherwise never receive the session cookie back.
+  const proto = req?.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+  const isHttps = proto === "https" || req?.url?.startsWith("https://");
   return {
     httpOnly: true,
     sameSite: "lax" as const,
     path: "/",
     maxAge: maxAgeSec,
-    secure: process.env.NODE_ENV === "production",
+    secure: isHttps,
   };
 }
 

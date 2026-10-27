@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     res.cookies.set(
       SESSION_COOKIE,
       token,
-      sessionCookieOptions(Math.floor(SESSION_TTL_SHORT / 1000))
+      sessionCookieOptions(Math.floor(SESSION_TTL_SHORT / 1000), req)
     );
     return res;
   } catch (err) {

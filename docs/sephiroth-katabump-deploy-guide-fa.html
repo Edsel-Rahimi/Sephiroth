@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>Sephiroth — راهنمای کامل دیپلوی روی KataBump</title>
+<style>
+@font-face { font-family: "Vazirmatn"; src: url("../public/fonts/Vazirmatn-Regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Vazirmatn"; src: url("../public/fonts/Vazirmatn-Medium.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Vazirmatn"; src: url("../public/fonts/Vazirmatn-SemiBold.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Vazirmatn"; src: url("../public/fonts/Vazirmatn-Bold.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+
+@page { size: 720px 1020px; margin: 0; }
+:root {
+  --bg: #060b0f;
+  --bg2: #0a1218;
+  --card: rgba(255,255,255,0.035);
+  --line: rgba(255,255,255,0.09);
+  --text: #e7edf2;
+  --muted: #93a4b1;
+  --cyan: #22d8ee;
+  --amber: #fbbf24;
+  --red: #fb5f6b;
+  --green: #34d399;
+}
+html, body {
+  margin: 0; padding: 0;
+  width: 720px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Vazirmatn', 'Tahoma', sans-serif;
+  font-size: 13.5px;
+  line-height: 1.95;
+}
+@media screen {
+  html { height: auto; display: flex; justify-content: center; background: #14181c; }
+  body { margin: 20px auto; box-shadow: 0 20px 80px rgba(0,0,0,.6); }
+}
+* { box-sizing: border-box; }
+
+/* ───── cover ───── */
+.cover {
+  width: 720px; height: 1020px;
+  break-after: page;
+  overflow: hidden;
+  position: relative;
+  display: flex; flex-direction: column;
+  justify-content: center; align-items: center;
+  text-align: center;
+  background:
+    radial-gradient(560px 420px at 78% 12%, rgba(34,216,238,0.14), transparent 62%),
+    radial-gradient(500px 420px at 16% 88%, rgba(34,216,238,0.08), transparent 60%),
+    var(--bg);
+}
+.cover .ring { position: absolute; border-radius: 50%; border: 1px solid rgba(34,216,238,0.16); }
+.cover .r1 { width: 460px; height: 460px; top: 44px; left: 44px; }
+.cover .r2 { width: 300px; height: 300px; bottom: 44px; right: 44px; border-color: rgba(34,216,238,0.10); }
+.cover .glow {
+  width: 340px; height: 340px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(34,216,238,0.20), transparent 70%);
+  filter: blur(2px); margin-bottom: -240px;
+}
+.cover .logo {
+  width: 104px; height: 104px; border-radius: 26px;
+  border: 1.5px solid rgba(34,216,238,0.45);
+  background: rgba(34,216,238,0.06);
+  box-shadow: 0 0 60px rgba(34,216,238,0.28);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 46px; font-weight: 700; color: var(--cyan); letter-spacing: 1px;
+}
+.cover h1 { font-size: 38px; font-weight: 700; margin: 34px 0 6px; color: var(--text); }
+.cover h1 b { color: var(--cyan); font-weight: 700; }
+.cover .ver {
+  font-size: 15px; color: var(--cyan); letter-spacing: 3px;
+  border: 1px solid rgba(34,216,238,0.35); border-radius: 999px;
+  padding: 6px 22px; margin: 10px 0 26px;
+  background: rgba(34,216,238,0.06);
+}
+.cover p.lead { max-width: 520px; color: var(--muted); font-size: 14.5px; margin: 0 40px; }
+.cover .urlbox {
+  margin: 30px 0 0; padding: 14px 34px;
+  border: 1px solid rgba(34,216,238,0.4); border-radius: 14px;
+  background: rgba(34,216,238,0.07);
+  font-family: 'JetBrains Mono','Courier New',monospace;
+  font-size: 19px; font-weight: 700; color: var(--cyan);
+  direction: ltr; unicode-bidi: embed; letter-spacing: 0.5px;
+  box-shadow: 0 0 40px rgba(34,216,238,0.15);
+}
+.cover .foot { position: absolute; bottom: 42px; left: 0; right: 0; color: var(--muted); font-size: 11.5px; letter-spacing: 2px; }
+.cover .foot b { color: var(--text); letter-spacing: 4px; }
+
+/* ───── flowing content ───── */
+.main-content { padding: 52px 56px 30px 56px; }
+.section { margin-top: 26px; }
+.section:first-child { margin-top: 0; }
+.kicker { display: inline-block; color: var(--cyan); font-size: 10.5px; font-weight: 700; letter-spacing: 4px; margin-bottom: 8px; }
+h2 { font-size: 22px; font-weight: 700; margin: 0 0 6px; color: var(--text); break-after: avoid; }
+h2 .n { color: var(--cyan); }
+h3 { font-size: 15.5px; font-weight: 600; color: var(--text); margin: 18px 0 6px; break-after: avoid; }
+.rule { height: 2px; background: linear-gradient(90deg, var(--cyan), transparent 70%); border: 0; margin: 10px 0 16px; break-after: avoid; }
+p { margin: 0 0 12px; color: var(--muted); }
+p b, li b { color: var(--text); font-weight: 600; }
+li { color: var(--muted); margin-bottom: 7px; }
+ul, ol { margin: 0 0 12px; padding-right: 20px; }
+code, .mono {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  direction: ltr; unicode-bidi: embed;
+  background: rgba(34,216,238,0.08); color: var(--cyan);
+  border: 1px solid rgba(34,216,238,0.2);
+  border-radius: 6px; padding: 1px 7px; font-size: 12px;
+}
+pre {
+  direction: ltr; text-align: left;
+  background: #0a141b; border: 1px solid var(--line);
+  border-radius: 12px; padding: 14px 16px;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 11.5px; line-height: 1.75; color: #b8e9f2;
+  overflow: hidden; white-space: pre-wrap; break-inside: avoid;
+  margin: 0 0 14px;
+}
+pre .c { color: #5b7280; }
+pre .k { color: var(--cyan); }
+pre .ok { color: var(--green); }
+
+/* figures (screenshots) */
+figure { margin: 14px 0 18px; break-inside: avoid; }
+figure .shot {
+  border: 1px solid rgba(34,216,238,0.22);
+  border-radius: 12px; overflow: hidden;
+  background: #0a1218;
+  box-shadow: 0 10px 34px rgba(0,0,0,0.45);
+}
+figure img { display: block; width: 100%; height: auto; }
+figcaption {
+  margin-top: 8px; font-size: 11.5px; color: var(--muted);
+  display: flex; gap: 8px; align-items: baseline;
+}
+figcaption .step {
+  flex: 0 0 auto; color: var(--cyan); font-weight: 700; font-size: 10.5px;
+  border: 1px solid rgba(34,216,238,0.35); border-radius: 999px; padding: 0 10px;
+  background: rgba(34,216,238,0.06);
+}
+
+/* info cards */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0 0 14px; }
+.card {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 14px; padding: 14px 16px; break-inside: avoid;
+}
+.card .t { color: var(--cyan); font-size: 11px; font-weight: 700; letter-spacing: 2px; margin-bottom: 6px; }
+.card .v { color: var(--text); font-size: 13.5px; font-weight: 600; }
+.card .s { color: var(--muted); font-size: 11.5px; }
+.card.mono .v { font-family: 'JetBrains Mono',monospace; direction: ltr; unicode-bidi: embed; font-size: 13px; }
+
+.callout {
+  border: 1px solid rgba(34,216,238,0.3);
+  background: linear-gradient(180deg, rgba(34,216,238,0.07), rgba(34,216,238,0.03));
+  border-radius: 14px; padding: 14px 18px; margin: 0 0 14px; break-inside: avoid;
+}
+.callout.warn { border-color: rgba(251,191,36,0.35); background: linear-gradient(180deg, rgba(251,191,36,0.07), rgba(251,191,36,0.03)); }
+.callout.ok { border-color: rgba(52,211,153,0.35); background: linear-gradient(180deg, rgba(52,211,153,0.07), rgba(52,211,153,0.03)); }
+.callout .h { color: var(--text); font-weight: 700; margin-bottom: 4px; }
+.callout.warn .h { color: var(--amber); }
+.callout.ok .h { color: var(--green); }
+.callout .h .ico { color: var(--cyan); }
+.callout p { margin: 0; font-size: 12.5px; }
+
+/* step header */
+.stephead { display: flex; align-items: center; gap: 12px; margin: 26px 0 8px; break-after: avoid; }
+.stephead .num {
+  flex: 0 0 40px; height: 40px; border-radius: 12px;
+  border: 1.5px solid rgba(34,216,238,0.45);
+  background: rgba(34,216,238,0.08);
+  color: var(--cyan); font-weight: 700; font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+}
+.stephead .tt { font-size: 18px; font-weight: 700; color: var(--text); }
+.stephead .sub { font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+
+table { width: 100%; border-collapse: collapse; margin: 0 0 14px; break-inside: avoid; }
+th { color: var(--cyan); font-size: 11.5px; font-weight: 700; text-align: right; padding: 8px 10px; border-bottom: 1px solid rgba(34,216,238,0.25); }
+td { color: var(--muted); font-size: 12.5px; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+td .mono, td code { font-size: 11.5px; }
+tr { break-inside: avoid; }
+
+.footer {
+  margin-top: 30px; padding-top: 14px;
+  border-top: 1px solid var(--line);
+  color: var(--muted); font-size: 11px; letter-spacing: 1.5px;
+  display: flex; justify-content: space-between;
+}
+.pagebreak { break-before: page; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ COVER ═══════════════ -->
+<div class="cover">
+  <div class="ring r1"></div>
+  <div class="ring r2"></div>
+  <div class="glow"></div>
+  <div class="logo">ס</div>
+  <h1>راهنمای کامل <b>دیپلوی</b> روی KataBump</h1>
+  <div class="ver">SEPHIROTH v2.3.1</div>
+  <p class="lead">آموزش تصویری گام‌به‌گام استقرار پنل Sephiroth روی هاست رایگان KataBump (پتروداکتل) — از پاک‌سازی نسخه‌ی قدیمی و آپلود پکیج تا بوت خودکار، امن‌سازی و بروزرسانی‌های آینده. همراه با تصاویر واقعی از تمام مراحل.</p>
+  <div class="urlbox">http://203.0.113.10:20364</div>
+  <div class="foot"><b>EPODONIOS</b> · SEPHIROTH PANEL · 2026</div>
+</div>
+
+<div class="main-content">
+
+<!-- ═══════════ خلاصه ═══════════ -->
+<div class="section">
+  <span class="kicker">SUMMARY</span>
+  <h2>خلاصه: پنل شما الان <span class="n">زنده است</span></h2>
+  <hr class="rule">
+  <p>پنل Sephiroth نسخه‌ی <b>v2.3.1</b> به‌صورت کامل روی سرور KataBump شما مستقر شد. نسخه‌ی قدیمی (سورس خام‌آپلودشده که بوت نمی‌شد) به‌طور کامل حذف شد و به‌جای آن یک <b>پکیج بهینه‌ی production</b> نصب شد: فرانت‌اند ساخته‌شده (Vite build)، سرور تک‌فایلی (esbuild)، ران‌تایم پرتابل Node.js و اسکریپت بوت خودکار. نتیجه: ورود کار می‌کند، ریل‌تایم زنده است و کل پکیج فقط <b>~۳۳ مگابایت</b> است.</p>
+  <div class="grid2">
+    <div class="card mono">
+      <div class="t">SERVER ADDRESS</div>
+      <div class="v">http://203.0.113.10:20364</div>
+      <div class="s">آدرس مستقیم پنل — IP فرانسه (گراولین، OVH)</div>
+    </div>
+    <div class="card">
+      <div class="t">NODE / SERVER ID</div>
+      <div class="v">GRA-N36 · 52ccfad9</div>
+      <div class="s">پنل مدیریت: control.katabump.com/server/52ccfad9</div>
+    </div>
+    <div class="card mono">
+      <div class="t">ADMIN USERNAME</div>
+      <div class="v">admin</div>
+      <div class="s">نام کاربری پیش‌فرض (تغییر نکرد)</div>
+    </div>
+    <div class="card mono">
+      <div class="t">ADMIN PASSWORD</div>
+      <div class="v">Ketra-kHcczCMk</div>
+      <div class="s">رمز جدید امن — رمز قدیمی sephiroth غیرفعال شد</div>
+    </div>
+    <div class="card mono">
+      <div class="t">RECOVERY KEY</div>
+      <div class="v">SEPH-HW9B-JDSD-XFX6</div>
+      <div class="s">کلید بازیابی جدید — فقط یک‌بار نشان داده می‌شود، آن را نگه دارید</div>
+    </div>
+    <div class="card">
+      <div class="t">RESOURCES</div>
+      <div class="v">۲۵٪ CPU · ۳۰۸MB RAM · ۷۱۶MB Disk</div>
+      <div class="s">پنل با ~۱۷۴MB RAM راحت اجرا می‌شود</div>
+    </div>
+  </div>
+  <div class="callout warn">
+    <div class="h">⚠ مهم — این سه قلم را جایی امن ذخیره کنید</div>
+    <p>آدرس پنل، رمز ادمین (<span class="mono">Ketra-kHcczCMk</span>) و کلید بازیابی (<span class="mono">SEPH-HW9B-JDSD-XFX6</span>). اگر رمز را فراموش کردید، با کلید بازیابی از صفحه‌ی ورود می‌توانید رمز جدید بسازید. کلیدهای پیش‌فرض عمومی (که در گیت‌هاب دیده می‌شوند) روی این نصب <b>باطل شده‌اند</b>.</p>
+  </div>
+</div>
+
+<!-- ═══════════ معماری ═══════════ -->
+<div class="section pagebreak">
+  <span class="kicker">ARCHITECTURE</span>
+  <h2>معماری دیپلوی: چرا <span class="n">Python → Node</span>؟</h2>
+  <hr class="rule">
+  <p>KataBump از پتروداکتل استفاده می‌کند و ایج سرور شما فقط <b>Python</b> را اجرا می‌کند (دستور استارت ثابت است: <code>python /home/container/app.py</code> و تصاویر داکری فقط پایتون ۳.۸ تا ۳.۱۴ هستند). ترفند اصلی دیپلوی همین‌جاست: یک لانچر پایتون کوچک (<code>app.py</code>) نقش «سوییچ برق» را بازی می‌کند و Node.js پرتابل را بوت می‌کند:</p>
+  <pre><span class="c"># زنجیره‌ی بوت روی KataBump</span>
+<span class="k">python /home/container/app.py</span>          <span class="c">← ایج پتروداکتل فقط این را اجرا می‌کند</span>
+  ├── ۱) اگر server.cjs نبود → seph-deploy.zip را باز می‌کند (نصب خودکار)
+  ├── ۲) اگر باینری Node نبود → runtime/node.tar.xz را باز می‌کند
+  ├── ۳) اضافات Node (npm/headers/docs) را پاک می‌کند — صرفه‌جویی دیسک
+  └── ۴) اجرای نهایی:
+        <span class="ok">NODE_ENV=production  PORT=SERVER_PORT  node --max-old-space-size=176 server.cjs</span></pre>
+  <p><b>server.cjs</b> یک باندل تک‌فایلی است که کل بک‌اند (Express + Socket.IO + تمام APIها + هسته‌ی شبیه‌ساز Xray) را داخل خودش دارد — یعنی <b>نیازی به node_modules روی سرور نیست</b>. فرانت‌اند هم از قبل ساخته شده (<code>dist/</code>) و همان سرور به‌صورت استاتیک سرو می‌کند. نتیجه: بوت در چند ثانیه، بدون npm install، بدون build روی سرور.</p>
+  <div class="grid2">
+    <div class="card">
+      <div class="t">PACKAGE CONTENTS (33MB)</div>
+      <div class="s">
+        <span class="mono">app.py</span> — لانچر پایتون<br>
+        <span class="mono">server.cjs</span> — باندل کامل بک‌اند (~2MB)<br>
+        <span class="mono">dist/</span> — فرانت‌اند ساخته‌شده<br>
+        <span class="mono">runtime/node.tar.xz</span> — Node 22 پرتابل (29MB)<br>
+        <span class="mono">.env · package.json · db/</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="t">WHY THIS IS ROBUST</div>
+      <div class="s">
+        • بدون node_modules → آپلود سریع و دیسک کم<br>
+        • self-extract → آپلود ۲ فایل + دکمه‌ی استارت<br>
+        • <span class="mono">PORT</span> خودکار از <span class="mono">SERVER_PORT</span> پتروداکتل<br>
+        • لاگ خوانا در <span class="mono">node.log</span> برای عیب‌یابی<br>
+        • بوت مجدد = بدون استخراج دوباره (سریع)
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ STEP 1 ═══════════ -->
+<div class="section">
+  <div class="stephead">
+    <div class="num">۱</div>
+    <div><div class="tt">ورود به پنل مدیریت KataBump</div><div class="sub">control.katabump.com — با Identifier و پسورد</div></div>
+  </div>
+  <p>به آدرس <code>https://control.katabump.com</code> بروید. در صفحه‌ی لاگین، در فیلد <b>Your ID</b> شناسه‌ی حساب (<code>e966dfe0280874a</code>) و در فیلد Password رمز (<code>544a10b26100</code>) را وارد کنید و Login بزنید.</p>
+  <figure>
+    <div class="shot"><img src="deploy-shots/01-login-page.png" alt="صفحه ورود کتابامپ"></div>
+    <figcaption><span class="step">تصویر ۱</span><span>صفحه‌ی ورود کنترل‌پنل KataBump — شناسه و رمز حساب</span></figcaption>
+  </figure>
+  <p>بعد از ورود، داشبورد حساب را می‌بینید که سرور شما (<b>proxy</b>) در آن فهرست شده. روی <b>Manage server</b> کلیک کنید تا وارد محیط مدیریت سرور (پتروداکتل) شوید.</p>
+  <figure>
+    <div class="shot"><img src="deploy-shots/02-dashboard.png" alt="داشبورد کتابامپ"></div>
+    <figcaption><span class="step">تصویر ۲</span><span>داشبورد حساب — دکمه‌ی Manage server برای ورود به مدیریت سرور</span></figcaption>
+  </figure>
+</div>
+
+<!-- ═══════════ STEP 2 ═══════════ -->
+<div class="section">
+  <div class="stephead">
+    <div class="num">۲</div>
+    <div><div class="tt">آشنایی با سرور و منابع</div><div class="sub">آدرس اختصاصی، تب‌ها و محدودیت‌ها</div></div>
+  </div>
+  <p>در بالای پنل، <b>آدرس عمومی سرور</b> را می‌بینید: <code>203.0.113.10:20364</code>. همین آدرس، لینک نهایی پنل Sephiroth شماست (پورت 20364 همان allocation اختصاصی است که پنل روی آن گوش می‌دهد). از نوار کنار، تب‌های <b>Console، Files، Settings، Startup، Network و Backups</b> در دسترس‌اند.</p>
+  <figure>
+    <div class="shot"><img src="deploy-shots/06-console-resources.png" alt="منابع سرور"></div>
+    <figcaption><span class="step">تصویر ۳</span><span>تب Console — منابع سرور: ۲۵٪ CPU، ۳۰۸ مگابایت RAM، ۷۱۶ مگابایت دیسک</span></figcaption>
+  </figure>
+  <div class="callout">
+    <div class="h"><span class="ico">ⓘ</span> نکته</div>
+    <p>پنل Sephiroth با <b>~۱۷۴MB</b> حافظه کار می‌کند؛ یعنی در سقف ۳۰۸ مگابایتی KataBump راحت جا می‌شود. دیسک مصرفی پس از نصب حدود <b>۱۵۰ مگابایت</b> است (Node پرتابل + پکیج).</p>
+  </div>
+</div>
+
+<!-- ═══════════ STEP 3 ═══════════ -->
+<div class="section pagebreak">
+  <div class="stephead">
+    <div class="num">۳</div>
+    <div><div class="tt">ساخت پکیج دیپلوی (روی سیستم خودتان)</div><div class="sub">scripts/deploy/build-katabump.sh</div></div>
+  </div>
+  <p>در مخزن پروژه، اسکریپت آماده داریم. این اسکریپت در سه گام، پکیج ۳۳ مگابایتی <code>seph-deploy.zip</code> را می‌سازد:</p>
+  <pre><span class="c"># ۱) نصب دپندنس‌ها و build فرانت‌اند</span>
+<span class="k">bun install</span> && <span class="k">bunx vite build</span>          <span class="c">→ dist/ (SPA + فونت‌ها)</span>
+
+<span class="c"># ۲) باندل کردن کل بک‌اند در یک فایل</span>
+<span class="k">bunx esbuild server.ts --bundle --platform=node</span>
+     <span class="c">--format=cjs --external:vite</span>        <span class="c">→ server.cjs (~2MB)</span>
+
+<span class="c"># ۳) افزودن لانچر + ران‌تایم Node و زیپ نهایی</span>
+<span class="k">zip -qr seph-deploy.zip .</span>               <span class="c">→ آماده‌ی آپلود (33MB)</span></pre>
+  <p>خروجی نهایی دقیقاً همین ساختار را دارد: <code>app.py</code> + <code>server.cjs</code> + <code>dist/</code> + <code>runtime/node.tar.xz</code> + <code>.env</code>. اگر پکیج را از قبل دارید، این مرحله را کامل رد کنید.</p>
+  <div class="callout ok">
+    <div class="h">✓ چرا بدون node_modules؟</div>
+    <p>چون esbuild همه‌چیز را داخل <code>server.cjs</code> باندل می‌کند. نتیجه: آپلود چندثانیه‌ای، دیسک کم، و هیچ «npm install»ی روی سرور لازم نیست — فقط یک فایل جاوااسکریپت و یک باینری Node.</p>
+  </div>
+</div>
+
+<!-- ═══════════ STEP 4 ═══════════ -->
+<div class="section">
+  <div class="stephead">
+    <div class="num">۴</div>
+    <div><div class="tt">اتصال SFTP و پاک‌سازی نسخه‌ی قدیمی</div><div class="sub">fr-node-36.katabump.fr:2022</div></div>
+  </div>
+  <p>برای آپلود و حذف فایل‌ها از <b>SFTP</b> استفاده می‌کنیم (سریع‌تر و مطمئن‌تر از آپلودر مرورگر). مشخصات اتصال در تب <b>Settings</b> پنل KataBump بخش «SFTP Details» هست:</p>
+  <figure>
+    <div class="shot"><img src="deploy-shots/05-settings-sftp.png" alt="جزئیات SFTP"></div>
+    <figcaption><span class="step">تصویر ۴</span><span>تب Settings — آدرس SFTP و نام کاربری؛ رمز همان رمز پنل است</span></figcaption>
+  </figure>
+  <div class="grid2">
+    <div class="card mono"><div class="t">HOST</div><div class="v">fr-node-36.katabump.fr</div><div class="s">پورت 2022</div></div>
+    <div class="card mono"><div class="t">USERNAME</div><div class="v">e966dfe0280874a.52ccfad9</div><div class="s">شناسه‌حساب.شناسه‌سرور</div></div>
+    <div class="card mono"><div class="t">PASSWORD</div><div class="v">544a10b26100</div><div class="s">مطابق رمز پنل کتابامپ</div></div>
+    <div class="card mono"><div class="t">TOOLS</div><div class="v">FileZilla / WinSCP</div><div class="s">یا اسکریپت ssh2 پروژه</div></div>
+  </div>
+  <p>قبل از آپلود، <b>تمام فایل‌های قدیمی</b> داخل مسیر <code>/</code> (معادل <code>/home/container</code>) را حذف کنید — در نسخه‌ی قبلی، سورس خام آپلود شده بود که هرگز بوت نمی‌شد:</p>
+  <figure>
+    <div class="shot"><img src="deploy-shots/04-files-old-install.png" alt="فایل‌های قدیمی"></div>
+    <figcaption><span class="step">تصویر ۵</span><span>تب Files قبل از پاک‌سازی — سورس خام قدیمی (src، docs، server.ts و…)</span></figcaption>
+  </figure>
+  <pre><span class="c"># پاک‌سازی کامل کانتینر (از داخل FileZilla همه را Select All → Delete،
+# یا با اسکریپت ssh2 پروژه:)</span>
+<span class="k">bun sftp.ts deleteall</span>          <span class="c">→ DELETE_ALL_OK · remaining: (empty)</span></pre>
+  <div class="callout warn">
+    <div class="h">⚠ قبل از حذف/آپلود، سرور را Stop کنید</div>
+    <p>از تب Console دکمه‌ی <b>Stop</b> را بزنید تا پروسه در حال اجرا، فایل‌ها را دوباره ننویسد. بعد از آپلود دوباره Start می‌کنیم.</p>
+  </div>
+</div>
+
+<!-- ═══════════ STEP 5 ═══════════ -->
+<div class="section pagebreak">
+  <div class="stephead">
+    <div class="num">۵</div>
+    <div><div class="tt">آپلود فقط ۲ فایل</div><div class="sub">seph-deploy.zip + app.py در ریشه‌ی کانتینر</div></div>
+  </div>
+  <p>هر دو فایل را در <b>ریشه</b> (کنار هم) آپلود کنید:</p>
+  <pre><span class="k">bun sftp.ts upload seph-deploy.zip /seph-deploy.zip</span>   <span class="c">→ UPLOAD_OK (33MB)</span>
+<span class="k">bun sftp.ts upload app.py           /app.py</span>           <span class="c">→ UPLOAD_OK (3.7KB)</span>
+
+<span class="c"># وضعیت نهایی ریشه‌ی کانتینر:</span>
+<span class="k">bun sftp.ts ls /</span>
+  <span class="ok">3793      app.py</span>
+  <span class="ok">33936548  seph-deploy.zip</span></pre>
+  <p>همین! نیازی به آپلود تک‌تک فایل‌ها نیست — <code>app.py</code> در اولین استارت، خودش <code>seph-deploy.zip</code> را باز می‌کند (self-extract) و سپس ران‌تایم Node را آماده می‌کند.</p>
+</div>
+
+<!-- ═══════════ STEP 6 ═══════════ -->
+<div class="section">
+  <div class="stephead">
+    <div class="num">۶</div>
+    <div><div class="tt">استارت سرور و بوت خودکار</div><div class="sub">دکمه‌ی سبز Start در تب Console</div></div>
+  </div>
+  <p>به تب <b>Console</b> برگردید و دکمه‌ی <b>Start</b> (دکمه‌ی سبز) را بزنید. پتروداکتل کانتینر را بالا می‌آورد، محیط پایتون را می‌سازد و <code>app.py</code> اجرا می‌شود. در کنسول این خطوط را می‌بینید:</p>
+  <figure>
+    <div class="shot"><img src="deploy-shots/07-console-starting.png" alt="استارت سرور"></div>
+    <figcaption><span class="step">تصویر ۶</span><span>کنسول هنگام بوت — «Server marked as running» یعنی کانتینر بالا آمده</span></figcaption>
+  </figure>
+  <pre><span class="c"># آنچه در اولین بوت می‌گذرد (چند ثانیه):</span>
+<span class="k">[sephiroth-launcher]</span> extracting seph-deploy.zip ...   <span class="c">← نصب خودکار پکیج</span>
+<span class="k">[sephiroth-launcher]</span> extracting node runtime ...       <span class="c">← آماده‌سازی Node 22</span>
+<span class="k">[sephiroth-launcher]</span> node v22.14.0
+<span class="k">[sephiroth-launcher]</span> PORT = 20364 SERVER_PORT = 20364
+<span class="k">[sephiroth]</span> Full-stack panel + Xray core simulator listening on <span class="ok">http://0.0.0.0:20364</span></pre>
+  <p>حالا سرور روی <code>0.0.0.0:20364</code> گوش می‌دهد — همان پورت allocation شما.</p>
+</div>
+
+<!-- ═══════════ STEP 7 ═══════════ -->
+<div class="section">
+  <div class="stephead">
+    <div class="num">۷</div>
+    <div><div class="tt">ورود به پنل و تایید نهایی</div><div class="sub">http://203.0.113.10:20364</div></div>
+  </div>
+  <p>آدرس <code>http://203.0.113.10:20364</code> را در مرورگر باز کنید. صفحه‌ی ورود Sephiroth (تم ابیسیدین + فیروزه‌ای، فارسی RTL) بالا می‌آید. با <b>admin</b> و رمز امن جدید وارد شوید:</p>
+  <figure>
+    <div class="shot"><img src="deploy-shots/08-deployed-login.png" alt="صفحه ورود پنل مستقرشده"></div>
+    <figcaption><span class="step">تصویر ۷</span><span>صفحه‌ی ورود پنل — اجرا شده از سرور واقعی KataBump</span></figcaption>
+  </figure>
+  <figure>
+    <div class="shot"><img src="deploy-shots/09-deployed-dashboard.png" alt="داشبورد پنل مستقرشده"></div>
+    <figcaption><span class="step">تصویر ۸</span><span>داشبورد پس از ورود — نشست برقرار، تله‌متری زنده، نصب تمیز و بدون دیتای دمو</span></figcaption>
+  </figure>
+  <div class="callout ok">
+    <div class="h">✓ چک‌لیست تایید نهایی</div>
+    <p>
+      • صفحه‌ی لاگین کامل رندر می‌شود (فونت‌ها و لوگو از سرور خودتان)<br>
+      • ورود با <span class="mono">admin / Ketra-kHcczCMk</span> انجام و نشست «برقرار» می‌شود<br>
+      • تایمر «آپ‌تایم» بالا می‌شمارد = Socket.IO ریل‌تایم فعال است<br>
+      • دیتای اولیه صفر است: ۰ کاربر، ۰ اینباند، ۰ ترافیک — نصب تمیز
+    </p>
+  </div>
+</div>
+
+<!-- ═══════════ SECURITY ═══════════ -->
+<div class="section pagebreak">
+  <span class="kicker">SECURITY</span>
+  <h2>امن‌سازی: کاری که <span class="n">خودکار انجام شد</span></h2>
+  <hr class="rule">
+  <p>چون مخزن عمومی گیت‌هاب، رمزها و کلیدهای پیش‌فرض را نمایش می‌دهد، روی این نصب سه اقدام امنیتی انجام شد:</p>
+  <table>
+    <tr><th>اقدام</th><th>روش</th><th>وضعیت</th></tr>
+    <tr>
+      <td><b>رمز ادمین جدید</b></td>
+      <td>متغیر محیطی <code>SEPHIROTH_ADMIN_PASS</code> در فایل <code>.env</code> سرور — در اولین seed اعمال می‌شود</td>
+      <td><span class="mono">Ketra-kHcczCMk</span> · رمز قدیمی <span class="mono">sephiroth</span> → <b>401</b></td>
+    </tr>
+    <tr>
+      <td><b>چرخش کلید بازیابی</b></td>
+      <td><code>POST /api/auth/recovery/rotate</code> — کلید جدید یک‌بار نمایش داده می‌شود</td>
+      <td><span class="mono">SEPH-HW9B-JDSD-XFX6</span> · کلید قدیمی باطل شد</td>
+    </tr>
+    <tr>
+      <td><b>رفع باگ کوکی نشست</b></td>
+      <td>فلگ <code>Secure</code> کوکی فقط برای HTTPS واقعی ست می‌شود (v2.3.1) — وگرنه مرورگر روی HTTP کوکی را پس نمی‌داد</td>
+      <td>ورود روی <span class="mono">IP:PORT</span> بدون TLS درست شد</td>
+    </tr>
+  </table>
+  <div class="callout warn">
+    <div class="h">⚠ توصیه‌های تکمیلی</div>
+    <p>
+      • از همین حالا ۲FA (TOTP) را در <b>تنظیمات ← امنیت</b> فعال کنید — با QR و بدون وابستگی خارجی.<br>
+      • رمز را از داخل پنل (آیکن پروفایل ← تغییر رمز) به چیزی که فقط شما می‌دانید تغییر دهید؛ سپس کلید بازیابی را دوباره بچرخانید.<br>
+      • آدرس <code>IP:PORT</code> رمزنگاری ندارد؛ اگر روزی TLS خواستید، یک دامنه + کلودفلر جلوی پورت کافی است.
+    </p>
+  </div>
+</div>
+
+<!-- ═══════════ UPDATE ═══════════ -->
+<div class="section">
+  <span class="kicker">UPDATES</span>
+  <h2>بروزرسانی نسخه‌های <span class="n">آینده</span></h2>
+  <hr class="rule">
+  <p>دو مسیر دارید — روی KataBump مسیر اول راحت‌ترین است:</p>
+  <h3>مسیر ۱ — آپلود پکیج جدید (توصیه‌شده برای KataBump)</h3>
+  <pre><span class="c"># ۱) پکیج جدید را بسازید یا دانلود کنید (seph-deploy.zip از ریلیز گیت‌هاب)</span>
+<span class="c"># ۲) سرور را Stop کنید</span>
+<span class="c"># ۳) فایل قدیمی server.cjs را حذف کنید (بوت دوباره زیپ تازه را باز می‌کند):</span>
+<span class="k">bun sftp.ts rm /server.cjs</span>
+<span class="c"># ۴) زیپ جدید را آپلود کنید (بازنویسی)</span>
+<span class="k">bun sftp.ts upload seph-deploy.zip /seph-deploy.zip</span>
+<span class="c"># ۵) Start — چون server.cjs نیست، app.py زیپ تازه را باز می‌کند</span></pre>
+  <h3>مسیر ۲ — دکمه‌ی بروزرسانی خودِ پنل</h3>
+  <p>در <b>تنظیمات ← بروزرسانی نرم‌افزار</b> می‌توانید نسخه‌ی مخزن عمومی را چک و آپدیت را اعمال کنید. این مسیر مکانیزم <b>git</b> را لازم دارد؛ روی KataBump چون بدون گیت دیپلوی کرده‌ایم، پنل خودش اعلام می‌کند «نصب غیر-git» — پس همان مسیر ۱ را استفاده کنید. دیتای شما (db) دست‌نخورده می‌ماند و در هر دو مسیر حفظ می‌شود.</p>
+  <div class="callout">
+    <div class="h"><span class="ico">ⓘ</span> پشتیبان‌گیری قبل از آپدیت</div>
+    <p>در <b>تنظیمات ← پشتیبان‌گیری سروری</b> یک بکاپ دستی بگیرید و فایل JSON آن را دانلود کنید. اگر آپدیت خراب شد، با Restore همان فایل به حالت قبل برمی‌گردید. بکاپ خودکار روزانه هم فعال است (پوشه‌ی <span class="mono">db/backups</span>).</p>
+  </div>
+</div>
+
+<!-- ═══════════ TROUBLESHOOT ═══════════ -->
+<div class="section">
+  <span class="kicker">TROUBLESHOOTING</span>
+  <h2>عیب‌یابی سریع</h2>
+  <hr class="rule">
+  <table>
+    <tr><th>علامت</th><th>علت احتمالی</th><th>راه‌حل</th></tr>
+    <tr>
+      <td>سرور Start می‌شود ولی سایت بالا نمی‌آید</td>
+      <td>خطای بوت در لانچر یا Node</td>
+      <td>فایل <code>node.log</code> را از ریشه با SFTP بگیرید — تمام خروجی لانچر و Node آنجاست</td>
+    </tr>
+    <tr>
+      <td><span class="mono">FATAL: server bundle missing</span></td>
+      <td><code>seph-deploy.zip</code> کنار <code>app.py</code> نیست یا ناقص آپلود شده</td>
+      <td>زیپ را دوباره در ریشه آپلود کنید و استارت بزنید</td>
+    </tr>
+    <tr>
+      <td><span class="mono">FATAL: node runtime missing</span></td>
+      <td>پوشه‌ی <code>runtime</code> حذف شده</td>
+      <td><code>runtime/node.tar.xz</code> را برگردانید یا کل پکیج را دوباره آپلود کنید (پوشه‌ی <code>runtime</code> را هم پاک کنید تا دوباره استخراج شود)</td>
+    </tr>
+    <tr>
+      <td>ورود انجام می‌شود ولی صفحه رفرش و بیرون می‌زند</td>
+      <td>کوکی نشست ست نمی‌شود (نسخه‌ی قدیمی‌تر از v2.3.1 روی HTTP)</td>
+      <td>به v2.3.1 بروزرسانی کنید — فلگ Secure کوکی مشروط به HTTPS شد</td>
+    </tr>
+    <tr>
+      <td>پنل کند یا کرش می‌کند</td>
+      <td>محدودیت ۳۰۸MB RAM</td>
+      <td>لانچر با <code>--max-old-space-size=176</code> اجرا می‌کند؛ از ساخت کاربرهای خیلی زیاد هم‌زمان پرهیز کنید و سرور را Restart دهید</td>
+    </tr>
+    <tr>
+      <td>رمز ادمین را فراموش کردم</td>
+      <td>—</td>
+      <td>در صفحه‌ی ورود «از کلید بازیابی استفاده کن» → کلید <span class="mono">SEPH-HW9B-JDSD-XFX6</span> و رمز جدید</td>
+    </tr>
+  </table>
+  <div class="footer">
+    <span>SEPHIROTH v2.3.1 · KATABUMP DEPLOY GUIDE</span>
+    <span>EPODONIOS · MIT LICENSE</span>
+  </div>
+</div>
+
+</div>
+</body>
+</html>
