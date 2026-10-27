@@ -11,3 +11,12 @@ upload/ export-ignore
 download/ export-ignore
 dev.log export-ignore
 dist/ export-ignore
+# sandbox scaffold + secret-bearing deploy material stay out of public exports
+examples/ export-ignore
+prisma/ export-ignore
+next.config.ts export-ignore
+components.json export-ignore
+eslint.config.mjs export-ignore
+docs/deploy-shots/ export-ignore
+docs/sephiroth-katabump-deploy-guide-fa.html export-ignore
+docs/sephiroth-katabump-deploy-guide-fa.pdf export-ignore
