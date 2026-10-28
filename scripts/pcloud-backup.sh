@@ -58,7 +58,8 @@ if [ "$auth_ok" != "1" ]; then
     echo "(SKIP_UPLOAD mode — skipping login)"
   else
     DIGEST="$(curl -s "$API/getdigest" | jget digest)"
-    PASSHASH="$(printf '%s' "${PCLOUD_PASSWORD}${DIGEST}" | sha1sum | cut -d' ' -f1)"
+    INNER="$(printf '%s' "$PCLOUD_PASSWORD" | sha1sum | cut -d' ' -f1)"
+    PASSHASH="$(printf '%s' "${DIGEST}${INNER}" | sha1sum | cut -d' ' -f1)"
     RESP="$(curl -s -G "$API/login" \
       --data-urlencode "username=$PCLOUD_EMAIL" \
       --data-urlencode "digest=$DIGEST" \
