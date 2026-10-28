@@ -289,9 +289,19 @@ export function buildShareLink(
     case "mtproto": {
       // Task 25-a — Telegram-native MTProto deep link. The client key IS
       // the mtg v2 secret; without one there is nothing shareable.
+      // A bare `ee<hex32>` key carries NO fake-TLS domain — the sidecar
+      // enforces the stream.mtpDomain one, so the shared secret must match:
+      // append it at link time when the key lacks a domain suffix.
       const secret = first?.key?.trim();
       if (!secret) return null;
-      return buildTelegramMtpLinks(host, row.port, secret).tg;
+      const st = (row.stream ?? {}) as Record<string, unknown>;
+      const mtpDomain = typeof st.mtpDomain === "string" ? st.mtpDomain.trim() : "";
+      const body = secret.replace(/^(dd|ee)/i, "");
+      const fullSecret =
+        /^[0-9a-f]{32}$/i.test(body) && mtpDomain
+          ? `${secret}${mtpDomain}`
+          : secret;
+      return buildTelegramMtpLinks(host, row.port, fullSecret).tg;
     }
     default:
       return null;
@@ -351,11 +361,18 @@ export function buildShareMaterial(
     return { link, text: parts.join("\n"), extra: httpLink };
   }
   if (row.protocol === "mtproto") {
-    // Task 25-a — both Telegram-native forms: tg:// deep link + t.me web link
-    const secret = first?.key?.trim();
-    if (secret) {
+    // Task 25-a — both Telegram-native forms: tg:// deep link + t.me web link.
+    // Reuse buildShareLink so the fake-TLS domain suffix logic (bare
+    // ee<hex32> key + stream.mtpDomain) lives in exactly one place.
+    if (link) {
+      const st = (row.stream ?? {}) as Record<string, unknown>;
+      const mtpDomain = typeof st.mtpDomain === "string" ? st.mtpDomain.trim() : "";
+      const secret = first?.key?.trim() ?? "";
+      const body = secret.replace(/^(dd|ee)/i, "");
+      const fullSecret =
+        /^[0-9a-f]{32}$/i.test(body) && mtpDomain ? `${secret}${mtpDomain}` : secret;
       const host = hostOf(row, fallbackHost, publicHost);
-      const both = buildTelegramMtpLinks(host, row.port, secret);
+      const both = buildTelegramMtpLinks(host, row.port, fullSecret);
       return { link: both.tg, text: `${both.tg}\n${both.web}`, extra: both.web };
     }
     return { link: null, text: buildDokoSummary(row, fallbackHost, publicHost) };

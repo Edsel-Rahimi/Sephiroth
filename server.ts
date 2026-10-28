@@ -42,6 +42,7 @@ import * as apiAuthSession from "./src/app/api/auth/session/route";
 import * as apiHosts from "./src/app/api/hosts/route";
 import * as apiHostsId from "./src/app/api/hosts/[id]/route";
 import * as apiInbounds from "./src/app/api/inbounds/route";
+import * as apiInboundsAutopilot from "./src/app/api/inbounds/autopilot/route";
 import * as apiInboundsId from "./src/app/api/inbounds/[id]/route";
 import * as apiNodes from "./src/app/api/nodes/route";
 import * as apiNodesId from "./src/app/api/nodes/[id]/route";
@@ -293,6 +294,8 @@ async function startServer() {
   mountRoute(app, "/api/hosts/:id", apiHostsId);
 
   mountRoute(app, "/api/inbounds", apiInbounds);
+  // Task 25-b — autopilot MUST mount before the :id catch-all below
+  mountRoute(app, "/api/inbounds/autopilot", apiInboundsAutopilot);
   mountRoute(app, "/api/inbounds/:id", apiInboundsId);
 
   mountRoute(app, "/api/nodes", apiNodes);
