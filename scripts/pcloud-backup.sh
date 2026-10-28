@@ -28,6 +28,12 @@ CONF="$HOME/.pcloud-backup.conf"
 TOKEN_FILE="$HOME/.pcloud-authtoken"
 ROOT_REMOTE="/Sephiroth-Backups"
 
+# Durable fallbacks INSIDE the repo (survive HOME/sandbox wipes when the
+# repo persists; repo dir is 0700, .gitignored, never leaves the machine)
+PCLOUD_DIR="$PROJ/.pcloud"
+[ -f "$CONF" ]      || [ ! -f "$PCLOUD_DIR/backup.conf" ] || CONF="$PCLOUD_DIR/backup.conf"
+[ -f "$TOKEN_FILE" ] || [ ! -f "$PCLOUD_DIR/authtoken" ]  || TOKEN_FILE="$PCLOUD_DIR/authtoken"
+
 if [ ! -f "$CONF" ]; then
   if [ "${SKIP_UPLOAD:-0}" = "1" ]; then
     echo "(no $CONF — SKIP_UPLOAD mode, archives only)"
@@ -48,6 +54,17 @@ jget() { python3 -c "import json,sys
 try: print(json.load(sys.stdin).get('$1',''))
 except Exception: print('')"; }
 
+# Mirror auth artifacts into the repo so the 2-hourly cron can always log in
+# even after a sandbox restore (both locations kept in sync)
+pcloud_mirror_auth() {
+  mkdir -p "$PCLOUD_DIR" 2>/dev/null || return 0
+  [ -f "$CONF" ] && cp -f "$CONF" "$PCLOUD_DIR/backup.conf" 2>/dev/null
+  [ -f "$TOKEN_FILE" ] && cp -f "$TOKEN_FILE" "$PCLOUD_DIR/authtoken" 2>/dev/null
+  chmod 700 "$PCLOUD_DIR" 2>/dev/null || true
+  chmod 600 "$PCLOUD_DIR/backup.conf" "$PCLOUD_DIR/authtoken" 2>/dev/null || true
+  return 0
+}
+
 # ---------- auth (cached authtoken -> conf token -> digest login) ----------
 auth_ok=0
 if [ -f "$TOKEN_FILE" ]; then
@@ -61,6 +78,7 @@ if [ "$auth_ok" != "1" ] && [ -n "${PCLOUD_AUTH:-}" ]; then
   if [ "$R" = "0" ]; then
     auth_ok=1
     (umask 077; printf '%s' "$TOKEN" > "$TOKEN_FILE")
+    pcloud_mirror_auth
     echo ">> using PCLOUD_AUTH from config (cached)"
   else
     echo "WARN: PCLOUD_AUTH token rejected (result=$R)" >&2
@@ -85,6 +103,7 @@ if [ "$auth_ok" != "1" ]; then
     fi
     TOKEN="$(printf '%s' "$RESP" | jget auth)"
     (umask 077; printf '%s' "$TOKEN" > "$TOKEN_FILE")
+    pcloud_mirror_auth
     echo ">> logged in to pCloud ($REGION), authtoken cached"
   fi
 fi

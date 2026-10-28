@@ -66,3 +66,4 @@ db/update.log
 
 # pCloud backup staging (never commit)
 .pcloud-stage/
+.pcloud/
