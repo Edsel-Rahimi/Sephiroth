@@ -539,6 +539,12 @@ export default function SubPage() {
                           <BadgeCheck className="h-4 w-4" aria-hidden="true" />
                           {t.expiresNever}
                         </span>
+                      ) : payload.status === "onhold" ? (
+                        // 26-a — waiting subscription: no clock yet, nothing to count down
+                        <span className="flex items-center gap-1.5 text-sm font-semibold text-amber-400">
+                          <Clock3 className="h-4 w-4" aria-hidden="true" />
+                          {t.startsOnConnect}
+                        </span>
                       ) : payload.expiry.daysLeft !== null && payload.expiry.daysLeft < 0 ? (
                         <span className="text-sm font-semibold text-chart-5">
                           {sfmt(t.expiredAgo, { n: Math.abs(payload.expiry.daysLeft) })}

@@ -1224,6 +1224,14 @@ export const db = {
           (a) => String(a.userId) === String(u.id),
         );
         const inb = acc ? inboundById.get(String(acc.inboundId)) : undefined;
+        // 26-a — expiry anchor: startedAt when set, else createdAt… UNLESS the
+        // on-hold clock has not started yet (null anchor → no known end date)
+        const anchorMs =
+          u.startedAt !== null && u.startedAt !== undefined
+            ? Date.parse(String(u.startedAt))
+            : u.onHold === true
+              ? null
+              : Date.parse(String(u.createdAt));
         return {
           uid: String(u.id).slice(-6).toUpperCase(),
           user: String(u.username),
@@ -1236,9 +1244,8 @@ export const db = {
             : null,
           gb: Math.round(used(u) * 100) / 100,
           expiresAtMs:
-            (Number(u.expiryDays) || 0) > 0
-              ? Date.parse(String(u.createdAt)) +
-                (Number(u.expiryDays) || 0) * 86_400_000
+            (Number(u.expiryDays) || 0) > 0 && anchorMs !== null
+              ? anchorMs + (Number(u.expiryDays) || 0) * 86_400_000
               : null,
           usagePct:
             (Number(u.trafficLimitGb) || 0) > 0

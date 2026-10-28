@@ -236,13 +236,20 @@ function userStatusOf(u: ClientUser, now: Date): UserStatus {
     expiryDays: u.expiryDays,
     usedTrafficGb: u.usedTrafficGb,
     createdAt: u.createdAt,
+    onHold: u.onHold === true, // 26-a — on-hold gate for the null anchor
     startedAt: u.startedAt ?? null,
     now,
   });
 }
 
-function daysLeftOf(u: Pick<ClientUser, "expiryDays" | "createdAt" | "startedAt">, now: Date): number | null {
+function daysLeftOf(
+  u: Pick<ClientUser, "expiryDays" | "createdAt" | "startedAt" | "onHold">,
+  now: Date
+): number | null {
   if (u.expiryDays === null) return null;
+  // 26-a — an on-hold user whose clock has not started has NO end date yet;
+  // falling back to createdAt would surface a bogus negative days-left.
+  if (u.onHold === true && u.startedAt === null) return null;
   const end = new Date(u.startedAt ?? u.createdAt).getTime() + u.expiryDays * 86_400_000;
   return Math.ceil((end - now.getTime()) / 86_400_000);
 }
@@ -281,8 +288,8 @@ export async function userSubPayload(
       daysLeft: daysLeftOf(user, now),
       never: user.expiryDays === null,
       endsAtIso:
-        user.expiryDays === null
-          ? null
+        user.expiryDays === null || (user.onHold === true && user.startedAt === null)
+          ? null // 26-a — waiting on-hold has no end date yet
           : new Date(new Date(user.startedAt ?? user.createdAt).getTime() + user.expiryDays * 86_400_000).toISOString(),
     },
     members: null,
@@ -290,9 +297,9 @@ export async function userSubPayload(
   };
 }
 
-/** Priority: any active wins, then capped, expired, disabled. */
+/** Priority: any active wins, then capped, expired, disabled; on-hold last (26-a). */
 function aggregateStatus(statuses: UserStatus[]): UserStatus {
-  for (const s of ["active", "capped", "expired", "disabled"] as UserStatus[]) {
+  for (const s of ["active", "capped", "expired", "disabled", "onhold"] as UserStatus[]) {
     if (statuses.includes(s)) return s;
   }
   return "disabled";

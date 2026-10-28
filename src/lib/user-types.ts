@@ -156,6 +156,8 @@ export type UserPatch = Partial<{
   /** 26-a — toggling onHold back ON clears the anchor so the clock restarts. */
   onHold: boolean;
   autoRenew: boolean;
+  /** 26-a — manual renew: fresh window from now, usage reset, counters bumped. */
+  renew: boolean;
   inboundIds: string[];
 }>;
 
@@ -215,6 +217,10 @@ export function validateUserPatch(
     if (typeof b.autoRenew !== "boolean") fields.push({ field: "note", code: "format" });
     else out.autoRenew = b.autoRenew;
   }
+  if ("renew" in b) {
+    if (typeof b.renew !== "boolean") fields.push({ field: "note", code: "format" });
+    else out.renew = b.renew;
+  }
   if ("inboundIds" in b) {
     out.inboundIds = Array.isArray(b.inboundIds)
       ? b.inboundIds.filter((x): x is string => typeof x === "string")
@@ -235,12 +241,17 @@ export function deriveStatus(u: {
   expiryDays: number | null;
   usedTrafficGb: number;
   createdAt: Date | string;
+  /** 26-a — on-hold flag; only on-hold users carry a null anchor meaning. */
+  onHold?: boolean;
   /** 26-a — on-hold anchor; null + onHold ⇒ clock not started yet. */
   startedAt?: Date | string | null;
   now?: Date;
 }): UserStatus {
   if (!u.enabled) return "disabled";
-  if (u.startedAt === null && u.startedAt !== undefined) return "onhold";
+  // 26-a fix — ONLY an on-hold user with a null anchor is "waiting for the
+  // first connect"; regular users keep startedAt null forever and must fall
+  // through to the normal createdAt-anchored expiry math.
+  if (u.onHold === true && u.startedAt === null) return "onhold";
   const now = u.now ?? new Date();
   if (u.expiryDays !== null) {
     const end = new Date(u.startedAt ?? u.createdAt).getTime() + u.expiryDays * 86_400_000;
@@ -259,6 +270,19 @@ export function daysLeft(
   if (expiryDays === null) return null;
   const end = new Date(anchor).getTime() + expiryDays * 86_400_000;
   return Math.ceil((end - (now ?? new Date()).getTime()) / 86_400_000);
+}
+
+/**
+ * 26-a — days-left that respects the on-hold clock: a waiting subscription
+ * (onHold + null anchor) has NO countdown yet, so this returns null instead
+ * of silently falling back to the createdAt anchor.
+ */
+export function daysLeftSmart(
+  u: { expiryDays: number | null; onHold?: boolean; startedAt?: Date | string | null; createdAt: Date | string },
+  now?: Date
+): number | null {
+  if (u.onHold === true && (u.startedAt === null || u.startedAt === undefined)) return null;
+  return daysLeft(u.expiryDays, u.startedAt ?? u.createdAt, now);
 }
 
 /** 26-a — the timestamp the expiry clock is measured from. */

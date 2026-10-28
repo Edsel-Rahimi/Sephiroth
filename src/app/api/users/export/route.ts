@@ -40,6 +40,9 @@ export async function GET(req: Request) {
         resetPeriod: u.resetPeriod,
         onHold: u.onHold === true,
         autoRenew: u.autoRenew === true,
+        // 26-a — lifecycle anchor + counters so a migration keeps the clock
+        startedAt: u.startedAt ? new Date(u.startedAt).toISOString() : null,
+        renewals: Number(u.renewals) || 0,
         inbounds: u.accesses.map((a) => ({
           tag: a.inbound.tag,
           protocol: a.inbound.protocol,

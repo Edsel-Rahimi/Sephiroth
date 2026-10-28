@@ -5,7 +5,7 @@ import { emailFor, flowFor, genAccessFields, toUserDTO } from "@/lib/users";
 import { parseClients, validateUserPatch } from "@/lib/user-types";
 import { stripUserEverywhere, syncUserProjection } from "@/lib/user-sync";
 import { logActivity } from "@/lib/activity";
-import { notifyUserDeleted } from "@/lib/bot/notify"; // Task 23-a — bot alert
+import { notifyUserDeleted, notifyUserRenewed } from "@/lib/bot/notify"; // Task 23-a + 26-a
 
 /* ============================================================
    Sephiroth · Phase 4 — Users item API
@@ -79,11 +79,14 @@ export async function PATCH(
     }
 
     // effective limits = patch values when present, otherwise current row
+    // (26-a — the manual renew action re-enables, so the projection that runs
+    // after the transaction must see enabled:true even when the body omits it)
+    const renewing = data.renew === true;
     const nextLimits = {
       ipLimit: data.ipLimit ?? existing.ipLimit,
       trafficLimitGb: data.trafficLimitGb !== undefined ? data.trafficLimitGb : existing.trafficLimitGb,
       expiryDays: data.expiryDays !== undefined ? data.expiryDays : existing.expiryDays,
-      enabled: data.enabled ?? existing.enabled,
+      enabled: data.enabled ?? (renewing ? true : existing.enabled),
     };
 
     await db.$transaction(async (tx) => {
@@ -103,6 +106,21 @@ export async function PATCH(
             ? { onHold: data.onHold, startedAt: data.onHold ? null : (existing.startedAt ?? null) }
             : {}),
           ...(data.autoRenew !== undefined ? { autoRenew: data.autoRenew } : {}),
+          // 26-a — manual renew: a FULL fresh window starts NOW, usage and
+          // warning state reset, the renewal counter bumps and an expired-
+          // disabled user comes back to life (explicit admin action).
+          // If the same body re-arms the hold, the anchor stays null — an
+          // on-hold user's clock only starts at the first connect.
+          ...(renewing
+            ? {
+                startedAt: data.onHold === true ? null : new Date(),
+                renewals: (Number(existing.renewals) || 0) + 1,
+                usedTrafficGb: 0,
+                lastResetAt: new Date(),
+                expiryWarnedAt: null,
+                enabled: true,
+              }
+            : {}),
         },
       });
 
@@ -158,9 +176,12 @@ export async function PATCH(
       kind: "user.updated",
       level: "info",
       actor: actor.username,
-      message: `User "${updated.username}" updated`,
-      meta: { userId: id, username: updated.username },
+      message: renewing
+        ? `User "${updated.username}" manually renewed (window restarted from now, renewal #${updated.renewals})`
+        : `User "${updated.username}" updated`,
+      meta: { userId: id, username: updated.username, ...(renewing ? { renew: true, renewals: updated.renewals } : {}) },
     });
+    if (renewing) void notifyUserRenewed(updated.username, Number(updated.renewals) || 0);
     return NextResponse.json({ user: toUserDTO(updated) });
   } catch (err) {
     console.error("[users:PATCH]", err);

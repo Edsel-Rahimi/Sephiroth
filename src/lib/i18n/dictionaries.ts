@@ -643,6 +643,13 @@ export interface Dict {
     fieldOnHoldHint: string;
     fieldAutoRenew: string;
     fieldAutoRenewHint: string;
+    /** 26-a — drawer lifecycle line + manual renew */
+    startedAt: string;
+    notStarted: string;
+    renewalsCount: string;
+    renewNow: string;
+    renewTip: string;
+    toastRenewed: string;
     hwidUnlimited: string;
     devicesCount: string;
     resetDevices: string;
@@ -2479,6 +2486,12 @@ export const dictionaries: Record<Lang, Dict> = {
       fieldOnHoldHint: "The expiry clock starts at the user's first connection, not now.",
       fieldAutoRenew: "Auto-renew",
       fieldAutoRenewHint: "On expiry the window rolls forward and traffic resets instead of disabling.",
+      startedAt: "Started {d}",
+      notStarted: "Waiting for first connect",
+      renewalsCount: "{n} renewal(s)",
+      renewNow: "Renew now",
+      renewTip: "Grant a full fresh window starting now (usage resets)",
+      toastRenewed: "Renewed — fresh window granted",
       hwidUnlimited: "Empty = unlimited devices",
       devicesCount: "{n} device(s)",
       resetDevices: "Reset devices",
@@ -4323,6 +4336,12 @@ export const dictionaries: Record<Lang, Dict> = {
       fieldOnHoldHint: "زمان اشتراک از اولین اتصال کاربر شروع می‌شود، نه الان.",
       fieldAutoRenew: "تمدید خودکار",
       fieldAutoRenewHint: "در انقضا، پنجره تمدید و ترافیک صفر می‌شود؛ به‌جای غیرفعال‌شدن.",
+      startedAt: "شروع از {d}",
+      notStarted: "در انتظار اولین اتصال",
+      renewalsCount: "{n} بار تمدید",
+      renewNow: "تمدید اکنون",
+      renewTip: "اعطای یک پنجره کامل از الان (مصرف صفر می‌شود)",
+      toastRenewed: "تمدید شد — پنجره جدید اعطا شد",
       hwidUnlimited: "خالی = تعداد دستگاه نامحدود",
       devicesCount: "{n} دستگاه",
       resetDevices: "بازنشانی دستگاه‌ها",
@@ -6163,6 +6182,12 @@ export const dictionaries: Record<Lang, Dict> = {
       fieldOnHoldHint: "يبدأ عدّاد الانتهاء عند أول اتصال للمستخدم، لا الآن.",
       fieldAutoRenew: "تجديد تلقائي",
       fieldAutoRenewHint: "عند الانتهاء تُمدّد النافذة ويُصفَّر حجم البيانات بدلاً من التعطيل.",
+      startedAt: "بدأ في {d}",
+      notStarted: "في انتظار أول اتصال",
+      renewalsCount: "{n} تجديد",
+      renewNow: "تجديد الآن",
+      renewTip: "منح نافذة كاملة جديدة تبدأ الآن (يُصفَّر الاستخدام)",
+      toastRenewed: "تم التجديد — منحت نافذة جديدة",
       hwidUnlimited: "فارغ = أجهزة غير محدودة",
       devicesCount: "{n} جهاز",
       resetDevices: "إعادة تعيين الأجهزة",
@@ -8001,6 +8026,12 @@ export const dictionaries: Record<Lang, Dict> = {
       fieldOnHoldHint: "到期时间从用户首次连接时开始计算，而不是现在。",
       fieldAutoRenew: "自动续期",
       fieldAutoRenewHint: "到期时窗口自动顺延并清零流量，而不是停用。",
+      startedAt: "已于 {d} 开始",
+      notStarted: "等待首次连接",
+      renewalsCount: "已续期 {n} 次",
+      renewNow: "立即续期",
+      renewTip: "从现在起授予一个完整的新周期（流量清零）",
+      toastRenewed: "已续期 — 新周期已生效",
       hwidUnlimited: "留空 = 不限设备",
       devicesCount: "{n} 台设备",
       resetDevices: "重置设备",
@@ -9839,6 +9870,12 @@ export const dictionaries: Record<Lang, Dict> = {
       fieldOnHoldHint: "Bitiş sayacı kullanıcının ilk bağlantısında başlar, şimdi değil.",
       fieldAutoRenew: "Otomatik yenileme",
       fieldAutoRenewHint: "Bitişte pencere ileri sarar ve trafik sıfırlanır, devre dışı bırakmak yerine.",
+      startedAt: "{d} tarihinde başladı",
+      notStarted: "İlk bağlantı bekleniyor",
+      renewalsCount: "{n} yenileme",
+      renewNow: "Şimdi yenile",
+      renewTip: "Şimdenden itibaren tam yeni bir pencere ver (kullanım sıfırlanır)",
+      toastRenewed: "Yenilendi — yeni pencere verildi",
       hwidUnlimited: "Boş = sınırsız cihaz",
       devicesCount: "{n} cihaz",
       resetDevices: "Cihazları sıfırla",
@@ -11680,6 +11717,12 @@ export const dictionaries: Record<Lang, Dict> = {
       fieldOnHoldHint: "Отсчёт срока начнётся с первого подключения пользователя, а не сейчас.",
       fieldAutoRenew: "Автопродление",
       fieldAutoRenewHint: "При истечении окно продлевается и трафик сбрасывается вместо отключения.",
+      startedAt: "Начато {d}",
+      notStarted: "Ожидание первого подключения",
+      renewalsCount: "Продлений: {n}",
+      renewNow: "Продлить сейчас",
+      renewTip: "Выдать полный новый цикл от текущего момента (трафик сбросится)",
+      toastRenewed: "Продлено — выдан новый цикл",
       hwidUnlimited: "Пусто = безлимит устройств",
       devicesCount: "Устройств: {n}",
       resetDevices: "Сбросить устройства",

@@ -23,6 +23,7 @@ export interface SubDict {
   expiresNever: string;
   daysLeft: string; // {n}
   expiredAgo: string; // {n}
+  startsOnConnect: string; // 26-a — on-hold waiting state
   membersTitle: string;
   subTitle: string;
   copySub: string;
@@ -75,6 +76,7 @@ const en: SubDict = {
   expiresNever: "Never expires",
   daysLeft: "{n} days left",
   expiredAgo: "expired {n}d ago",
+  startsOnConnect: "Clock starts on first connect",
   membersTitle: "Members",
   subTitle: "Subscription link",
   copySub: "Copy link",
@@ -120,6 +122,7 @@ const fa: SubDict = {
   expiresNever: "بدون انقضا",
   daysLeft: "{n} روز باقی‌مانده",
   expiredAgo: "{n} روز پیش منقضی شد",
+  startsOnConnect: "زمان از اولین اتصال شروع می‌شود",
   membersTitle: "اعضا",
   subTitle: "لینک اشتراک",
   copySub: "کپی لینک",
@@ -165,6 +168,7 @@ const ar: SubDict = {
   expiresNever: "لا ينتهي",
   daysLeft: "{n} يومًا متبقيًا",
   expiredAgo: "انتهى قبل {n} يوم",
+  startsOnConnect: "يبدأ العدّاد عند أول اتصال",
   membersTitle: "الأعضاء",
   subTitle: "رابط الاشتراك",
   copySub: "نسخ الرابط",
@@ -210,6 +214,7 @@ const zh: SubDict = {
   expiresNever: "永不过期",
   daysLeft: "剩余 {n} 天",
   expiredAgo: "已过期 {n} 天",
+  startsOnConnect: "首次连接后开始计时",
   membersTitle: "成员",
   subTitle: "订阅链接",
   copySub: "复制链接",
@@ -255,6 +260,7 @@ const tr: SubDict = {
   expiresNever: "Asla bitmez",
   daysLeft: "{n} gün kaldı",
   expiredAgo: "{n} gün önce doldu",
+  startsOnConnect: "Sayaç ilk bağlantıda başlar",
   membersTitle: "Üyeler",
   subTitle: "Abonelik bağlantısı",
   copySub: "Bağlantıyı kopyala",
@@ -300,6 +306,7 @@ const ru: SubDict = {
   expiresNever: "Бессрочно",
   daysLeft: "осталось {n} дн.",
   expiredAgo: "истекла {n} дн. назад",
+  startsOnConnect: "Отсчёт с первого подключения",
   membersTitle: "Участники",
   subTitle: "Ссылка подписки",
   copySub: "Копировать ссылку",

@@ -66,7 +66,7 @@ import {
 import { useAppStore } from "@/lib/store/app-store";
 import { dictionaries } from "@/lib/i18n/dictionaries";
 import { lfmt } from "@/lib/i18n/live-strings";
-import { daysLeft, forecastUsage, type AccessDTO, type UserDTO, type UserStatus } from "@/lib/user-types";
+import { daysLeftSmart, forecastUsage, type AccessDTO, type UserDTO, type UserStatus } from "@/lib/user-types";
 import { buildShareLink } from "@/lib/share-links";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -337,6 +337,8 @@ export function UsersView() {
   const [drawerId, setDrawerId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<UserDTO | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
+  /* 26-a — manual renew in-flight guard */
+  const [renewBusy, setRenewBusy] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -411,7 +413,8 @@ export function UsersView() {
         const key = (x: UserDTO) =>
           x.expiryDays === null
             ? Number.POSITIVE_INFINITY
-            : daysLeft(x.expiryDays, x.startedAt ?? x.createdAt) ?? 0;
+            // 26-a — waiting on-hold users have no countdown → sort last
+            : daysLeftSmart(x) ?? Number.POSITIVE_INFINITY;
         list.sort((a, b) => key(a) - key(b));
         break;
       }
@@ -774,6 +777,25 @@ export function UsersView() {
     }
   };
 
+  /* 26-a — manual renew: full fresh window from now (mirrors auto-renew) */
+  const renewUser = async (user: UserDTO) => {
+    setRenewBusy(true);
+    try {
+      const res = await fetch(`/api/users/${user.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ renew: true }),
+      });
+      if (!res.ok) throw new Error("renew");
+      const j = (await res.json()) as { user: UserDTO };
+      setUsers((prev) => (prev ?? []).map((x) => (x.id === j.user.id ? j.user : x)));
+      toast({ description: `${u.toastRenewed} · ${j.user.username}` });
+    } catch {
+      toast({ description: t.inbounds.errGeneric });
+    }
+    setRenewBusy(false);
+  };
+
   /* ---------- render ---------- */
 
   const loading = users === null;
@@ -999,7 +1021,7 @@ export function UsersView() {
               {!loading &&
                 filtered.map((user) => {
                   const st = STATUS_STYLE[user.status];
-                  const left = daysLeft(user.expiryDays, user.startedAt ?? user.createdAt);
+                  const left = daysLeftSmart(user);
                   const pct =
                     user.trafficLimitGb !== null && user.trafficLimitGb > 0
                       ? Math.min(100, (user.usedTrafficGb / user.trafficLimitGb) * 100)
@@ -1230,7 +1252,7 @@ export function UsersView() {
         {!loading &&
           filtered.map((user) => {
             const st = STATUS_STYLE[user.status];
-            const left = daysLeft(user.expiryDays, user.startedAt ?? user.createdAt);
+            const left = daysLeftSmart(user);
             const pct =
               user.trafficLimitGb !== null && user.trafficLimitGb > 0
                 ? Math.min(100, (user.usedTrafficGb / user.trafficLimitGb) * 100)
@@ -1962,9 +1984,25 @@ export function UsersView() {
 
                 {/* usage */}
                 <div className="space-y-2">
-                  <h4 className="text-[11px] font-semibold uppercase tracking-wider text-primary/80">
-                    {u.drawerUsage}
-                  </h4>
+                  <div className="flex items-center justify-between gap-2">
+                    <h4 className="text-[11px] font-semibold uppercase tracking-wider text-primary/80">
+                      {u.drawerUsage}
+                    </h4>
+                    {/* 26-a — manual renew (full fresh window from now) */}
+                    {drawerUser.expiryDays !== null && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 gap-1 text-[11px]"
+                        disabled={renewBusy}
+                        onClick={() => void renewUser(drawerUser)}
+                        title={u.renewTip}
+                      >
+                        <RefreshCw className={cn("h-3 w-3", renewBusy && "animate-spin")} aria-hidden="true" />
+                        {u.renewNow}
+                      </Button>
+                    )}
+                  </div>
                   <div className="rounded-xl bg-background/50 p-3 ring-1 ring-border">
                     <div className="flex items-baseline justify-between text-xs">
                       <span className="font-mono text-base font-bold text-primary">
@@ -2000,7 +2038,9 @@ export function UsersView() {
                           u.expiryNever
                         ) : (
                           (() => {
-                            const left = daysLeft(drawerUser.expiryDays, drawerUser.startedAt ?? drawerUser.createdAt);
+                            // 26-a — waiting on-hold: no countdown yet
+                            if (drawerUser.onHold && !drawerUser.startedAt) return u.notStarted;
+                            const left = daysLeftSmart(drawerUser);
                             return left !== null && left >= 0 ? lfmt(u.expiryLeft, { n: left }) : u.stExpired;
                           })()
                         )}
@@ -2013,6 +2053,32 @@ export function UsersView() {
                         {drawerUser.hwidLimit ? ` / ${drawerUser.hwidLimit}` : ""}
                       </span>
                     </div>
+                    {/* 26-a — lifecycle line: on-hold clock state + renewal counter */}
+                    {(drawerUser.onHold || drawerUser.autoRenew || drawerUser.renewals > 0) && (
+                      <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[11px]">
+                        {drawerUser.onHold && (
+                          <span
+                            className={cn(
+                              "inline-flex items-center gap-1",
+                              drawerUser.startedAt ? "text-muted-foreground" : "font-medium text-amber-400"
+                            )}
+                          >
+                            <CalendarClock className="h-3 w-3" aria-hidden="true" />
+                            {drawerUser.startedAt
+                              ? lfmt(u.startedAt, {
+                                  d: new Date(drawerUser.startedAt).toLocaleDateString(lang),
+                                })
+                              : u.notStarted}
+                          </span>
+                        )}
+                        {(drawerUser.autoRenew || drawerUser.renewals > 0) && (
+                          <span className="inline-flex items-center gap-1 text-muted-foreground">
+                            <RefreshCw className="h-3 w-3" aria-hidden="true" />
+                            {lfmt(u.renewalsCount, { n: drawerUser.renewals })}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 

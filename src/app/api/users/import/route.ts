@@ -31,6 +31,8 @@ interface ImportUser {
   resetPeriod: string | null;
   onHold: boolean;
   autoRenew: boolean;
+  startedAt: string | null;
+  renewals: number;
   tags: string[];
   /** exact keys from a Sephiroth export (kept when present) */
   accessKeys: { tag: string; email?: string; key?: string; flow?: string }[];
@@ -95,6 +97,18 @@ function normalizeImportUser(raw: unknown): ImportUser | null {
     resetPeriod,
     onHold: pick(o, "onHold", "on_hold") === true,
     autoRenew: pick(o, "autoRenew", "auto_renew") === true,
+    // 26-a — lifecycle anchor + counter round-trip (absent on foreign exports)
+    startedAt: (() => {
+      const v = pick(o, "startedAt", "started_at");
+      if (typeof v !== "string") return null;
+      const ms = Date.parse(v);
+      return Number.isFinite(ms) ? new Date(ms).toISOString() : null;
+    })(),
+    renewals: (() => {
+      const v = pick(o, "renewals");
+      const n = typeof v === "number" ? v : Number(v);
+      return Number.isFinite(n) && n > 0 ? Math.min(1_000_000, Math.round(n)) : 0;
+    })(),
     tags: [...new Set(tags)],
     accessKeys,
   };
@@ -176,9 +190,9 @@ export async function POST(req: Request) {
               usedTrafficGb: 0,
               resellerId: null,
               onHold: item.onHold,
-              startedAt: null,
+              startedAt: item.startedAt ? new Date(item.startedAt) : null,
               autoRenew: item.autoRenew,
-              renewals: 0,
+              renewals: item.renewals,
             },
           });
           for (const inbound of linked) {

@@ -25,6 +25,7 @@ import {
 import { ensureSeed } from "./src/lib/auth";
 import { ensureNetSeeds } from "./src/lib/net-objects";
 import { runAutoBackup } from "./src/lib/backup-job";
+import { syncUserProjection } from "./src/lib/user-sync"; // 26-a — expire/renew projection
 import { db } from "./src/lib/db";
 import { logActivity } from "./src/lib/activity";
 import { appVersion, getCoreSettings } from "./src/lib/settings";
@@ -222,32 +223,44 @@ async function runPeriodicUserMaintenance(): Promise<void> {
       // 1) expiry enforcement — idempotent: expired users get disabled once.
       //    26-a: anchor is startedAt (on-hold) falling back to createdAt;
       //    autoRenew users roll the window forward instead of being disabled.
-      if (user.enabled && user.expiryDays !== null) {
+      //    26-a fix — an on-hold user whose clock has NOT started (startedAt
+      //    null) can never expire: the whole expiry block is skipped so the
+      //    createdAt fallback cannot silently disable a waiting subscription.
+      const clockNotStarted = user.onHold === true && user.startedAt === null;
+      if (user.enabled && user.expiryDays !== null && !clockNotStarted) {
         const anchorMs = new Date(user.startedAt ?? user.createdAt).getTime();
-        const endsAt = anchorMs + user.expiryDays * 86_400_000;
+        const periodMs = user.expiryDays * 86_400_000;
+        const endsAt = anchorMs + periodMs;
         if (nowMs >= endsAt) {
           if (user.autoRenew) {
-            // roll forward from the PREVIOUS window end (no time lost while offline)
-            const nextEndsAt = new Date(endsAt + user.expiryDays * 86_400_000);
-            const renewals = (Number(user.renewals) || 0) + 1;
+            // roll forward from the PREVIOUS window end — one update covers
+            // EVERY full period elapsed while the panel was down (no renewal
+            // counter inflation, no repeated expired pings), so the user
+            // always lands in a future window after this single pass.
+            const elapsed = Math.floor((nowMs - endsAt) / periodMs) + 1;
+            const nextAnchorMs = endsAt + elapsed * periodMs;
+            const nextEndsAt = new Date(nextAnchorMs + periodMs);
+            const renewals = (Number(user.renewals) || 0) + elapsed;
             await db.clientUser.update({
               where: { id: user.id },
               data: {
-                startedAt: nextEndsAt,
+                startedAt: new Date(nextAnchorMs),
                 usedTrafficGb: 0,
                 lastResetAt: now,
                 expiryWarnedAt: null,
                 renewals,
               },
             });
-            renewedCount += 1;
-            console.log(`[cron] user "${user.username}" auto-renewed (#${renewals})`);
+            renewedCount += elapsed;
+            console.log(
+              `[cron] user "${user.username}" auto-renewed (+${elapsed} period(s) → ends ${nextEndsAt.toISOString()}, #${renewals})`
+            );
             void logActivity({
               kind: "user.updated",
               level: "info",
               actor: "system",
-              message: `Subscription "${user.username}" auto-renewed (window rolled to ${nextEndsAt.toISOString()})`,
-              meta: { userId: user.id, username: user.username, renewals },
+              message: `Subscription "${user.username}" auto-renewed ×${elapsed} (window rolled to ${nextEndsAt.toISOString()})`,
+              meta: { userId: user.id, username: user.username, renewals, periods: elapsed },
             });
             void notifyUserRenewed(user.username, renewals);
             continue;
@@ -255,6 +268,15 @@ async function runPeriodicUserMaintenance(): Promise<void> {
           await db.clientUser.update({ where: { id: user.id }, data: { enabled: false } });
           expiredCount += 1;
           console.log(`[cron] user "${user.username}" expired — disabled`);
+          // 26-a — mirror the admin-disable path: embedded client entries flip
+          // to enabled:false so the next mirrorDb regen REALLY drops the user
+          // from the running core (row-only updates left them serving traffic).
+          await syncUserProjection(user.id, {
+            ipLimit: user.ipLimit,
+            trafficLimitGb: user.trafficLimitGb,
+            expiryDays: user.expiryDays,
+            enabled: false,
+          }).catch(() => undefined);
           void logActivity({
             kind: "user.updated",
             level: "warn",
