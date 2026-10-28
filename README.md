@@ -213,13 +213,15 @@ When you switch to **Real Xray**, the panel **auto-downloads the Xray-core binar
 - [x] Traffic forecast chips
 - [x] Real Xray core driver
 - [x] Deployment suite — one-click installer · `sephiroth` CLI · Docker / GHCR
+- [x] **v2.5.0** — Telegram sales bot · multi-node fleet · mKCP / SS2022 / Hysteria2 · sing-box second core · in-panel SSL/ACME · IP-limit + HWID device binding
 
 **Next**
 
-- [ ] Telegram sales bot (research complete — see `docs/telegram-bot-research.md`)
-- [ ] Multi-node sync engine
-- [ ] ACME certificate management
-- [ ] IP-limit enforcement
+- [ ] Notification engine — traffic/expiry/login-failed alerts + scheduled reports (webhooks next)
+- [ ] Public token-authenticated REST API + OpenAPI reference
+- [ ] Auto-renewal cycles & on-hold users
+- [ ] TUIC v5 + AmneziaWG protocols
+- [ ] Subscription page templates + bulk client import/export
 
 ## Contributing
 
