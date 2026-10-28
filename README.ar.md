@@ -10,6 +10,8 @@
   <strong>لوحة تحكم الجيل الجديد لـ Xray</strong> — واجهة داكنة بزجاج الأوبسيديان، ٦ لغات، ومشغّل نواة Xray حقيقية.
 </p>
 
+![إنفوغراف سيفيروث v2.5.0](docs/infographic.png)
+
 <p align="center">
   <a href="https://github.com/Edsel-Rahimi/Sephiroth/releases"><img alt="Release" src="https://img.shields.io/github/v/release/edsel-rahimi/sephiroth"></a>&nbsp;
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>&nbsp;

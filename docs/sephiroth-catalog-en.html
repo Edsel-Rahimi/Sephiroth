@@ -1,0 +1,799 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<title>The Complete Sephiroth — Sephiroth Panel Catalog v2.5.0</title>
+<style>
+@font-face { font-family: "Vazirmatn"; src: url("../public/fonts/Vazirmatn-Regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Vazirmatn"; src: url("../public/fonts/Vazirmatn-Medium.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Vazirmatn"; src: url("../public/fonts/Vazirmatn-SemiBold.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Vazirmatn"; src: url("../public/fonts/Vazirmatn-Bold.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+
+@page { size: 720px 1020px; margin: 0; }
+:root {
+  --bg: #060b0f;
+  --bg2: #0a1218;
+  --card: rgba(255,255,255,0.035);
+  --line: rgba(255,255,255,0.09);
+  --text: #e7edf2;
+  --muted: #93a4b1;
+  --cyan: #22d8ee;
+  --amber: #fbbf24;
+  --red: #fb5f6b;
+  --green: #34d399;
+}
+html, body {
+  margin: 0; padding: 0;
+  width: 720px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Vazirmatn', 'DejaVu Sans', 'Tahoma', sans-serif;
+  font-size: 13px;
+  line-height: 1.6;
+}
+@media screen {
+  html { height: auto; display: flex; justify-content: center; background: #14181c; }
+  body { margin: 20px auto; box-shadow: 0 20px 80px rgba(0,0,0,.6); }
+}
+* { box-sizing: border-box; }
+
+/* ───── fixed page scaffold ───── */
+.page {
+  width: 720px; height: 1020px;
+  position: relative;
+  overflow: hidden;
+  break-after: page;
+  padding: 44px 54px 58px 54px;
+  background:
+    radial-gradient(520px 380px at 12% -6%, rgba(34,216,238,0.075), transparent 60%),
+    var(--bg);
+}
+.page.last { break-after: auto; }
+.pfoot {
+  position: absolute; bottom: 0; right: 0; left: 0; height: 46px;
+  padding: 0 54px;
+  border-top: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: space-between;
+  color: var(--muted); font-size: 9.5px; letter-spacing: 1.5px;
+  background: rgba(6,11,15,0.85);
+}
+.pfoot .pg { color: var(--cyan); font-weight: 700; letter-spacing: 3px; }
+.pfoot b { color: var(--text); font-weight: 600; }
+
+/* ───── headings ───── */
+.kicker { display: inline-block; color: var(--cyan); font-size: 10px; font-weight: 700; letter-spacing: 4px; margin-bottom: 6px; }
+h2 { font-size: 21px; font-weight: 700; margin: 0 0 4px; color: var(--text); break-after: avoid; }
+h2 .n { color: var(--cyan); font-size: 13px; vertical-align: 4px; letter-spacing: 2px; margin-left: 8px; }
+h3 { font-size: 14.5px; font-weight: 600; color: var(--text); margin: 14px 0 4px; break-after: avoid; }
+.rule { height: 2px; background: linear-gradient(-90deg, var(--cyan), transparent 70%); border: 0; margin: 8px 0 12px; break-after: avoid; }
+p { margin: 0 0 9px; color: var(--muted); }
+p b, li b { color: var(--text); font-weight: 600; }
+li { color: var(--muted); margin-bottom: 4px; }
+ul, ol { margin: 0 0 9px; padding-left: 18px; }
+
+code, .mono {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  direction: ltr; unicode-bidi: embed;
+  background: rgba(34,216,238,0.08); color: var(--cyan);
+  border: 1px solid rgba(34,216,238,0.2);
+  border-radius: 6px; padding: 0 6px; font-size: 11px;
+}
+pre {
+  direction: ltr; text-align: left;
+  background: #0a141b; border: 1px solid var(--line);
+  border-radius: 12px; padding: 12px 14px;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 10.5px; line-height: 1.7; color: #b8e9f2;
+  overflow: hidden; white-space: pre-wrap; break-inside: avoid;
+  margin: 0 0 12px;
+}
+pre .c { color: #5b7280; }
+pre .k { color: var(--cyan); }
+pre .ok { color: var(--green); }
+
+/* ───── cards / callouts / tables ───── */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 0 12px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 0 0 12px; }
+.card {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 14px; padding: 11px 14px; break-inside: avoid;
+}
+.card .t { color: var(--cyan); font-size: 10px; font-weight: 700; letter-spacing: 2px; margin-bottom: 4px; }
+.card .v { color: var(--text); font-size: 12.5px; font-weight: 600; }
+.card .s { color: var(--muted); font-size: 10.5px; line-height: 1.75; }
+.card .s .mono { font-size: 10px; }
+.callout {
+  border: 1px solid rgba(34,216,238,0.3);
+  background: linear-gradient(180deg, rgba(34,216,238,0.07), rgba(34,216,238,0.03));
+  border-radius: 14px; padding: 11px 16px; margin: 0 0 12px; break-inside: avoid;
+}
+.callout.warn { border-color: rgba(251,191,36,0.35); background: linear-gradient(180deg, rgba(251,191,36,0.07), rgba(251,191,36,0.03)); }
+.callout.ok { border-color: rgba(52,211,153,0.35); background: linear-gradient(180deg, rgba(52,211,153,0.07), rgba(52,211,153,0.03)); }
+.callout.red { border-color: rgba(251,95,107,0.35); background: linear-gradient(180deg, rgba(251,95,107,0.07), rgba(251,95,107,0.03)); }
+.callout .h { color: var(--text); font-weight: 700; margin-bottom: 2px; font-size: 12.5px; }
+.callout.warn .h { color: var(--amber); }
+.callout.ok .h { color: var(--green); }
+.callout.red .h { color: var(--red); }
+.callout .h .ico { color: var(--cyan); }
+.callout p { margin: 0; font-size: 11.5px; }
+
+table { width: 100%; border-collapse: collapse; margin: 0 0 12px; break-inside: avoid; }
+th { color: var(--cyan); font-size: 10.5px; font-weight: 700; text-align: left; padding: 6px 9px; border-bottom: 1px solid rgba(34,216,238,0.25); }
+td { color: var(--muted); font-size: 11.5px; padding: 5.5px 9px; border-bottom: 1px solid var(--line); vertical-align: top; line-height: 1.7; }
+td .mono, td code { font-size: 10.5px; }
+tr { break-inside: avoid; }
+th:first-child, td:first-child { color: var(--text); font-weight: 600; }
+.chip {
+  display: inline-block; border: 1px solid rgba(34,216,238,0.35); border-radius: 999px;
+  background: rgba(34,216,238,0.06); color: var(--cyan);
+  font-size: 10px; font-weight: 600; padding: 1px 10px; margin: 0 0 4px 6px;
+}
+.chip.dim { border-color: rgba(255,255,255,0.14); color: var(--muted); background: rgba(255,255,255,0.03); }
+.chip.ok { border-color: rgba(52,211,153,0.4); color: var(--green); background: rgba(52,211,153,0.06); }
+.chip.am { border-color: rgba(251,191,36,0.4); color: var(--amber); background: rgba(251,191,36,0.06); }
+
+/* ───── figures ───── */
+figure { margin: 10px 0 6px; break-inside: avoid; }
+figure .shot {
+  border: 1px solid rgba(34,216,238,0.22);
+  border-radius: 12px; overflow: hidden;
+  background: #0a1218;
+  box-shadow: 0 10px 34px rgba(0,0,0,0.45);
+}
+figure img { display: block; width: 100%; max-width: 100%; height: auto; }
+figcaption {
+  margin-top: 6px; font-size: 10.5px; color: var(--muted);
+  display: flex; gap: 8px; align-items: baseline;
+}
+figcaption .step {
+  flex: 0 0 auto; color: var(--cyan); font-weight: 700; font-size: 9.5px;
+  border: 1px solid rgba(34,216,238,0.35); border-radius: 999px; padding: 0 10px;
+  background: rgba(34,216,238,0.06);
+}
+.duo { display: flex; gap: 12px; align-items: flex-start; }
+.duo figure { flex: 1; margin: 10px 0 0; }
+
+/* ───── architecture diagram (pure HTML/CSS) ───── */
+.diagram { margin: 6px 0 12px; break-inside: avoid; }
+.dbox {
+  border: 1px solid rgba(34,216,238,0.35); border-radius: 14px;
+  background: rgba(34,216,238,0.05);
+  padding: 10px 14px; text-align: center; color: var(--text);
+  font-size: 12px; font-weight: 600;
+}
+.dbox .sub { display: block; color: var(--muted); font-size: 10px; font-weight: 400; margin-top: 2px; }
+.drow { display: flex; gap: 10px; }
+.drow .dbox { flex: 1; font-size: 11px; font-weight: 600; padding: 8px 6px; }
+.darrow { text-align: center; color: var(--cyan); font-size: 13px; line-height: 1.35; }
+.darrow .lbl { color: var(--muted); font-size: 9.5px; display: block; letter-spacing: 1px; }
+.dbox.core {
+  border-color: rgba(251,191,36,0.4);
+  background: rgba(251,191,36,0.05);
+}
+.dbox.core .sub b { color: var(--amber); }
+
+/* ───── TOC ───── */
+.toc { margin-top: 4px; }
+.toc .row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 7.5px 2px; border-bottom: 1px dashed rgba(255,255,255,0.10);
+}
+.toc .num {
+  flex: 0 0 34px; height: 26px; border-radius: 9px;
+  border: 1px solid rgba(34,216,238,0.4); background: rgba(34,216,238,0.07);
+  color: var(--cyan); font-weight: 700; font-size: 11px;
+  display: flex; align-items: center; justify-content: center;
+}
+.toc .tt { color: var(--text); font-weight: 600; font-size: 13px; }
+.toc .dots { flex: 1; border-bottom: 1px dotted rgba(255,255,255,0.16); margin: 0 6px; height: 1px; }
+.toc .pn { color: var(--cyan); font-weight: 700; font-size: 12px; }
+
+/* ───── cover ───── */
+.cover {
+  width: 720px; height: 1020px;
+  break-after: page;
+  overflow: hidden;
+  position: relative;
+  padding: 52px 54px 58px;
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  background:
+    radial-gradient(560px 420px at 78% 10%, rgba(34,216,238,0.14), transparent 62%),
+    radial-gradient(500px 420px at 14% 86%, rgba(34,216,238,0.07), transparent 60%),
+    var(--bg);
+}
+.cover .ring { position: absolute; border-radius: 50%; border: 1px solid rgba(34,216,238,0.16); }
+.cover .r1 { width: 470px; height: 470px; top: 30px; left: 40px; }
+.cover .r2 { width: 300px; height: 300px; bottom: 30px; right: 40px; border-color: rgba(34,216,238,0.10); }
+.cover .logo {
+  width: 88px; height: 88px; border-radius: 24px;
+  border: 1.5px solid rgba(34,216,238,0.45);
+  background: rgba(34,216,238,0.06);
+  box-shadow: 0 0 60px rgba(34,216,238,0.28);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 40px; font-weight: 700; color: var(--cyan);
+  font-family: 'JetBrains Mono','Courier New',monospace;
+}
+.cover .kick { margin-top: 18px; color: var(--muted); font-size: 11px; letter-spacing: 6px; }
+.cover h1 { font-size: 40px; font-weight: 700; margin: 8px 0 2px; color: var(--text); }
+.cover h1 b { color: var(--cyan); }
+.cover .ver {
+  font-size: 13.5px; color: var(--cyan); letter-spacing: 3px;
+  border: 1px solid rgba(34,216,238,0.35); border-radius: 999px;
+  padding: 4px 22px; margin: 10px 0 4px;
+  background: rgba(34,216,238,0.06);
+}
+.cover .date { color: var(--muted); font-size: 11.5px; letter-spacing: 1px; }
+.cover p.lead { max-width: 560px; color: var(--muted); font-size: 12.5px; margin: 12px 0 0; line-height: 2; }
+.cover .herofig {
+  margin-top: 20px; width: 612px;
+  border: 1px solid rgba(34,216,238,0.25); border-radius: 14px; overflow: hidden;
+  box-shadow: 0 18px 60px rgba(0,0,0,0.55), 0 0 40px rgba(34,216,238,0.10);
+  background: #0a1218;
+}
+.cover .herofig img { display: block; width: 100%; height: auto; }
+.cover .foot { position: absolute; bottom: 40px; left: 0; right: 0; color: var(--muted); font-size: 10.5px; letter-spacing: 2px; }
+.cover .foot b { color: var(--text); letter-spacing: 4px; }
+
+/* ───── misc ───── */
+.sechead { margin-bottom: 2px; }
+.steps li { margin-bottom: 7px; }
+.small { font-size: 10.5px; color: var(--muted); }
+.center { text-align: center; }
+.mt6 { margin-top: 6px; } .mt10 { margin-top: 10px; } .mt14 { margin-top: 14px; }
+.mb0 { margin-bottom: 0; }
+.gcheck { color: var(--green); font-weight: 700; }
+.rcyan { color: var(--cyan); font-weight: 700; }
+.ramber { color: var(--amber); font-weight: 700; }
+.badge-end {
+  display: inline-block; margin-top: 4px;
+  border: 1px solid rgba(34,216,238,0.35); border-radius: 999px;
+  color: var(--cyan); background: rgba(34,216,238,0.06);
+  padding: 3px 18px; font-size: 10.5px; letter-spacing: 3px; font-weight: 700;
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ p1 · COVER ═══════════════ -->
+<div class="cover">
+  <div class="ring r1"></div>
+  <div class="ring r2"></div>
+  <div class="logo">S</div>
+  <div class="kick">SEPHIROTH · XRAY CONTROL PANEL</div>
+  <h1>The Complete <b>Sephiroth</b></h1>
+  <div class="ver">CATALOG · v2.5.0</div>
+  <div class="date">6 Aban 1405 — October 2026</div>
+  <p class="lead">The official illustrated catalog of the next-generation Xray management panel — from config forging with the Forge and Config Doctor to the real Xray core, two-factor security, the reseller business layer and the complete install suite. Everything with real screenshots of the panel itself.</p>
+  <div class="herofig"><img src="shot-dashboard.png" alt="Sephiroth dashboard"></div>
+  <div class="foot"><b>EPODONIOS</b> · SEPHIROTH PANEL · 2026</div>
+</div>
+
+<!-- ═══════════════ p2 · TOC ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">TABLE OF CONTENTS</span>
+    <h2>Table of Contents</h2>
+    <hr class="rule">
+  </div>
+  <div class="toc">
+    <div class="row"><div class="num">01</div><div class="tt">Introduction — What is Sephiroth?</div><div class="dots"></div><div class="pn">3</div></div>
+    <div class="row"><div class="num">02</div><div class="tt">Panel Architecture</div><div class="dots"></div><div class="pn">4</div></div>
+    <div class="row"><div class="num">03</div><div class="tt">Protocols &amp; Transports</div><div class="dots"></div><div class="pn">5</div></div>
+    <div class="row"><div class="num">04</div><div class="tt">Building Inbounds with the Forge</div><div class="dots"></div><div class="pn">6</div></div>
+    <div class="row"><div class="num">05</div><div class="tt">Users &amp; Subscriptions</div><div class="dots"></div><div class="pn">8</div></div>
+    <div class="row"><div class="num">06</div><div class="tt">Config Doctor</div><div class="dots"></div><div class="pn">10</div></div>
+    <div class="row"><div class="num">07</div><div class="tt">Real Xray Core</div><div class="dots"></div><div class="pn">11</div></div>
+    <div class="row"><div class="num">08</div><div class="tt">Security</div><div class="dots"></div><div class="pn">12</div></div>
+    <div class="row"><div class="num">09</div><div class="tt">Telegram</div><div class="dots"></div><div class="pn">13</div></div>
+    <div class="row"><div class="num">10</div><div class="tt">Business — Resellers &amp; Gateways</div><div class="dots"></div><div class="pn">14</div></div>
+    <div class="row"><div class="num">11</div><div class="tt">Deployment — Install, CLI, Docker</div><div class="dots"></div><div class="pn">15</div></div>
+    <div class="row"><div class="num">12</div><div class="tt">The Panel in 6 Languages</div><div class="dots"></div><div class="pn">17</div></div>
+    <div class="row"><div class="num">13</div><div class="tt">Troubleshooting · FAQ</div><div class="dots"></div><div class="pn">19</div></div>
+    <div class="row"><div class="num">14</div><div class="tt">Roadmap · Finale</div><div class="dots"></div><div class="pn">20</div></div>
+  </div>
+  <div class="callout mt14">
+    <div class="h"><span class="ico">◈</span> About this catalog</div>
+    <p>Every image in this book is a real screenshot of the panel itself (v2.5.0; we ship no separate light/dark mode — the “glassy obsidian + cyan” design language is constant across all 6 themes). No passwords, server addresses or private data appear in this document.</p>
+  </div>
+  <div class="grid2 mt6">
+    <div class="card"><div class="t">FORMAT</div><div class="v">Vertical PDF, 720×1020</div><div class="s">20 pages · 11 real screenshots from the panel · full English text (LTR)</div></div>
+    <div class="card"><div class="t">AUDIENCE</div><div class="s" style="margin-top:2px">Server administrators, config sellers, self-hosting enthusiasts and anyone who wants a complete, polished Xray panel.</div></div>
+  </div>
+  <div class="pfoot"><span><b>The Complete Sephiroth</b> · v2.5.0</span><span class="pg">02</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p3 · 01 INTRODUCTION ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 01 — INTRODUCTION</span>
+    <h2><span class="n">01</span>Introduction — What is Sephiroth?</h2>
+    <hr class="rule">
+  </div>
+  <p><b>Sephiroth</b> is a complete management panel for <b>Xray</b>: inbounds, users and subscriptions, live statistics, security and backups — all in a <b>single Node.js process</b>. It needs neither MySQL nor Postgres; data is stored in one atomic JSON file and the UI is served from that very same port.</p>
+  <div class="grid2">
+    <div class="card"><div class="t">DESIGN LANGUAGE</div><div class="v">Obsidian + glassy cyan</div><div class="s">A <span class="mono">#060b0f</span> backdrop with a <span class="mono">#22d8ee</span> accent; glassy cards, orbital rings and a starfield — an identity preserved across all 6 themes.</div></div>
+    <div class="card"><div class="t">THEMES ×6</div><div class="v" style="margin-bottom:4px">6 dark themes</div><div class="s"><span class="chip dim">Sephiroth</span><span class="chip dim">Jenova</span><span class="chip dim">Masamune</span><span class="chip dim">Terminal</span><span class="chip dim">OLED</span><span class="chip dim">One-Winged</span></div></div>
+    <div class="card"><div class="t">LANGUAGES ×6</div><div class="v" style="margin-bottom:4px">Persian · English · Arabic · 中文 · Türkçe · Русский</div><div class="s"><b>Complete, automatic RTL</b> for Persian and Arabic (dialogs and toasts included); switch language from the top bar, no reload.</div></div>
+    <div class="card"><div class="t">ZERO-DEP RUNTIME</div><div class="v">No node_modules</div><div class="s">In production the whole backend builds into a single-file bundle (<span class="mono">server.cjs</span>) — ideal for small, single-port hosts.</div></div>
+  </div>
+  <p>Sephiroth is built for <b>personal server admins</b> who want precise control, for <b>sellers</b> who need a reseller system and payment gateways, and for <b>self-hosters</b> who want a beautiful, lightweight panel in their own language — with live Socket.IO telemetry, the <span class="mono">Ctrl+K</span> command palette and an in-app field guide.</p>
+  <figure>
+    <div class="shot"><img src="shot-login.png" alt="Login screen" style="width:86%; display:block; margin:0 auto;"></div>
+    <figcaption><span class="step">Figure 1</span><span>The “Circuit Terminal” login screen — password sign-in, TOTP two-factor login, recovery key and anti-brute-force lockout.</span></figcaption>
+  </figure>
+  <div class="pfoot"><span><b>The Complete Sephiroth</b> · v2.5.0</span><span class="pg">03</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p4 · 02 ARCHITECTURE ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 02 — ARCHITECTURE</span>
+    <h2><span class="n">02</span>Panel Architecture</h2>
+    <hr class="rule">
+  </div>
+  <p>The whole panel is a <b>single process</b>: the Express server (REST API) serves the same port the built React UI (SPA) runs on, while Socket.IO broadcasts live telemetry (CPU/RAM/disk, inbound status, events). The network core has two modes: <b>Simulator</b> (default; safe, no binaries) or the <b>Real Xray driver</b> (covered in depth in Section 07).</p>
+  <div class="diagram">
+    <div class="dbox">Admin browser / subscription app<span class="sub">React SPA · RTL · 6 languages</span></div>
+    <div class="darrow">▼<span class="lbl">HTTP :PORT · one port for everything</span></div>
+    <div class="dbox">Single Node.js process — server.cjs (no node_modules)<span class="sub">Express REST API + 40+ routes · SPA static files · real-time Socket.IO</span></div>
+    <div class="darrow">▼<span class="lbl">Atomic read/write</span></div>
+    <div class="drow">
+      <div class="dbox">db/sephiroth-store.json<span class="sub">Atomic storage: write to temp file → rename + one .bak generation</span></div>
+      <div class="dbox core">Core<span class="sub"><b>Simulator</b> (default) or <b>Real Xray</b> + hidden API door on 127.0.0.1</span></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card"><div class="t">ATOMIC JSON STORE</div><div class="s">Every change lands on disk atomically (write to a temp file → rename); a crash costs at most the last operation, never the whole database.</div></div>
+    <div class="card"><div class="t">LIVE BY SOCKET.IO</div><div class="s">CPU/RAM/disk gauges, per-inbound traffic bars and the activity feed all update via live events — no page refresh.</div></div>
+  </div>
+  <h3>Deployment options</h3>
+  <table style="margin-bottom:8px">
+    <tr><th style="width:130px">Method</th><th>Good for</th><th style="width:190px">Notes</th></tr>
+    <tr><td>One-line install.sh</td><td>Linux VPS/dedicated (Ubuntu/Debian/RHEL/Alpine/Arch)</td><td>systemd + <span class="mono">sephiroth</span> CLI + random port &amp; password</td></tr>
+    <tr><td>Docker / Compose</td><td>Dockerized servers and CI</td><td>Official image <span class="mono">ghcr.io/edsel-rahimi/sephiroth</span></td></tr>
+    <tr><td>Manual run</td><td>Development &amp; testing</td><td><span class="mono">node server.ts</span> or the <span class="mono">server.cjs</span> bundle</td></tr>
+    <tr><td>Single-port hosting</td><td>Free application-style hosts (Pterodactyl-like)</td><td>Bundle without node_modules + port from <span class="mono">SERVER_PORT</span></td></tr>
+  </table>
+  <div class="callout" style="margin-bottom:0">
+    <div class="h"><span class="ico">◈</span> Why single-process?</div>
+    <p>One port, one process, one data file — on anything that has Node, from a 512 MB VPS to a 308 MB free-host container.</p>
+  </div>
+  <div class="pfoot"><span><b>The Complete Sephiroth</b> · v2.5.0</span><span class="pg">04</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p5 · 03 PROTOCOLS ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 03 — PROTOCOLS</span>
+    <h2><span class="n">03</span>Protocols &amp; Transports</h2>
+    <hr class="rule">
+  </div>
+  <p>The Sephiroth Forge combines <b>9 inbound protocols</b> with <b>5 transports</b> and <b>3 security layers</b>; the subscription link, QR and core output are generated automatically from that same combination.</p>
+  <table>
+    <tr><th style="width:118px">Protocol</th><th>Character &amp; use</th></tr>
+    <tr><td>VLESS</td><td>Modern and lightweight; supports the <span class="mono">xtls-rprx-vision</span> flow — the golden pair with REALITY</td></tr>
+    <tr><td>VMess</td><td>The classic, works everywhere; a great fit for CDN and WebSocket</td></tr>
+    <tr><td>Trojan</td><td>Disguises itself as ordinary HTTPS traffic</td></tr>
+    <tr><td>Shadowsocks</td><td>Simple and fast; well-known ciphers</td></tr>
+    <tr><td>Hysteria2</td><td>QUIC/UDP-based, for high-latency and lossy networks</td></tr>
+    <tr><td>WireGuard</td><td>The official tunnel with private/public keys and a tunable MTU</td></tr>
+    <tr><td>SOCKS5 / HTTP</td><td>Local proxy with optional authentication — including the “Telegram proxy” (Section 09)</td></tr>
+    <tr><td>Dokodemo-door</td><td>A transparent port for traffic forwarding (also the core's hidden API door)</td></tr>
+  </table>
+  <div class="grid2">
+    <div class="card"><div class="t">TRANSPORTS</div><div class="s" style="margin-top:2px"><span class="chip dim">TCP + header</span><span class="chip dim">WebSocket</span><span class="chip dim">gRPC</span><span class="chip dim">HTTPUpgrade</span><span class="chip dim">XHTTP</span><br>With path/host/serviceName and early-data for each.</div></div>
+    <div class="card"><div class="t">SECURITY</div><div class="s" style="margin-top:2px"><span class="chip dim">none</span><span class="chip ok">TLS 1.0–1.3</span><span class="chip ok">REALITY</span><br>ALPN, fingerprint ×9 (chrome/firefox/safari/…), uTLS; REALITY with dest, serverNames, shortIds and an internal keypair.</div></div>
+  </div>
+  <h3>Fallbacks and the “Single-Port Combo” preset</h3>
+  <p>Every TLS inbound can have a <b>fallback</b> (dest/alpn/path) — the basis of the <b>single-port preset</b>: several protocols on <b>one shared port</b> (e.g. 443) plus the <span class="mono">/panel</span> path for the panel itself. For hosts that only give you one port, this single preset solves the whole problem.</p>
+  <div class="callout ok">
+    <div class="h"><span class="ico">✓</span> Offline core assembly</div>
+    <p>Everything you build in the Forge is turned into a real Xray config by the core driver (Section 07) — streamSettings, REALITY, sniffing (http/tls/quic/fakerd), mux and fallbacks, with no hand-editing of JSON.</p>
+  </div>
+  <div class="pfoot"><span><b>The Complete Sephiroth</b> · v2.5.0</span><span class="pg">05</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p6 · 04 FORGE (1) ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 04 — THE FORGE</span>
+    <h2><span class="n">04</span>Building Inbounds with the Forge</h2>
+    <hr class="rule">
+  </div>
+  <p>The “Forge” is the inbound create/edit dialog — a smart form that builds the <b>subscription link and QR live</b> in the sidebar beside it as you type. The workflow:</p>
+  <ol class="steps">
+    <li>Pick the <b>protocol</b> (9 options; each one is explained right under the field).</li>
+    <li>In the <b>General</b> tab: tag, port and listen address — with two magic buttons introduced below.</li>
+    <li>The <b>Transport</b> and <b>Security</b> tabs: transport + none/TLS/REALITY with every detail (SNI, ALPN, fingerprint, shortId…).</li>
+    <li>In advanced mode: <b>Fallbacks</b> as a real array, plus <b>Sniffing/Mux</b>.</li>
+    <li>Save → the inbound lands in the card network with its traffic bar and limit chips; add clients right there.</li>
+  </ol>
+  <figure>
+    <div class="shot"><img src="shot-forge.png" alt="Forge — General tab"></div>
+    <figcaption><span class="step">Figure 2</span><span>The Forge on the General tab (VLESS protocol) — live subscription-link preview in the sidebar and IP-detect / free-port buttons beside the fields.</span></figcaption>
+  </figure>
+  <h3>Quick Create</h3>
+  <p>If you're not in the mood for forms, hit one of the ready presets in the “Quick Create” grid: <span class="chip dim">VLESS + REALITY :443</span><span class="chip dim">VMess + WS + TLS</span><span class="chip dim">Local SOCKS5</span><span class="chip dim">Single-Port Combo</span> and more — it shows a summary of the settings, you confirm, done.</p>
+  <div class="pfoot"><span><b>The Complete Sephiroth</b> · v2.5.0</span><span class="pg">06</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p7 · 04 FORGE (2) ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 04 — THE FORGE · AUTOFILL</span>
+    <h2><span class="n">04</span>Automatic IP &amp; Free-Port Detection</h2>
+    <hr class="rule">
+  </div>
+  <p>Two small buttons in the Forge eliminate the classic “my link doesn't work” headaches:</p>
+  <div class="grid2">
+    <div class="card"><div class="t">✛ SERVER-IP AUTO-DETECT</div><div class="s">Next to the “listen” field: a menu with the <b>detected public IP</b>, private IPs and <span class="mono">0.0.0.0</span>. The public IP comes from echo services (cached for 10 minutes) — and more importantly, selecting it switches the <b>subscription link to the real IP that instant</b>, so <span class="mono">0.0.0.0</span> never leaks into a client link.</div></div>
+    <div class="card"><div class="t">✦ FREE-PORT WAND</div><div class="s">Next to the “port” field: a wand that suggests the <b>first free port</b> (panel port +1 and +2, then 8443/443/2053/2087/2096/8880). No more “port in use” errors or duplicate ports.</div></div>
+  </div>
+  <figure>
+    <div class="shot"><img src="shot-forge-autofill.png" alt="Automatic IP detection in the Forge"></div>
+    <figcaption><span class="step">Figure 3</span><span>The IP-detection menu is open: “Use public IP — detected”, private IPs and all interfaces — real values from the internal <span class="mono">/api/system/server-info</span> API.</span></figcaption>
+  </figure>
+  <div class="callout warn">
+    <div class="h">⚠ Pro tip</div>
+    <p>If you sit behind a CDN or reverse proxy, set “listen” to <span class="mono">0.0.0.0</span> or a private IP; only the public IP/domain lands in client links — the Forge keeps those two concepts apart.</p>
+  </div>
+  <div class="pfoot"><span><b>The Complete Sephiroth</b> · v2.5.0</span><span class="pg">07</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p8 · 05 USERS (1) ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 05 — USERS &amp; SUBSCRIPTIONS</span>
+    <h2><span class="n">05</span>Users &amp; Subscriptions</h2>
+    <hr class="rule">
+  </div>
+  <p>Every user is a <b>real subscriber</b>: traffic quota, expiry day, IP limit and several simultaneous inbounds. The users table shows a live usage bar, active/expired status and smart chips:</p>
+  <ul>
+    <li><b>Usage-forecast chip:</b> “≈4 days to cap · 3.2 GB/day” — the burn rate comes from dividing usage by account age (no history table needed); amber under 7 days, red under 3.</li>
+    <li><b>Reset cycle:</b> weekly/monthly quotas reset automatically via a built-in cron, and expired users are deactivated at the same time.</li>
+    <li><b>Bulk create:</b> create several users at once, enable/disable and bulk-delete with a single confirmation.</li>
+    <li><b>Inbound access:</b> a user can ride multiple inbounds; each mount's key (UUID/password/flow) is managed right there.</li>
+  </ul>
+  <figure>
+    <div class="shot"><img src="shot-users.png" alt="Users table"></div>
+    <figcaption><span class="step">Figure 4</span><span>The users table with usage bars, quota/expiry and “≈N days to cap” forecast chips.</span></figcaption>
+  </figure>
+  <div class="callout">
+    <div class="h"><span class="ico">◈</span> Transparent IP-Limit</div>
+    <p>The IP limit (<span class="mono">0 = ∞</span>) is recorded in links and in every client's core output, and is searchable in the filters; hard enforcement with auto-cut (fail2ban-style) is on the roadmap and honestly declared right here in this document.</p>
+  </div>
+  <div class="pfoot"><span><b>The Complete Sephiroth</b> · v2.5.0</span><span class="pg">08</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p9 · 05 USERS (2) ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 05 — SUBSCRIPTION PORTAL</span>
+    <h2><span class="n">05</span>The Branded Subscription Portal</h2>
+    <hr class="rule">
+  </div>
+  <p>Every user has a personal subscription link: <span class="mono">/sub/&lt;subId&gt;</span>. The subscription page is a branded “orbit pass” — a usage bar, days remaining and one-click import into popular apps. Sub groups also bundle several users behind <b>one password-locked link</b>.</p>
+  <figure>
+    <div class="shot"><img src="shot-sub-portal.png" alt="Subscription portal" style="width:80%; display:block; margin:0 auto;"></div>
+    <figcaption><span class="step">Figure 5</span><span>A user's subscription portal (ORBIT PASS): 61 of 200 GB quota, 14 days remaining and one-click import — Sephiroth-branded with the EPODONIOS signature.</span></figcaption>
+  </figure>
+  <h3>Subscription output formats</h3>
+  <table>
+    <tr><th style="width:150px">Format</th><th>Fetched with</th><th style="width:170px">Good for</th></tr>
+    <tr><td>Raw URI</td><td><span class="mono">?format=raw</span></td><td>Manual sharing</td></tr>
+    <tr><td>Base64</td><td><span class="mono">?format=b64</span></td><td>Most v2ray apps</td></tr>
+    <tr><td>Clash Meta</td><td><span class="mono">?format=clash</span></td><td>Clash / Mihomo / Verge / Stash</td></tr>
+    <tr><td>Sing-Box</td><td><span class="mono">?format=singbox</span></td><td>Sing-Box 1.10+ / Hiddify / Streisand / V2Box</td></tr>
+    <tr><td>Xray-JSON</td><td><span class="mono">?format=xray</span></td><td>Full v2ray/xray-core profile</td></tr>
+  </table>
+  <div class="callout ok">
+    <div class="h"><span class="ico">✓</span> Automatic User-Agent detection</div>
+    <p>The client app identifies itself: Clash/Mihomo/Verge/Stash get <span class="mono">YAML</span> output, sing-box/Hiddify/V2Box get <span class="mono">sing-box</span> output, and everything else gets Base64 — with zero configuration on the user's side.</p>
+  </div>
+  <div class="pfoot"><span><b>The Complete Sephiroth</b> · v2.5.0</span><span class="pg">09</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p10 · 06 CONFIG DOCTOR ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 06 — CONFIG DOCTOR</span>
+    <h2><span class="n">06</span>Config Doctor</h2>
+    <hr class="rule">
+  </div>
+  <p>Config Doctor is a <b>unique Sephiroth feature</b>: a 16-point scan of the whole panel that finds problems before users discover them and gives every finding “title + explanation + fix”. The score is computed out of 100:</p>
+  <p class="center mono" style="font-size:12px; margin-bottom:8px">score = 100 − 12×danger − 5×warning − 1×notice &nbsp;→&nbsp; grade A to D</p>
+  <div class="grid2">
+    <div class="card"><div class="t">Inbounds (8 checks)</div><div class="s">Open SOCKS/HTTP proxy without auth · TLS without a certificate · incomplete REALITY (dest/serverNames/shortIds/keys) · broken fallback · WireGuard private-key reuse · privileged port (&lt;1024) · expired inbound · disabled inbound</div></div>
+    <div class="card"><div class="t">Users (6 checks)</div><div class="s">Expired but still active · near expiry (≤3 days) · exhausted quota · ≥90% usage · a “ghost” account with access to no inbound · a user mounted on a disabled inbound</div></div>
+    <div class="card"><div class="t">Routing (2 checks)</div><div class="s">A dead rule (nonexistent outbound) and an empty, conditionless rule — the ones that silently swallow traffic or reject everything.</div></div>
+    <div class="card"><div class="t">Scan output</div><div class="s">A score ring + grade + severity chips (danger/warning/notice) and, for every finding, a precise explanation and a suggested-fix button. All strings are translated into 6 languages.</div></div>
+  </div>
+  <figure>
+    <div class="shot"><img src="shot-doctor.png" alt="Config Doctor"></div>
+    <figcaption><span class="step">Figure 6</span><span>Config Doctor on a real panel: score 82 (grade B) with real findings — privileged port 443, TLS without a certificate, and an expired user.</span></figcaption>
+  </figure>
+  <div class="pfoot"><span><b>The Complete Sephiroth</b> · v2.5.0</span><span class="pg">10</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p11 · 07 REAL XRAY CORE ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 07 — REAL XRAY CORE</span>
+    <h2><span class="n">07</span>Real Xray Core</h2>
+    <hr class="rule">
+  </div>
+  <p>As of v2.5.0 Sephiroth ships <b>two core drivers</b>. The default is the <b>Simulator</b> (safe, display-only telemetry, no binaries — for any hosting including locked-down hosts), while the <b>Real Xray driver</b> runs the actual core as an opt-in:</p>
+  <table>
+    <tr><th style="width:150px">Capability</th><th>Simulator (default)</th><th>Real Xray (opt-in)</th></tr>
+    <tr><td>Protocol execution</td><td>Simulated telemetry</td><td class="rcyan">Real execution — traffic passes through the real port</td></tr>
+    <tr><td>Per-user stats</td><td>Display-only</td><td class="rcyan">Real (stats API deltas, every 10 s by default, tunable 5–120)</td></tr>
+    <tr><td>Requirements</td><td>None</td><td>Automatic binary download from XTLS/Xray-core releases (or a manual path + version pin)</td></tr>
+    <tr><td>Config validation</td><td>—</td><td><span class="mono">xray run -test</span> before every run</td></tr>
+    <tr><td>Good for</td><td>Testing, demos, restricted hosts</td><td class="rcyan">Production</td></tr>
+  </table>
+  <figure>
+    <div class="shot"><img src="shot-settings-core.png" alt="Core / Xray card"></div>
+    <figcaption><span class="step">Figure 7</span><span>The “Core / Xray” card in Settings: driver selection, install/start/stop/restart, binary path, version pin and a collapsible live log.</span></figcaption>
+  </figure>
+  <ul>
+    <li><b>Build from the panel:</b> the config is generated from the panel's own inbounds/users; the hidden stats API door comes up on <span class="mono">127.0.0.1</span>.</li>
+    <li><b>Reload on change:</b> every inbound/user change applies after a ~1.5 s delay; the core restarts only if the config hash actually changed.</li>
+  </ul>
+  <div class="pfoot"><span><b>The Complete Sephiroth</b> · v2.5.0</span><span class="pg">11</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p12 · 08 SECURITY ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 08 — SECURITY</span>
+    <h2><span class="n">08</span>Security</h2>
+    <hr class="rule">
+  </div>
+  <div class="grid2">
+    <div class="card"><div class="t">TOTP two-factor login</div><div class="s">A zero-dependency RFC-6238 implementation (SHA-1, 6 digits, ±1 window). Enrollment with QR + a confirmation code; <b>disabling it asks for a code too</b>, so a stolen session can't switch 2FA off. After the password, the login page asks for the code.</div></div>
+    <div class="card"><div class="t">Anti-brute-force</div><div class="s">5 failed attempts in 5 minutes = the IP gets locked, with a live countdown on the login screen; the full attempt log lives under “Activity”.</div></div>
+    <div class="card"><div class="t">Recovery key</div><div class="s">The <span class="mono">SEPH-XXXX-XXXX-XXXX</span> key is shown only once and can be rotated whenever you like — forgetting the password becomes a simple sign-in, not a lost panel.</div></div>
+    <div class="card"><div class="t">Sessions</div><div class="s">An httpOnly cookie signed with HMAC; “revoke all sessions” rotates the secret and invalidates every cookie. The <span class="mono">SEPH_COOKIE_SECURE=auto</span> cookie mode detects on its own whether you're behind HTTPS.</div></div>
+    <div class="card"><div class="t">Scheduled backup</div><div class="s">Every 24 hours a full JSON export lands in <span class="mono">db/backups/</span>, keeping 1–30 files (oldest pruned) + immediate run, download and deletion from the UI. Manual backup/restore with <span class="mono">RESTORE</span> confirmation is there too.</div></div>
+    <div class="card"><div class="t">Software update</div><div class="s">A “check → install → restart” button inside the panel: the updater runs as a separate process, publishes its status to a status file, and the panel keeps serving the previous code until restart. Non-git installs update via the CLI.</div></div>
+  </div>
+  <figure>
+    <div class="shot"><img src="shot-security-cluster.png" alt="Security &amp; system cards" style="width:74%; display:block; margin:0 auto;"></div>
+    <figcaption><span class="step">Figure 8</span><span>The security/system cluster in Settings (Persian RTL): software update, two-factor login, scheduled backup and the MTProto tool.</span></figcaption>
+  </figure>
+  <div class="pfoot"><span><b>The Complete Sephiroth</b> · v2.5.0</span><span class="pg">12</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p13 · 09 TELEGRAM ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 09 — TELEGRAM</span>
+    <h2><span class="n">09</span>Telegram</h2>
+    <hr class="rule">
+  </div>
+  <p>The eternal question — “how do I get Telegram past censorship?” — is answered inside the panel itself, with a complete suite and some honest notes:</p>
+  <h3>1) The SOCKS5 proxy suite</h3>
+  <p>When you build a <b>SOCKS5</b> inbound in the Forge, the “Telegram proxy” block opens and, alongside the standard link, gives you two native Telegram links + a QR: <span class="mono">t.me/socks?server=…&amp;port=…&amp;user=…&amp;pass=…</span> and <span class="mono">tg://socks?…</span> — the user taps once and Telegram accepts the proxy.</p>
+  <h3>2) The MTProto tool (Settings → System)</h3>
+  <p>For more hostile networks, the built-in “MTProto proxy” tool generates a real secret: you choose the host, port and <span class="mono">dd</span> (domain camouflage) or <span class="mono">plain</span> mode, receive the secret + <span class="mono">tg://proxy</span> and <span class="mono">t.me/proxy</span> links + QR, and the ready-to-run <span class="mono">mtg v2</span> (Docker) commands sit in the same card.</p>
+  <div class="callout warn">
+    <div class="h">⚠ Technical honesty — things you should know</div>
+    <p>1) SOCKS5 in Telegram has <b>no camouflage</b> and is visible to DPI; use MTProto on restrictive networks. 2) Xray itself removed the MTProto inbound in v24.10 — which is why, instead of a false claim, Sephiroth provides a secret-generation tool + standalone daemon commands. 3) The Telegram sales bot is currently in the research phase and listed as the next step in the roadmap (Section 14).</p>
+  </div>
+  <div class="grid2">
+    <div class="card"><div class="t">Inside the Forge</div><div class="s">The t.me/socks link · the tg:// link · QR · copy buttons · an honest note about camouflage — everything without leaving the dialog.</div></div>
+    <div class="card"><div class="t">Inside Settings</div><div class="s">MTProto secret generation with dd/plain mode, ready-made links, mtg v2 run commands and a technical note on the limitations.</div></div>
+  </div>
+  <div class="pfoot"><span><b>The Complete Sephiroth</b> · v2.5.0</span><span class="pg">13</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p14 · 10 BUSINESS ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 10 — BUSINESS</span>
+    <h2><span class="n">10</span>Business — Resellers &amp; Gateways</h2>
+    <hr class="rule">
+  </div>
+  <p>Sephiroth is the only panel in the comparison lists with a <b>full reseller system</b> — something 3x-ui/Marzban/Remnawave don't have:</p>
+  <h3>Resellers</h3>
+  <ul>
+    <li><b>A second role with independent auth:</b> a reseller signs in with their own account and the navigation only shows “Users”.</li>
+    <li><b>Hard quotas:</b> caps on user count and allocated traffic — quota violations are rejected at the API level (not just the UI) with a <span class="mono">403</span>.</li>
+    <li><b>Scoped lists:</b> a reseller sees only their own users, and even hand-tampered requests lose other users' records to a <span class="mono">404</span> (without revealing that they exist).</li>
+    <li><b>Admin monitoring bars:</b> for every reseller you see how many users out of how many quotas, and how many GB out of how many GB, have been consumed.</li>
+  </ul>
+  <h3>Sale Templates</h3>
+  <p>Ready-made packages (“Starter 50G”, “Pro 200G”, …) that appear as one-click chips in the user-creation dialog and fill quota/expiry/IP-limit in one go — sellers build the right package without thinking about the numbers.</p>
+  <h3>Payment gateways</h3>
+  <table>
+    <tr><th style="width:170px">Gateway</th><th>Connection type</th></tr>
+    <tr><td>ZarinPal / IDPay</td><td>Webhook — automatic recharge of reseller quota</td></tr>
+    <tr><td>Crypto USDT (TRC20)</td><td>Crypto payment configured right in the panel</td></tr>
+    <tr><td>Telegram card-to-card</td><td>Card-to-card payment via Telegram</td></tr>
+  </table>
+  <div class="callout">
+    <div class="h"><span class="ico">◈</span> Usage forecasting = sales management</div>
+    <p>The “≈N days to cap” chips matter for resellers too: before a subscriber's quota runs out, you already know which accounts will want a renewal tomorrow — prepare the invoice before the outage.</p>
+  </div>
+  <div class="pfoot"><span><b>The Complete Sephiroth</b> · v2.5.0</span><span class="pg">14</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p15 · 11 DEPLOYMENT (1) ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 11 — DEPLOYMENT</span>
+    <h2><span class="n">11</span>Deployment — One-Line Install &amp; CLI</h2>
+    <hr class="rule">
+  </div>
+  <p>On any Linux server (Debian/Ubuntu/RHEL/Alpine/Arch, x86_64 and arm64) it's just one line:</p>
+  <pre><span class="c"># Interactive install (asks for port / user / password)</span>
+<span class="k">bash &lt;(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh)</span>
+
+<span class="c"># Install with a pinned version</span>
+<span class="k">bash &lt;(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh)</span> v2.5.0
+
+<span class="c"># Unattended install (CI/scripts) — output: /etc/sephiroth/install-result.env</span>
+<span class="ok">SEPH_NONINTERACTIVE=1</span> bash install.sh</pre>
+  <p><b>What does the script create?</b></p>
+  <ul>
+    <li><span class="mono">/opt/sephiroth</span> — the source + SPA build (vite) and the single-file <span class="mono">server.cjs</span> bundle (esbuild); then node_modules is wiped → a zero-dependency run.</li>
+    <li><span class="mono">/etc/sephiroth/sephiroth.env</span> — a random free port (20580–21000), a <b>random 16-character password</b> and <span class="mono">SEPH_COOKIE_SECURE=auto</span> (re-running preserves existing values).</li>
+    <li><b>A hardened systemd service:</b> NoNewPrivileges, ProtectSystem=full, PrivateTmp — and on hosts without systemd, a daemon mode via the CLI.</li>
+    <li><b>Install summary:</b> the panel address and credentials are printed and saved to <span class="mono">install-result.env</span> with 0600 permissions. Node 22 is installed too if missing (NodeSource → distro repository → pinned official tarball).</li>
+  </ul>
+  <h3>Management CLI — <span class="mono">sephiroth</span></h3>
+  <pre><span class="c">$ sephiroth          </span><span class="c">← interactive menu</span>
+  <span class="k">1.</span> Start               <span class="k">6.</span>  Logs (follow)
+  <span class="k">2.</span> Stop                <span class="k">7.</span>  Logs (last 100)
+  <span class="k">3.</span> Restart             <span class="k">8.</span>  Change Admin Password
+  <span class="k">4.</span> Force Restart       <span class="k">9.</span>  Change Panel Port
+  <span class="k">5.</span> Status              <span class="k">10.</span> Backup Now
+  <span class="k">0.</span> Exit                <span class="k">11.</span> Restore Backup
+                         <span class="k">12.</span> Check for Update
+                         <span class="k">13.</span> Update Panel
+                         <span class="k">14.</span> Uninstall
+<span class="c"># or directly:</span> sephiroth start|stop|restart|status|logs|backup|update …</pre>
+  <p>Password/port changes go through the maint module (scrypt hashing in the panel's own format), backup/restore matches the in-panel backup format, and “check for update” compares the version against the public repo's package.json.</p>
+  <div class="pfoot"><span><b>The Complete Sephiroth</b> · v2.5.0</span><span class="pg">15</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p16 · 11 DEPLOYMENT (2) ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 11 — DEPLOYMENT · DOCKER</span>
+    <h2><span class="n">11</span>Deployment — Docker &amp; Updates</h2>
+    <hr class="rule">
+  </div>
+  <p>The official multi-stage image builds on <span class="mono">node:22-alpine</span>: stage one builds the SPA + esbuild bundle, stage two ships only <span class="mono">server.cjs</span> + <span class="mono">dist/</span> — no source, no node_modules. A built-in healthcheck hits <span class="mono">/api/auth/session</span> and the <span class="mono">/app/db</span> volume keeps data persistent.</p>
+  <pre><span class="c"># Fastest way</span>
+<span class="k">docker run -d --name sephiroth -p 3000:3000 -v sephiroth_data:/app/db \
+  ghcr.io/edsel-rahimi/sephiroth:latest</span>
+
+<span class="c"># docker-compose.yml</span>
+<span class="k">services:</span>
+  sephiroth:
+    image: ghcr.io/edsel-rahimi/sephiroth:latest   <span class="c"># or pin a version: :v2.5.0</span>
+    ports: [ "<span class="ok">${SEPH_PORT:-3000}</span>:3000" ]
+    environment:
+      SEPHIROTH_ADMIN_USER: <span class="ok">${SEPHIROTH_ADMIN_USER:-admin}</span>
+      SEPHIROTH_ADMIN_PASS: <span class="ok">${SEPHIROTH_ADMIN_PASS:-sephiroth}</span>  <span class="c"># change it after first login!</span>
+      SEPH_COOKIE_SECURE: auto
+    volumes: [ sephiroth_data:/app/db ]</pre>
+  <p>Tags are built automatically on GitHub Actions and pushed to GHCR: <span class="mono">latest</span> for main plus semantic version tags (<span class="mono">v2.5.0</span>) — pinning the version in production is recommended. The env username/password are only seeded on the <b>first boot with empty data</b>; after that, change them only from inside the panel or the CLI.</p>
+  <div class="grid2">
+    <div class="card"><div class="t">Updating (script installs)</div><div class="s">Re-running install.sh = a safe update: the database, env and passwords stay untouched and the service restarts. The panel itself has an update button too (Section 08). Non-git mode: download the zip + swap <span class="mono">server.cjs</span>.</div></div>
+    <div class="card"><div class="t">Complete removal</div><div class="s"><span class="mono">sephiroth uninstall</span> with two confirmations: the service and files are removed; data (db) removal is optional and asked separately.</div></div>
+  </div>
+  <div class="callout warn">
+    <div class="h">⚠ Post-install checklist</div>
+    <p>1) Change the default password (Profile → Security). 2) Store the recovery key somewhere safe. 3) Enable 2FA. 4) Take a manual backup so you've practiced a restore once. 5) In production, enable the Real Xray driver from the “Core” card.</p>
+  </div>
+  <div class="pfoot"><span><b>The Complete Sephiroth</b> · v2.5.0</span><span class="pg">16</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p17 · 12 LANGUAGES ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 12 — 6 LANGUAGES</span>
+    <h2><span class="n">12</span>The Panel in 6 Languages</h2>
+    <hr class="rule">
+  </div>
+  <p>The panel UI, subscription portal, toasts, dialogs and even the Config Doctor strings are translated into <b>6 languages</b> in full parity (automated check: zero missing keys and zero placeholder mismatches across all 6):</p>
+  <table>
+    <tr><th style="width:150px">Language</th><th style="width:80px">Code</th><th style="width:90px">Direction</th><th>Note</th></tr>
+    <tr><td>Persian</td><td><span class="mono">fa</span></td><td>RTL</td><td>Standard ZWNJ half-spaces and Persian digits</td></tr>
+    <tr><td>Arabic</td><td><span class="mono">ar</span></td><td>RTL</td><td>Consistent terminology (entry points, distributor…)</td></tr>
+    <tr><td>English</td><td><span class="mono">en</span></td><td>LTR</td><td>The reference language</td></tr>
+    <tr><td>中文</td><td><span class="mono">zh</span></td><td>LTR</td><td>Full-width parentheses and fluent Chinese phrasing</td></tr>
+    <tr><td>Türkçe</td><td><span class="mono">tr</span></td><td>LTR</td><td>Consistent terminology (Giriş / Sorgula…)</td></tr>
+    <tr><td>Русский</td><td><span class="mono">ru</span></td><td>LTR</td><td>Localized technical terms</td></tr>
+  </table>
+  <figure>
+    <div class="shot"><img src="shot-fa-dashboard.png" alt="Persian dashboard"></div>
+    <figcaption><span class="step">Figure 9</span><span>The dashboard in Persian — complete RTL mirroring: gauges, charts, navigation and the live feed.</span></figcaption>
+  </figure>
+  <div class="callout">
+    <div class="h"><span class="ico">◈</span> Real RTL, not just right-aligned</div>
+    <p>Page direction is injected at the root via the Radix DirectionProvider — dialogs, dropdowns, tooltips and even toasts get mirrored. Technical numbers (ports, versions, links) stay inside <span class="mono">dir=ltr</span> blocks so they remain readable.</p>
+  </div>
+  <div class="pfoot"><span><b>The Complete Sephiroth</b> · v2.5.0</span><span class="pg">17</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p18 · 12 MOBILE ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 12 — RESPONSIVE</span>
+    <h2><span class="n">12</span>Mobile &amp; Responsive</h2>
+    <hr class="rule">
+  </div>
+  <p>All 13 panel views are redesigned down to 390 px width too: tables become stacked cards, the top bar collapses and large dialogs (like the Forge) switch to vertical scrolling with full-width fields — in both LTR and RTL directions, with no horizontal overflow (tested with automated layout inspection).</p>
+  <div class="duo" style="justify-content:center; margin-top:8px">
+    <figure style="flex:0 0 auto; margin:0">
+      <div class="shot" style="width:236px"><img src="shot-mobile-dashboard.png" alt="Mobile — dashboard" style="width:100%"></div>
+      <figcaption style="justify-content:center"><span class="step">Figure 10</span><span>Mobile dashboard (English)</span></figcaption>
+    </figure>
+    <figure style="flex:0 0 auto; margin:0">
+      <div class="shot" style="width:236px"><img src="shot-mobile-forge.png" alt="Mobile — Persian Forge" style="width:100%"></div>
+      <figcaption style="justify-content:center"><span class="step">Figure 11</span><span>Mobile Forge — Persian RTL</span></figcaption>
+    </figure>
+  </div>
+  <div class="grid2 mt14">
+    <div class="card"><div class="t">MOBILE-FIRST TOUCHES</div><div class="s">Global search and the <span class="mono">Ctrl+K</span> command palette work on mobile too; move between views via the same top navigation and the dashboard's quick-action buttons.</div></div>
+    <div class="card"><div class="t">QA AUTOMATICO</div><div class="s">A layout auditor (overflow, overlap, text clipping) scans every view in EN/FA at 1280 px/390 px — the same audit this catalog passed.</div></div>
+  </div>
+  <div class="pfoot"><span><b>The Complete Sephiroth</b> · v2.5.0</span><span class="pg">18</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p19 · 13 FAQ ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 13 — TROUBLESHOOTING &amp; FAQ</span>
+    <h2><span class="n">13</span>Troubleshooting · FAQ</h2>
+    <hr class="rule">
+  </div>
+  <table>
+    <tr><th style="width:200px">Question</th><th>Short answer</th></tr>
+    <tr><td>I get “port already in use”</td><td>Hit the ✦ wand button in the Forge to get the first free port suggested; to check manually: <span class="mono">ss -tlnp | grep &lt;port&gt;</span></td></tr>
+    <tr><td>The Xray binary download fails</td><td>Set the binary path manually or pin a version in the “Core” card; until then the panel keeps working normally with the Simulator.</td></tr>
+    <tr><td>Do Simulator traffic numbers differ from real ones?</td><td>Yes — the Simulator's telemetry is for display. Real per-user stats come only from the Real Xray driver (Section 07).</td></tr>
+    <tr><td>I forgot the admin password</td><td>From the server: <span class="mono">sephiroth</span> → option 8 (change password); or use the “recovery key” on the login page.</td></tr>
+    <tr><td>How do I restore a backup?</td><td>Settings → Restore → JSON file + <span class="mono">RESTORE</span> confirmation; or on the server: <span class="mono">sephiroth</span> → option 11. The restore runs in one transaction and the admin account stays untouched.</td></tr>
+    <tr><td>How do I enable HTTPS?</td><td>Put a reverse proxy (Nginx/Caddy) with TLS in front; the secure cookie has an <span class="mono">auto</span> mode and turns Secure by itself via <span class="mono">x-forwarded-proto</span>.</td></tr>
+    <tr><td>I only have one port (free hosting)</td><td>Build the “Single-Port Combo” preset (Section 03): several protocols with fallback on one port + the panel on <span class="mono">/panel</span>.</td></tr>
+    <tr><td>After a change, the panel still runs old code</td><td>That's normal — the in-panel update waits for “restart” so sessions don't drop; press the restart button.</td></tr>
+  </table>
+  <div class="callout ok">
+    <div class="h"><span class="ico">✓</span> Quick troubleshooting toolbox</div>
+    <p><span class="mono">sephiroth logs</span> for service logs · <span class="mono">sephiroth status</span> for status · the live core log in the “Core / Xray” card · the Config Doctor report to clean up your config · the “Activity” feed to see who did what.</p>
+  </div>
+  <div class="pfoot"><span><b>The Complete Sephiroth</b> · v2.5.0</span><span class="pg">19</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p20 · 14 ROADMAP + FINALE ═══════════════ -->
+<div class="page last">
+  <div class="sechead">
+    <span class="kicker">SECTION 14 — ROADMAP &amp; FINALE</span>
+    <h2><span class="n">14</span>Roadmap · Finale</h2>
+    <hr class="rule">
+  </div>
+  <h3>Delivered through v2.5.0</h3>
+  <p><span class="gcheck">✓</span> Forge with REALITY and live preview &nbsp;·&nbsp; <span class="gcheck">✓</span> 16-point Config Doctor &nbsp;·&nbsp; <span class="gcheck">✓</span> Real Xray driver &nbsp;·&nbsp; <span class="gcheck">✓</span> 2FA (TOTP) &nbsp;·&nbsp; <span class="gcheck">✓</span> Scheduled backups &nbsp;·&nbsp; <span class="gcheck">✓</span> In-panel updates &nbsp;·&nbsp; <span class="gcheck">✓</span> Telegram SOCKS5 suite + MTProto tool &nbsp;·&nbsp; <span class="gcheck">✓</span> 5 subscription formats + branded portal &nbsp;·&nbsp; <span class="gcheck">✓</span> Resellers/sale templates/gateways &nbsp;·&nbsp; <span class="gcheck">✓</span> 6 themes · 6 languages (RTL) &nbsp;·&nbsp; <span class="gcheck">✓</span> Install suite (install.sh + CLI + Docker + GHCR) &nbsp;·&nbsp; <span class="gcheck">✓</span> Automatic IP/free-port detection</p>
+  <h3>Ahead</h3>
+  <ul>
+    <li><b>Telegram sales bot</b> — automated sales and renewals inside Telegram (research done; awaiting a final decision).</li>
+    <li><b>Multi-node</b> — syncing inbounds across several servers.</li>
+    <li><b>ACME certificates</b> — automatic Let's Encrypt issue/renew inside the panel.</li>
+    <li><b>IP-Limit enforcement</b> — fail2ban-style auto-cut on real inbounds.</li>
+  </ul>
+  <hr class="rule mt14">
+  <div class="center mt10">
+    <span class="badge-end">SEPHIROTH · v2.5.0</span>
+    <p class="mt10" style="max-width:540px; margin-inline:auto">Sephiroth is an <b>open-source project under the MIT license</b> — fork it, modify it and use it in your own projects. If it was useful to you, encourage us with the in-panel “Support Sephiroth” button or a GitHub star.</p>
+    <p class="small" style="max-width:540px; margin-inline:auto"><b>Disclaimer:</b> this panel is published for personal and educational use; responsibility for any misuse lies with the user. All images in this catalog were taken from the real v2.5.0 and contain no private data.</p>
+    <p class="mt6" style="letter-spacing:2px; color:var(--muted); font-size:10.5px">Built with ♥ by <b style="color:var(--text)">EPODONIOS</b> · github.com/Edsel-Rahimi/Sephiroth</p>
+  </div>
+  <div class="pfoot"><span><b>The Complete Sephiroth</b> · v2.5.0</span><span class="pg">20</span><span>EPODONIOS</span></div>
+</div>
+
+</body>
+</html>

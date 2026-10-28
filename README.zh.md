@@ -10,6 +10,8 @@
   <strong>新一代 Xray VPN 面板</strong> — 黑曜石暗色 UI、玻璃拟态、6 种语言、真实 Xray 核心驱动。
 </p>
 
+![Sephiroth v2.5.0 信息图](docs/infographic.png)
+
 <p align="center">
   <a href="https://github.com/Edsel-Rahimi/Sephiroth/releases"><img alt="Release" src="https://img.shields.io/github/v/release/edsel-rahimi/sephiroth"></a>&nbsp;
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>&nbsp;

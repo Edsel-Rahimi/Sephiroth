@@ -1,0 +1,799 @@
+<!doctype html>
+<html lang="tr" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<title>Eksiksiz Sephiroth Kitabı — Sephiroth Panel Kataloğu v2.5.0</title>
+<style>
+@font-face { font-family: "Vazirmatn"; src: url("../public/fonts/Vazirmatn-Regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Vazirmatn"; src: url("../public/fonts/Vazirmatn-Medium.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Vazirmatn"; src: url("../public/fonts/Vazirmatn-SemiBold.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Vazirmatn"; src: url("../public/fonts/Vazirmatn-Bold.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+
+@page { size: 720px 1020px; margin: 0; }
+:root {
+  --bg: #060b0f;
+  --bg2: #0a1218;
+  --card: rgba(255,255,255,0.035);
+  --line: rgba(255,255,255,0.09);
+  --text: #e7edf2;
+  --muted: #93a4b1;
+  --cyan: #22d8ee;
+  --amber: #fbbf24;
+  --red: #fb5f6b;
+  --green: #34d399;
+}
+html, body {
+  margin: 0; padding: 0;
+  width: 720px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Vazirmatn', 'DejaVu Sans', 'Tahoma', sans-serif;
+  font-size: 13px;
+  line-height: 1.6;
+}
+@media screen {
+  html { height: auto; display: flex; justify-content: center; background: #14181c; }
+  body { margin: 20px auto; box-shadow: 0 20px 80px rgba(0,0,0,.6); }
+}
+* { box-sizing: border-box; }
+
+/* ───── fixed page scaffold ───── */
+.page {
+  width: 720px; height: 1020px;
+  position: relative;
+  overflow: hidden;
+  break-after: page;
+  padding: 44px 54px 58px 54px;
+  background:
+    radial-gradient(520px 380px at 12% -6%, rgba(34,216,238,0.075), transparent 60%),
+    var(--bg);
+}
+.page.last { break-after: auto; }
+.pfoot {
+  position: absolute; bottom: 0; right: 0; left: 0; height: 46px;
+  padding: 0 54px;
+  border-top: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: space-between;
+  color: var(--muted); font-size: 9.5px; letter-spacing: 1.5px;
+  background: rgba(6,11,15,0.85);
+}
+.pfoot .pg { color: var(--cyan); font-weight: 700; letter-spacing: 3px; }
+.pfoot b { color: var(--text); font-weight: 600; }
+
+/* ───── headings ───── */
+.kicker { display: inline-block; color: var(--cyan); font-size: 10px; font-weight: 700; letter-spacing: 4px; margin-bottom: 6px; }
+h2 { font-size: 21px; font-weight: 700; margin: 0 0 4px; color: var(--text); break-after: avoid; }
+h2 .n { color: var(--cyan); font-size: 13px; vertical-align: 4px; letter-spacing: 2px; margin-left: 8px; }
+h3 { font-size: 14.5px; font-weight: 600; color: var(--text); margin: 14px 0 4px; break-after: avoid; }
+.rule { height: 2px; background: linear-gradient(-90deg, var(--cyan), transparent 70%); border: 0; margin: 8px 0 12px; break-after: avoid; }
+p { margin: 0 0 9px; color: var(--muted); }
+p b, li b { color: var(--text); font-weight: 600; }
+li { color: var(--muted); margin-bottom: 4px; }
+ul, ol { margin: 0 0 9px; padding-left: 18px; }
+
+code, .mono {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  direction: ltr; unicode-bidi: embed;
+  background: rgba(34,216,238,0.08); color: var(--cyan);
+  border: 1px solid rgba(34,216,238,0.2);
+  border-radius: 6px; padding: 0 6px; font-size: 11px;
+}
+pre {
+  direction: ltr; text-align: left;
+  background: #0a141b; border: 1px solid var(--line);
+  border-radius: 12px; padding: 12px 14px;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 10.5px; line-height: 1.7; color: #b8e9f2;
+  overflow: hidden; white-space: pre-wrap; break-inside: avoid;
+  margin: 0 0 12px;
+}
+pre .c { color: #5b7280; }
+pre .k { color: var(--cyan); }
+pre .ok { color: var(--green); }
+
+/* ───── cards / callouts / tables ───── */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 0 12px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 0 0 12px; }
+.card {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 14px; padding: 11px 14px; break-inside: avoid;
+}
+.card .t { color: var(--cyan); font-size: 10px; font-weight: 700; letter-spacing: 2px; margin-bottom: 4px; }
+.card .v { color: var(--text); font-size: 12.5px; font-weight: 600; }
+.card .s { color: var(--muted); font-size: 10.5px; line-height: 1.75; }
+.card .s .mono { font-size: 10px; }
+.callout {
+  border: 1px solid rgba(34,216,238,0.3);
+  background: linear-gradient(180deg, rgba(34,216,238,0.07), rgba(34,216,238,0.03));
+  border-radius: 14px; padding: 11px 16px; margin: 0 0 12px; break-inside: avoid;
+}
+.callout.warn { border-color: rgba(251,191,36,0.35); background: linear-gradient(180deg, rgba(251,191,36,0.07), rgba(251,191,36,0.03)); }
+.callout.ok { border-color: rgba(52,211,153,0.35); background: linear-gradient(180deg, rgba(52,211,153,0.07), rgba(52,211,153,0.03)); }
+.callout.red { border-color: rgba(251,95,107,0.35); background: linear-gradient(180deg, rgba(251,95,107,0.07), rgba(251,95,107,0.03)); }
+.callout .h { color: var(--text); font-weight: 700; margin-bottom: 2px; font-size: 12.5px; }
+.callout.warn .h { color: var(--amber); }
+.callout.ok .h { color: var(--green); }
+.callout.red .h { color: var(--red); }
+.callout .h .ico { color: var(--cyan); }
+.callout p { margin: 0; font-size: 11.5px; }
+
+table { width: 100%; border-collapse: collapse; margin: 0 0 12px; break-inside: avoid; }
+th { color: var(--cyan); font-size: 10.5px; font-weight: 700; text-align: left; padding: 6px 9px; border-bottom: 1px solid rgba(34,216,238,0.25); }
+td { color: var(--muted); font-size: 11.5px; padding: 5.5px 9px; border-bottom: 1px solid var(--line); vertical-align: top; line-height: 1.7; }
+td .mono, td code { font-size: 10.5px; }
+tr { break-inside: avoid; }
+th:first-child, td:first-child { color: var(--text); font-weight: 600; }
+.chip {
+  display: inline-block; border: 1px solid rgba(34,216,238,0.35); border-radius: 999px;
+  background: rgba(34,216,238,0.06); color: var(--cyan);
+  font-size: 10px; font-weight: 600; padding: 1px 10px; margin: 0 0 4px 6px;
+}
+.chip.dim { border-color: rgba(255,255,255,0.14); color: var(--muted); background: rgba(255,255,255,0.03); }
+.chip.ok { border-color: rgba(52,211,153,0.4); color: var(--green); background: rgba(52,211,153,0.06); }
+.chip.am { border-color: rgba(251,191,36,0.4); color: var(--amber); background: rgba(251,191,36,0.06); }
+
+/* ───── figures ───── */
+figure { margin: 10px 0 6px; break-inside: avoid; }
+figure .shot {
+  border: 1px solid rgba(34,216,238,0.22);
+  border-radius: 12px; overflow: hidden;
+  background: #0a1218;
+  box-shadow: 0 10px 34px rgba(0,0,0,0.45);
+}
+figure img { display: block; width: 100%; max-width: 100%; height: auto; }
+figcaption {
+  margin-top: 6px; font-size: 10.5px; color: var(--muted);
+  display: flex; gap: 8px; align-items: baseline;
+}
+figcaption .step {
+  flex: 0 0 auto; color: var(--cyan); font-weight: 700; font-size: 9.5px;
+  border: 1px solid rgba(34,216,238,0.35); border-radius: 999px; padding: 0 10px;
+  background: rgba(34,216,238,0.06);
+}
+.duo { display: flex; gap: 12px; align-items: flex-start; }
+.duo figure { flex: 1; margin: 10px 0 0; }
+
+/* ───── architecture diagram (pure HTML/CSS) ───── */
+.diagram { margin: 6px 0 12px; break-inside: avoid; }
+.dbox {
+  border: 1px solid rgba(34,216,238,0.35); border-radius: 14px;
+  background: rgba(34,216,238,0.05);
+  padding: 10px 14px; text-align: center; color: var(--text);
+  font-size: 12px; font-weight: 600;
+}
+.dbox .sub { display: block; color: var(--muted); font-size: 10px; font-weight: 400; margin-top: 2px; }
+.drow { display: flex; gap: 10px; }
+.drow .dbox { flex: 1; font-size: 11px; font-weight: 600; padding: 8px 6px; }
+.darrow { text-align: center; color: var(--cyan); font-size: 13px; line-height: 1.35; }
+.darrow .lbl { color: var(--muted); font-size: 9.5px; display: block; letter-spacing: 1px; }
+.dbox.core {
+  border-color: rgba(251,191,36,0.4);
+  background: rgba(251,191,36,0.05);
+}
+.dbox.core .sub b { color: var(--amber); }
+
+/* ───── TOC ───── */
+.toc { margin-top: 4px; }
+.toc .row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 7.5px 2px; border-bottom: 1px dashed rgba(255,255,255,0.10);
+}
+.toc .num {
+  flex: 0 0 34px; height: 26px; border-radius: 9px;
+  border: 1px solid rgba(34,216,238,0.4); background: rgba(34,216,238,0.07);
+  color: var(--cyan); font-weight: 700; font-size: 11px;
+  display: flex; align-items: center; justify-content: center;
+}
+.toc .tt { color: var(--text); font-weight: 600; font-size: 13px; }
+.toc .dots { flex: 1; border-bottom: 1px dotted rgba(255,255,255,0.16); margin: 0 6px; height: 1px; }
+.toc .pn { color: var(--cyan); font-weight: 700; font-size: 12px; }
+
+/* ───── cover ───── */
+.cover {
+  width: 720px; height: 1020px;
+  break-after: page;
+  overflow: hidden;
+  position: relative;
+  padding: 52px 54px 58px;
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  background:
+    radial-gradient(560px 420px at 78% 10%, rgba(34,216,238,0.14), transparent 62%),
+    radial-gradient(500px 420px at 14% 86%, rgba(34,216,238,0.07), transparent 60%),
+    var(--bg);
+}
+.cover .ring { position: absolute; border-radius: 50%; border: 1px solid rgba(34,216,238,0.16); }
+.cover .r1 { width: 470px; height: 470px; top: 30px; left: 40px; }
+.cover .r2 { width: 300px; height: 300px; bottom: 30px; right: 40px; border-color: rgba(34,216,238,0.10); }
+.cover .logo {
+  width: 88px; height: 88px; border-radius: 24px;
+  border: 1.5px solid rgba(34,216,238,0.45);
+  background: rgba(34,216,238,0.06);
+  box-shadow: 0 0 60px rgba(34,216,238,0.28);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 40px; font-weight: 700; color: var(--cyan);
+  font-family: 'JetBrains Mono','Courier New',monospace;
+}
+.cover .kick { margin-top: 18px; color: var(--muted); font-size: 11px; letter-spacing: 6px; }
+.cover h1 { font-size: 40px; font-weight: 700; margin: 8px 0 2px; color: var(--text); }
+.cover h1 b { color: var(--cyan); }
+.cover .ver {
+  font-size: 13.5px; color: var(--cyan); letter-spacing: 3px;
+  border: 1px solid rgba(34,216,238,0.35); border-radius: 999px;
+  padding: 4px 22px; margin: 10px 0 4px;
+  background: rgba(34,216,238,0.06);
+}
+.cover .date { color: var(--muted); font-size: 11.5px; letter-spacing: 1px; }
+.cover p.lead { max-width: 560px; color: var(--muted); font-size: 12.5px; margin: 12px 0 0; line-height: 2; }
+.cover .herofig {
+  margin-top: 20px; width: 612px;
+  border: 1px solid rgba(34,216,238,0.25); border-radius: 14px; overflow: hidden;
+  box-shadow: 0 18px 60px rgba(0,0,0,0.55), 0 0 40px rgba(34,216,238,0.10);
+  background: #0a1218;
+}
+.cover .herofig img { display: block; width: 100%; height: auto; }
+.cover .foot { position: absolute; bottom: 40px; left: 0; right: 0; color: var(--muted); font-size: 10.5px; letter-spacing: 2px; }
+.cover .foot b { color: var(--text); letter-spacing: 4px; }
+
+/* ───── misc ───── */
+.sechead { margin-bottom: 2px; }
+.steps li { margin-bottom: 7px; }
+.small { font-size: 10.5px; color: var(--muted); }
+.center { text-align: center; }
+.mt6 { margin-top: 6px; } .mt10 { margin-top: 10px; } .mt14 { margin-top: 14px; }
+.mb0 { margin-bottom: 0; }
+.gcheck { color: var(--green); font-weight: 700; }
+.rcyan { color: var(--cyan); font-weight: 700; }
+.ramber { color: var(--amber); font-weight: 700; }
+.badge-end {
+  display: inline-block; margin-top: 4px;
+  border: 1px solid rgba(34,216,238,0.35); border-radius: 999px;
+  color: var(--cyan); background: rgba(34,216,238,0.06);
+  padding: 3px 18px; font-size: 10.5px; letter-spacing: 3px; font-weight: 700;
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ p1 · COVER ═══════════════ -->
+<div class="cover">
+  <div class="ring r1"></div>
+  <div class="ring r2"></div>
+  <div class="logo">S</div>
+  <div class="kick">SEPHIROTH · XRAY CONTROL PANEL</div>
+  <h1>Eksiksiz <b>Sephiroth</b> Kitabı</h1>
+  <div class="ver">CATALOG · v2.5.0</div>
+  <div class="date">6 Aban 1405 — Ekim 2026</div>
+  <p class="lead">Yeni nesil Xray yönetim panelinin resmî ve resimli kataloğu: Forge ile config oluşturma ve Config Doctor'dan gerçek Xray çekirdeğine, iki aşamalı güvenlikten bayilik sistemine ve eksiksiz kurulum paketine kadar. Hepsi panelin kendi ekran görüntüleriyle.</p>
+  <div class="herofig"><img src="shot-dashboard.png" alt="Sephiroth panosu"></div>
+  <div class="foot"><b>EPODONIOS</b> · SEPHIROTH PANEL · 2026</div>
+</div>
+
+<!-- ═══════════════ p2 · TOC ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">TABLE OF CONTENTS</span>
+    <h2>İçindekiler</h2>
+    <hr class="rule">
+  </div>
+  <div class="toc">
+    <div class="row"><div class="num">01</div><div class="tt">Giriş — Sephiroth nedir?</div><div class="dots"></div><div class="pn">3</div></div>
+    <div class="row"><div class="num">02</div><div class="tt">Panel Mimarisi</div><div class="dots"></div><div class="pn">4</div></div>
+    <div class="row"><div class="num">03</div><div class="tt">Protokoller ve Taşıyıcılar</div><div class="dots"></div><div class="pn">5</div></div>
+    <div class="row"><div class="num">04</div><div class="tt">Forge ile Inbound Oluşturma</div><div class="dots"></div><div class="pn">6</div></div>
+    <div class="row"><div class="num">05</div><div class="tt">Kullanıcılar ve Abonelikler</div><div class="dots"></div><div class="pn">8</div></div>
+    <div class="row"><div class="num">06</div><div class="tt">Config Doctor</div><div class="dots"></div><div class="pn">10</div></div>
+    <div class="row"><div class="num">07</div><div class="tt">Gerçek Xray Çekirdeği</div><div class="dots"></div><div class="pn">11</div></div>
+    <div class="row"><div class="num">08</div><div class="tt">Güvenlik</div><div class="dots"></div><div class="pn">12</div></div>
+    <div class="row"><div class="num">09</div><div class="tt">Telegram</div><div class="dots"></div><div class="pn">13</div></div>
+    <div class="row"><div class="num">10</div><div class="tt">İş — Bayiler ve Ödeme Geçitleri</div><div class="dots"></div><div class="pn">14</div></div>
+    <div class="row"><div class="num">11</div><div class="tt">Dağıtım — Kurulum, CLI, Docker</div><div class="dots"></div><div class="pn">15</div></div>
+    <div class="row"><div class="num">12</div><div class="tt">Panel 6 Dilde</div><div class="dots"></div><div class="pn">17</div></div>
+    <div class="row"><div class="num">13</div><div class="tt">Sorun Giderme · SSS</div><div class="dots"></div><div class="pn">19</div></div>
+    <div class="row"><div class="num">14</div><div class="tt">Yol Haritası · Kapanış</div><div class="dots"></div><div class="pn">20</div></div>
+  </div>
+  <div class="callout mt14">
+    <div class="h"><span class="ico">◈</span> Bu katalog hakkında</div>
+    <p>Bu kitaptaki tüm görseller, panelin kendisinden alınmış gerçek ekran görüntüleridir (v2.5.0; ayrı açık/koyu modumuz yok — “obsidyen + cam siyan” tasarım dili 6 temanın hepsinde aynıdır). Belgede hiçbir şifre, sunucu adresi veya özel bilgi yoktur.</p>
+  </div>
+  <div class="grid2 mt6">
+    <div class="card"><div class="t">FORMAT</div><div class="v">Dikey PDF, 720×1020</div><div class="s">20 sayfa · panelden 11 gerçek görüntü · tam Türkçe metin (LTR)</div></div>
+    <div class="card"><div class="t">AUDIENCE</div><div class="s" style="margin-top:2px">Sunucu yöneticileri, config satıcıları, kendi sunucusunu kuran meraklılar ve eksiksiz, özenli bir Xray paneli isteyen herkes.</div></div>
+  </div>
+  <div class="pfoot"><span><b>Eksiksiz Sephiroth Kitabı</b> · v2.5.0</span><span class="pg">02</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p3 · 01 GİRİŞ ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 01 — INTRODUCTION</span>
+    <h2><span class="n">01</span>Giriş — Sephiroth nedir?</h2>
+    <hr class="rule">
+  </div>
+  <p><b>Sephiroth</b>, <b>Xray</b> için eksiksiz bir yönetim panelidir: inbound'lar, kullanıcılar ve abonelikler, canlı istatistikler, güvenlik ve yedekleme — hepsi <b>tek bir Node.js sürecinde</b>. Ne MySQL ne de Postgres ister; veriler tek bir atomik JSON dosyasında saklanır ve arayüz de aynı porttan sunulur.</p>
+  <div class="grid2">
+    <div class="card"><div class="t">DESIGN LANGUAGE</div><div class="v">Obsidyen + cam siyan</div><div class="s"><span class="mono">#060b0f</span> zemin, <span class="mono">#22d8ee</span> vurgu; cam görünümlü kartlar, yörünge halkaları ve yıldız alanı — 6 temanın hepsinde korunan bir kimlik.</div></div>
+    <div class="card"><div class="t">THEMES ×6</div><div class="v" style="margin-bottom:4px">6 koyu tema</div><div class="s"><span class="chip dim">Sephiroth</span><span class="chip dim">Jenova</span><span class="chip dim">Masamune</span><span class="chip dim">Terminal</span><span class="chip dim">OLED</span><span class="chip dim">One-Winged</span></div></div>
+    <div class="card"><div class="t">LANGUAGES ×6</div><div class="v" style="margin-bottom:4px">Farsça · English · Arapça · 中文 · Türkçe · Русский</div><div class="s">Farsça ve Arapça için <b>tam ve otomatik RTL</b> (diyaloglar ve Toast'lar dâhil); dil değişimi üst çubuktan, sayfa yenilemeden.</div></div>
+    <div class="card"><div class="t">ZERO-DEP RUNTIME</div><div class="v">node_modules yok</div><div class="s">Production modunda arka ucun tamamı tek dosyalık bir pakette (<span class="mono">server.cjs</span>) derlenir; küçük ve tek portlu sunucular için ideal.</div></div>
+  </div>
+  <p>Sephiroth; hassas kontrol isteyen <b>kişisel sunucu yöneticileri</b>, bayilik sistemi ve ödeme geçidi gereken <b>satıcılar</b> ve güzel, hafif, kendi dilinde bir panel isteyen <b>kendi sunucusunu kuranlar</b> için tasarlandı — canlı Socket.IO telemetrisi, <span class="mono">Ctrl+K</span> komut paleti ve uygulama içi saha rehberiyle.</p>
+  <figure>
+    <div class="shot"><img src="shot-login.png" alt="Giriş ekranı" style="width:86%; display:block; margin:0 auto;"></div>
+    <figcaption><span class="step">Resim 1</span><span>“Devre Terminali” giriş ekranı — şifreyle giriş, TOTP iki aşamalı giriş, kurtarma anahtarı ve brute-force karşıtı kilit.</span></figcaption>
+  </figure>
+  <div class="pfoot"><span><b>Eksiksiz Sephiroth Kitabı</b> · v2.5.0</span><span class="pg">03</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p4 · 02 MİMARİ ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 02 — ARCHITECTURE</span>
+    <h2><span class="n">02</span>Panel Mimarisi</h2>
+    <hr class="rule">
+  </div>
+  <p>Panelin tamamı <b>tek bir süreçtir</b>: Express sunucusu (REST API), derlenmiş React arayüzünün (SPA) üzerinde koştuğu portu aynı zamanda sunar; Socket.IO canlı telemetriyi (CPU/RAM/disk, inbound durumları, olaylar) yayınlar. Ağ çekirdeğinin iki modu vardır: <b>Simülatör</b> (varsayılan; güvenli, binariesiz) veya <b>gerçek Xray sürücüsü</b> (Bölüm 07'de ayrıntılı anlatılır).</p>
+  <div class="diagram">
+    <div class="dbox">Yönetici tarayıcısı / abonelik uygulaması<span class="sub">React SPA · RTL · 6 dil</span></div>
+    <div class="darrow">▼<span class="lbl">HTTP :PORT · her şey için tek port</span></div>
+    <div class="dbox">Tek Node.js süreci — server.cjs (node_modules yok)<span class="sub">Express REST API + 40+ rota · SPA statik dosyaları · gerçek zamanlı Socket.IO</span></div>
+    <div class="darrow">▼<span class="lbl">Atomik okuma/yazma</span></div>
+    <div class="drow">
+      <div class="dbox">db/sephiroth-store.json<span class="sub">Atomik depolama: geçici dosyaya yaz → rename + tek nesil .bak</span></div>
+      <div class="dbox core">Çekirdek<span class="sub"><b>Simülatör</b> (varsayılan) veya <b>gerçek Xray</b> + 127.0.0.1 üzerinde gizli API kapısı</span></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card"><div class="t">ATOMIC JSON STORE</div><div class="s">Her değişiklik anında atomik olarak diske yazılır (geçici dosyaya yaz → rename); bir çökme en fazla son işlemi götürür, veritabanının tamamını asla.</div></div>
+    <div class="card"><div class="t">LIVE BY SOCKET.IO</div><div class="s">CPU/RAM/disk göstergeleri, inbound trafik çubukları ve etkinlik akışı canlı olaylarla güncellenir — sayfa yenileme yok.</div></div>
+  </div>
+  <h3>Dağıtım seçenekleri</h3>
+  <table style="margin-bottom:8px">
+    <tr><th style="width:130px">Yöntem</th><th>Kimin için</th><th style="width:190px">Not</th></tr>
+    <tr><td>Tek satırlık install.sh</td><td>Linux VPS/dedicated (Ubuntu/Debian/RHEL/Alpine/Arch)</td><td>systemd + <span class="mono">sephiroth</span> CLI + rastgele port ve şifre</td></tr>
+    <tr><td>Docker / Compose</td><td>Docker'lı sunucular ve CI</td><td>Resmî imaj <span class="mono">ghcr.io/edsel-rahimi/sephiroth</span></td></tr>
+    <tr><td>Elle çalıştırma</td><td>Geliştirme ve test</td><td><span class="mono">node server.ts</span> veya <span class="mono">server.cjs</span> paketi</td></tr>
+    <tr><td>Tek portlu barındırma</td><td>Ücretsiz uygulama tarzı sunucular (Pterodactyl benzeri)</td><td>node_modules'suz paket + port <span class="mono">SERVER_PORT</span>'tan</td></tr>
+  </table>
+  <div class="callout" style="margin-bottom:0">
+    <div class="h"><span class="ico">◈</span> Neden tek süreç?</div>
+    <p>Bir port, bir süreç, bir veri dosyası — Node olan her yerde: 512 MB'lık VPS'ten 308 MB'lık ücretsiz barındırma konteynerine.</p>
+  </div>
+  <div class="pfoot"><span><b>Eksiksiz Sephiroth Kitabı</b> · v2.5.0</span><span class="pg">04</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p5 · 03 PROTOKOLLER ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 03 — PROTOCOLS</span>
+    <h2><span class="n">03</span>Protokoller ve Taşıyıcılar</h2>
+    <hr class="rule">
+  </div>
+  <p>Sephiroth Forge'u <b>9 inbound protokolünü</b> <b>5 taşıyıcı</b> ve <b>3 güvenlik katmanıyla</b> birleştirir; abonelik bağlantısı, QR ve çekirdek çıktısı bu birleşimden otomatik üretilir.</p>
+  <table>
+    <tr><th style="width:118px">Protokol</th><th>Karakter ve kullanım</th></tr>
+    <tr><td>VLESS</td><td>Modern ve hafif; <span class="mono">xtls-rprx-vision</span> akışını destekler — REALITY ile altın çift</td></tr>
+    <tr><td>VMess</td><td>Klasik ve her yerde çalışan; CDN ve WebSocket için ideal</td></tr>
+    <tr><td>Trojan</td><td>Kendini sıradan HTTPS trafiği gibi gösterir</td></tr>
+    <tr><td>Shadowsocks</td><td>Basit ve hızlı; bilinen şifreleme algoritmaları</td></tr>
+    <tr><td>Hysteria2</td><td>QUIC/UDP tabanlı; gecikmeli ve paket kayıplı ağlar için</td></tr>
+    <tr><td>WireGuard</td><td>Özel/genel anahtarlı resmî tünel ve ayarlanabilir MTU</td></tr>
+    <tr><td>SOCKS5 / HTTP</td><td>İsteğe bağlı kimlik doğrulamalı yerel proxy — “Telegram proxy” dâhil (Bölüm 09)</td></tr>
+    <tr><td>Dokodemo-door</td><td>Trafiği yönlendirmek için şeffaf port (aynı zamanda çekirdeğin gizli API kapısı)</td></tr>
+  </table>
+  <div class="grid2">
+    <div class="card"><div class="t">TRANSPORTS</div><div class="s" style="margin-top:2px"><span class="chip dim">TCP + header</span><span class="chip dim">WebSocket</span><span class="chip dim">gRPC</span><span class="chip dim">HTTPUpgrade</span><span class="chip dim">XHTTP</span><br>Her biri için path/host/serviceName ve early-data ile.</div></div>
+    <div class="card"><div class="t">SECURITY</div><div class="s" style="margin-top:2px"><span class="chip dim">none</span><span class="chip ok">TLS 1.0–1.3</span><span class="chip ok">REALITY</span><br>ALPN, fingerprint ×9 (chrome/firefox/safari/…), uTLS; REALITY dest, serverNames, shortIds ve dahili anahtar çiftiyle.</div></div>
+  </div>
+  <h3>Fallback'ler ve “Tek Portlu Kombinasyon” ön ayarı</h3>
+  <p>Her TLS inbound'u bir <b>fallback</b> alabilir (dest/alpn/path) — <b>tek portlu ön ayarın</b> temeli budur: <b>tek paylaşılan portta</b> (ör. 443) birkaç protokol + panelin kendisi için <span class="mono">/panel</span> yolu. Size yalnızca tek port veren sunucular için bu tek ön ayar bütün sorunu çözer.</p>
+  <div class="callout ok">
+    <div class="h"><span class="ico">✓</span> Çekirdeğin çevrimdışı kurulumu</div>
+    <p>Forge'da kurduğunuz her şeyi çekirdek sürücüsü (Bölüm 07) gerçek Xray config'ine dönüştürür — streamSettings, REALITY, sniffing (http/tls/quic/fakerd), mux ve fallback'ler; JSON'u elle kurcalamadan.</p>
+  </div>
+  <div class="pfoot"><span><b>Eksiksiz Sephiroth Kitabı</b> · v2.5.0</span><span class="pg">05</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p6 · 04 FORGE (1) ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 04 — THE FORGE</span>
+    <h2><span class="n">04</span>Forge ile Inbound Oluşturma</h2>
+    <hr class="rule">
+  </div>
+  <p>“Forge”, inbound oluşturma/düzenleme diyaloğudur — yazarken yanındaki kenar çubuğunda <b>abonelik bağlantısını ve QR'ı canlı</b> üreten akıllı bir form. İş akışı:</p>
+  <ol class="steps">
+    <li><b>Protokolü</b> seçin (9 seçenek; her biri alanın hemen altında açıklanır).</li>
+    <li><b>General</b> sekmesinde: etiket, port ve dinleme adresi — aşağıda tanıtılacak iki sihirli düğmeyle.</li>
+    <li><b>Transport</b> ve <b>Security</b> sekmeleri: taşıyıcı + none/TLS/REALITY, tüm ayrıntılarıyla (SNI, ALPN, fingerprint, shortId…).</li>
+    <li>Gelişmiş modda: gerçek bir dizi olarak <b>Fallbacks</b> ve <b>Sniffing/Mux</b>.</li>
+    <li>Kaydet → inbound, trafik çubuğu ve sınır çipleriyle kart ağına yerleşir; istemcileri de oradan ekleyin.</li>
+  </ol>
+  <figure>
+    <div class="shot"><img src="shot-forge.png" alt="Forge — General sekmesi"></div>
+    <figcaption><span class="step">Resim 2</span><span>General sekmesinde Forge (VLESS protokolü) — kenar çubuğunda canlı abonelik bağlantısı önizlemesi ve alanların yanında IP tespiti ile boş port düğmeleri.</span></figcaption>
+  </figure>
+  <h3>Hızlı Oluşturma (Quick Create)</h3>
+  <p>Formla uğraşmak istemiyorsanız “Hızlı Oluşturma” dizisindeki hazır ön ayarlardan birine dokunun: <span class="chip dim">VLESS + REALITY :443</span><span class="chip dim">VMess + WS + TLS</span><span class="chip dim">Yerel SOCKS5</span><span class="chip dim">Tek Portlu Kombinasyon</span> ve daha fazlası — ayarların özetini gösterir, onaylarsınız, biter.</p>
+  <div class="pfoot"><span><b>Eksiksiz Sephiroth Kitabı</b> · v2.5.0</span><span class="pg">06</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p7 · 04 FORGE (2) ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 04 — THE FORGE · AUTOFILL</span>
+    <h2><span class="n">04</span>Otomatik IP Tespiti ve Boş Port</h2>
+    <hr class="rule">
+  </div>
+  <p>Forge'daki iki küçük düğme, klasik “bağlantı çalışmıyor” dertlerini ortadan kaldırır:</p>
+  <div class="grid2">
+    <div class="card"><div class="t">✛ SERVER-IP AUTO-DETECT</div><div class="s">“Dinleme” alanının yanında: <b>tespit edilen genel IP</b>, özel IP'ler ve <span class="mono">0.0.0.0</span> içeren bir menü. Genel IP echo servislerinden gelir (10 dakikalık önbellekle) — ve daha önemlisi, seçildiği anda <b>abonelik bağlantısı gerçek IP'ye geçer</b>; böylece <span class="mono">0.0.0.0</span> asla istemci bağlantısına sızmaz.</div></div>
+    <div class="card"><div class="t">✦ FREE-PORT WAND</div><div class="s">“Port” alanının yanında: <b>ilk boş portu</b> öneren sihirli değnek (panel portu +1 ve +2, ardından 8443/443/2053/2087/2096/8880). Bir daha ne “port meşgul” hatası var, ne yinelenen portlar.</div></div>
+  </div>
+  <figure>
+    <div class="shot"><img src="shot-forge-autofill.png" alt="Forge'da otomatik IP tespiti"></div>
+    <figcaption><span class="step">Resim 3</span><span>IP tespit menüsü açık: “Genel IP'yi kullan — tespit edildi”, özel IP'ler ve tüm arayüzler — değerler dahili <span class="mono">/api/system/server-info</span> API'sinden.</span></figcaption>
+  </figure>
+  <div class="callout warn">
+    <div class="h">⚠ Profesyonel ipucu</div>
+    <p>Bir CDN veya ters proxy arkasındaysanız “dinleme” değerini <span class="mono">0.0.0.0</span> veya özel bir IP yapın; istemci bağlantısına yalnızca genel IP/alan adı yazılır — Forge bu iki kavramı birbirinden ayrı tutar.</p>
+  </div>
+  <div class="pfoot"><span><b>Eksiksiz Sephiroth Kitabı</b> · v2.5.0</span><span class="pg">07</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p8 · 05 KULLANICILAR (1) ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 05 — USERS &amp; SUBSCRIPTIONS</span>
+    <h2><span class="n">05</span>Kullanıcılar ve Abonelikler</h2>
+    <hr class="rule">
+  </div>
+  <p>Her kullanıcı <b>gerçek bir abonedir</b>: trafik kotası, bitiş günü, IP sınırı ve aynı anda birden çok inbound. Kullanıcı tablosu canlı kullanım çubuğu, etkin/süresi dolmuş durumu ve akıllı çipler gösterir:</p>
+  <ul>
+    <li><b>Kullanım tahmin çipi:</b> “≈4 gün sonra dolacak · 3,2 GB/gün” — tükenme hızı, kullanımın hesap yaşıyla bölünmesinden çıkar (geçmiş tablosu gerekmez); 7 günün altında kehribar, 3 günün altında kırmızı.</li>
+    <li><b>Sıfırlama döngüsü:</b> haftalık/aylık kotalar dahili cron ile otomatik sıfırlanır; süresi dolan kullanıcı aynı anda devre dışı kalır.</li>
+    <li><b>Toplu oluşturma:</b> tek seferde çoklu kullanıcı oluşturma, etkinleştirme/devre dışı bırakma ve tek onayla toplu silme.</li>
+    <li><b>Inbound erişimi:</b> bir kullanıcı birden çok inbound'a bağlanabilir; her bağlanmanın anahtarı (UUID/şifre/flow) oradan yönetilir.</li>
+  </ul>
+  <figure>
+    <div class="shot"><img src="shot-users.png" alt="Kullanıcı tablosu"></div>
+    <figcaption><span class="step">Resim 4</span><span>Kullanım çubukları, kota/bitiş ve “≈N gün sonra dolacak” tahmin çipleriyle kullanıcı tablosu.</span></figcaption>
+  </figure>
+  <div class="callout">
+    <div class="h"><span class="ico">◈</span> Şeffaf IP-Limit</div>
+    <p>IP sınırı (<span class="mono">0 = ∞</span>) bağlantılarda ve her istemcinin çekirdek çıktısında kayıtlıdır ve filtrelerde aranabilir; otomatik kesmeli katı uygulama (fail2ban tarzı) yol haritasındadır ve dürüstçe bu belgede beyan edilir.</p>
+  </div>
+  <div class="pfoot"><span><b>Eksiksiz Sephiroth Kitabı</b> · v2.5.0</span><span class="pg">08</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p9 · 05 KULLANICILAR (2) ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 05 — SUBSCRIPTION PORTAL</span>
+    <h2><span class="n">05</span>Markalı Abonelik Portalı</h2>
+    <hr class="rule">
+  </div>
+  <p>Her kullanıcının kişisel abonelik bağlantısı vardır: <span class="mono">/sub/&lt;subId&gt;</span>. Abonelik sayfası markalı bir “yörünge bileti”dir — kullanım çubuğu, kalan günler ve popüler uygulamalara tek tıkla içe aktarma. Abonelik grupları birden çok kullanıcıyı <b>şifreli tek bir bağlantının</b> arkasında da toplar.</p>
+  <figure>
+    <div class="shot"><img src="shot-sub-portal.png" alt="Abonelik portalı" style="width:80%; display:block; margin:0 auto;"></div>
+    <figcaption><span class="step">Resim 5</span><span>Kullanıcının abonelik portalı (ORBIT PASS): 200 GB'lık kotasından 61 GB, 14 gün kaldı ve tek tıkla içe aktarma — Sephiroth markası ve EPODONIOS imzasıyla.</span></figcaption>
+  </figure>
+  <h3>Abonelik çıktı biçimleri</h3>
+  <table>
+    <tr><th style="width:150px">Biçim</th><th>Alma şekli</th><th style="width:170px">Uygun olduğu yer</th></tr>
+    <tr><td>Ham URI (raw)</td><td><span class="mono">?format=raw</span></td><td>Elle paylaşım</td></tr>
+    <tr><td>Base64</td><td><span class="mono">?format=b64</span></td><td>v2ray uygulamalarının çoğu</td></tr>
+    <tr><td>Clash Meta</td><td><span class="mono">?format=clash</span></td><td>Clash / Mihomo / Verge / Stash</td></tr>
+    <tr><td>Sing-Box</td><td><span class="mono">?format=singbox</span></td><td>Sing-Box 1.10+ / Hiddify / Streisand / V2Box</td></tr>
+    <tr><td>Xray-JSON</td><td><span class="mono">?format=xray</span></td><td>Tam v2ray/xray-core profili</td></tr>
+  </table>
+  <div class="callout ok">
+    <div class="h"><span class="ico">✓</span> Otomatik User-Agent tespiti</div>
+    <p>İstemci uygulaması kendini tanıtır: Clash/Mihomo/Verge/Stash <span class="mono">YAML</span> çıktısı alır, sing-box/Hiddify/V2Box <span class="mono">sing-box</span> çıktısı, geri kalan her şey Base64 — kullanıcı tarafında hiçbir ayar olmadan.</p>
+  </div>
+  <div class="pfoot"><span><b>Eksiksiz Sephiroth Kitabı</b> · v2.5.0</span><span class="pg">09</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p10 · 06 CONFIG DOCTOR ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 06 — CONFIG DOCTOR</span>
+    <h2><span class="n">06</span>Config Doctor</h2>
+    <hr class="rule">
+  </div>
+  <p>Config Doctor, Sephiroth'un <b>özgün bir özelliğidir</b>: tüm paneli tarayan 16 noktalı bir tarama; sorunları kullanıcı fark etmeden önce bulur ve her bulgu için “başlık + açıklama + çözüm” verir. Puan 100 üzerinden hesaplanır:</p>
+  <p class="center mono" style="font-size:12px; margin-bottom:8px">score = 100 − 12×tehlike − 5×uyarı − 1×dikkat &nbsp;→&nbsp; A'dan D'ye not</p>
+  <div class="grid2">
+    <div class="card"><div class="t">Inbound'lar (8 denetim)</div><div class="s">Kimlik doğrulamasız açık SOCKS/HTTP proxy · sertifikasız TLS · eksik REALITY (dest/serverNames/shortIds/anahtar) · bozuk fallback · WireGuard özel anahtarının yeniden kullanımı · ayrıcalıklı port (&lt;1024) · süresi dolmuş inbound · kapalı inbound</div></div>
+    <div class="card"><div class="t">Kullanıcılar (6 denetim)</div><div class="s">Süresi dolmuş ama hâlâ etkin · bitişe yakın (≤3 gün) · tükenmiş kota · ≥%90 kullanım · hiçbir inbound'a erişimi olmayan “hayalet” hesap · kapalı bir inbound'a bağlı kullanıcı</div></div>
+    <div class="card"><div class="t">Yönlendirme (2 denetim)</div><div class="s">Ölü kural (var olmayan çıkış) ve koşulsuz boş kural — trafiği sessizce yutan veya her şeyi reddeden kurallar.</div></div>
+    <div class="card"><div class="t">Tarama çıktısı</div><div class="s">Puan halkası + not + önem çipleri (tehlike/uyarı/dikkat) ve her bulgu için ayrıntılı açıklama ile önerilen düzeltme düğmesi. Tüm metinler 6 dile çevrilidir.</div></div>
+  </div>
+  <figure>
+    <div class="shot"><img src="shot-doctor.png" alt="Config Doctor"></div>
+    <figcaption><span class="step">Resim 6</span><span>Gerçek bir panelde Config Doctor: 82 puan (B notu) ve gerçek bulgular — ayrıcalıklı 443 portu, sertifikasız TLS ve süresi dolmuş bir kullanıcı.</span></figcaption>
+  </figure>
+  <div class="pfoot"><span><b>Eksiksiz Sephiroth Kitabı</b> · v2.5.0</span><span class="pg">10</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p11 · 07 GERÇEK XRAY ÇEKİRDEĞİ ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 07 — REAL XRAY CORE</span>
+    <h2><span class="n">07</span>Gerçek Xray Çekirdeği</h2>
+    <hr class="rule">
+  </div>
+  <p>v2.5.0 itibarıyla Sephiroth <b>iki çekirdek sürücüsüne</b> sahiptir. Varsayılan <b>Simülatör'dür</b> (güvenli, yalnızca gösterime yönelik telemetri, binary yok — kilitli sunucular dâhil her barındırmaya uygun); <b>gerçek Xray sürücüsü</b> ise isteğe bağlı olarak gerçek çekirdeği çalıştırır:</p>
+  <table>
+    <tr><th style="width:150px">Yetenek</th><th>Simülatör (varsayılan)</th><th>Gerçek Xray (isteğe bağlı)</th></tr>
+    <tr><td>Protokol çalıştırma</td><td>Simüle telemetri</td><td class="rcyan">Gerçek çalıştırma — trafik gerçek porttan geçer</td></tr>
+    <tr><td>Kullanıcı başına istatistik</td><td>Gösterim amaçlı</td><td class="rcyan">Gerçek (istatistik API deltası; varsayılan her 10 sn, 5–120 ayarlanabilir)</td></tr>
+    <tr><td>Gereksinim</td><td>Yok</td><td>XTLS/Xray-core sürümlerinden otomatik binary indirmesi (veya elle yol + sürüm sabitleme)</td></tr>
+    <tr><td>Config doğrulama</td><td>—</td><td>Her çalıştırmadan önce <span class="mono">xray run -test</span></td></tr>
+    <tr><td>Kimin için</td><td>Test, demo, kısıtlı sunucu</td><td class="rcyan">Production</td></tr>
+  </table>
+  <figure>
+    <div class="shot"><img src="shot-settings-core.png" alt="Çekirdek / Xray kartı"></div>
+    <figcaption><span class="step">Resim 7</span><span>Ayarlar'daki “Çekirdek / Xray” kartı: sürücü seçimi, kur/başlat/durdur/yeniden başlat, binary yolu, sürüm sabitleme ve katlanabilir canlı günlük.</span></figcaption>
+  </figure>
+  <ul>
+    <li><b>Panelden üretim:</b> config, panelin kendi inbound/kullanıcılarından üretilir; gizli istatistik API kapısı <span class="mono">127.0.0.1</span> üzerinde açılır.</li>
+    <li><b>Değişiklikte yeniden yükleme:</b> her inbound/kullanıcı değişikliği ~1,5 sn gecikmeyle uygulanır; çekirdek yalnızca config karması değişmişse yeniden başlar.</li>
+  </ul>
+  <div class="pfoot"><span><b>Eksiksiz Sephiroth Kitabı</b> · v2.5.0</span><span class="pg">11</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p12 · 08 GÜVENLİK ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 08 — SECURITY</span>
+    <h2><span class="n">08</span>Güvenlik</h2>
+    <hr class="rule">
+  </div>
+  <div class="grid2">
+    <div class="card"><div class="t">TOTP iki aşamalı giriş</div><div class="s">Sıfır bağımlılıklı RFC-6238 uygulaması (SHA-1, 6 hane, ±1 pencere). QR + onay koduyla kayıt; <b>kapatmak da kod ister</b> — çalınan oturum 2FA'yı kapatamaz. Şifreden sonra giriş sayfası kodu sorar.</div></div>
+    <div class="card"><div class="t">Brute-force karşıtı</div><div class="s">5 dakikada 5 başarısız deneme = IP kilitlenir; giriş ekranında canlı geri sayım. Tüm denemelerin günlüğü “Etkinlikler”dedir.</div></div>
+    <div class="card"><div class="t">Kurtarma anahtarı</div><div class="s"><span class="mono">SEPH-XXXX-XXXX-XXXX</span> anahtarı yalnızca bir kez gösterilir ve istediğinizde yenilenir — şifreyi unutmak artık paneli kaybetmek değil, sıradan bir giriştir.</div></div>
+    <div class="card"><div class="t">Oturumlar</div><div class="s">HMAC ile imzalı httpOnly çerez; “tüm oturumları iptal et”, secret'ı döndürerek tüm çerezleri geçersiz kılar. <span class="mono">SEPH_COOKIE_SECURE=auto</span> çerez modu, HTTPS arkasında olup olmadığınızı kendisi anlar.</div></div>
+    <div class="card"><div class="t">Zamanlanmış yedek</div><div class="s">24 saatte bir <span class="mono">db/backups/</span> altına tam JSON çıktısı; 1–30 dosya saklanır (eskiler silinir) + anında çalıştırma, indirme ve arayüzden silme. <span class="mono">RESTORE</span> onaylı elle yedek/geri yükleme de vardır.</div></div>
+    <div class="card"><div class="t">Yazılım güncellemesi</div><div class="s">Panelin içinde “kontrol → kur → yeniden başlat” düğmesi: güncelleyici ana süreçten ayrı koşar, durumunu durum dosyasına yazar ve panel yeniden başlayana dek eski kodla çalışmayı sürdürür. Git dışı kurulumlar CLI ile güncellenir.</div></div>
+  </div>
+  <figure>
+    <div class="shot"><img src="shot-security-cluster.png" alt="Güvenlik ve sistem kartları" style="width:74%; display:block; margin:0 auto;"></div>
+    <figcaption><span class="step">Resim 8</span><span>Ayarlar'daki güvenlik/sistem kümesi (Farsça RTL): yazılım güncellemesi, iki aşamalı giriş, zamanlanmış yedek ve MTProto aracı.</span></figcaption>
+  </figure>
+  <div class="pfoot"><span><b>Eksiksiz Sephiroth Kitabı</b> · v2.5.0</span><span class="pg">12</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p13 · 09 TELEGRAM ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 09 — TELEGRAM</span>
+    <h2><span class="n">09</span>Telegram</h2>
+    <hr class="rule">
+  </div>
+  <p>Ebedî soru — “Telegram sansürü nasıl aşılır?” — panelin kendisinde yanıtlanmıştır; eksiksiz bir paket ve dürüst notlarla:</p>
+  <h3>1) SOCKS5 proxy paketi</h3>
+  <p>Forge'da bir <b>SOCKS5</b> inbound'u oluşturduğunuzda “Telegram proxy” bloğu açılır ve standart bağlantının yanında iki yerel Telegram bağlantısı + QR verir: <span class="mono">t.me/socks?server=…&amp;port=…&amp;user=…&amp;pass=…</span> ve <span class="mono">tg://socks?…</span> — kullanıcı tek dokunuşla proxy'yi kabul eder.</p>
+  <h3>2) MTProto aracı (Ayarlar → Sistem)</h3>
+  <p>Daha düşmanca ağlar için dahili “MTProto proxy” aracı gerçek bir secret üretir: ana bilgisayarı, portu ve <span class="mono">dd</span> (alan adı kamuflesi) ya da <span class="mono">plain</span> modunu seçersiniz; secret + <span class="mono">tg://proxy</span> ve <span class="mono">t.me/proxy</span> bağlantıları + QR teslim alırsınız; hazır <span class="mono">mtg v2</span> (Docker) komutları da aynı karttadır.</p>
+  <div class="callout warn">
+    <div class="h">⚠ Teknik dürüstlük — bilmeniz gerekenler</div>
+    <p>1) Telegram'da SOCKS5'in <b>kamuflesi yoktur</b> ve DPI'ya görünür; kısıtlayıcı ağlarda MTProto kullanın. 2) Xray, MTProto inbound'unu v24.10 sürümünde kaldırdı — bu yüzden Sephiroth gerçekdışı bir iddia yerine secret üretme aracı + bağımsız daemon komutları verir. 3) Telegram satış botu şu anda araştırma aşamasındadır ve yol haritasında (Bölüm 14) sonraki adım olarak yazılıdır.</p>
+  </div>
+  <div class="grid2">
+    <div class="card"><div class="t">Forge'un içinde</div><div class="s">t.me/socks bağlantısı · tg:// bağlantısı · QR · kopyalama düğmeleri · kamufle hakkında dürüst not — diyalogdan çıkmadan hepsi.</div></div>
+    <div class="card"><div class="t">Ayarlar'ın içinde</div><div class="s">dd/plain modlu MTProto secret üretimi, hazır bağlantılar, mtg v2 çalıştırma komutları ve sınırlamaların teknik açıklaması.</div></div>
+  </div>
+  <div class="pfoot"><span><b>Eksiksiz Sephiroth Kitabı</b> · v2.5.0</span><span class="pg">13</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p14 · 10 İŞ ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 10 — BUSINESS</span>
+    <h2><span class="n">10</span>İş — Bayiler ve Ödeme Geçitleri</h2>
+    <hr class="rule">
+  </div>
+  <p>Sephiroth, karşılaştırma listelerindeki paneller arasında <b>eksiksiz bayilik sistemine</b> sahip tek paneldir — 3x-ui/Marzban/Remnawave'de olmayan şey:</p>
+  <h3>Bayiler (Resellers)</h3>
+  <ul>
+    <li><b>Bağımsız kimlik doğrulamalı ikinci rol:</b> bayi kendi hesabıyla girer ve gezinmede yalnızca “Kullanıcılar”ı görür.</li>
+    <li><b>Katı kotalar:</b> kullanıcı sayısı ve ayrılan trafik için üst sınır — kotayı aşmak yalnızca arayüzde değil, API düzeyinde <span class="mono">403</span> ile reddedilir.</li>
+    <li><b>Kapsamlı liste:</b> bayi yalnızca kendi kullanıcılarını görür; elle kurcalanmış istekler bile diğer kullanıcıları <span class="mono">404</span>'te kaybeder (varlıkları belli olmadan).</li>
+    <li><b>Yönetici izleme çubukları:</b> her bayi için kaç kullanıcının kaç kotasından ve kaç GB'ın kaç GB'ının tüketildiğini görürsünüz.</li>
+  </ul>
+  <h3>Satış Şablonları (Sale Templates)</h3>
+  <p>Hazır paketler (“Starter 50G”, “Pro 200G”, …) kullanıcı oluşturma diyaloğunda tek tıkla çipler olarak belirir ve kota/bitiş/IP sınırını tek seferde doldurur — satıcılar sayıları düşünmeden doğru paketi kurar.</p>
+  <h3>Ödeme geçitleri</h3>
+  <table>
+    <tr><th style="width:170px">Geçit</th><th>Bağlantı türü</th></tr>
+    <tr><td>ZarinPal / IDPay</td><td>Webhook — bayi kotasının otomatik yüklenmesi</td></tr>
+    <tr><td>Kripto USDT (TRC20)</td><td>Kripto ödemesinin panel içinde yapılandırılması</td></tr>
+    <tr><td>Telegram karttan kartaya</td><td>Telegram üzerinden karttan kartaya ödeme</td></tr>
+  </table>
+  <div class="callout">
+    <div class="h"><span class="ico">◈</span> Kullanım tahmini = satış yönetimi</div>
+    <p>“≈N gün sonra dolacak” çipleri bayiler için de anlam taşır: abonenin kotası bitmeden hangi hesapların yarın yenileme isteyeceğini bilirsiniz — kesintiden önce faturayı hazırlarsınız.</p>
+  </div>
+  <div class="pfoot"><span><b>Eksiksiz Sephiroth Kitabı</b> · v2.5.0</span><span class="pg">14</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p15 · 11 DAĞITIM (1) ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 11 — DEPLOYMENT</span>
+    <h2><span class="n">11</span>Dağıtım — Tek Satırlık Kurulum ve CLI</h2>
+    <hr class="rule">
+  </div>
+  <p>Herhangi bir Linux sunucusunda (Debian/Ubuntu/RHEL/Alpine/Arch, x86_64 ve arm64) tek satır yeter:</p>
+  <pre><span class="c"># Etkileşimli kurulum (port/kullanıcı adı/şifre sorar)</span>
+<span class="k">bash &lt;(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh)</span>
+
+<span class="c"># Sabitlenmiş sürümle kurulum</span>
+<span class="k">bash &lt;(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh)</span> v2.5.0
+
+<span class="c"># Soru sormayan kurulum (CI/betikler) — çıktı: /etc/sephiroth/install-result.env</span>
+<span class="ok">SEPH_NONINTERACTIVE=1</span> bash install.sh</pre>
+  <p><b>Betik ne oluşturur?</b></p>
+  <ul>
+    <li><span class="mono">/opt/sephiroth</span> — kaynak kod + SPA derlemesi (vite) ve tek dosyalık <span class="mono">server.cjs</span> paketi (esbuild); ardından node_modules silinir → sıfır bağımlılıklı çalışma.</li>
+    <li><span class="mono">/etc/sephiroth/sephiroth.env</span> — rastgele boş bir port (20580–21000), <b>rastgele 16 karakterli şifre</b> ve <span class="mono">SEPH_COOKIE_SECURE=auto</span> (yeniden çalıştırma mevcut değerleri korur).</li>
+    <li><b>Sertleştirilmiş systemd servisi:</b> NoNewPrivileges, ProtectSystem=full, PrivateTmp — systemd olmayan ortamda CLI ile daemon modu.</li>
+    <li><b>Kurulum özeti:</b> panel adresi ve şifreler <span class="mono">install-result.env</span> dosyasına 0600 erişimle yazdırılıp saklanır. Node 22 yoksa o da kurulur (NodeSource → dağıtım deposu → sabitlenmiş resmî tarball).</li>
+  </ul>
+  <h3>Yönetim CLI'ı — <span class="mono">sephiroth</span></h3>
+  <pre><span class="c">$ sephiroth          </span><span class="c">← etkileşimli menü</span>
+  <span class="k">1.</span> Start               <span class="k">6.</span>  Logs (follow)
+  <span class="k">2.</span> Stop                <span class="k">7.</span>  Logs (last 100)
+  <span class="k">3.</span> Restart             <span class="k">8.</span>  Change Admin Password
+  <span class="k">4.</span> Force Restart       <span class="k">9.</span>  Change Panel Port
+  <span class="k">5.</span> Status              <span class="k">10.</span> Backup Now
+  <span class="k">0.</span> Exit                <span class="k">11.</span> Restore Backup
+                         <span class="k">12.</span> Check for Update
+                         <span class="k">13.</span> Update Panel
+                         <span class="k">14.</span> Uninstall
+<span class="c"># veya doğrudan:</span> sephiroth start|stop|restart|status|logs|backup|update …</pre>
+  <p>Şifre/port değişikliği maint modülüyle yapılır (panelin kendi biçimiyle scrypt hash), yedek/geri yükleme panel içi yedeklerle aynı biçimdedir ve “güncelleme kontrolü” sürümü genel depodaki package.json ile karşılaştırır.</p>
+  <div class="pfoot"><span><b>Eksiksiz Sephiroth Kitabı</b> · v2.5.0</span><span class="pg">15</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p16 · 11 DAĞITIM (2) ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 11 — DEPLOYMENT · DOCKER</span>
+    <h2><span class="n">11</span>Dağıtım — Docker ve Güncelleme</h2>
+    <hr class="rule">
+  </div>
+  <p>Resmî çok aşamalı imaj <span class="mono">node:22-alpine</span> üzerine kurulur: ilk aşama SPA + esbuild derlemesi, ikinci aşama yalnızca <span class="mono">server.cjs</span> + <span class="mono">dist/</span> — kaynak kod yok, node_modules yok. Dahili healthcheck <span class="mono">/api/auth/session</span> adresine vurur ve <span class="mono">/app/db</span> birimi veriyi kalıcı kılar.</p>
+  <pre><span class="c"># En hızlı yol</span>
+<span class="k">docker run -d --name sephiroth -p 3000:3000 -v sephiroth_data:/app/db \
+  ghcr.io/edsel-rahimi/sephiroth:latest</span>
+
+<span class="c"># docker-compose.yml</span>
+<span class="k">services:</span>
+  sephiroth:
+    image: ghcr.io/edsel-rahimi/sephiroth:latest   <span class="c"># veya sürümü sabitle: :v2.5.0</span>
+    ports: [ "<span class="ok">${SEPH_PORT:-3000}</span>:3000" ]
+    environment:
+      SEPHIROTH_ADMIN_USER: <span class="ok">${SEPHIROTH_ADMIN_USER:-admin}</span>
+      SEPHIROTH_ADMIN_PASS: <span class="ok">${SEPHIROTH_ADMIN_PASS:-sephiroth}</span>  <span class="c"># ilk girişten sonra değiştirin!</span>
+      SEPH_COOKIE_SECURE: auto
+    volumes: [ sephiroth_data:/app/db ]</pre>
+  <p>Etiketler GitHub Actions üzerinde otomatik üretilip GHCR'ya itilir: main için <span class="mono">latest</span> ve anlamlı sürüm etiketleri (<span class="mono">v2.5.0</span>) — production'da sürümü sabitlemeniz önerilir. Ortam değişkenlerinden gelen kullanıcı adı/şifre yalnızca <b>verinin boş olduğu ilk açılışta</b> seed edilir; sonrasında yalnızca panel içinden veya CLI'dan değiştirin.</p>
+  <div class="grid2">
+    <div class="card"><div class="t">Güncelleme (betik kurulumu)</div><div class="s">install.sh'ı yeniden çalıştırmak = güvenli güncelleme: veritabanı, env ve şifreler olduğu gibi kalır, servis yeniden başlar. Panelin içinde de güncelleme düğmesi vardır (Bölüm 08). Git dışı mod: zip indirme + <span class="mono">server.cjs</span> değişimi.</div></div>
+    <div class="card"><div class="t">Tam kaldırma</div><div class="s"><span class="mono">sephiroth uninstall</span> iki onayla: servis ve dosyalar silinir; veri (db) silme isteğe bağlıdır ve ayrıca sorulur.</div></div>
+  </div>
+  <div class="callout warn">
+    <div class="h">⚠ Kurulum sonrası kontrol listesi</div>
+    <p>1) Varsayılan şifreyi değiştirin (Profil → Güvenlik). 2) Kurtarma anahtarını güvenli bir yere kaydedin. 3) 2FA'yı etkinleştirin. 4) Geri yüklemeyi bir kez pratiğe dökmüş olmak için elle yedek alın. 5) Production'da “Çekirdek” kartından gerçek Xray sürücüsünü etkinleştirin.</p>
+  </div>
+  <div class="pfoot"><span><b>Eksiksiz Sephiroth Kitabı</b> · v2.5.0</span><span class="pg">16</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p17 · 12 DİLLER ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 12 — 6 LANGUAGES</span>
+    <h2><span class="n">12</span>Panel 6 Dilde</h2>
+    <hr class="rule">
+  </div>
+  <p>Panel arayüzü, abonelik portalı, Toast'lar, diyaloglar ve hatta Config Doctor metinleri <b>6 dilde</b> tam pariteyle çevrilidir (otomatik denetim: 6 dilin hepsinde sıfır eksik anahtar ve sıfır placeholder uyumsuzluğu):</p>
+  <table>
+    <tr><th style="width:150px">Dil</th><th style="width:80px">Kod</th><th style="width:90px">Yön</th><th>Not</th></tr>
+    <tr><td>Farsça</td><td><span class="mono">fa</span></td><td>RTL</td><td>Standart yarım boşluklar (ZWNJ) ve Farsça rakamlar</td></tr>
+    <tr><td>Arapça</td><td><span class="mono">ar</span></td><td>RTL</td><td>Tutarlı terminoloji (giriş noktaları, dağıtıcı…)</td></tr>
+    <tr><td>English</td><td><span class="mono">en</span></td><td>LTR</td><td>Referans dil</td></tr>
+    <tr><td>中文</td><td><span class="mono">zh</span></td><td>LTR</td><td>Tam genişlikli parantezler ve akıcı Çince anlatım</td></tr>
+    <tr><td>Türkçe</td><td><span class="mono">tr</span></td><td>LTR</td><td>Tutarlı terminoloji (Giriş / Sorgula…)</td></tr>
+    <tr><td>Русский</td><td><span class="mono">ru</span></td><td>LTR</td><td>Yerelleştirilmiş teknik terimler</td></tr>
+  </table>
+  <figure>
+    <div class="shot"><img src="shot-fa-dashboard.png" alt="Farsça pano"></div>
+    <figcaption><span class="step">Resim 9</span><span>Farsça modda pano — eksiksiz RTL aynalama: göstergeler, grafikler, gezinme ve canlı akış.</span></figcaption>
+  </figure>
+  <div class="callout">
+    <div class="h"><span class="ico">◈</span> Gerçek RTL, yalnızca sağa hizalama değil</div>
+    <p>Sayfa yönü Radix DirectionProvider ile kökten enjekte edilir; yani diyaloglar, açılır menüler, ipuçları ve Toast'lar da aynalanır. Teknik sayılar (port, sürüm, bağlantılar) okunabilir kalsın diye <span class="mono">dir=ltr</span> bloklarında kalır.</p>
+  </div>
+  <div class="pfoot"><span><b>Eksiksiz Sephiroth Kitabı</b> · v2.5.0</span><span class="pg">17</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p18 · 12 MOBİL ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 12 — RESPONSIVE</span>
+    <h2><span class="n">12</span>Mobil ve Duyarlı Tasarım</h2>
+    <hr class="rule">
+  </div>
+  <p>13 panel görünümünün tamamı 390 piksel genişlikte de yeniden tasarlandı: tablolar üst üste dizilmiş kartlara dönüşür, üst çubuk toplanır ve büyük diyaloglar (Forge gibi) tam genişlikli alanlarla dikey kaydırmaya geçer — LTR ve RTL yönlerinin ikisinde de, yatay taşma olmadan (otomatik düzen incelemesiyle test edilmiştir).</p>
+  <div class="duo" style="justify-content:center; margin-top:8px">
+    <figure style="flex:0 0 auto; margin:0">
+      <div class="shot" style="width:236px"><img src="shot-mobile-dashboard.png" alt="Mobil — pano" style="width:100%"></div>
+      <figcaption style="justify-content:center"><span class="step">Resim 10</span><span>Mobil pano (İngilizce)</span></figcaption>
+    </figure>
+    <figure style="flex:0 0 auto; margin:0">
+      <div class="shot" style="width:236px"><img src="shot-mobile-forge.png" alt="Mobil — Farsça Forge" style="width:100%"></div>
+      <figcaption style="justify-content:center"><span class="step">Resim 11</span><span>Mobil Forge — Farsça RTL</span></figcaption>
+    </figure>
+  </div>
+  <div class="grid2 mt14">
+    <div class="card"><div class="t">MOBILE-FIRST TOUCHES</div><div class="s">Genel arama ve <span class="mono">Ctrl+K</span> komut paleti mobilde de çalışır; görünümler arası geçiş aynı üst gezinme ve panonun hızlı eylem düğmeleriyle sağlanır.</div></div>
+    <div class="card"><div class="t">QA AUTOMATICO</div><div class="s">Bir düzen denetçisi (taşma, çakışma, metin kesilmesi) tüm görünümleri EN/FA ve 1280 px/390 px'te tarar — bu kataloğun da geçtiği aynı denetim.</div></div>
+  </div>
+  <div class="pfoot"><span><b>Eksiksiz Sephiroth Kitabı</b> · v2.5.0</span><span class="pg">18</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p19 · 13 SSS ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 13 — TROUBLESHOOTING &amp; FAQ</span>
+    <h2><span class="n">13</span>Sorun Giderme · SSS</h2>
+    <hr class="rule">
+  </div>
+  <table>
+    <tr><th style="width:200px">Soru</th><th>Kısa yanıt</th></tr>
+    <tr><td>“Port meşgul” hatası alıyorum</td><td>Forge'daki ✦ sihirli değnek düğmesine basın, ilk boş port önerilsin; elle denetlemek için: <span class="mono">ss -tlnp | grep &lt;port&gt;</span></td></tr>
+    <tr><td>Xray binary indirmesi başarısız oluyor</td><td>“Çekirdek” kartında binary yolunu elle verin veya sürümü sabitleyin; o ana kadar panel Simülatörle normal çalışmayı sürdürür.</td></tr>
+    <tr><td>Simülatörün trafik sayıları gerçekten farklı mı?</td><td>Evet — Simülatörün telemetrisi gösterim amaçlıdır. Gerçek kullanıcı başına istatistik yalnızca gerçek Xray sürücüsünden (Bölüm 07) gelir.</td></tr>
+    <tr><td>Yönetici şifremi unuttum</td><td>Sunucudan: <span class="mono">sephiroth</span> → 8. seçenek (şifre değiştirme); veya giriş sayfasında “kurtarma anahtarı”nı kullanın.</td></tr>
+    <tr><td>Yedeği nasıl geri yüklerim?</td><td>Ayarlar → Geri Yükleme → JSON dosyası + <span class="mono">RESTORE</span> onayı; veya sunucuda: <span class="mono">sephiroth</span> → 11. seçenek. Geri yükleme tek işlemde yapılır ve yönetici hesabı dokunulmaz kalır.</td></tr>
+    <tr><td>HTTPS'yi nasıl etkinleştiririm?</td><td>Önüne TLS'li bir ters proxy (Nginx/Caddy) koyun; güvenli çerezin <span class="mono">auto</span> modu vardır ve <span class="mono">x-forwarded-proto</span> ile kendiliğinden Secure olur.</td></tr>
+    <tr><td>Tek portum var (ücretsiz barındırma)</td><td>“Tek Portlu Kombinasyon” ön ayarını (Bölüm 03) kurun: tek portta fallback'li birkaç protokol + panel <span class="mono">/panel</span> yolunda.</td></tr>
+    <tr><td>Değişiklikten sonra panel hâlâ eski kodu çalıştırıyor</td><td>Doğaldır — panel içi güncelleme, oturumlar düşmesin diye “yeniden başlatmayı” bekler; yeniden başlatma düğmesine basın.</td></tr>
+  </table>
+  <div class="callout ok">
+    <div class="h"><span class="ico">✓</span> Hızlı sorun giderme çantası</div>
+    <p><span class="mono">sephiroth logs</span> servis günlüğü için · <span class="mono">sephiroth status</span> durum için · “Çekirdek / Xray” kartında canlı çekirdek günlüğü · config'i temizlemek için Config Doctor raporu · kimin ne yaptığını görmek için “Etkinlikler” akışı.</p>
+  </div>
+  <div class="pfoot"><span><b>Eksiksiz Sephiroth Kitabı</b> · v2.5.0</span><span class="pg">19</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p20 · 14 YOL HARİTASI + KAPANIŞ ═══════════════ -->
+<div class="page last">
+  <div class="sechead">
+    <span class="kicker">SECTION 14 — ROADMAP &amp; FINALE</span>
+    <h2><span class="n">14</span>Yol Haritası · Kapanış</h2>
+    <hr class="rule">
+  </div>
+  <h3>v2.5.0'a kadar teslim edilenler</h3>
+  <p><span class="gcheck">✓</span> REALITY ve canlı önizlemeli Forge &nbsp;·&nbsp; <span class="gcheck">✓</span> 16 noktalı Config Doctor &nbsp;·&nbsp; <span class="gcheck">✓</span> Gerçek Xray sürücüsü &nbsp;·&nbsp; <span class="gcheck">✓</span> 2FA (TOTP) &nbsp;·&nbsp; <span class="gcheck">✓</span> Zamanlanmış yedek &nbsp;·&nbsp; <span class="gcheck">✓</span> Panel içi güncelleme &nbsp;·&nbsp; <span class="gcheck">✓</span> Telegram SOCKS5 paketi + MTProto aracı &nbsp;·&nbsp; <span class="gcheck">✓</span> 5 abonelik biçimi + markalı portal &nbsp;·&nbsp; <span class="gcheck">✓</span> Bayilik/satış şablonları/ödeme geçitleri &nbsp;·&nbsp; <span class="gcheck">✓</span> 6 tema · 6 dil (RTL) &nbsp;·&nbsp; <span class="gcheck">✓</span> Kurulum paketi (install.sh + CLI + Docker + GHCR) &nbsp;·&nbsp; <span class="gcheck">✓</span> Otomatik IP/boş port tespiti</p>
+  <h3>Önümüzdeki yol</h3>
+  <ul>
+    <li><b>Telegram satış botu</b> — Telegram içinde otomatik satış ve yenileme (araştırma tamam; nihai karar bekleniyor).</li>
+    <li><b>Çok düğümlü yapı</b> — inbound'ların birden çok sunucu arasında eşitlenmesi.</li>
+    <li><b>ACME sertifikası</b> — panel içinde otomatik Let's Encrypt verme/yenileme.</li>
+    <li><b>IP-Limit uygulaması</b> — gerçek inbound'larda fail2ban tarzı otomatik kesme.</li>
+  </ul>
+  <hr class="rule mt14">
+  <div class="center mt10">
+    <span class="badge-end">SEPHIROTH · v2.5.0</span>
+    <p class="mt10" style="max-width:540px; margin-inline:auto">Sephiroth, <b>MIT lisanslı açık kaynaklı bir projedir</b> — fork'layın, değiştirin ve kendi projenizde kullanın. İşinize yaradıysa panel içindeki “Sephiroth'u Destekle” düğmesiyle veya bir GitHub yıldızıyla bizi cesaretlendirin.</p>
+    <p class="small" style="max-width:540px; margin-inline:auto"><b>Yasal uyarı:</b> bu panel kişisel ve eğitim amaçlı kullanım için yayınlanır; yanlış kullanımın sorumluluğu kullanıcıya aittir. Bu katalogdaki tüm görseller gerçek v2.5.0 sürümünden alınmıştır ve hiçbir özel bilgi içermez.</p>
+    <p class="mt6" style="letter-spacing:2px; color:var(--muted); font-size:10.5px"><b style="color:var(--text)">EPODONIOS</b> tarafından ♥ ile geliştirildi · github.com/Edsel-Rahimi/Sephiroth</p>
+  </div>
+  <div class="pfoot"><span><b>Eksiksiz Sephiroth Kitabı</b> · v2.5.0</span><span class="pg">20</span><span>EPODONIOS</span></div>
+</div>
+
+</body>
+</html>

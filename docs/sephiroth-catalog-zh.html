@@ -1,0 +1,799 @@
+<!doctype html>
+<html lang="zh-CN" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<title>Sephiroth 完全手册 — Sephiroth 面板目录 v2.5.0</title>
+<style>
+@font-face { font-family: "Vazirmatn"; src: url("../public/fonts/Vazirmatn-Regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Vazirmatn"; src: url("../public/fonts/Vazirmatn-Medium.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Vazirmatn"; src: url("../public/fonts/Vazirmatn-SemiBold.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Vazirmatn"; src: url("../public/fonts/Vazirmatn-Bold.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+
+@page { size: 720px 1020px; margin: 0; }
+:root {
+  --bg: #060b0f;
+  --bg2: #0a1218;
+  --card: rgba(255,255,255,0.035);
+  --line: rgba(255,255,255,0.09);
+  --text: #e7edf2;
+  --muted: #93a4b1;
+  --cyan: #22d8ee;
+  --amber: #fbbf24;
+  --red: #fb5f6b;
+  --green: #34d399;
+}
+html, body {
+  margin: 0; padding: 0;
+  width: 720px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Serif SC', 'Vazirmatn', sans-serif;
+  font-size: 13px;
+  line-height: 1.75;
+}
+@media screen {
+  html { height: auto; display: flex; justify-content: center; background: #14181c; }
+  body { margin: 20px auto; box-shadow: 0 20px 80px rgba(0,0,0,.6); }
+}
+* { box-sizing: border-box; }
+
+/* ───── fixed page scaffold ───── */
+.page {
+  width: 720px; height: 1020px;
+  position: relative;
+  overflow: hidden;
+  break-after: page;
+  padding: 44px 54px 58px 54px;
+  background:
+    radial-gradient(520px 380px at 12% -6%, rgba(34,216,238,0.075), transparent 60%),
+    var(--bg);
+}
+.page.last { break-after: auto; }
+.pfoot {
+  position: absolute; bottom: 0; right: 0; left: 0; height: 46px;
+  padding: 0 54px;
+  border-top: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: space-between;
+  color: var(--muted); font-size: 9.5px; letter-spacing: 1.5px;
+  background: rgba(6,11,15,0.85);
+}
+.pfoot .pg { color: var(--cyan); font-weight: 700; letter-spacing: 3px; }
+.pfoot b { color: var(--text); font-weight: 600; }
+
+/* ───── headings ───── */
+.kicker { display: inline-block; color: var(--cyan); font-size: 10px; font-weight: 700; letter-spacing: 4px; margin-bottom: 6px; }
+h2 { font-size: 21px; font-weight: 700; margin: 0 0 4px; color: var(--text); break-after: avoid; }
+h2 .n { color: var(--cyan); font-size: 13px; vertical-align: 4px; letter-spacing: 2px; margin-left: 8px; }
+h3 { font-size: 14.5px; font-weight: 600; color: var(--text); margin: 14px 0 4px; break-after: avoid; }
+.rule { height: 2px; background: linear-gradient(-90deg, var(--cyan), transparent 70%); border: 0; margin: 8px 0 12px; break-after: avoid; }
+p { margin: 0 0 9px; color: var(--muted); }
+p b, li b { color: var(--text); font-weight: 600; }
+li { color: var(--muted); margin-bottom: 4px; }
+ul, ol { margin: 0 0 9px; padding-right: 18px; }
+
+code, .mono {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  direction: ltr; unicode-bidi: embed;
+  background: rgba(34,216,238,0.08); color: var(--cyan);
+  border: 1px solid rgba(34,216,238,0.2);
+  border-radius: 6px; padding: 0 6px; font-size: 11px;
+}
+pre {
+  direction: ltr; text-align: left;
+  background: #0a141b; border: 1px solid var(--line);
+  border-radius: 12px; padding: 12px 14px;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 10.5px; line-height: 1.7; color: #b8e9f2;
+  overflow: hidden; white-space: pre-wrap; break-inside: avoid;
+  margin: 0 0 12px;
+}
+pre .c { color: #5b7280; }
+pre .k { color: var(--cyan); }
+pre .ok { color: var(--green); }
+
+/* ───── cards / callouts / tables ───── */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 0 12px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 0 0 12px; }
+.card {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 14px; padding: 11px 14px; break-inside: avoid;
+}
+.card .t { color: var(--cyan); font-size: 10px; font-weight: 700; letter-spacing: 2px; margin-bottom: 4px; }
+.card .v { color: var(--text); font-size: 12.5px; font-weight: 600; }
+.card .s { color: var(--muted); font-size: 10.5px; line-height: 1.75; }
+.card .s .mono { font-size: 10px; }
+.callout {
+  border: 1px solid rgba(34,216,238,0.3);
+  background: linear-gradient(180deg, rgba(34,216,238,0.07), rgba(34,216,238,0.03));
+  border-radius: 14px; padding: 11px 16px; margin: 0 0 12px; break-inside: avoid;
+}
+.callout.warn { border-color: rgba(251,191,36,0.35); background: linear-gradient(180deg, rgba(251,191,36,0.07), rgba(251,191,36,0.03)); }
+.callout.ok { border-color: rgba(52,211,153,0.35); background: linear-gradient(180deg, rgba(52,211,153,0.07), rgba(52,211,153,0.03)); }
+.callout.red { border-color: rgba(251,95,107,0.35); background: linear-gradient(180deg, rgba(251,95,107,0.07), rgba(251,95,107,0.03)); }
+.callout .h { color: var(--text); font-weight: 700; margin-bottom: 2px; font-size: 12.5px; }
+.callout.warn .h { color: var(--amber); }
+.callout.ok .h { color: var(--green); }
+.callout.red .h { color: var(--red); }
+.callout .h .ico { color: var(--cyan); }
+.callout p { margin: 0; font-size: 11.5px; }
+
+table { width: 100%; border-collapse: collapse; margin: 0 0 12px; break-inside: avoid; }
+th { color: var(--cyan); font-size: 10.5px; font-weight: 700; text-align: right; padding: 6px 9px; border-bottom: 1px solid rgba(34,216,238,0.25); }
+td { color: var(--muted); font-size: 11.5px; padding: 5.5px 9px; border-bottom: 1px solid var(--line); vertical-align: top; line-height: 1.7; }
+td .mono, td code { font-size: 10.5px; }
+tr { break-inside: avoid; }
+th:first-child, td:first-child { color: var(--text); font-weight: 600; }
+.chip {
+  display: inline-block; border: 1px solid rgba(34,216,238,0.35); border-radius: 999px;
+  background: rgba(34,216,238,0.06); color: var(--cyan);
+  font-size: 10px; font-weight: 600; padding: 1px 10px; margin: 0 0 4px 6px;
+}
+.chip.dim { border-color: rgba(255,255,255,0.14); color: var(--muted); background: rgba(255,255,255,0.03); }
+.chip.ok { border-color: rgba(52,211,153,0.4); color: var(--green); background: rgba(52,211,153,0.06); }
+.chip.am { border-color: rgba(251,191,36,0.4); color: var(--amber); background: rgba(251,191,36,0.06); }
+
+/* ───── figures ───── */
+figure { margin: 10px 0 6px; break-inside: avoid; }
+figure .shot {
+  border: 1px solid rgba(34,216,238,0.22);
+  border-radius: 12px; overflow: hidden;
+  background: #0a1218;
+  box-shadow: 0 10px 34px rgba(0,0,0,0.45);
+}
+figure img { display: block; width: 100%; max-width: 100%; height: auto; }
+figcaption {
+  margin-top: 6px; font-size: 10.5px; color: var(--muted);
+  display: flex; gap: 8px; align-items: baseline;
+}
+figcaption .step {
+  flex: 0 0 auto; color: var(--cyan); font-weight: 700; font-size: 9.5px;
+  border: 1px solid rgba(34,216,238,0.35); border-radius: 999px; padding: 0 10px;
+  background: rgba(34,216,238,0.06);
+}
+.duo { display: flex; gap: 12px; align-items: flex-start; }
+.duo figure { flex: 1; margin: 10px 0 0; }
+
+/* ───── architecture diagram (pure HTML/CSS) ───── */
+.diagram { margin: 6px 0 12px; break-inside: avoid; }
+.dbox {
+  border: 1px solid rgba(34,216,238,0.35); border-radius: 14px;
+  background: rgba(34,216,238,0.05);
+  padding: 10px 14px; text-align: center; color: var(--text);
+  font-size: 12px; font-weight: 600;
+}
+.dbox .sub { display: block; color: var(--muted); font-size: 10px; font-weight: 400; margin-top: 2px; }
+.drow { display: flex; gap: 10px; }
+.drow .dbox { flex: 1; font-size: 11px; font-weight: 600; padding: 8px 6px; }
+.darrow { text-align: center; color: var(--cyan); font-size: 13px; line-height: 1.35; }
+.darrow .lbl { color: var(--muted); font-size: 9.5px; display: block; letter-spacing: 1px; }
+.dbox.core {
+  border-color: rgba(251,191,36,0.4);
+  background: rgba(251,191,36,0.05);
+}
+.dbox.core .sub b { color: var(--amber); }
+
+/* ───── TOC ───── */
+.toc { margin-top: 4px; }
+.toc .row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 7.5px 2px; border-bottom: 1px dashed rgba(255,255,255,0.10);
+}
+.toc .num {
+  flex: 0 0 34px; height: 26px; border-radius: 9px;
+  border: 1px solid rgba(34,216,238,0.4); background: rgba(34,216,238,0.07);
+  color: var(--cyan); font-weight: 700; font-size: 11px;
+  display: flex; align-items: center; justify-content: center;
+}
+.toc .tt { color: var(--text); font-weight: 600; font-size: 13px; }
+.toc .dots { flex: 1; border-bottom: 1px dotted rgba(255,255,255,0.16); margin: 0 6px; height: 1px; }
+.toc .pn { color: var(--cyan); font-weight: 700; font-size: 12px; }
+
+/* ───── cover ───── */
+.cover {
+  width: 720px; height: 1020px;
+  break-after: page;
+  overflow: hidden;
+  position: relative;
+  padding: 52px 54px 58px;
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  background:
+    radial-gradient(560px 420px at 78% 10%, rgba(34,216,238,0.14), transparent 62%),
+    radial-gradient(500px 420px at 14% 86%, rgba(34,216,238,0.07), transparent 60%),
+    var(--bg);
+}
+.cover .ring { position: absolute; border-radius: 50%; border: 1px solid rgba(34,216,238,0.16); }
+.cover .r1 { width: 470px; height: 470px; top: 30px; left: 40px; }
+.cover .r2 { width: 300px; height: 300px; bottom: 30px; right: 40px; border-color: rgba(34,216,238,0.10); }
+.cover .logo {
+  width: 88px; height: 88px; border-radius: 24px;
+  border: 1.5px solid rgba(34,216,238,0.45);
+  background: rgba(34,216,238,0.06);
+  box-shadow: 0 0 60px rgba(34,216,238,0.28);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 40px; font-weight: 700; color: var(--cyan);
+  font-family: 'JetBrains Mono','Courier New',monospace;
+}
+.cover .kick { margin-top: 18px; color: var(--muted); font-size: 11px; letter-spacing: 6px; }
+.cover h1 { font-size: 40px; font-weight: 700; margin: 8px 0 2px; color: var(--text); }
+.cover h1 b { color: var(--cyan); }
+.cover .ver {
+  font-size: 13.5px; color: var(--cyan); letter-spacing: 3px;
+  border: 1px solid rgba(34,216,238,0.35); border-radius: 999px;
+  padding: 4px 22px; margin: 10px 0 4px;
+  background: rgba(34,216,238,0.06);
+}
+.cover .date { color: var(--muted); font-size: 11.5px; letter-spacing: 1px; }
+.cover p.lead { max-width: 560px; color: var(--muted); font-size: 12.5px; margin: 12px 0 0; line-height: 2; }
+.cover .herofig {
+  margin-top: 20px; width: 612px;
+  border: 1px solid rgba(34,216,238,0.25); border-radius: 14px; overflow: hidden;
+  box-shadow: 0 18px 60px rgba(0,0,0,0.55), 0 0 40px rgba(34,216,238,0.10);
+  background: #0a1218;
+}
+.cover .herofig img { display: block; width: 100%; height: auto; }
+.cover .foot { position: absolute; bottom: 40px; left: 0; right: 0; color: var(--muted); font-size: 10.5px; letter-spacing: 2px; }
+.cover .foot b { color: var(--text); letter-spacing: 4px; }
+
+/* ───── misc ───── */
+.sechead { margin-bottom: 2px; }
+.steps li { margin-bottom: 7px; }
+.small { font-size: 10.5px; color: var(--muted); }
+.center { text-align: center; }
+.mt6 { margin-top: 6px; } .mt10 { margin-top: 10px; } .mt14 { margin-top: 14px; }
+.mb0 { margin-bottom: 0; }
+.gcheck { color: var(--green); font-weight: 700; }
+.rcyan { color: var(--cyan); font-weight: 700; }
+.ramber { color: var(--amber); font-weight: 700; }
+.badge-end {
+  display: inline-block; margin-top: 4px;
+  border: 1px solid rgba(34,216,238,0.35); border-radius: 999px;
+  color: var(--cyan); background: rgba(34,216,238,0.06);
+  padding: 3px 18px; font-size: 10.5px; letter-spacing: 3px; font-weight: 700;
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ p1 · COVER ═══════════════ -->
+<div class="cover">
+  <div class="ring r1"></div>
+  <div class="ring r2"></div>
+  <div class="logo">S</div>
+  <div class="kick">SEPHIROTH · XRAY CONTROL PANEL</div>
+  <h1><b>Sephiroth</b> 完全手册</h1>
+  <div class="ver">CATALOG · v2.5.0</div>
+  <div class="date">伊朗历 1405 年 8 月 6 日 — 2026 年 10 月</div>
+  <p class="lead">新一代 Xray 管理面板的官方图解手册：从配置锻造 Forge 与配置医生，到真实 Xray 内核、两步验证、代理分销体系与完整安装套件 — 全书均配面板实机截图。</p>
+  <div class="herofig"><img src="shot-dashboard.png" alt="Sephiroth 仪表盘"></div>
+  <div class="foot"><b>EPODONIOS</b> · SEPHIROTH PANEL · 2026</div>
+</div>
+
+<!-- ═══════════════ p2 · TOC ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">TABLE OF CONTENTS</span>
+    <h2>目录</h2>
+    <hr class="rule">
+  </div>
+  <div class="toc">
+    <div class="row"><div class="num">01</div><div class="tt">简介 — Sephiroth 是什么？</div><div class="dots"></div><div class="pn">3</div></div>
+    <div class="row"><div class="num">02</div><div class="tt">面板架构</div><div class="dots"></div><div class="pn">4</div></div>
+    <div class="row"><div class="num">03</div><div class="tt">协议与传输层</div><div class="dots"></div><div class="pn">5</div></div>
+    <div class="row"><div class="num">04</div><div class="tt">用 Forge 创建入站</div><div class="dots"></div><div class="pn">6</div></div>
+    <div class="row"><div class="num">05</div><div class="tt">用户与订阅</div><div class="dots"></div><div class="pn">8</div></div>
+    <div class="row"><div class="num">06</div><div class="tt">配置医生（Config Doctor）</div><div class="dots"></div><div class="pn">10</div></div>
+    <div class="row"><div class="num">07</div><div class="tt">真实 Xray 内核</div><div class="dots"></div><div class="pn">11</div></div>
+    <div class="row"><div class="num">08</div><div class="tt">安全性</div><div class="dots"></div><div class="pn">12</div></div>
+    <div class="row"><div class="num">09</div><div class="tt">Telegram</div><div class="dots"></div><div class="pn">13</div></div>
+    <div class="row"><div class="num">10</div><div class="tt">商业 — 代理与支付渠道</div><div class="dots"></div><div class="pn">14</div></div>
+    <div class="row"><div class="num">11</div><div class="tt">部署 — 安装、CLI、Docker</div><div class="dots"></div><div class="pn">15</div></div>
+    <div class="row"><div class="num">12</div><div class="tt">6 种语言的面板</div><div class="dots"></div><div class="pn">17</div></div>
+    <div class="row"><div class="num">13</div><div class="tt">故障排除 · 常见问题</div><div class="dots"></div><div class="pn">19</div></div>
+    <div class="row"><div class="num">14</div><div class="tt">路线图 · 结语</div><div class="dots"></div><div class="pn">20</div></div>
+  </div>
+  <div class="callout mt14">
+    <div class="h"><span class="ico">◈</span> 关于本手册</div>
+    <p>本手册所有图片均为面板实机截图（v2.5.0 版本；无明暗双模式 — “黑曜石 + 玻璃青”设计语言在全部 6 款主题中保持一致）。文中不含任何密码、服务器地址或隐私信息。</p>
+  </div>
+  <div class="grid2 mt6">
+    <div class="card"><div class="t">FORMAT</div><div class="v">竖版 PDF 720×1020</div><div class="s">20 页 · 11 张面板实机截图 · 完整中文文本（LTR 版式）</div></div>
+    <div class="card"><div class="t">AUDIENCE</div><div class="s" style="margin-top:2px">服务器管理员、配置卖家、自托管爱好者，以及任何想要一款完整波斯语 Xray 面板的人。</div></div>
+  </div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">02</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p3 · 01 intro ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 01 — INTRODUCTION</span>
+    <h2><span class="n">01</span>简介 — Sephiroth 是什么？</h2>
+    <hr class="rule">
+  </div>
+  <p><b>Sephiroth</b> 是一个面向 <b>Xray</b> 的完整管理面板：入站、用户与订阅、实时统计、安全与备份 — 全部汇聚在<b>单一 Node.js 进程</b>中。既不需要 MySQL 也不需要 Postgres；数据以原子方式保存在一个 JSON 文件里，界面也通过同一端口对外服务。</p>
+  <div class="grid2">
+    <div class="card"><div class="t">DESIGN LANGUAGE</div><div class="v">黑曜石 + 玻璃质感青色</div><div class="s">背景 <span class="mono">#060b0f</span>，点缀 <span class="mono">#22d8ee</span>；玻璃卡片、环形轨道与星空 — 这套视觉语言在全部 6 款主题中保持一致。</div></div>
+    <div class="card"><div class="t">THEMES ×6</div><div class="v" style="margin-bottom:4px">6 款深色主题</div><div class="s"><span class="chip dim">Sephiroth</span><span class="chip dim">Jenova</span><span class="chip dim">Masamune</span><span class="chip dim">Terminal</span><span class="chip dim">OLED</span><span class="chip dim">One-Winged</span></div></div>
+    <div class="card"><div class="t">LANGUAGES ×6</div><div class="v" style="margin-bottom:4px">Farsi · English · Arabic · 中文 · Türkçe · Русский</div><div class="s">为波斯语和阿拉伯语提供<b>完整自动的 RTL 方向</b>（对话框与 Toast 也不例外）；从顶栏切换语言，无需刷新。</div></div>
+    <div class="card"><div class="t">ZERO-DEP RUNTIME</div><div class="v">零 node_modules 依赖</div><div class="s">生产模式下，整个后端构建为单文件包（<span class="mono">server.cjs</span>）；对小主机与单端口环境堪称理想。</div></div>
+  </div>
+  <p>Sephiroth 为想要精细控制的个人服务器管理员、需要代理分销与支付渠道的卖家、以及想要一款美观轻量的波斯语面板的自托管用户而打造 — 内置 Socket.IO 实时遥测、<span class="mono">Ctrl+K</span> 组合命令面板与应用内实战指南。</p>
+  <figure>
+    <div class="shot"><img src="shot-login.png" alt="登录页" style="width:86%; display:block; margin:0 auto;"></div>
+    <figcaption><span class="step">图 1</span><span>“轨道终端”登录页 — 密码登录、TOTP 两步验证、恢复密钥与防暴力破解锁定。</span></figcaption>
+  </figure>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">03</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p4 · 02 architecture ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 02 — ARCHITECTURE</span>
+    <h2><span class="n">02</span>面板架构</h2>
+    <hr class="rule">
+  </div>
+  <p>整个面板就是<b>一个进程</b>：Express 服务器（REST API）与构建好的 React 界面（SPA）共用同一端口，Socket.IO 负责推送实时遥测（CPU/RAM/磁盘、入站状态、事件）。网络核心有两种模式：<b>模拟器</b>（默认；安全、无需二进制）或<b>真实 Xray 驱动</b>（详见第 07 节）。</p>
+  <div class="diagram">
+    <div class="dbox">管理端浏览器 / 订阅应用<span class="sub">React SPA · RTL · 6 种语言</span></div>
+    <div class="darrow">▼<span class="lbl">HTTP :PORT · 一个端口承载一切</span></div>
+    <div class="dbox">唯一 Node.js 进程 — server.cjs（零 node_modules）<span class="sub">Express REST API + 40+ 条路由 · SPA 静态文件 · Socket.IO 实时</span></div>
+    <div class="darrow">▼<span class="lbl">原子读/写</span></div>
+    <div class="drow">
+      <div class="dbox">db/sephiroth-store.json<span class="sub">原子存储：先写临时文件 ← rename + 保留一代 .bak</span></div>
+      <div class="dbox core">内核<span class="sub"><b>模拟器</b>（默认）或<b>真实 Xray</b> + 127.0.0.1 上的隐藏 API 门</span></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card"><div class="t">ATOMIC JSON STORE</div><div class="s">每次变更都立即以原子方式落盘（先写临时文件 ← rename）；崩溃最多丢失最后一步操作，绝不会损失整个数据库。</div></div>
+    <div class="card"><div class="t">LIVE BY SOCKET.IO</div><div class="s">CPU/RAM/磁盘仪表、入站流量条与活动动态均通过实时事件更新 — 无需刷新页面。</div></div>
+  </div>
+  <h3>部署选项</h3>
+  <table style="margin-bottom:8px">
+    <tr><th style="width:130px">方式</th><th>适用场景</th><th style="width:190px">备注</th></tr>
+    <tr><td>一行安装 install.sh</td><td>Linux VPS/独服（Ubuntu/Debian/RHEL/Alpine/Arch）</td><td>systemd + <span class="mono">sephiroth</span> CLI + 随机端口与密码</td></tr>
+    <tr><td>Docker / Compose</td><td>Docker 服务器与 CI</td><td>官方镜像 <span class="mono">ghcr.io/edsel-rahimi/sephiroth</span></td></tr>
+    <tr><td>手动运行</td><td>开发与测试</td><td><span class="mono">node server.ts</span> 或 <span class="mono">server.cjs</span> 包</td></tr>
+    <tr><td>单端口主机</td><td>面向应用的免费主机（类 Pterodactyl）</td><td>零 node_modules 包 + 端口取自 <span class="mono">SERVER_PORT</span></td></tr>
+  </table>
+  <div class="callout" style="margin-bottom:0">
+    <div class="h"><span class="ico">◈</span> 为什么是单进程？</div>
+    <p>一个端口、一个进程、一个数据文件 — 只要有 Node 的环境就能跑：从 512 MB 内存的小 VPS 到免费主机 308 MB 的容器。</p>
+  </div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">04</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p5 · 03 protocols ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 03 — PROTOCOLS</span>
+    <h2><span class="n">03</span>协议与传输层</h2>
+    <hr class="rule">
+  </div>
+  <p>Sephiroth 锻造厂将 <b>9 种入站协议</b>与 <b>5 种传输方式</b>、<b>3 层安全机制</b>自由组合；订阅链接、二维码与内核输出都由同一组合自动生成。</p>
+  <table>
+    <tr><th style="width:118px">协议</th><th>特性与用途</th></tr>
+    <tr><td>VLESS</td><td>现代轻量；支持 <span class="mono">xtls-rprx-vision</span> flow — 与 REALITY 是黄金搭档</td></tr>
+    <tr><td>VMess</td><td>经典通用；适合 CDN 与 WebSocket</td></tr>
+    <tr><td>Trojan</td><td>伪装成普通 HTTPS 流量</td></tr>
+    <tr><td>Shadowsocks</td><td>简单快速；使用知名加密算法</td></tr>
+    <tr><td>Hysteria2</td><td>基于 QUIC/UDP，适合高带宽或高丢包网络</td></tr>
+    <tr><td>WireGuard</td><td>官方隧道，含私钥/公钥与可调 MTU</td></tr>
+    <tr><td>SOCKS5 / HTTP</td><td>本地代理，可选鉴权 — 包括“Telegram 代理”（第 09 节）</td></tr>
+    <tr><td>Dokodemo-door</td><td>透明端口，用于流量转发（也充当内核的隐藏 API 门）</td></tr>
+  </table>
+  <div class="grid2">
+    <div class="card"><div class="t">TRANSPORTS</div><div class="s" style="margin-top:2px"><span class="chip dim">TCP + header</span><span class="chip dim">WebSocket</span><span class="chip dim">gRPC</span><span class="chip dim">HTTPUpgrade</span><span class="chip dim">XHTTP</span><br>每项传输均可配置 path/host/serviceName 与 early-data。</div></div>
+    <div class="card"><div class="t">SECURITY</div><div class="s" style="margin-top:2px"><span class="chip dim">none</span><span class="chip ok">TLS 1.0–1.3</span><span class="chip ok">REALITY</span><br>ALPN、9 种 fingerprint（chrome/firefox/safari/…）、uTLS；REALITY 支持 dest、serverNames、shortIds 与内置密钥对。</div></div>
+  </div>
+  <h3>Fallbacks 与“单端口组合”预设</h3>
+  <p>每个 TLS 入站都可以配置 <b>fallback</b>（dest/alpn/path）— 这正是<b>单端口组合预设</b>的基础：多个协议共享<b>一个公共端口</b>（例如 443），面板本身挂在 <span class="mono">/panel</span> 路径。对只提供一个端口的主机来说，这一个预设就能解决全部问题。</p>
+  <div class="callout ok">
+    <div class="h"><span class="ico">✓</span> 内核配置自动生成</div>
+    <p>你在 Forge 中搭建的一切，都会由内核驱动（第 07 节）转换为真实 Xray 配置 — streamSettings、REALITY、sniffing（http/tls/quic/fakerd）、mux 与 fallback，全程无需手工改 JSON。</p>
+  </div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">05</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p6 · 04 forge (1) ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 04 — THE FORGE</span>
+    <h2><span class="n">04</span>用 Forge 创建入站</h2>
+    <hr class="rule">
+  </div>
+  <p>“Forge”是创建/编辑入站的对话框 — 一个智能表单，输入的同时就会在旁边的侧栏<b>实时生成订阅链接与二维码</b>。操作流程：</p>
+  <ol class="steps">
+    <li>选择<b>协议</b>（9 个选项；每个选项的说明就显示在该字段下方）。</li>
+    <li>在 <b>General</b> 标签页：填写标签、端口与监听地址 — 旁边还有两个下文介绍的魔法按钮。</li>
+    <li><b>Transport</b> 与 <b>Security</b> 标签页：传输方式 + none/TLS/REALITY 的全部细节（SNI、ALPN、fingerprint、shortId 等）。</li>
+    <li>高级模式下：<b>Fallbacks</b> 以真实数组形式配置，另有 <b>Sniffing/Mux</b>。</li>
+    <li>保存 → 入站出现在卡片网络中，带流量条与限额徽章；客户端可直接在此添加。</li>
+  </ol>
+  <figure>
+    <div class="shot"><img src="shot-forge.png" alt="Forge — General 标签页"></div>
+    <figcaption><span class="step">图 2</span><span>General 标签页下的 Forge（VLESS 协议）— 侧栏实时预览订阅链接，字段旁配有检测 IP 与空闲端口按钮。</span></figcaption>
+  </figure>
+  <h3>快速创建（Quick Create）</h3>
+  <p>懒得填长表单？直接在“快速创建”网格中点击一个现成预设：<span class="chip dim">VLESS + REALITY :443</span><span class="chip dim">VMess + WS + TLS</span><span class="chip dim">本地 SOCKS5</span><span class="chip dim">单端口组合</span>等 — 显示配置摘要，确认即完成。</p>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">06</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p7 · 04 forge (2) ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 04 — THE FORGE · AUTOFILL</span>
+    <h2><span class="n">04</span>自动检测 IP 与空闲端口</h2>
+    <hr class="rule">
+  </div>
+  <p>Forge 里的两个小按钮，专门根治“链接用不了”这类经典麻烦：</p>
+  <div class="grid2">
+    <div class="card"><div class="t">✛ SERVER-IP AUTO-DETECT</div><div class="s">在“监听”字段旁：一个菜单，包含<b>自动探测到的公网 IP</b>、内网 IP 与 <span class="mono">0.0.0.0</span>。公网 IP 来自 echo 服务（带 10 分钟缓存）— 更关键的是：一旦选中，<b>订阅链接会立刻切换</b>为真实 IP，确保 <span class="mono">0.0.0.0</span> 永远不会混入客户端链接。</div></div>
+    <div class="card"><div class="t">✦ FREE-PORT WAND</div><div class="s">在“端口”字段旁：魔棒一键<b>推荐首个空闲端口</b>（面板端口 +1 和 +2，然后依次尝试 8443/443/2053/2087/2096/8880）。从此告别“端口被占用”报错与端口冲突。</div></div>
+  </div>
+  <figure>
+    <div class="shot"><img src="shot-forge-autofill.png" alt="Forge 中的自动 IP 检测"></div>
+    <figcaption><span class="step">图 3</span><span>IP 检测菜单已展开：“使用公网 IP — 已自动探测”、内网 IP 与所有网卡接口 — 数据来自内部 API <span class="mono">/api/system/server-info</span>。</span></figcaption>
+  </figure>
+  <div class="callout warn">
+    <div class="h">⚠ 专业提示</div>
+    <p>如果你在 CDN 或反向代理之后，把“监听”保持为 <span class="mono">0.0.0.0</span> 或内网 IP 即可，客户端链接中只会出现公网 IP/域名 — Forge 会把这两个概念分开。</p>
+  </div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">07</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p8 · 05 users (1) ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 05 — USERS &amp; SUBSCRIPTIONS</span>
+    <h2><span class="n">05</span>用户与订阅</h2>
+    <hr class="rule">
+  </div>
+  <p>每个用户都是一名<b>真实订阅者</b>：流量配额、到期日、IP 数限制，以及可同时绑定多个入站。用户表格提供实时用量条、有效/过期状态与智能徽章：</p>
+  <ul>
+    <li><b>用量预测徽章：</b>“≈4 天到顶 · 3.2 GB/天” — 燃烧率由累计用量除以账户存活天数得出（无需历史表）；低于 7 天变琥珀色，低于 3 天变红。</li>
+    <li><b>重置周期：</b>周/月配额由内置 cron 自动重置，过期用户同时被停用。</li>
+    <li><b>批量创建（Bulk）：</b>一次创建多个用户，批量启用/停用与删除只需一次确认。</li>
+    <li><b>绑定入站：</b>每个用户可同时挂载到多个入站；每条绑定的密钥（UUID/密码/flow）都在同一处管理。</li>
+  </ul>
+  <figure>
+    <div class="shot"><img src="shot-users.png" alt="用户表格"></div>
+    <figcaption><span class="step">图 4</span><span>用户表格：用量条、配额/到期，以及“≈N 天到顶”预测徽章。</span></figcaption>
+  </figure>
+  <div class="callout">
+    <div class="h"><span class="ico">◈</span> 透明的 IP-Limit</div>
+    <p>IP 限制（<span class="mono">0 = ∞</span>）会写入每个客户端的链接与内核输出，并可在筛选器中搜索；fail2ban 式的自动切断强执行尚在路线图中 — 本手册如实声明。</p>
+  </div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">08</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p9 · 05 users (2) ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 05 — SUBSCRIPTION PORTAL</span>
+    <h2><span class="n">05</span>品牌化订阅门户</h2>
+    <hr class="rule">
+  </div>
+  <p>每个用户都有专属订阅链接：<span class="mono">/sub/&lt;subId&gt;</span>。订阅页面是一张品牌化“轨道通行证” — 用量条、剩余天数，以及向常用客户端的一键导入。订阅组还能把多个用户收纳到<b>一个带密码的加密链接</b>之后。</p>
+  <figure>
+    <div class="shot"><img src="shot-sub-portal.png" alt="订阅门户" style="width:80%; display:block; margin:0 auto;"></div>
+    <figcaption><span class="step">图 5</span><span>用户订阅门户（ORBIT PASS）：配额 61/200 GB，剩余 14 天，一键导入 — Sephiroth 品牌与 EPODONIOS 签名。</span></figcaption>
+  </figure>
+  <h3>订阅输出格式</h3>
+  <table>
+    <tr><th style="width:150px">格式</th><th>获取方式</th><th style="width:170px">适用</th></tr>
+    <tr><td>原始 URI（raw）</td><td><span class="mono">?format=raw</span></td><td>手动分享</td></tr>
+    <tr><td>Base64</td><td><span class="mono">?format=b64</span></td><td>大多数 v2ray 应用</td></tr>
+    <tr><td>Clash Meta</td><td><span class="mono">?format=clash</span></td><td>Clash / Mihomo / Verge / Stash</td></tr>
+    <tr><td>Sing-Box</td><td><span class="mono">?format=singbox</span></td><td>Sing-Box 1.10+ / Hiddify / Streisand / V2Box</td></tr>
+    <tr><td>Xray-JSON</td><td><span class="mono">?format=xray</span></td><td>完整 v2ray/xray-core 配置</td></tr>
+  </table>
+  <div class="callout ok">
+    <div class="h"><span class="ico">✓</span> 自动识别 User-Agent</div>
+    <p>客户端应用会自报家门：Clash/Mihomo/Verge/Stash 获得 <span class="mono">YAML</span> 输出，sing-box/Hiddify/V2Box 获得 <span class="mono">sing-box</span> 输出，其余为 Base64 — 用户无需任何配置。</p>
+  </div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">09</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p10 · 06 config doctor ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 06 — CONFIG DOCTOR</span>
+    <h2><span class="n">06</span>配置医生</h2>
+    <hr class="rule">
+  </div>
+  <p>配置医生是 Sephiroth 的<b>独家特性</b>：对整个面板进行 16 项扫描，在用户察觉之前就发现问题，并为每一项给出“标题 + 说明 + 解决方案”。得分按满分 100 计算：</p>
+  <p class="center mono" style="font-size:12px; margin-bottom:8px">score = 100 − 12×危险 − 5×警告 − 1×提示 &nbsp;→&nbsp; 评级 A 至 D</p>
+  <div class="grid2">
+    <div class="card"><div class="t">入站（8 项检查）</div><div class="s">无鉴权的开放 SOCKS/HTTP 代理 · 无证书的 TLS · 不完整的 REALITY（dest/serverNames/shortIds/密钥）· 失效的 fallback · WireGuard 私钥重复使用 · 特权端口（&lt;1024）· 已过期入站 · 已停用入站</div></div>
+    <div class="card"><div class="t">用户（6 项检查）</div><div class="s">已过期但仍处于激活状态 · 临近到期（≤3 天）· 配额耗尽 · 用量 ≥90% · 无法访问任何入站的“幽灵”账户 · 绑定在已停用入站上的用户</div></div>
+    <div class="card"><div class="t">路由（2 项检查）</div><div class="s">死规则（出站不存在）与无条件空规则 — 它们会无声地吞噬流量或拒绝一切。</div></div>
+    <div class="card"><div class="t">扫描输出</div><div class="s">得分环 + 评级 + 严重度徽章（危险/警告/提示），每条发现均附详细说明与建议修复按钮。所有文案已翻译为 6 种语言。</div></div>
+  </div>
+  <figure>
+    <div class="shot"><img src="shot-doctor.png" alt="配置医生"></div>
+    <figcaption><span class="step">图 6</span><span>配置医生在真实面板上的运行结果：得分 82（B 级），真实发现 — 特权端口 443、无证书的 TLS 以及已过期用户。</span></figcaption>
+  </figure>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">10</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p11 · 07 real xray core ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 07 — REAL XRAY CORE</span>
+    <h2><span class="n">07</span>真实 Xray 内核</h2>
+    <hr class="rule">
+  </div>
+  <p>自 v2.4 起，Sephiroth 拥有<b>双内核驱动</b>。默认是<b>模拟器</b>（安全、无二进制的演示遥测 — 适用于包括受限主机在内的任何环境）；<b>真实 Xray 驱动</b>作为可选项（opt-in）运行真实内核：</p>
+  <table>
+    <tr><th style="width:150px">能力</th><th>模拟器（默认）</th><th>真实 Xray（opt-in）</th></tr>
+    <tr><td>协议运行</td><td>模拟遥测</td><td class="rcyan">真实运行 — 流量经真实端口转发</td></tr>
+    <tr><td>按用户统计（per-user）</td><td>演示用</td><td class="rcyan">真实（统计 API 增量，默认每 10 秒，可调 5–120）</td></tr>
+    <tr><td>依赖要求</td><td>无</td><td>从 XTLS/Xray-core 发布版自动下载二进制（或手动路径 + 固定版本）</td></tr>
+    <tr><td>配置校验</td><td>—</td><td>每次运行前先执行 <span class="mono">xray run -test</span></td></tr>
+    <tr><td>适用场景</td><td>测试、演示、受限主机</td><td class="rcyan">生产环境</td></tr>
+  </table>
+  <figure>
+    <div class="shot"><img src="shot-settings-core.png" alt="内核 / Xray 卡片"></div>
+    <figcaption><span class="step">图 7</span><span>设置中的“内核 / Xray”卡片：驱动选择、安装/启动/停止/重启、二进制路径、版本固定与可折叠实时日志。</span></figcaption>
+  </figure>
+  <ul>
+    <li><b>从面板数据生成：</b>配置直接由面板中的入站/用户生成；隐藏的统计 API 门监听在 <span class="mono">127.0.0.1</span>。</li>
+    <li><b>变更即重载：</b>入站/用户的每次变更约 1.5 秒后生效；只有配置哈希发生变化时内核才会重启。</li>
+  </ul>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">11</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p12 · 08 security ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 08 — SECURITY</span>
+    <h2><span class="n">08</span>安全性</h2>
+    <hr class="rule">
+  </div>
+  <div class="grid2">
+    <div class="card"><div class="t">TOTP 两步验证</div><div class="s">零依赖实现 RFC-6238（SHA-1、6 位数字、±1 窗口）。通过二维码 + 验证码开启；<b>关闭同样需要验证码</b>，防止被盗会话关掉 2FA。登录页在密码之后再要求输入验证码。</div></div>
+    <div class="card"><div class="t">防暴力破解</div><div class="s">5 分钟内 5 次失败尝试 = 锁定 IP，登录页实时倒计时；全部尝试记录见“活动”日志。</div></div>
+    <div class="card"><div class="t">恢复密钥</div><div class="s">恢复密钥 <span class="mono">SEPH-XXXX-XXXX-XXXX</span> 仅显示一次，可随时轮换 — 忘记密码只是多走一步简单登录，而不是丢掉面板。</div></div>
+    <div class="card"><div class="t">会话</div><div class="s">基于 HMAC 签名的 httpOnly Cookie；“吊销所有会话”会轮换 secret，使全部 Cookie 失效。<span class="mono">SEPH_COOKIE_SECURE=auto</span> 模式会自动判断你是否处于 HTTPS 之后。</div></div>
+    <div class="card"><div class="t">定时备份</div><div class="s">每 24 小时在 <span class="mono">db/backups/</span> 生成完整 JSON 备份，保留 1–30 份（自动清理旧备份）+ 立即执行、下载与界面内删除。也支持手动备份/恢复，恢复需输入 <span class="mono">RESTORE</span> 确认。</div></div>
+    <div class="card"><div class="t">软件更新</div><div class="s">“检查 → 安装 → 重启”按钮就在面板内：更新脚本独立于主进程运行，状态写入状态文件，重启前面板继续以旧代码服务。非 git 安装也可通过 CLI 更新。</div></div>
+  </div>
+  <figure>
+    <div class="shot"><img src="shot-security-cluster.png" alt="安全与系统卡片" style="width:74%; display:block; margin:0 auto;"></div>
+    <figcaption><span class="step">图 8</span><span>设置中的安全/系统卡片簇（波斯语 RTL 界面）：软件更新、两步验证、定时备份与 MTProto 工具。</span></figcaption>
+  </figure>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">12</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p13 · 09 telegram ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 09 — TELEGRAM</span>
+    <h2><span class="n">09</span>Telegram</h2>
+    <hr class="rule">
+  </div>
+  <p>“怎么让 Telegram 穿透封锁？”这个老问题在面板内就有答案 — 一套完整套件加坦诚的注意事项：</p>
+  <h3>1）SOCKS5 代理套件</h3>
+  <p>在 Forge 中创建 <b>SOCKS5</b> 入站后，“Telegram 代理”区块随之展开：除标准链接外还提供两个 Telegram 原生链接 + 二维码：<span class="mono">t.me/socks?server=…&amp;port=…&amp;user=…&amp;pass=…</span> 与 <span class="mono">tg://socks?…</span> — 用户只需轻点一下，Telegram 即接受该代理。</p>
+  <h3>2）MTProto 工具（设置 → 系统）</h3>
+  <p>面向更敌意的网络，内置“MTProto 代理”工具会生成真实密钥：输入主机、端口与 <span class="mono">dd</span>（域名伪装）或 <span class="mono">plain</span> 模式，即可拿到密钥 + <span class="mono">tg://proxy</span> 与 <span class="mono">t.me/proxy</span> 链接 + 二维码；同一卡片内还附有运行 <span class="mono">mtg v2</span>（Docker）的现成命令。</p>
+  <div class="callout warn">
+    <div class="h">⚠ 技术坦诚 — 你需要知道的事</div>
+    <p>1）Telegram 中的 SOCKS5 <b>没有伪装</b>，对 DPI 可见；严苛网络请使用 MTProto。2）Xray 自 v24.10 起已移除 MTProto 入站 — 因此 Sephiroth 不做不实宣传，而是提供密钥生成工具 + 独立 daemon 命令。3）Telegram 销售机器人目前处于调研阶段，已列入路线图（第 14 节）作为下一步。</p>
+  </div>
+  <div class="grid2">
+    <div class="card"><div class="t">Forge 内</div><div class="s"><span class="mono">t.me/socks</span> 链接 · <span class="mono">tg://</span> 链接 · 二维码 · 复制按钮 · 关于伪装的坦诚说明 — 全部无需离开对话框。</div></div>
+    <div class="card"><div class="t">设置内</div><div class="s">以 dd/plain 模式生成 MTProto 密钥、现成链接、mtg v2 运行命令，以及对限制的技术说明。</div></div>
+  </div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">13</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p14 · 10 business ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 10 — BUSINESS</span>
+    <h2><span class="n">10</span>商业 — 代理与支付渠道</h2>
+    <hr class="rule">
+  </div>
+  <p>在各类对比清单中，Sephiroth 是唯一拥有<b>完整代理分销体系</b>的面板 — 3x-ui/Marzban/Remnawave 均不具备：</p>
+  <h3>代理（Resellers）</h3>
+  <ul>
+    <li><b>独立认证的第二角色：</b>代理使用自己的账号登录，导航中只看到“用户”。</li>
+    <li><b>硬配额：</b>用户数上限与分配流量上限 — 超额会在 API 层面（而不仅是界面）以 <span class="mono">403</span> 拒绝。</li>
+    <li><b>范围受限列表：</b>代理只能看到自己的用户；即便篡改请求，访问他人用户也只会得到 <span class="mono">404</span>（完全不暴露其存在）。</li>
+    <li><b>管理员监督条：</b>对每个代理，可见其用户数/配额与已用流量/总配额。</li>
+  </ul>
+  <h3>销售套餐模板（Sale Templates）</h3>
+  <p>现成套餐（“Starter 50G”“Pro 200G”等）以一键徽章形式出现在创建用户对话框中，一次性填好配额/到期/IP 限制 — 卖家无需琢磨数字就能打出正确套餐。</p>
+  <h3>支付渠道</h3>
+  <table>
+    <tr><th style="width:170px">渠道</th><th>接入方式</th></tr>
+    <tr><td>ZarinPal / IDPay</td><td>Webhook — 自动为代理配额充值</td></tr>
+    <tr><td>加密货币 USDT（TRC20）</td><td>在面板内即可配置加密货币收款</td></tr>
+    <tr><td>Telegram 卡对卡</td><td>通过 Telegram 完成卡对卡收款</td></tr>
+  </table>
+  <div class="callout">
+    <div class="h"><span class="ico">◈</span> 用量预测 = 销售管理</div>
+    <p>“≈N 天到顶”徽章对代理同样有意义：在订阅者配额耗尽之前，就知道哪些账号明天需要续费 — 赶在断服之前备好发票。</p>
+  </div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">14</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p15 · 11 deployment (1) ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 11 — DEPLOYMENT</span>
+    <h2><span class="n">11</span>部署 — 一行安装与 CLI</h2>
+    <hr class="rule">
+  </div>
+  <p>在任何 Linux 服务器（Debian/Ubuntu/RHEL/Alpine/Arch，x86_64 与 arm64）上只需一行：</p>
+  <pre><span class="c"># 交互式安装（会询问端口/用户名/密码）</span>
+<span class="k">bash &lt;(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh)</span>
+
+<span class="c"># 安装固定版本</span>
+<span class="k">bash &lt;(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh)</span> v2.5.0
+
+<span class="c"># 免交互安装（CI/脚本）— 输出：/etc/sephiroth/install-result.env</span>
+<span class="ok">SEPH_NONINTERACTIVE=1</span> bash install.sh</pre>
+  <p><b>安装脚本做了什么？</b></p>
+  <ul>
+    <li><span class="mono">/opt/sephiroth</span> — 源码 + SPA 构建（vite）与单文件打包 <span class="mono">server.cjs</span>（esbuild）；随后删除 node_modules → 零依赖运行。</li>
+    <li><span class="mono">/etc/sephiroth/sephiroth.env</span> — 随机空闲端口（20580–21000）、16 位随机密码与 <span class="mono">SEPH_COOKIE_SECURE=auto</span>（重复执行会保留已有配置）。</li>
+    <li><b>严格的 systemd 服务：</b>NoNewPrivileges、ProtectSystem=full、PrivateTmp — 在无 systemd 环境中则提供 CLI 守护进程模式。</li>
+    <li><b>安装摘要：</b>面板地址与凭据以 0600 权限打印并保存到 <span class="mono">install-result.env</span>。若缺失 Node 22 也会自动安装（NodeSource → 发行版仓库 → 官方固定版本 tarball）。</li>
+  </ul>
+  <h3>管理 CLI — <span class="mono">sephiroth</span></h3>
+  <pre><span class="c">$ sephiroth          </span><span class="c">← 交互式菜单</span>
+  <span class="k">1.</span> Start               <span class="k">6.</span>  Logs (follow)
+  <span class="k">2.</span> Stop                <span class="k">7.</span>  Logs (last 100)
+  <span class="k">3.</span> Restart             <span class="k">8.</span>  Change Admin Password
+  <span class="k">4.</span> Force Restart       <span class="k">9.</span>  Change Panel Port
+  <span class="k">5.</span> Status              <span class="k">10.</span> Backup Now
+  <span class="k">0.</span> Exit                <span class="k">11.</span> Restore Backup
+                         <span class="k">12.</span> Check for Update
+                         <span class="k">13.</span> Update Panel
+                         <span class="k">14.</span> Uninstall
+<span class="c"># 或直接执行：</span> sephiroth start|stop|restart|status|logs|backup|update …</pre>
+  <p>修改密码/端口由 maint 模块完成（scrypt 哈希，与面板自身格式一致）；备份/恢复与面板内置备份格式相同；“检查更新”会将当前版本与公开仓库的 package.json 对比。</p>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">15</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p16 · 11 deployment (2) ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 11 — DEPLOYMENT · DOCKER</span>
+    <h2><span class="n">11</span>部署 — Docker 与更新</h2>
+    <hr class="rule">
+  </div>
+  <p>官方多阶段镜像基于 <span class="mono">node:22-alpine</span> 构建：第一阶段完成 SPA 构建 + esbuild，第二阶段仅保留 <span class="mono">server.cjs</span> + <span class="mono">dist/</span> — 无源码、无 node_modules。内置健康检查指向 <span class="mono">/api/auth/session</span>，并使用 <span class="mono">/app/db</span> 卷持久化数据。</p>
+  <pre><span class="c"># 最快捷方式</span>
+<span class="k">docker run -d --name sephiroth -p 3000:3000 -v sephiroth_data:/app/db \
+  ghcr.io/edsel-rahimi/sephiroth:latest</span>
+
+<span class="c"># docker-compose.yml</span>
+<span class="k">services:</span>
+  sephiroth:
+    image: ghcr.io/edsel-rahimi/sephiroth:latest   <span class="c"># 或固定版本：:v2.5.0</span>
+    ports: [ "<span class="ok">${SEPH_PORT:-3000}</span>:3000" ]
+    environment:
+      SEPHIROTH_ADMIN_USER: <span class="ok">${SEPHIROTH_ADMIN_USER:-admin}</span>
+      SEPHIROTH_ADMIN_PASS: <span class="ok">${SEPHIROTH_ADMIN_PASS:-sephiroth}</span>  <span class="c"># 首次登录后请立即修改！</span>
+      SEPH_COOKIE_SECURE: auto
+    volumes: [ sephiroth_data:/app/db ]</pre>
+  <p>标签由 GitHub Actions 自动构建并推送到 GHCR：<span class="mono">latest</span> 对应 main 分支，语义化版本标签（<span class="mono">v2.5.0</span>）— 生产环境建议固定版本。环境变量中的用户名/密码仅在<b>空数据首次启动</b>时注入；之后请只在面板内或通过 CLI 修改。</p>
+  <div class="grid2">
+    <div class="card"><div class="t">更新（脚本安装）</div><div class="s">重新执行 install.sh 即安全更新：数据库、env 与密码保持不变，服务自动重启。面板内也有更新按钮（第 08 节）。non-git 模式：下载压缩包 + 替换 <span class="mono">server.cjs</span>。</div></div>
+    <div class="card"><div class="t">完全卸载</div><div class="s"><span class="mono">sephiroth uninstall</span> 需两次确认：清除服务与文件；是否删除数据（db）会另行单独询问。</div></div>
+  </div>
+  <div class="callout warn">
+    <div class="h">⚠ 安装后检查清单</div>
+    <p>1）修改默认密码（个人资料 → 安全）。2）将恢复密钥存放在安全之处。3）开启 2FA。4）手动做一次备份，演练一遍恢复流程。5）生产环境请在“内核”卡片启用真实 Xray 驱动。</p>
+  </div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">16</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p17 · 12 languages ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 12 — 6 LANGUAGES</span>
+    <h2><span class="n">12</span>6 种语言的面板</h2>
+    <hr class="rule">
+  </div>
+  <p>面板界面、订阅门户、Toast、对话框乃至配置医生的文案均以完全对等的方式翻译为 <b>6 种语言</b>（自动校验：6 种语言中零缺失键、零占位符不一致）：</p>
+  <table>
+    <tr><th style="width:150px">语言</th><th style="width:80px">代码</th><th style="width:90px">方向</th><th>备注</th></tr>
+    <tr><td>波斯语</td><td><span class="mono">fa</span></td><td>RTL</td><td>规范使用零宽不连字与波斯数字</td></tr>
+    <tr><td>阿拉伯语</td><td><span class="mono">ar</span></td><td>RTL</td><td>术语统一（如“入口点”“分发器”等）</td></tr>
+    <tr><td>English</td><td><span class="mono">en</span></td><td>LTR</td><td>基准语言</td></tr>
+    <tr><td>中文</td><td><span class="mono">zh</span></td><td>LTR</td><td>全角括号与流畅的中文行文</td></tr>
+    <tr><td>Türkçe</td><td><span class="mono">tr</span></td><td>LTR</td><td>术语统一（Giriş / Sorgula…）</td></tr>
+    <tr><td>Русский</td><td><span class="mono">ru</span></td><td>LTR</td><td>技术术语完成本地化</td></tr>
+  </table>
+  <figure>
+    <div class="shot"><img src="shot-fa-dashboard.png" alt="波斯语仪表盘"></div>
+    <figcaption><span class="step">图 9</span><span>波斯语模式下的仪表盘 — 完整 RTL 镜像：仪表、图表、导航与实时动态。</span></figcaption>
+  </figure>
+  <div class="callout">
+    <div class="h"><span class="ico">◈</span> 真正的 RTL，不只是右对齐</div>
+    <p>页面方向通过 Radix DirectionProvider 从根节点注入；对话框、下拉菜单、工具提示乃至 Toast 都会镜像。技术数字（端口、版本、链接）保留在 <span class="mono">dir=ltr</span> 块中，保持可读性。</p>
+  </div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">17</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p18 · 12 mobile ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 12 — RESPONSIVE</span>
+    <h2><span class="n">12</span>移动端与响应式</h2>
+    <hr class="rule">
+  </div>
+  <p>面板全部 13 个视图均针对 390 像素宽度重新设计：表格折叠为卡片堆叠、顶栏收起、大型对话框（如 Forge）改为整宽字段的纵向滚动 — LTR 与 RTL 两个方向均无横向溢出（经自动布局检查测试）。</p>
+  <div class="duo" style="justify-content:center; margin-top:8px">
+    <figure style="flex:0 0 auto; margin:0">
+      <div class="shot" style="width:236px"><img src="shot-mobile-dashboard.png" alt="移动端 — 仪表盘" style="width:100%"></div>
+      <figcaption style="justify-content:center"><span class="step">图 10</span><span>移动端仪表盘（英文）</span></figcaption>
+    </figure>
+    <figure style="flex:0 0 auto; margin:0">
+      <div class="shot" style="width:236px"><img src="shot-mobile-forge.png" alt="移动端 — 波斯语 Forge" style="width:100%"></div>
+      <figcaption style="justify-content:center"><span class="step">图 11</span><span>移动端 Forge — 波斯语 RTL</span></figcaption>
+    </figure>
+  </div>
+  <div class="grid2 mt14">
+    <div class="card"><div class="t">MOBILE-FIRST TOUCHES</div><div class="s">全局搜索与 <span class="mono">Ctrl+K</span> 命令面板在移动端同样可用；视图切换通过顶部导航与仪表盘快捷操作按钮完成。</div></div>
+    <div class="card"><div class="t">QA AUTOMATICO</div><div class="s">一个布局审计器（溢出、重叠、文字截断）会在 EN/FA 与 1280px/390px 下扫描全部视图 — 本手册同样通过了这项审计。</div></div>
+  </div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">18</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p19 · 13 FAQ ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 13 — TROUBLESHOOTING &amp; FAQ</span>
+    <h2><span class="n">13</span>故障排除 · 常见问题</h2>
+    <hr class="rule">
+  </div>
+  <table>
+    <tr><th style="width:200px">问题</th><th>简答</th></tr>
+    <tr><td>提示“端口被占用”</td><td>在 Forge 中点击魔棒按钮 ✦ 即可推荐首个空闲端口；手动排查：<span class="mono">ss -tlnp | grep &lt;port&gt;</span></td></tr>
+    <tr><td>Xray 二进制下载失败</td><td>在“内核”卡片手动指定二进制路径或固定版本；在此之前面板会用模拟器照常工作。</td></tr>
+    <tr><td>模拟器的流量数值和真实数据有差别吗？</td><td>有 — 模拟器只是演示遥测。真实的按用户统计仅来自真实 Xray 驱动（第 07 节）。</td></tr>
+    <tr><td>忘记了管理员密码</td><td>在服务器上运行：<span class="mono">sephiroth</span> → 选项 8（修改密码）；或在登录页使用“恢复密钥”。</td></tr>
+    <tr><td>如何恢复备份？</td><td>设置 → 恢复 → 选择 JSON 文件 + 输入 <span class="mono">RESTORE</span> 确认；或在服务器上：<span class="mono">sephiroth</span> → 选项 11。恢复在单一事务中完成，管理员账户保持不变。</td></tr>
+    <tr><td>如何启用 HTTPS？</td><td>在前端加一个带 TLS 的反向代理（Nginx/Caddy）；安全 Cookie 支持 <span class="mono">auto</span> 模式，会依据 <span class="mono">x-forwarded-proto</span> 自动变为 Secure。</td></tr>
+    <tr><td>我只有一个端口（免费主机）</td><td>使用“单端口组合”预设（第 03 节）：多个协议通过 fallback 共用一个端口 + 面板挂在 <span class="mono">/panel</span>。</td></tr>
+    <tr><td>变更后面板仍在运行旧代码</td><td>属正常现象 — 面板内更新会等到“重启”才切换，以免中断在线会话；请点击重启按钮。</td></tr>
+  </table>
+  <div class="callout ok">
+    <div class="h"><span class="ico">✓</span> 快速排障工具箱</div>
+    <p><span class="mono">sephiroth logs</span> 查看服务日志 · <span class="mono">sephiroth status</span> 查看状态 · “内核 / Xray”卡片中有内核实时日志 · 配置医生报告用于清理配置 · “活动”动态可追溯谁做了什么。</p>
+  </div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">19</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p20 · 14 roadmap + finale ═══════════════ -->
+<div class="page last">
+  <div class="sechead">
+    <span class="kicker">SECTION 14 — ROADMAP &amp; FINALE</span>
+    <h2><span class="n">14</span>路线图 · 结语</h2>
+    <hr class="rule">
+  </div>
+  <h3>截至 v2.5.0 已交付</h3>
+  <p><span class="gcheck">✓</span> 支持 REALITY 与实时预览的 Forge &nbsp;·&nbsp; <span class="gcheck">✓</span> 16 项配置医生检查 &nbsp;·&nbsp; <span class="gcheck">✓</span> 真实 Xray 驱动 &nbsp;·&nbsp; <span class="gcheck">✓</span> 2FA（TOTP） &nbsp;·&nbsp; <span class="gcheck">✓</span> 定时备份 &nbsp;·&nbsp; <span class="gcheck">✓</span> 面板内更新 &nbsp;·&nbsp; <span class="gcheck">✓</span> Telegram SOCKS5 套件 + MTProto 工具 &nbsp;·&nbsp; <span class="gcheck">✓</span> 5 种订阅格式 + 品牌化门户 &nbsp;·&nbsp; <span class="gcheck">✓</span> 代理分销/销售模板/支付渠道 &nbsp;·&nbsp; <span class="gcheck">✓</span> 6 款主题 · 6 种语言（RTL） &nbsp;·&nbsp; <span class="gcheck">✓</span> 安装套件（install.sh + CLI + Docker + GHCR） &nbsp;·&nbsp; <span class="gcheck">✓</span> 自动检测 IP/空闲端口</p>
+  <h3>即将推出</h3>
+  <ul>
+    <li><b>Telegram 销售机器人</b> — 在 Telegram 内自动销售与续费（调研已完成；等待最终决策）。</li>
+    <li><b>多节点</b> — 在多台服务器之间同步入站。</li>
+    <li><b>ACME 证书</b> — 在面板内自动签发/续期 Let's Encrypt。</li>
+    <li><b>IP-Limit 强制执行</b> — 在真实入站上实现 fail2ban 式自动切断。</li>
+  </ul>
+  <hr class="rule mt14">
+  <div class="center mt10">
+    <span class="badge-end">SEPHIROTH · v2.5.0</span>
+    <p class="mt10" style="max-width:540px; margin-inline:auto">Sephiroth 是一个<b>基于 MIT 许可证的开源项目</b> — 欢迎 fork、修改并用于你自己的项目。如果它对你有帮助，请通过面板内的“支持 Sephiroth”按钮或 GitHub Star 为我们加油。</p>
+    <p class="small" style="max-width:540px; margin-inline:auto"><b>免责声明：</b>本面板仅供个人与学习用途发布；任何不当使用的责任由用户自行承担。本手册所有截图均取自真实的 v2.5.0 版本，不含任何隐私信息。</p>
+    <p class="mt6" style="letter-spacing:2px; color:var(--muted); font-size:10.5px">由 <b style="color:var(--text)">EPODONIOS</b> 倾注 ♥ 打造 · github.com/Edsel-Rahimi/Sephiroth</p>
+  </div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">20</span><span>EPODONIOS</span></div>
+</div>
+
+</body>
+</html>

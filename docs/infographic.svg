@@ -1,0 +1,172 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-label="Sephiroth v2.5.0 — feature infographic">
+<defs>
+  <linearGradient id="wg" x1="0" y1="46" x2="0" y2="80" gradientUnits="userSpaceOnUse">
+    <stop offset="0" stop-color="#eafcff"/><stop offset=".45" stop-color="#22d8ee"/><stop offset="1" stop-color="#0f7f9e"/>
+  </linearGradient>
+  <radialGradient id="gl1" cx=".5" cy=".5" r=".5">
+    <stop offset="0" stop-color="#22d8ee" stop-opacity=".13"/><stop offset="1" stop-color="#22d8ee" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="gl2" cx=".5" cy=".5" r=".5">
+    <stop offset="0" stop-color="#9fb6c4" stop-opacity=".08"/><stop offset="1" stop-color="#9fb6c4" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="soft" cx=".5" cy=".42" r=".62"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#000"/></radialGradient>
+  <mask id="frame"><rect width="1200" height="675" fill="url(#soft)"/></mask>
+  <pattern id="dots" width="26" height="26" patternUnits="userSpaceOnUse">
+    <circle cx="1.3" cy="1.3" r="1.2" fill="#22d8ee" fill-opacity=".10"/>
+  </pattern>
+</defs>
+
+<!-- backdrop -->
+<rect width="1200" height="675" fill="#060b0f"/>
+<rect width="1200" height="675" fill="url(#dots)" mask="url(#frame)"/>
+<ellipse cx="150" cy="36" rx="500" ry="270" fill="url(#gl1)"/>
+<ellipse cx="1040" cy="640" rx="540" ry="260" fill="url(#gl2)"/>
+
+<!-- frame hairlines -->
+<rect x="14" y="14" width="1172" height="647" rx="18" fill="none" stroke="#22d8ee" stroke-opacity=".14"/>
+<rect x="18" y="18" width="1164" height="639" rx="15" fill="none" stroke="#cfd9e2" stroke-opacity=".05"/>
+
+<!-- ============ HEADER ============ -->
+<g>
+  <!-- orbital S mark -->
+  <ellipse cx="64" cy="66" rx="34" ry="12" fill="none" stroke="#22d8ee" stroke-opacity=".25" transform="rotate(-16 64 66)"/>
+  <circle cx="96" cy="55" r="2.4" fill="#22d8ee"/>
+  <circle cx="64" cy="66" r="17" fill="#0a1218" stroke="#22d8ee" stroke-opacity=".55"/>
+  <text x="64" y="72" text-anchor="middle" font-family="'Segoe UI','DejaVu Sans',sans-serif" font-size="16" font-weight="800" fill="#22d8ee">S</text>
+
+  <!-- wordmark -->
+  <text x="98" y="74" font-family="'Segoe UI','DejaVu Sans',sans-serif" font-size="30" font-weight="800" letter-spacing="6" fill="url(#wg)">SEPHIROTH</text>
+
+  <!-- version badge (amber semantic accent) -->
+  <rect x="352" y="48" width="76" height="30" rx="15" fill="#fbbf24" fill-opacity=".08" stroke="#fbbf24" stroke-opacity=".38"/>
+  <text x="390" y="67.5" text-anchor="middle" font-family="'DejaVu Sans Mono','JetBrains Mono',Menlo,monospace" font-size="13" fill="#fbbf24">v2.5.0</text>
+
+  <!-- tagline -->
+  <text x="98" y="100" font-family="'Segoe UI','DejaVu Sans',sans-serif" font-size="14.5" fill="#8fa3ad">Self-hosted Xray/sing-box management panel</text>
+</g>
+<line x1="42" y1="128" x2="1158" y2="128" stroke="#22d8ee" stroke-opacity=".10"/>
+
+<!-- ============ FEATURE TILES 3×2 ============ -->
+<!-- tile geometry: x = 42 / 422 / 802, w = 356, h = 196, y = 142 / 362 -->
+
+<!-- 01 · Multi-Protocol Core -->
+<g>
+  <rect x="42" y="142" width="356" height="196" rx="16" fill="#ffffff" fill-opacity=".045" stroke="#ffffff" stroke-opacity=".09"/>
+  <rect x="64" y="162" width="44" height="44" rx="12" fill="#ffffff" fill-opacity=".04" stroke="#22d8ee" stroke-opacity=".32"/>
+  <g transform="translate(68,166) scale(1.5)" fill="none" stroke="#22d8ee" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 2.5 L21 7.5 L12 12.5 L3 7.5 Z"/>
+    <path d="M3 11.8 L12 16.8 L21 11.8"/>
+    <path d="M3 16.2 L12 21.2 L21 16.2"/>
+  </g>
+  <text x="378" y="176" text-anchor="end" font-family="'DejaVu Sans Mono','JetBrains Mono',Menlo,monospace" font-size="11" fill="#22d8ee" fill-opacity=".55">01</text>
+  <text x="64" y="236" font-family="'Segoe UI','DejaVu Sans',sans-serif" font-size="17" font-weight="700" fill="#e8eef6">Multi-Protocol Core</text>
+  <!-- protocol chips -->
+  <g font-family="'DejaVu Sans Mono','JetBrains Mono',Menlo,monospace" font-size="10" fill="#22d8ee" text-anchor="middle">
+    <rect x="64" y="248" width="45" height="18" rx="9" fill="#22d8ee" fill-opacity=".07" stroke="#22d8ee" stroke-opacity=".28"/>
+    <text x="86.5" y="260.5">VLESS</text>
+    <rect x="115" y="248" width="45" height="18" rx="9" fill="#22d8ee" fill-opacity=".07" stroke="#22d8ee" stroke-opacity=".28"/>
+    <text x="137.5" y="260.5">VMess</text>
+    <rect x="166" y="248" width="51" height="18" rx="9" fill="#22d8ee" fill-opacity=".07" stroke="#22d8ee" stroke-opacity=".28"/>
+    <text x="191.5" y="260.5">Trojan</text>
+    <rect x="223" y="248" width="27" height="18" rx="9" fill="#22d8ee" fill-opacity=".07" stroke="#22d8ee" stroke-opacity=".28"/>
+    <text x="236.5" y="260.5">SS</text>
+    <rect x="256" y="248" width="39" height="18" rx="9" fill="#22d8ee" fill-opacity=".07" stroke="#22d8ee" stroke-opacity=".28"/>
+    <text x="275.5" y="260.5">mKCP</text>
+    <rect x="301" y="248" width="51" height="18" rx="9" fill="#22d8ee" fill-opacity=".07" stroke="#22d8ee" stroke-opacity=".28"/>
+    <text x="326.5" y="260.5">SS2022</text>
+  </g>
+  <text x="64" y="298" font-family="'Segoe UI','DejaVu Sans',sans-serif" font-size="12.5" fill="#8fa3ad">One Forge dialog builds every inbound</text>
+</g>
+
+<!-- 02 · Dual Engine -->
+<g>
+  <rect x="422" y="142" width="356" height="196" rx="16" fill="#ffffff" fill-opacity=".045" stroke="#ffffff" stroke-opacity=".09"/>
+  <rect x="444" y="162" width="44" height="44" rx="12" fill="#ffffff" fill-opacity=".04" stroke="#22d8ee" stroke-opacity=".32"/>
+  <g transform="translate(448,166) scale(1.5)" fill="none" stroke="#22d8ee" stroke-width="1.7" stroke-linecap="round">
+    <circle cx="8.8" cy="12" r="5.6"/>
+    <circle cx="15.2" cy="12" r="5.6"/>
+  </g>
+  <text x="758" y="176" text-anchor="end" font-family="'DejaVu Sans Mono','JetBrains Mono',Menlo,monospace" font-size="11" fill="#22d8ee" fill-opacity=".55">02</text>
+  <text x="444" y="236" font-family="'Segoe UI','DejaVu Sans',sans-serif" font-size="17" font-weight="700" fill="#e8eef6">Dual Engine</text>
+  <rect x="444" y="246" width="26" height="2.5" rx="1.25" fill="#22d8ee" fill-opacity=".55"/>
+  <text x="444" y="272" font-family="'Segoe UI','DejaVu Sans',sans-serif" font-size="12.5" fill="#8fa3ad">Xray primary + sing-box secondary core</text>
+  <text x="444" y="294" font-family="'Segoe UI','DejaVu Sans',sans-serif" font-size="12.5" fill="#8fa3ad">Hysteria2 sidecar for QUIC-based links</text>
+</g>
+
+<!-- 03 · Telegram Sales Bot -->
+<g>
+  <rect x="802" y="142" width="356" height="196" rx="16" fill="#ffffff" fill-opacity=".045" stroke="#ffffff" stroke-opacity=".09"/>
+  <rect x="824" y="162" width="44" height="44" rx="12" fill="#ffffff" fill-opacity=".04" stroke="#22d8ee" stroke-opacity=".32"/>
+  <g transform="translate(828,166) scale(1.5)" fill="none" stroke="#22d8ee" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 3 L10.5 13.5"/>
+    <path d="M21 3 L14.5 21 L10.5 13.5 L3 9.5 Z"/>
+  </g>
+  <text x="1138" y="176" text-anchor="end" font-family="'DejaVu Sans Mono','JetBrains Mono',Menlo,monospace" font-size="11" fill="#22d8ee" fill-opacity=".55">03</text>
+  <text x="824" y="236" font-family="'Segoe UI','DejaVu Sans',sans-serif" font-size="17" font-weight="700" fill="#e8eef6">Telegram Sales Bot</text>
+  <rect x="824" y="246" width="26" height="2.5" rx="1.25" fill="#22d8ee" fill-opacity=".55"/>
+  <text x="824" y="272" font-family="'Segoe UI','DejaVu Sans',sans-serif" font-size="12.5" fill="#8fa3ad">Automated orders, ZarinPal payments</text>
+  <text x="824" y="294" font-family="'Segoe UI','DejaVu Sans',sans-serif" font-size="12.5" fill="#8fa3ad">Instant delivery &amp; auto-provisioning</text>
+</g>
+
+<!-- 04 · Multi-Node -->
+<g>
+  <rect x="42" y="362" width="356" height="196" rx="16" fill="#ffffff" fill-opacity=".045" stroke="#ffffff" stroke-opacity=".09"/>
+  <rect x="64" y="382" width="44" height="44" rx="12" fill="#ffffff" fill-opacity=".04" stroke="#22d8ee" stroke-opacity=".32"/>
+  <g transform="translate(68,386) scale(1.5)" fill="none" stroke="#22d8ee" stroke-width="1.7" stroke-linecap="round">
+    <circle cx="12" cy="4.6" r="2.4"/>
+    <circle cx="4.8" cy="18.6" r="2.4"/>
+    <circle cx="19.2" cy="18.6" r="2.4"/>
+    <path d="M11 7.4 L5.8 16.4"/>
+    <path d="M13 7.4 L18.2 16.4"/>
+    <path d="M7.2 18.6 L16.8 18.6"/>
+  </g>
+  <text x="378" y="396" text-anchor="end" font-family="'DejaVu Sans Mono','JetBrains Mono',Menlo,monospace" font-size="11" fill="#22d8ee" fill-opacity=".55">04</text>
+  <text x="64" y="456" font-family="'Segoe UI','DejaVu Sans',sans-serif" font-size="17" font-weight="700" fill="#e8eef6">Multi-Node</text>
+  <rect x="64" y="466" width="26" height="2.5" rx="1.25" fill="#22d8ee" fill-opacity=".55"/>
+  <text x="64" y="492" font-family="'Segoe UI','DejaVu Sans',sans-serif" font-size="12.5" fill="#8fa3ad">Push configs to remote agent nodes</text>
+  <text x="64" y="514" font-family="'Segoe UI','DejaVu Sans',sans-serif" font-size="12.5" fill="#8fa3ad">Unified traffic stats, one cockpit</text>
+</g>
+
+<!-- 05 · SSL / ACME -->
+<g>
+  <rect x="422" y="362" width="356" height="196" rx="16" fill="#ffffff" fill-opacity=".045" stroke="#ffffff" stroke-opacity=".09"/>
+  <rect x="444" y="382" width="44" height="44" rx="12" fill="#ffffff" fill-opacity=".04" stroke="#22d8ee" stroke-opacity=".32"/>
+  <g transform="translate(448,386) scale(1.5)" fill="none" stroke="#22d8ee" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 2.8 L19.2 5.6 V11 C19.2 15.8 16.2 19.4 12 21.2 C7.8 19.4 4.8 15.8 4.8 11 V5.6 Z"/>
+    <path d="M8.8 11.6 L11 13.8 L15.4 9.2" stroke="#34d399"/>
+  </g>
+  <text x="758" y="396" text-anchor="end" font-family="'DejaVu Sans Mono','JetBrains Mono',Menlo,monospace" font-size="11" fill="#22d8ee" fill-opacity=".55">05</text>
+  <text x="444" y="456" font-family="'Segoe UI','DejaVu Sans',sans-serif" font-size="17" font-weight="700" fill="#e8eef6">SSL / ACME</text>
+  <rect x="444" y="466" width="26" height="2.5" rx="1.25" fill="#22d8ee" fill-opacity=".55"/>
+  <text x="444" y="492" font-family="'Segoe UI','DejaVu Sans',sans-serif" font-size="12.5" fill="#8fa3ad">Issue &amp; renew certificates in-panel</text>
+  <text x="444" y="514" font-family="'Segoe UI','DejaVu Sans',sans-serif" font-size="12.5" fill="#8fa3ad">Zero-dependency ACME client built in</text>
+</g>
+
+<!-- 06 · Abuse Control -->
+<g>
+  <rect x="802" y="362" width="356" height="196" rx="16" fill="#ffffff" fill-opacity=".045" stroke="#ffffff" stroke-opacity=".09"/>
+  <rect x="824" y="382" width="44" height="44" rx="12" fill="#ffffff" fill-opacity=".04" stroke="#22d8ee" stroke-opacity=".32"/>
+  <g transform="translate(828,386) scale(1.5)" fill="none" stroke="#22d8ee" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="6" y="10.4" width="12" height="9" rx="2.2"/>
+    <path d="M8.6 10.4 V7.8 a3.4 3.4 0 0 1 6.8 0 V10.4"/>
+    <circle cx="12" cy="14.2" r="1.3" stroke="#fb5f6b"/>
+    <path d="M12 15.5 V17" stroke="#fb5f6b"/>
+  </g>
+  <text x="1138" y="396" text-anchor="end" font-family="'DejaVu Sans Mono','JetBrains Mono',Menlo,monospace" font-size="11" fill="#22d8ee" fill-opacity=".55">06</text>
+  <text x="824" y="456" font-family="'Segoe UI','DejaVu Sans',sans-serif" font-size="17" font-weight="700" fill="#e8eef6">Abuse Control</text>
+  <rect x="824" y="466" width="26" height="2.5" rx="1.25" fill="#22d8ee" fill-opacity=".55"/>
+  <text x="824" y="492" font-family="'Segoe UI','DejaVu Sans',sans-serif" font-size="12.5" fill="#8fa3ad">Per-client IP limits on every inbound</text>
+  <text x="824" y="514" font-family="'Segoe UI','DejaVu Sans',sans-serif" font-size="12.5" fill="#8fa3ad">HWID device binding on subscriptions</text>
+</g>
+
+<!-- ============ FOOTER STRIP ============ -->
+<rect x="42" y="586" width="1116" height="44" rx="14" fill="#ffffff" fill-opacity=".035" stroke="#ffffff" stroke-opacity=".09"/>
+<g>
+  <circle cx="78" cy="608" r="10.5" fill="#0a1218" stroke="#22d8ee" stroke-opacity=".45"/>
+  <text x="78" y="612" text-anchor="middle" font-family="'Segoe UI','DejaVu Sans',sans-serif" font-size="11" font-weight="800" fill="#22d8ee">S</text>
+  <text x="100" y="612" font-family="'DejaVu Sans Mono','JetBrains Mono',Menlo,monospace" font-size="11" letter-spacing="2.5" fill="#cfd9e2">SEPHIROTH PANEL</text>
+</g>
+<text x="600" y="612" text-anchor="middle" font-family="'DejaVu Sans Mono','JetBrains Mono',Menlo,monospace" font-size="11.5" letter-spacing="2">
+  <tspan fill="#cfd9e2">6 LANGUAGES</tspan><tspan fill="#22d8ee"> · </tspan><tspan fill="#cfd9e2">RTL-READY</tspan><tspan fill="#22d8ee"> · </tspan><tspan fill="#cfd9e2">DARK-FIRST UI</tspan><tspan fill="#22d8ee"> · </tspan><tspan fill="#cfd9e2">ONE-LINE INSTALL</tspan>
+</text>
+</svg>

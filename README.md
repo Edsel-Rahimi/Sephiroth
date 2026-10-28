@@ -10,6 +10,8 @@
   <strong>Next-generation Xray VPN panel</strong> — obsidian dark UI, glassmorphism, 6 languages, real Xray core driver.
 </p>
 
+![Sephiroth v2.5.0 infographic](docs/infographic.png)
+
 <p align="center">
   <a href="https://github.com/Edsel-Rahimi/Sephiroth/releases"><img alt="Release" src="https://img.shields.io/github/v/release/edsel-rahimi/sephiroth"></a>&nbsp;
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>&nbsp;

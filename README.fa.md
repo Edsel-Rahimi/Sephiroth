@@ -10,6 +10,8 @@
   <strong>پنل نسل بعدی مدیریت Xray</strong> — رابط تیره‌ی اُبسیدینی با شیشه‌ی مات، ۶ زبان و درایور هسته‌ی واقعی Xray.
 </p>
 
+![اینفوگرافیک سِفیروث v2.5.0](docs/infographic.png)
+
 <p align="center">
   <a href="https://github.com/Edsel-Rahimi/Sephiroth/releases"><img alt="Release" src="https://img.shields.io/github/v/release/edsel-rahimi/sephiroth"></a>&nbsp;
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>&nbsp;

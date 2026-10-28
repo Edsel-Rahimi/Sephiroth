@@ -1,0 +1,799 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>الكتاب الكامل لـ Sephiroth — كتالوغ لوحة Sephiroth v2.5.0</title>
+<style>
+@font-face { font-family: "Vazirmatn"; src: url("../public/fonts/Vazirmatn-Regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Vazirmatn"; src: url("../public/fonts/Vazirmatn-Medium.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Vazirmatn"; src: url("../public/fonts/Vazirmatn-SemiBold.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Vazirmatn"; src: url("../public/fonts/Vazirmatn-Bold.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+
+@page { size: 720px 1020px; margin: 0; }
+:root {
+  --bg: #060b0f;
+  --bg2: #0a1218;
+  --card: rgba(255,255,255,0.035);
+  --line: rgba(255,255,255,0.09);
+  --text: #e7edf2;
+  --muted: #93a4b1;
+  --cyan: #22d8ee;
+  --amber: #fbbf24;
+  --red: #fb5f6b;
+  --green: #34d399;
+}
+html, body {
+  margin: 0; padding: 0;
+  width: 720px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Vazirmatn', 'Tahoma', sans-serif;
+  font-size: 13px;
+  line-height: 1.9;
+}
+@media screen {
+  html { height: auto; display: flex; justify-content: center; background: #14181c; }
+  body { margin: 20px auto; box-shadow: 0 20px 80px rgba(0,0,0,.6); }
+}
+* { box-sizing: border-box; }
+
+/* ───── fixed page scaffold ───── */
+.page {
+  width: 720px; height: 1020px;
+  position: relative;
+  overflow: hidden;
+  break-after: page;
+  padding: 44px 54px 58px 54px;
+  background:
+    radial-gradient(520px 380px at 12% -6%, rgba(34,216,238,0.075), transparent 60%),
+    var(--bg);
+}
+.page.last { break-after: auto; }
+.pfoot {
+  position: absolute; bottom: 0; right: 0; left: 0; height: 46px;
+  padding: 0 54px;
+  border-top: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: space-between;
+  color: var(--muted); font-size: 9.5px; letter-spacing: 1.5px;
+  background: rgba(6,11,15,0.85);
+}
+.pfoot .pg { color: var(--cyan); font-weight: 700; letter-spacing: 3px; }
+.pfoot b { color: var(--text); font-weight: 600; }
+
+/* ───── headings ───── */
+.kicker { display: inline-block; color: var(--cyan); font-size: 10px; font-weight: 700; letter-spacing: 4px; margin-bottom: 6px; }
+h2 { font-size: 21px; font-weight: 700; margin: 0 0 4px; color: var(--text); break-after: avoid; }
+h2 .n { color: var(--cyan); font-size: 13px; vertical-align: 4px; letter-spacing: 2px; margin-left: 8px; }
+h3 { font-size: 14.5px; font-weight: 600; color: var(--text); margin: 14px 0 4px; break-after: avoid; }
+.rule { height: 2px; background: linear-gradient(-90deg, var(--cyan), transparent 70%); border: 0; margin: 8px 0 12px; break-after: avoid; }
+p { margin: 0 0 9px; color: var(--muted); }
+p b, li b { color: var(--text); font-weight: 600; }
+li { color: var(--muted); margin-bottom: 4px; }
+ul, ol { margin: 0 0 9px; padding-right: 18px; }
+
+code, .mono {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  direction: ltr; unicode-bidi: embed;
+  background: rgba(34,216,238,0.08); color: var(--cyan);
+  border: 1px solid rgba(34,216,238,0.2);
+  border-radius: 6px; padding: 0 6px; font-size: 11px;
+}
+pre {
+  direction: ltr; text-align: left;
+  background: #0a141b; border: 1px solid var(--line);
+  border-radius: 12px; padding: 12px 14px;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 10.5px; line-height: 1.7; color: #b8e9f2;
+  overflow: hidden; white-space: pre-wrap; break-inside: avoid;
+  margin: 0 0 12px;
+}
+pre .c { color: #5b7280; }
+pre .k { color: var(--cyan); }
+pre .ok { color: var(--green); }
+
+/* ───── cards / callouts / tables ───── */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 0 12px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 0 0 12px; }
+.card {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 14px; padding: 11px 14px; break-inside: avoid;
+}
+.card .t { color: var(--cyan); font-size: 10px; font-weight: 700; letter-spacing: 2px; margin-bottom: 4px; }
+.card .v { color: var(--text); font-size: 12.5px; font-weight: 600; }
+.card .s { color: var(--muted); font-size: 10.5px; line-height: 1.75; }
+.card .s .mono { font-size: 10px; }
+.callout {
+  border: 1px solid rgba(34,216,238,0.3);
+  background: linear-gradient(180deg, rgba(34,216,238,0.07), rgba(34,216,238,0.03));
+  border-radius: 14px; padding: 11px 16px; margin: 0 0 12px; break-inside: avoid;
+}
+.callout.warn { border-color: rgba(251,191,36,0.35); background: linear-gradient(180deg, rgba(251,191,36,0.07), rgba(251,191,36,0.03)); }
+.callout.ok { border-color: rgba(52,211,153,0.35); background: linear-gradient(180deg, rgba(52,211,153,0.07), rgba(52,211,153,0.03)); }
+.callout.red { border-color: rgba(251,95,107,0.35); background: linear-gradient(180deg, rgba(251,95,107,0.07), rgba(251,95,107,0.03)); }
+.callout .h { color: var(--text); font-weight: 700; margin-bottom: 2px; font-size: 12.5px; }
+.callout.warn .h { color: var(--amber); }
+.callout.ok .h { color: var(--green); }
+.callout.red .h { color: var(--red); }
+.callout .h .ico { color: var(--cyan); }
+.callout p { margin: 0; font-size: 11.5px; }
+
+table { width: 100%; border-collapse: collapse; margin: 0 0 12px; break-inside: avoid; }
+th { color: var(--cyan); font-size: 10.5px; font-weight: 700; text-align: right; padding: 6px 9px; border-bottom: 1px solid rgba(34,216,238,0.25); }
+td { color: var(--muted); font-size: 11.5px; padding: 5.5px 9px; border-bottom: 1px solid var(--line); vertical-align: top; line-height: 1.7; }
+td .mono, td code { font-size: 10.5px; }
+tr { break-inside: avoid; }
+th:first-child, td:first-child { color: var(--text); font-weight: 600; }
+.chip {
+  display: inline-block; border: 1px solid rgba(34,216,238,0.35); border-radius: 999px;
+  background: rgba(34,216,238,0.06); color: var(--cyan);
+  font-size: 10px; font-weight: 600; padding: 1px 10px; margin: 0 0 4px 6px;
+}
+.chip.dim { border-color: rgba(255,255,255,0.14); color: var(--muted); background: rgba(255,255,255,0.03); }
+.chip.ok { border-color: rgba(52,211,153,0.4); color: var(--green); background: rgba(52,211,153,0.06); }
+.chip.am { border-color: rgba(251,191,36,0.4); color: var(--amber); background: rgba(251,191,36,0.06); }
+
+/* ───── figures ───── */
+figure { margin: 10px 0 6px; break-inside: avoid; }
+figure .shot {
+  border: 1px solid rgba(34,216,238,0.22);
+  border-radius: 12px; overflow: hidden;
+  background: #0a1218;
+  box-shadow: 0 10px 34px rgba(0,0,0,0.45);
+}
+figure img { display: block; width: 100%; max-width: 100%; height: auto; }
+figcaption {
+  margin-top: 6px; font-size: 10.5px; color: var(--muted);
+  display: flex; gap: 8px; align-items: baseline;
+}
+figcaption .step {
+  flex: 0 0 auto; color: var(--cyan); font-weight: 700; font-size: 9.5px;
+  border: 1px solid rgba(34,216,238,0.35); border-radius: 999px; padding: 0 10px;
+  background: rgba(34,216,238,0.06);
+}
+.duo { display: flex; gap: 12px; align-items: flex-start; }
+.duo figure { flex: 1; margin: 10px 0 0; }
+
+/* ───── architecture diagram (pure HTML/CSS) ───── */
+.diagram { margin: 6px 0 12px; break-inside: avoid; }
+.dbox {
+  border: 1px solid rgba(34,216,238,0.35); border-radius: 14px;
+  background: rgba(34,216,238,0.05);
+  padding: 10px 14px; text-align: center; color: var(--text);
+  font-size: 12px; font-weight: 600;
+}
+.dbox .sub { display: block; color: var(--muted); font-size: 10px; font-weight: 400; margin-top: 2px; }
+.drow { display: flex; gap: 10px; }
+.drow .dbox { flex: 1; font-size: 11px; font-weight: 600; padding: 8px 6px; }
+.darrow { text-align: center; color: var(--cyan); font-size: 13px; line-height: 1.35; }
+.darrow .lbl { color: var(--muted); font-size: 9.5px; display: block; letter-spacing: 1px; }
+.dbox.core {
+  border-color: rgba(251,191,36,0.4);
+  background: rgba(251,191,36,0.05);
+}
+.dbox.core .sub b { color: var(--amber); }
+
+/* ───── TOC ───── */
+.toc { margin-top: 4px; }
+.toc .row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 7.5px 2px; border-bottom: 1px dashed rgba(255,255,255,0.10);
+}
+.toc .num {
+  flex: 0 0 34px; height: 26px; border-radius: 9px;
+  border: 1px solid rgba(34,216,238,0.4); background: rgba(34,216,238,0.07);
+  color: var(--cyan); font-weight: 700; font-size: 11px;
+  display: flex; align-items: center; justify-content: center;
+}
+.toc .tt { color: var(--text); font-weight: 600; font-size: 13px; }
+.toc .dots { flex: 1; border-bottom: 1px dotted rgba(255,255,255,0.16); margin: 0 6px; height: 1px; }
+.toc .pn { color: var(--cyan); font-weight: 700; font-size: 12px; }
+
+/* ───── cover ───── */
+.cover {
+  width: 720px; height: 1020px;
+  break-after: page;
+  overflow: hidden;
+  position: relative;
+  padding: 52px 54px 58px;
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  background:
+    radial-gradient(560px 420px at 78% 10%, rgba(34,216,238,0.14), transparent 62%),
+    radial-gradient(500px 420px at 14% 86%, rgba(34,216,238,0.07), transparent 60%),
+    var(--bg);
+}
+.cover .ring { position: absolute; border-radius: 50%; border: 1px solid rgba(34,216,238,0.16); }
+.cover .r1 { width: 470px; height: 470px; top: 30px; left: 40px; }
+.cover .r2 { width: 300px; height: 300px; bottom: 30px; right: 40px; border-color: rgba(34,216,238,0.10); }
+.cover .logo {
+  width: 88px; height: 88px; border-radius: 24px;
+  border: 1.5px solid rgba(34,216,238,0.45);
+  background: rgba(34,216,238,0.06);
+  box-shadow: 0 0 60px rgba(34,216,238,0.28);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 40px; font-weight: 700; color: var(--cyan);
+  font-family: 'JetBrains Mono','Courier New',monospace;
+}
+.cover .kick { margin-top: 18px; color: var(--muted); font-size: 11px; letter-spacing: 6px; }
+.cover h1 { font-size: 40px; font-weight: 700; margin: 8px 0 2px; color: var(--text); }
+.cover h1 b { color: var(--cyan); }
+.cover .ver {
+  font-size: 13.5px; color: var(--cyan); letter-spacing: 3px;
+  border: 1px solid rgba(34,216,238,0.35); border-radius: 999px;
+  padding: 4px 22px; margin: 10px 0 4px;
+  background: rgba(34,216,238,0.06);
+}
+.cover .date { color: var(--muted); font-size: 11.5px; letter-spacing: 1px; }
+.cover p.lead { max-width: 560px; color: var(--muted); font-size: 12.5px; margin: 12px 0 0; line-height: 2; }
+.cover .herofig {
+  margin-top: 20px; width: 612px;
+  border: 1px solid rgba(34,216,238,0.25); border-radius: 14px; overflow: hidden;
+  box-shadow: 0 18px 60px rgba(0,0,0,0.55), 0 0 40px rgba(34,216,238,0.10);
+  background: #0a1218;
+}
+.cover .herofig img { display: block; width: 100%; height: auto; }
+.cover .foot { position: absolute; bottom: 40px; left: 0; right: 0; color: var(--muted); font-size: 10.5px; letter-spacing: 2px; }
+.cover .foot b { color: var(--text); letter-spacing: 4px; }
+
+/* ───── misc ───── */
+.sechead { margin-bottom: 2px; }
+.steps li { margin-bottom: 7px; }
+.small { font-size: 10.5px; color: var(--muted); }
+.center { text-align: center; }
+.mt6 { margin-top: 6px; } .mt10 { margin-top: 10px; } .mt14 { margin-top: 14px; }
+.mb0 { margin-bottom: 0; }
+.gcheck { color: var(--green); font-weight: 700; }
+.rcyan { color: var(--cyan); font-weight: 700; }
+.ramber { color: var(--amber); font-weight: 700; }
+.badge-end {
+  display: inline-block; margin-top: 4px;
+  border: 1px solid rgba(34,216,238,0.35); border-radius: 999px;
+  color: var(--cyan); background: rgba(34,216,238,0.06);
+  padding: 3px 18px; font-size: 10.5px; letter-spacing: 3px; font-weight: 700;
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ p1 · COVER ═══════════════ -->
+<div class="cover">
+  <div class="ring r1"></div>
+  <div class="ring r2"></div>
+  <div class="logo">S</div>
+  <div class="kick">SEPHIROTH · XRAY CONTROL PANEL</div>
+  <h1>الكتاب الكامل لـ <b>Sephiroth</b></h1>
+  <div class="ver">CATALOG · v2.5.0</div>
+  <div class="date">6 آبان 1405 — أكتوبر 2026</div>
+  <p class="lead">الكتالوغ الرسمي المصوَّر للوحة إدارة Xray من الجيل التالي: من «الفورج» لبناء الإعدادات و«دكتور الإعدادات»، إلى نواة Xray الحقيقية والأمان الثنائي ونظام الوكلاء وحزمة التثبيت الكاملة — وكل ذلك بصور حقيقية من اللوحة نفسها.</p>
+  <div class="herofig"><img src="shot-dashboard.png" alt="لوحة تحكم Sephiroth"></div>
+  <div class="foot"><b>EPODONIOS</b> · SEPHIROTH PANEL · 2026</div>
+</div>
+
+<!-- ═══════════════ p2 · TOC ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">TABLE OF CONTENTS</span>
+    <h2>جدول المحتويات</h2>
+    <hr class="rule">
+  </div>
+  <div class="toc">
+    <div class="row"><div class="num">01</div><div class="tt">مقدمة — ما هو Sephiroth؟</div><div class="dots"></div><div class="pn">3</div></div>
+    <div class="row"><div class="num">02</div><div class="tt">بنية اللوحة</div><div class="dots"></div><div class="pn">4</div></div>
+    <div class="row"><div class="num">03</div><div class="tt">البروتوكولات ووسائل النقل</div><div class="dots"></div><div class="pn">5</div></div>
+    <div class="row"><div class="num">04</div><div class="tt">إنشاء الإنباند عبر الفورج</div><div class="dots"></div><div class="pn">6</div></div>
+    <div class="row"><div class="num">05</div><div class="tt">المستخدمون والاشتراكات</div><div class="dots"></div><div class="pn">8</div></div>
+    <div class="row"><div class="num">06</div><div class="tt">دكتور الإعدادات (Config Doctor)</div><div class="dots"></div><div class="pn">10</div></div>
+    <div class="row"><div class="num">07</div><div class="tt">نواة Xray الحقيقية</div><div class="dots"></div><div class="pn">11</div></div>
+    <div class="row"><div class="num">08</div><div class="tt">الأمان</div><div class="dots"></div><div class="pn">12</div></div>
+    <div class="row"><div class="num">09</div><div class="tt">تيليجرام</div><div class="dots"></div><div class="pn">13</div></div>
+    <div class="row"><div class="num">10</div><div class="tt">الأعمال — الوكلاء وبوابات الدفع</div><div class="dots"></div><div class="pn">14</div></div>
+    <div class="row"><div class="num">11</div><div class="tt">النشر — التثبيت و CLI و Docker</div><div class="dots"></div><div class="pn">15</div></div>
+    <div class="row"><div class="num">12</div><div class="tt">اللوحة بـ 6 لغات</div><div class="dots"></div><div class="pn">17</div></div>
+    <div class="row"><div class="num">13</div><div class="tt">استكشاف الأخطاء · الأسئلة الشائعة</div><div class="dots"></div><div class="pn">19</div></div>
+    <div class="row"><div class="num">14</div><div class="tt">خارطة الطريق · الختام</div><div class="dots"></div><div class="pn">20</div></div>
+  </div>
+  <div class="callout mt14">
+    <div class="h"><span class="ico">◈</span> عن هذا الكتاب</div>
+    <p>جميع صور هذا الكتاب لقطات شاشة حقيقية من اللوحة نفسها (الإصدار v2.5.0، ولا توجد أوضاع فاتح/داكن — لغة التصميم «أوبسيديان + سماوي زجاجي» ثابتة عبر السمات الست كلها). لا توجد في هذا المستند أي كلمات مرور أو عناوين خوادم أو معلومات خاصة.</p>
+  </div>
+  <div class="grid2 mt6">
+    <div class="card"><div class="t">FORMAT</div><div class="v">PDF عمودي 720×1020</div><div class="s">20 صفحة · 11 صورة حقيقية من اللوحة · نص كامل بالعربية (RTL)</div></div>
+    <div class="card"><div class="t">AUDIENCE</div><div class="s" style="margin-top:2px">مديرو الخوادم، وبائعو الإعدادات، وعشاق الاستضافة الذاتية، وكل من يريد لوحة Xray كاملة وبالفارسية.</div></div>
+  </div>
+  <div class="pfoot"><span><b>الكتاب الكامل لـ Sephiroth</b> · v2.5.0</span><span class="pg">02</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p3 · 01 مقدمة ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 01 — INTRODUCTION</span>
+    <h2><span class="n">01</span>مقدمة — ما هو Sephiroth؟</h2>
+    <hr class="rule">
+  </div>
+  <p><b>Sephiroth</b> لوحة إدارة متكاملة لـ <b>Xray</b>: الإنباندها والمستخدمون والاشتراكات والإحصاءات الحية والأمان والنسخ الاحتياطي — كلها في <b>عملية Node.js واحدة</b>. لا تحتاج إلى MySQL ولا Postgres؛ تُحفظ البيانات في ملف JSON ذري، وتُقدَّم واجهة المستخدم عبر المنفذ نفسه.</p>
+  <div class="grid2">
+    <div class="card"><div class="t">DESIGN LANGUAGE</div><div class="v">أوبسيديان + سماوي زجاجي</div><div class="s">خلفية <span class="mono">#060b0f</span> بلمسة <span class="mono">#22d8ee</span>؛ بطاقات زجاجية وحلقات مدارية وسماء نجوم — هوية ثابتة عبر السمات الست كلها.</div></div>
+    <div class="card"><div class="t">THEMES ×6</div><div class="v" style="margin-bottom:4px">6 سمات داكنة</div><div class="s"><span class="chip dim">Sephiroth</span><span class="chip dim">Jenova</span><span class="chip dim">Masamune</span><span class="chip dim">Terminal</span><span class="chip dim">OLED</span><span class="chip dim">One-Winged</span></div></div>
+    <div class="card"><div class="t">LANGUAGES ×6</div><div class="v" style="margin-bottom:4px">الفارسية · English · العربية · Chinese · Türkçe · Русский</div><div class="s">اتجاه <b>RTL كامل وتلقائي</b> للفارسية والعربية (حتى الحوارات ورسائل Toast)؛ وتبديل اللغة من الشريط العلوي دون إعادة تحميل.</div></div>
+    <div class="card"><div class="t">ZERO-DEP RUNTIME</div><div class="v">بلا node_modules</div><div class="s">في وضع production يُبنى الخادم الخلفي كله في حزمة أحادية الملف (<span class="mono">server.cjs</span>)؛ وهو مثالي للاستضافات الصغيرة وأحادية المنفذ.</div></div>
+  </div>
+  <p>بُنيت Sephiroth لمديري الخوادم الشخصيين الباحثين عن تحكم دقيق، وللبائعين المحتاجين إلى نظام وكلاء وبوابة دفع، ولعشاق الاستضافة الذاتية الراغبين في لوحة جميلة وخفيفة وبالفارسية — مع تلمترية حية عبر Socket.IO، وأمر مركّب <span class="mono">Ctrl+K</span>، ودليل ميداني مدمج في التطبيق.</p>
+  <figure>
+    <div class="shot"><img src="shot-login.png" alt="صفحة الدخول" style="width:86%; display:block; margin:0 auto;"></div>
+    <figcaption><span class="step">الشكل 1</span><span>شاشة الدخول «الطرفية المدارية» — دخول بكلمة المرور، وتحقق ثنائي TOTP، ومفتاح استعادة، وقفل مضاد للقوة الغاشمة.</span></figcaption>
+  </figure>
+  <div class="pfoot"><span><b>الكتاب الكامل لـ Sephiroth</b> · v2.5.0</span><span class="pg">03</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p4 · 02 بنية اللوحة ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 02 — ARCHITECTURE</span>
+    <h2><span class="n">02</span>بنية اللوحة</h2>
+    <hr class="rule">
+  </div>
+  <p>اللوحة كلها <b>عملية واحدة</b>: يقدّم خادم Express‏ (REST API) المنفذ نفسه الذي تعمل عليه واجهة React المبنية (SPA)، وتبث Socket.IO التلمترية الحية (CPU/RAM/القرص، حالة الإنباندها، الأحداث). للنواة حالتان: <b>المحاكي</b> (الافتراضي؛ آمن وبدون ثنائي) أو <b>مشغّل Xray الحقيقي</b> (تفصيله في القسم 07).</p>
+  <div class="diagram">
+    <div class="dbox">متصفح المشرف / تطبيق الاشتراك<span class="sub">SPA React · RTL · 6 لغات</span></div>
+    <div class="darrow">▼<span class="lbl">HTTP :PORT · منفذ واحد لكل شيء</span></div>
+    <div class="dbox">عملية Node.js وحيدة — server.cjs (بلا node_modules)<span class="sub">Express REST API + أكثر من 40 مسار · ملفات SPA الثابتة · Socket.IO في الوقت الحقيقي</span></div>
+    <div class="darrow">▼<span class="lbl">قراءة/كتابة ذرية</span></div>
+    <div class="drow">
+      <div class="dbox">db/sephiroth-store.json<span class="sub">تخزين ذري: كتابة في ملف مؤقت ← rename + جيل .bak واحد</span></div>
+      <div class="dbox core">النواة<span class="sub"><b>المحاكي</b> (الافتراضي) أو <b>Xray حقيقي</b> + باب API خفي على 127.0.0.1</span></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card"><div class="t">ATOMIC JSON STORE</div><div class="s">كل تعديل يُكتب ذرياً على القرص فوراً (كتابة في ملف مؤقت ← rename)؛ عند الانهيار تخسر على الأكثر آخر عملية، لا قاعدة البيانات كلها.</div></div>
+    <div class="card"><div class="t">LIVE BY SOCKET.IO</div><div class="s">مؤشرات CPU/RAM/القرص، وأشرطة ترافيك الإنباندها، وبث الأنشطة كلها تتحدث بأحداث حية — دون إعادة تحميل الصفحة.</div></div>
+  </div>
+  <h3>خيارات النشر</h3>
+  <table style="margin-bottom:8px">
+    <tr><th style="width:130px">الطريقة</th><th>مناسب لـ</th><th style="width:190px">ملاحظة</th></tr>
+    <tr><td>تثبيت بسطر واحد install.sh</td><td>خادم VPS/مخصص لينكس (Ubuntu/Debian/RHEL/Alpine/Arch)</td><td>systemd + أداة CLI <span class="mono">sephiroth</span> + منفذ وكلمة مرور عشوائيين</td></tr>
+    <tr><td>Docker / Compose</td><td>خوادم Docker و CI</td><td>الصورة الرسمية <span class="mono">ghcr.io/edsel-rahimi/sephiroth</span></td></tr>
+    <tr><td>تشغيل يدوي</td><td>التطوير والاختبار</td><td><span class="mono">node server.ts</span> أو حزمة <span class="mono">server.cjs</span></td></tr>
+    <tr><td>استضافة أحادية المنفذ</td><td>استضافات مجانية موجّهة للتطبيقات (شبيهة بـ Pterodactyl)</td><td>حزمة بلا node_modules + المنفذ من <span class="mono">SERVER_PORT</span></td></tr>
+  </table>
+  <div class="callout" style="margin-bottom:0">
+    <div class="h"><span class="ico">◈</span> لماذا عملية واحدة؟</div>
+    <p>منفذ واحد، وعملية واحدة، وملف بيانات واحد — على أي بيئة فيها Node، من VPS بذاكرة 512 ميجابايت إلى حاوية 308 ميجابايت في استضافة مجانية.</p>
+  </div>
+  <div class="pfoot"><span><b>الكتاب الكامل لـ Sephiroth</b> · v2.5.0</span><span class="pg">04</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p5 · 03 البروتوكولات ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 03 — PROTOCOLS</span>
+    <h2><span class="n">03</span>البروتوكولات ووسائل النقل</h2>
+    <hr class="rule">
+  </div>
+  <p>يجمع فورج Sephiroth بين <b>9 بروتوكولات دخول</b> و<b>5 وسائل نقل</b> و<b>3 طبقات أمان</b>؛ ويُبنى رابط الاشتراك وQR ومخرجات النواة تلقائياً من هذه التوليفة نفسها.</p>
+  <table>
+    <tr><th style="width:118px">البروتوكول</th><th>الطابع والاستخدام</th></tr>
+    <tr><td>VLESS</td><td>حديث وخفيف؛ يدعم فلو <span class="mono">xtls-rprx-vision</span> — الثنائي الذهبي مع REALITY</td></tr>
+    <tr><td>VMess</td><td>كلاسيكي محبوب في كل مكان؛ مناسب لـ CDN و WebSocket</td></tr>
+    <tr><td>Trojan</td><td>يتنكّر في هيئة ترافيك HTTPS عادي</td></tr>
+    <tr><td>Shadowsocks</td><td>بسيط وسريع؛ شيفرات معروفة</td></tr>
+    <tr><td>Hysteria2</td><td>قائم على QUIC/UDP للشبكات فائقة السرعة أو المتأثرة بالتقطيع</td></tr>
+    <tr><td>WireGuard</td><td>نفق رسمي بمفتاح خاص/عام و MTU قابل للضبط</td></tr>
+    <tr><td>SOCKS5 / HTTP</td><td>بروكسي محلي بمصادقة اختيارية — بما في ذلك «بروكسي تيليجرام» (القسم 09)</td></tr>
+    <tr><td>Dokodemo-door</td><td>منفذ شفاف لتوجيه الترافيك (وهو أيضاً باب API النواة الخفي)</td></tr>
+  </table>
+  <div class="grid2">
+    <div class="card"><div class="t">TRANSPORTS</div><div class="s" style="margin-top:2px"><span class="chip dim">TCP + header</span><span class="chip dim">WebSocket</span><span class="chip dim">gRPC</span><span class="chip dim">HTTPUpgrade</span><span class="chip dim">XHTTP</span><br>مع path/host/serviceName و early-data لكل منها.</div></div>
+    <div class="card"><div class="t">SECURITY</div><div class="s" style="margin-top:2px"><span class="chip dim">none</span><span class="chip ok">TLS 1.0–1.3</span><span class="chip ok">REALITY</span><br>‏ALPN، وبصمة fingerprint ×9 (chrome/firefox/safari/…)، وuTLS؛ وREALITY مع dest و serverNames و shortIds وزوج مفاتيح داخلي.</div></div>
+  </div>
+  <h3>‏Fallbacks والضبط المسبق «التركيبة أحادية المنفذ»</h3>
+  <p>كل إنباند TLS يمكن أن يكون له <b>fallback</b>‏ (dest/alpn/path) — وهي أساس <b>الضبط المسبق أحادي المنفذ</b>: عدة بروتوكولات على <b>منفذ مشترك واحد</b> (مثل 443) ومسار <span class="mono">/panel</span> للوحة نفسها. للاستضافات التي تمنح منفذاً واحداً فقط، يحل هذا الضبط المسبق المشكلة كلها.</p>
+  <div class="callout ok">
+    <div class="h"><span class="ico">✓</span> بناء إعدادات النواة دون تعديل يدوي</div>
+    <p>كل ما تبنيه في الفورج يحوّله مشغّل النواة (القسم 07) إلى إعداد Xray حقيقي — streamSettings وREALITY وsniffing‏ (http/tls/quic/fakerd) وmux وfallbacks دون أي تلاعب يدوي بـ JSON.</p>
+  </div>
+  <div class="pfoot"><span><b>الكتاب الكامل لـ Sephiroth</b> · v2.5.0</span><span class="pg">05</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p6 · 04 الفورج (1) ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 04 — THE FORGE</span>
+    <h2><span class="n">04</span>إنشاء الإنباند عبر الفورج</h2>
+    <hr class="rule">
+  </div>
+  <p>«الفورج» هو حوار إنشاء/تحرير الإنباند — نموذج ذكي يبني <b>رابط الاشتراك وQR مباشرةً أثناء الكتابة</b> في الشريط الجانبي المجاور. خطوات العمل:</p>
+  <ol class="steps">
+    <li>اختر <b>البروتوكول</b> (9 خيارات؛ ويأتي شرح كل خيار أسفل الحقل نفسه).</li>
+    <li>في تبويب <b>General</b>: الوسم، والمنفذ، وعنوان الاستماع — مع زرّين سحريين سنتعرف عليهما لاحقاً.</li>
+    <li>تبويبا <b>Transport</b> و<b>Security</b>: وسيلة النقل + none/TLS/REALITY بكل التفاصيل (SNI، ALPN، fingerprint، shortId وغيرها).</li>
+    <li>في الوضع المتقدم: <b>Fallbacks</b> كمصفوفة حقيقية و<b>Sniffing/Mux</b>.</li>
+    <li>احفظ ← يستقر الإنباند في شبكة البطاقات مع شريط الترافيك وشرائح الحدود؛ وأضف العملاء من المكان نفسه.</li>
+  </ol>
+  <figure>
+    <div class="shot"><img src="shot-forge.png" alt="الفورج — تبويب General"></div>
+    <figcaption><span class="step">الشكل 2</span><span>الفورج في تبويب General (بروتوكول VLESS) — معاينة حية لرابط الاشتراك في الشريط الجانبي، وزرا كشف IP والمنفذ الحر بجانب الحقول.</span></figcaption>
+  </figure>
+  <h3>الإنشاء السريع (Quick Create)</h3>
+  <p>إن لم تعد على مزاج لنموذج طويل، انقر أحد الضبوطات الجاهزة من شبكة «الإنشاء السريع»: <span class="chip dim">VLESS + REALITY :443</span><span class="chip dim">VMess + WS + TLS</span><span class="chip dim">SOCKS5 محلي</span><span class="chip dim">تركيبة أحادية المنفذ</span> وغيرها — يعرض لك ملخص الإعدادات، توافق، وينتهي الأمر.</p>
+  <div class="pfoot"><span><b>الكتاب الكامل لـ Sephiroth</b> · v2.5.0</span><span class="pg">06</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p7 · 04 الفورج (2) ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 04 — THE FORGE · AUTOFILL</span>
+    <h2><span class="n">04</span>الكشف التلقائي عن IP والمنفذ الحر</h2>
+    <hr class="rule">
+  </div>
+  <p>زرّان صغيران في الفورج يزيلان من جذورهما متاعب «الرابط لا يعمل» الكلاسيكية:</p>
+  <div class="grid2">
+    <div class="card"><div class="t">✛ SERVER-IP AUTO-DETECT</div><div class="s">بجانب حقل «الاستماع»: قائمة تضم <b>عنوان IP العمومي المكتشف</b> وعنوان IP الخاص و<span class="mono">0.0.0.0</span>. يأتي العنوان العمومي من خدمات echo (بتخزين مؤقت 10 دقائق) — والأهم: بمجرد اختياره يتحول <b>رابط الاشتراك في اللحظة نفسها</b> إلى العنوان الحقيقي حتى لا يتسرب <span class="mono">0.0.0.0</span> أبداً إلى رابط العميل.</div></div>
+    <div class="card"><div class="t">✦ FREE-PORT WAND</div><div class="s">بجانب حقل «المنفذ»: عصا سحرية تقترح <b>أول منفذ حر</b> (منفذ اللوحة +1 و+2، ثم 8443/443/2053/2087/2096/8880). لن ترى بعدها خطأ «المنفذ مشغول» ولا منافذ مكررة.</div></div>
+  </div>
+  <figure>
+    <div class="shot"><img src="shot-forge-autofill.png" alt="الكشف التلقائي عن IP في الفورج"></div>
+    <figcaption><span class="step">الشكل 3</span><span>قائمة كشف IP مفتوحة: «استخدام عنوان IP العمومي — تم اكتشافه»، وعنوان IP الخاص، وجميع الواجهات — قيم حقيقية من API الداخلي <span class="mono">/api/system/server-info</span>.</span></figcaption>
+  </figure>
+  <div class="callout warn">
+    <div class="h">⚠ نصيحة احترافية</div>
+    <p>إن كنت خلف CDN أو بروكسي عكسي، فاترك قيمة «الاستماع» على <span class="mono">0.0.0.0</span> أو عنوان IP الخاص؛ ولن يظهر في رابط العميل إلا العنوان/النطاق العمومي — الفورج يُبقي المفهومين منفصلين.</p>
+  </div>
+  <div class="pfoot"><span><b>الكتاب الكامل لـ Sephiroth</b> · v2.5.0</span><span class="pg">07</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p8 · 05 المستخدمون (1) ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 05 — USERS &amp; SUBSCRIPTIONS</span>
+    <h2><span class="n">05</span>المستخدمون والاشتراكات</h2>
+    <hr class="rule">
+  </div>
+  <p>كل مستخدم <b>مشترك حقيقي</b>: حصة ترافيك، ويوم انتهاء، وحد للـ IP، وعدة إنباندها في آن واحد. يعرض جدول المستخدمين شريط استهلاك حياً، وحالة نشط/منتهٍ، وشرائح ذكية:</p>
+  <ul>
+    <li><b>شريحة التنبؤ بالاستهلاك:</b> «≈4 أيام حتى السقف · 3.2 جيجا/يوم» — يُحسب معدل الحرق بقسمة الاستهلاك على عمر الحساب (دون جدول سجل)؛ يصبح كهرمانياً تحت 7 أيام وأحمر تحت 3 أيام.</li>
+    <li><b>دورة إعادة الضبط:</b> تُعاد الحصة الأسبوعية/الشهرية تلقائياً عبر كرون داخلي، ويُعطَّل المستخدم المنتهي في الوقت نفسه.</li>
+    <li><b>الإنشاء الجماعي (Bulk):</b> إنشاء عدة مستخدمين دفعة واحدة، وتفعيل/تعطيل وحذف جماعي بتأكيد واحد.</li>
+    <li><b>الوصول إلى الإنباندها:</b> يمكن ربط كل مستخدم بعدة إنباندها؛ ويُدار مفتاح كل ربط (UUID/كلمة مرور/فلو) من المكان نفسه.</li>
+  </ul>
+  <figure>
+    <div class="shot"><img src="shot-users.png" alt="جدول المستخدمين"></div>
+    <figcaption><span class="step">الشكل 4</span><span>جدول المستخدمين مع شريط الاستهلاك، والحصة/الانتهاء، وشرائح التنبؤ «≈N أيام حتى السقف».</span></figcaption>
+  </figure>
+  <div class="callout">
+    <div class="h"><span class="ico">◈</span> حد IP شفاف (IP-Limit)</div>
+    <p>يُسجَّل حد الـ IP‏ (<span class="mono">0 = ∞</span>) في الروابط ومخرجات النواة لكل عميل، ويمكن البحث عنه في المرشحات؛ أما التنفيذ الصارم بالقطع التلقائي (على طريقة fail2ban) فهو في خارطة الطريق، ونعلنه بصدق في هذا المستند نفسه.</p>
+  </div>
+  <div class="pfoot"><span><b>الكتاب الكامل لـ Sephiroth</b> · v2.5.0</span><span class="pg">08</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p9 · 05 المستخدمون (2) ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 05 — SUBSCRIPTION PORTAL</span>
+    <h2><span class="n">05</span>بوابة اشتراك بعلامة تجارية</h2>
+    <hr class="rule">
+  </div>
+  <p>لكل مستخدم رابط اشتراك شخصي: <span class="mono">/sub/&lt;subId&gt;</span>. صفحة الاشتراك «مرور مداري» يحمل علامتك — شريط الاستهلاك، والأيام المتبقية، واستيراد بنقرة واحدة إلى التطبيقات الشهيرة. كما تجمع مجموعات الاشتراك عدة مستخدمين خلف <b>رابط واحد مقفل بكلمة مرور</b>.</p>
+  <figure>
+    <div class="shot"><img src="shot-sub-portal.png" alt="بوابة الاشتراك" style="width:80%; display:block; margin:0 auto;"></div>
+    <figcaption><span class="step">الشكل 5</span><span>بوابة اشتراك المستخدم (ORBIT PASS): حصة 61 من 200 جيجا، و14 يوماً متبقياً، واستيراد بنقرة واحدة — بعلامة Sephiroth وتوقيع EPODONIOS.</span></figcaption>
+  </figure>
+  <h3>صيغ مخرجات الاشتراك</h3>
+  <table>
+    <tr><th style="width:150px">الصيغة</th><th>طريقة الحصول</th><th style="width:170px">مناسب لـ</th></tr>
+    <tr><td>URI خام (raw)</td><td><span class="mono">?format=raw</span></td><td>مشاركة يدوية</td></tr>
+    <tr><td>Base64</td><td><span class="mono">?format=b64</span></td><td>معظم تطبيقات v2ray</td></tr>
+    <tr><td>Clash Meta</td><td><span class="mono">?format=clash</span></td><td>Clash / Mihomo / Verge / Stash</td></tr>
+    <tr><td>Sing-Box</td><td><span class="mono">?format=singbox</span></td><td>Sing-Box 1.10+ / Hiddify / Streisand / V2Box</td></tr>
+    <tr><td>Xray-JSON</td><td><span class="mono">?format=xray</span></td><td>ملف إعداد كامل لـ v2ray/xray-core</td></tr>
+  </table>
+  <div class="callout ok">
+    <div class="h"><span class="ico">✓</span> كشف تلقائي لـ User-Agent</div>
+    <p>يُعرّف تطبيق العميل نفسه بنفسه: يتلقى Clash/Mihomo/Verge/Stash مخرجات <span class="mono">YAML</span>، ويتلقى sing-box/Hiddify/V2Box مخرجات <span class="mono">sing-box</span>، والبقية Base64 — دون أي إعداد من المستخدم.</p>
+  </div>
+  <div class="pfoot"><span><b>الكتاب الكامل لـ Sephiroth</b> · v2.5.0</span><span class="pg">09</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p10 · 06 دكتور الإعدادات ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 06 — CONFIG DOCTOR</span>
+    <h2><span class="n">06</span>دكتور الإعدادات</h2>
+    <hr class="rule">
+  </div>
+  <p>«دكتور الإعدادات» ميزة <b>فريدة</b> لـ Sephiroth: فحص من 16 نقطة على اللوحة بأكملها يكتشف المشكلات قبل أن ينتبه إليها المستخدم، ويقدّم لكل حالة «عنواناً + شرحاً + حلاً». تُحسب النتيجة من 100:</p>
+  <p class="center mono" style="font-size:12px; margin-bottom:8px">score = 100 − 12×خطر − 5×تحذير − 1×تنبيه &nbsp;→&nbsp; التقدير A إلى D</p>
+  <div class="grid2">
+    <div class="card"><div class="t">الإنباندها (8 فحوص)</div><div class="s">بروكسي SOCKS/HTTP مفتوح بلا مصادقة · TLS بلا شهادة · REALITY ناقص (dest/serverNames/shortIds/المفتاح) · fallback معطوب · إعادة استخدام المفتاح الخاص لـ WireGuard · منفذ مميز (&lt;1024) · إنباند منتهٍ · إنباند متوقف</div></div>
+    <div class="card"><div class="t">المستخدمون (6 فحوص)</div><div class="s">منتهٍ لكنه ما يزال نشطاً · على أعتاب الانتهاء (≤3 أيام) · حصة نافدة · استهلاك ≥90% · حساب «شبح» بلا وصول إلى أي إنباند · مستخدم مربوط بإنباند متوقف</div></div>
+    <div class="card"><div class="t">التوجيه (فحصان)</div><div class="s">قاعدة ميتة (مخرج غير موجود) وقاعدة فارغة بلا شرط — وهما اللذان يبتلعان الترافيك بصمت أو يرفضان كل شيء.</div></div>
+    <div class="card"><div class="t">مخرجات الفحص</div><div class="s">حلقة نتيجة + تقدير + شرائح شدة (خطر/تحذير/تنبيه)، ولكل ملاحظة: شرح دقيق وزر إصلاح مقترح. جميع النصوص مترجمة إلى 6 لغات.</div></div>
+  </div>
+  <figure>
+    <div class="shot"><img src="shot-doctor.png" alt="دكتور الإعدادات"></div>
+    <figcaption><span class="step">الشكل 6</span><span>دكتور الإعدادات على لوحة حقيقية: نتيجة 82 (تقدير B) مع ملاحظات حقيقية — منفذ مميز 443، وTLS بلا شهادة، ومستخدم منتهٍ.</span></figcaption>
+  </figure>
+  <div class="pfoot"><span><b>الكتاب الكامل لـ Sephiroth</b> · v2.5.0</span><span class="pg">10</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p11 · 07 نواة Xray الحقيقية ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 07 — REAL XRAY CORE</span>
+    <h2><span class="n">07</span>نواة Xray الحقيقية</h2>
+    <hr class="rule">
+  </div>
+  <p>منذ الإصدار v2.4 تمتلك Sephiroth <b>مشغّلي نواة</b>. الافتراضي هو <b>المحاكي</b> (تلمترية عرض آمنة وبلا ثنائي — لأي استضافة بما فيها المضيفات المقيدة)، بينما يُشغّل <b>مشغّل Xray الحقيقي</b> النواة الفعلية كخيار اختياري (opt-in):</p>
+  <table>
+    <tr><th style="width:150px">القابلية</th><th>المحاكي (الافتراضي)</th><th>Xray حقيقي (opt-in)</th></tr>
+    <tr><td>تشغيل البروتوكولات</td><td>تلمترية محاكاة</td><td class="rcyan">تشغيل حقيقي — يمر الترافيك من المنفذ الحقيقي</td></tr>
+    <tr><td>إحصاءات per-user</td><td>للعرض فقط</td><td class="rcyan">حقيقية (دلتا API الإحصاءات، افتراضياً كل 10 ثوانٍ، قابل للضبط 5–120)</td></tr>
+    <tr><td>المتطلبات</td><td>لا شيء</td><td>تنزيل تلقائي للثنائي من إصدارات XTLS/Xray-core (أو مسار يدوي + تثبيت إصدار)</td></tr>
+    <tr><td>التحقق من الإعداد</td><td>—</td><td><span class="mono">xray run -test</span> قبل كل تشغيل</td></tr>
+    <tr><td>مناسب لـ</td><td>اختبار، عرض، استضافة محدودة</td><td class="rcyan">الإنتاج</td></tr>
+  </table>
+  <figure>
+    <div class="shot"><img src="shot-settings-core.png" alt="بطاقة النواة / Xray"></div>
+    <figcaption><span class="step">الشكل 7</span><span>بطاقة «النواة / Xray» في الإعدادات: اختيار المشغّل، والتثبيت/البدء/الإيقاف/إعادة التشغيل، ومسار الثنائي، وتثبيت الإصدار، وسجل حي قابل للطي.</span></figcaption>
+  </figure>
+  <ul>
+    <li><b>البناء من المخزن:</b> يولَّد الإعداد من الإنباندها/المستخدمين أنفسهم في اللوحة؛ ويستمع باب API الإحصاءات الخفي على <span class="mono">127.0.0.1</span>.</li>
+    <li><b>إعادة تحميل عند التغيير:</b> يُطبَّق كل تغيير في إنباند/مستخدم بتأخير ~1.5 ثانية؛ ولا تُعاد تشغيل النواة إلا إذا تغيّر هاش الإعداد.</li>
+  </ul>
+  <div class="pfoot"><span><b>الكتاب الكامل لـ Sephiroth</b> · v2.5.0</span><span class="pg">11</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p12 · 08 الأمان ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 08 — SECURITY</span>
+    <h2><span class="n">08</span>الأمان</h2>
+    <hr class="rule">
+  </div>
+  <div class="grid2">
+    <div class="card"><div class="t">التحقق الثنائي TOTP</div><div class="s">تنفيذ بلا اعتماديات لمعيار RFC-6238‏ (SHA-1، 6 أرقام، نافذة ±1). التسجيل عبر QR + رمز تحقق؛ <b>وإبطاله من جديد يتطلب رمزاً أيضاً</b> كي لا تتمكن جلسة مسروقة من إطفاء 2FA. تطلب شاشة الدخول الرمز بعد كلمة المرور.</div></div>
+    <div class="card"><div class="t">مضاد القوة الغاشمة</div><div class="s">5 محاولات فاشلة خلال 5 دقائق = قفل عنوان IP مع عد تنازلي حي على شاشة الدخول؛ وسجل كامل للمحاولات في «الأنشطة».</div></div>
+    <div class="card"><div class="t">مفتاح الاستعادة</div><div class="s">مفتاح <span class="mono">SEPH-XXXX-XXXX-XXXX</span> يُعرض مرة واحدة فقط ويمكنك تدويره متى شئت — فيصبح نسيان كلمة المرور مجرد دخول بسيط، لا فقداناً للوحة.</div></div>
+    <div class="card"><div class="t">الجلسات</div><div class="s">كوكي httpOnly موقّع بـ HMAC؛ «إبطال جميع الجلسات» يدوّر secret فيصبح كل الكوكيز لاغية. ووضع الكوكي <span class="mono">SEPH_COOKIE_SECURE=auto</span> يكتشف بنفسه إن كنت خلف HTTPS أم لا.</div></div>
+    <div class="card"><div class="t">نسخ احتياطي مجدول</div><div class="s">كل 24 ساعة مخرج JSON كامل في <span class="mono">db/backups/</span> مع احتفاظ من 1 إلى 30 ملفاً (تحذف القديمة) + تشغيل فوري وتنزيل وحذف من الواجهة. ولديك أيضاً نسخ يدوي/استعادة بتأكيد <span class="mono">RESTORE</span>.</div></div>
+    <div class="card"><div class="t">تحديث البرنامج</div><div class="s">زر «فحص ← تثبيت ← إعادة تشغيل» داخل اللوحة نفسها: يعمل سكربت التحديث بمعزل عن العملية الرئيسية، وينشر حالته في ملف حالة، وتواصل اللوحة العمل على الكود القديم حتى إعادة التشغيل. وتنصيبات non-git قابلة للتحديث عبر CLI.</div></div>
+  </div>
+  <figure>
+    <div class="shot"><img src="shot-security-cluster.png" alt="بطاقات الأمان والنظام" style="width:74%; display:block; margin:0 auto;"></div>
+    <figcaption><span class="step">الشكل 8</span><span>عنقود الأمان/النظام في الإعدادات (بالفارسية RTL): تحديث البرنامج، والتحقق الثنائي، والنسخ الاحتياطي المجدول، وأداة MTProto.</span></figcaption>
+  </figure>
+  <div class="pfoot"><span><b>الكتاب الكامل لـ Sephiroth</b> · v2.5.0</span><span class="pg">12</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p13 · 09 تيليجرام ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 09 — TELEGRAM</span>
+    <h2><span class="n">09</span>تيليجرام</h2>
+    <hr class="rule">
+  </div>
+  <p>السؤال المعتاد «كيف أُمرّر تيليجرام عبر الحجب؟» أُجيب عنه داخل اللوحة نفسها — بحزمة كاملة وملاحظات صادقة:</p>
+  <h3>1) حزمة بروكسي SOCKS5</h3>
+  <p>عند إنشاء إنباند <b>SOCKS5</b> في الفورج، يُفتح بلوك «بروكسي تيليجرام» الذي يمنحك، إضافة إلى الرابط القياسي، رابطين أصليين لتيليجرام + QR: <span class="mono">t.me/socks?server=…&amp;port=…&amp;user=…&amp;pass=…</span> و<span class="mono">tg://socks?…</span> — يكفي أن ينقر المستخدم نقرة واحدة فيقبل تيليجرام البروكسي.</p>
+  <h3>2) أداة MTProto (الإعدادات ← النظام)</h3>
+  <p>للشبكات الأكثر عدوانية، تبني الأداة المدمجة «بروكسي MTProto» سكرتاً حقيقياً: تعطيها المضيف والمنفذ والوضع <span class="mono">dd</span> (تمويه بنطاق) أو <span class="mono">plain</span>، فتسلّمك السكرت + روابط <span class="mono">tg://proxy</span> و<span class="mono">t.me/proxy</span> + QR، مع أوامر جاهزة لتشغيل <span class="mono">mtg v2</span> (Docker) داخل البطاقة نفسها.</p>
+  <div class="callout warn">
+    <div class="h">⚠ صدق تقني — أمور ينبغي أن تعرفها</div>
+    <p>1) بروكسي SOCKS5 في تيليجرام <b>لا تمويه له</b> ويظهر لـ DPI؛ ففي الشبكات الصارمة استخدم MTProto. 2) أزال Xray نفسه إنباند MTProto اعتباراً من الإصدار v24.10 — ولهذا لا تدّعي Sephiroth شيئاً غير حقيقي، بل تمنح أداة توليد سكرت + أوامر daemon مستقلة. 3) بوت المبيعات لتيليجرام في مرحلة البحث حالياً، ومدرج كخطوة تالية في خارطة الطريق (القسم 14).</p>
+  </div>
+  <div class="grid2">
+    <div class="card"><div class="t">داخل الفورج</div><div class="s">رابط <span class="mono">t.me/socks</span> · رابط <span class="mono">tg://</span> · QR · أزرار نسخ · ملاحظة صادقة عن التمويه — كل ذلك دون مغادرة الحوار.</div></div>
+    <div class="card"><div class="t">داخل الإعدادات</div><div class="s">توليد سكرت MTProto بوضع dd/plain، وروابط جاهزة، وأوامر تشغيل mtg v2، وشرح تقني للقيود.</div></div>
+  </div>
+  <div class="pfoot"><span><b>الكتاب الكامل لـ Sephiroth</b> · v2.5.0</span><span class="pg">13</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p14 · 10 الأعمال ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 10 — BUSINESS</span>
+    <h2><span class="n">10</span>الأعمال — الوكلاء وبوابات الدفع</h2>
+    <hr class="rule">
+  </div>
+  <p>Sephiroth هي اللوحة الوحيدة في قوائم المقارنة التي تملك <b>نظام وكلاء كاملاً</b> — وهو ما تفتقده 3x-ui/Marzban/Remnawave:</p>
+  <h3>الوكلاء (Resellers)</h3>
+  <ul>
+    <li><b>دور ثانٍ بمصادقة مستقلة:</b> يدخل الوكيل بحسابه الخاص، ولا يرى في التنقل سوى «المستخدمين».</li>
+    <li><b>حصة صارمة:</b> سقف لعدد المستخدمين وسقف للترافيك المخصص — وتجاوز الحصة يُرفض على مستوى API (لا الواجهة فقط) بالرمز <span class="mono">403</span>.</li>
+    <li><b>قائمة محدودة النطاق:</b> يرى الوكيل مستخدميه فقط، وحتى بتعديل الطلب يدوياً يضيع الوصول إلى مستخدمي غيره في استجابة <span class="mono">404</span> (دون كشف وجودهم أصلاً).</li>
+    <li><b>أشرطة مراقبة للمشرف:</b> لكل وكيل ترى كم مستخدماً من كم حصة، وكم جيجابايت استُهلك من كم جيجابايت.</li>
+  </ul>
+  <h3>قوالب البيع (Sale Templates)</h3>
+  <p>حزم جاهزة («Starter 50G»، «Pro 200G»، …) تظهر في حوار إنشاء المستخدم كشرائح بنقرة واحدة وتملأ الحصة/الانتهاء/حد الـ IP دفعة واحدة — فيبني البائعون الحزمة الصحيحة دون التفكير في الأرقام.</p>
+  <h3>بوابات الدفع</h3>
+  <table>
+    <tr><th style="width:170px">البوابة</th><th>نوع الربط</th></tr>
+    <tr><td>ZarinPal / IDPay</td><td>Webhook — شحن تلقائي لحصة الوكيل</td></tr>
+    <tr><td>كريبتو USDT (TRC20)</td><td>تهيئة الدفع بالكريبتو من داخل اللوحة نفسها</td></tr>
+    <tr><td>بطاقة إلى بطاقة عبر تيليجرام</td><td>تحصيل بطاقة-إلى-بطاقة عن طريق تيليجرام</td></tr>
+  </table>
+  <div class="callout">
+    <div class="h"><span class="ico">◈</span> التنبؤ بالاستهلاك = إدارة المبيعات</div>
+    <p>شرائح «≈N أيام حتى السقف» معناها للوكلاء أيضاً: قبل أن ينفد اشتراك أحد، تعرف أي الحسابات ستحتاج تجديداً غداً — تجهيز الفاتورة قبل الانقطاع.</p>
+  </div>
+  <div class="pfoot"><span><b>الكتاب الكامل لـ Sephiroth</b> · v2.5.0</span><span class="pg">14</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p15 · 11 النشر (1) ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 11 — DEPLOYMENT</span>
+    <h2><span class="n">11</span>النشر — التثبيت بسطر واحد و CLI</h2>
+    <hr class="rule">
+  </div>
+  <p>على أي خادم لينكس (Debian/Ubuntu/RHEL/Alpine/Arch، وx86_64 وarm64) يكفي سطر واحد:</p>
+  <pre><span class="c"># تثبيت تفاعلي (يسأل عن المنفذ/المستخدم/كلمة المرور)</span>
+<span class="k">bash &lt;(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh)</span>
+
+<span class="c"># تثبيت بإصدار مثبَّت</span>
+<span class="k">bash &lt;(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh)</span> v2.5.0
+
+<span class="c"># تثبيت غير تفاعلي (CI/السكربتات) — المخرجات: /etc/sephiroth/install-result.env</span>
+<span class="ok">SEPH_NONINTERACTIVE=1</span> bash install.sh</pre>
+  <p><b>ماذا يبني السكربت؟</b></p>
+  <ul>
+    <li><span class="mono">/opt/sephiroth</span> — المصدر + بناء SPA (vite) وحزمة <span class="mono">server.cjs</span> أحادية الملف (esbuild)؛ ثم يُحذف node_modules ← تشغيل بلا اعتماديات.</li>
+    <li><span class="mono">/etc/sephiroth/sephiroth.env</span> — منفذ حر عشوائي (20580–21000)، وكلمة مرور عشوائية من 16 محرفاً، و<span class="mono">SEPH_COOKIE_SECURE=auto</span> (إعادة التشغيل تحفظ القيم الموجودة).</li>
+    <li><b>خدمة systemd صارمة:</b> ‏NoNewPrivileges وProtectSystem=full وPrivateTmp — وفي بيئات بلا systemd، وضع daemon عبر CLI.</li>
+    <li><b>ملخص التثبيت:</b> يُطبع ويُحفظ عنوان اللوحة وكلمات المرور في <span class="mono">install-result.env</span> بصلاحية 0600. ويُثبَّت Node 22 أيضاً إن لم يكن موجوداً (NodeSource ← مستودع التوزيعة ← tarball رسمي مثبَّت الإصدار).</li>
+  </ul>
+  <h3>أداة الإدارة CLI — <span class="mono">sephiroth</span></h3>
+  <pre><span class="c">$ sephiroth          </span><span class="c">← القائمة التفاعلية</span>
+  <span class="k">1.</span> Start               <span class="k">6.</span>  Logs (follow)
+  <span class="k">2.</span> Stop                <span class="k">7.</span>  Logs (last 100)
+  <span class="k">3.</span> Restart             <span class="k">8.</span>  Change Admin Password
+  <span class="k">4.</span> Force Restart       <span class="k">9.</span>  Change Panel Port
+  <span class="k">5.</span> Status              <span class="k">10.</span> Backup Now
+  <span class="k">0.</span> Exit                <span class="k">11.</span> Restore Backup
+                         <span class="k">12.</span> Check for Update
+                         <span class="k">13.</span> Update Panel
+                         <span class="k">14.</span> Uninstall
+<span class="c"># أو مباشرةً:</span> sephiroth start|stop|restart|status|logs|backup|update …</pre>
+  <p>يتم تغيير كلمة المرور/المنفذ عبر وحدة maint (تجزئة scrypt بالقالب نفسه الذي تستخدمه اللوحة)، والنسخ/الاستعادة بنفس قالب نسخ اللوحة الداخلية، ويقارن «فحص التحديث» الإصدار مع package.json في المستودع العام.</p>
+  <div class="pfoot"><span><b>الكتاب الكامل لـ Sephiroth</b> · v2.5.0</span><span class="pg">15</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p16 · 11 النشر (2) ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 11 — DEPLOYMENT · DOCKER</span>
+    <h2><span class="n">11</span>النشر — Docker والتحديث</h2>
+    <hr class="rule">
+  </div>
+  <p>تُبنى الصورة الرسمية متعددة المراحل على <span class="mono">node:22-alpine</span>: المرحلة الأولى بناء SPA + esbuild، والثانية <span class="mono">server.cjs</span> + <span class="mono">dist/</span> فقط — بلا مصدر وبلا node_modules. فحص صحة داخلي على <span class="mono">/api/auth/session</span>، وحجم <span class="mono">/app/db</span> لاستمرارية البيانات.</p>
+  <pre><span class="c"># أسرع طريقة</span>
+<span class="k">docker run -d --name sephiroth -p 3000:3000 -v sephiroth_data:/app/db \
+  ghcr.io/edsel-rahimi/sephiroth:latest</span>
+
+<span class="c"># docker-compose.yml</span>
+<span class="k">services:</span>
+  sephiroth:
+    image: ghcr.io/edsel-rahimi/sephiroth:latest   <span class="c"># أو ثبّت الإصدار: :v2.5.0</span>
+    ports: [ "<span class="ok">${SEPH_PORT:-3000}</span>:3000" ]
+    environment:
+      SEPHIROTH_ADMIN_USER: <span class="ok">${SEPHIROTH_ADMIN_USER:-admin}</span>
+      SEPHIROTH_ADMIN_PASS: <span class="ok">${SEPHIROTH_ADMIN_PASS:-sephiroth}</span>  <span class="c"># غيّره بعد أول تسجيل دخول!</span>
+      SEPH_COOKIE_SECURE: auto
+    volumes: [ sephiroth_data:/app/db ]</pre>
+  <p>تُبنى الوسوم تلقائياً على GitHub Actions وتُدفع إلى GHCR: ‏<span class="mono">latest</span> لفرع main، ووسوم الإصدارات الدلالية (<span class="mono">v2.5.0</span>) — ويُنصح بتثبيت الإصدار في الإنتاج. يُزرع اسم المستخدم/كلمة المرور البيئيان فقط في <b>أول إقلاع لبيانات فارغة</b>؛ وبعدها غيّرهما من داخل اللوحة أو عبر CLI فقط.</p>
+  <div class="grid2">
+    <div class="card"><div class="t">التحديث (تثبيت بالسكربت)</div><div class="s">إعادة تشغيل install.sh = تحديث آمن: تبقى قاعدة البيانات وenv وكلمات المرور كما هي وتُعاد تشغيل الخدمة. وفي داخل اللوحة زر تحديث أيضاً (القسم 08). وضع non-git: تنزيل ملف مضغوط + استبدال <span class="mono">server.cjs</span>.</div></div>
+    <div class="card"><div class="t">الإزالة الكاملة</div><div class="s"><span class="mono">sephiroth uninstall</span> بتأكيدَين: تُحذف الخدمة والملفات؛ وحذف البيانات (db) اختياري ويُسأل عنه على حدة.</div></div>
+  </div>
+  <div class="callout warn">
+    <div class="h">⚠ قائمة تحقق بعد التثبيت</div>
+    <p>1) غيّر كلمة المرور الافتراضية (الملف الشخصي ← الأمان). 2) احفظ مفتاح الاستعادة في مكان آمن. 3) فعّل 2FA. 4) خذ نسخة احتياطية يدوية لتتدرب على الاستعادة مرة واحدة. 5) في الإنتاج، فعّل مشغّل Xray الحقيقي من بطاقة «النواة».</p>
+  </div>
+  <div class="pfoot"><span><b>الكتاب الكامل لـ Sephiroth</b> · v2.5.0</span><span class="pg">16</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p17 · 12 اللغات ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 12 — 6 LANGUAGES</span>
+    <h2><span class="n">12</span>اللوحة بـ 6 لغات</h2>
+    <hr class="rule">
+  </div>
+  <p>واجهة اللوحة وبوابة الاشتراك ورسائل Toast والحوارات وحتى نصوص دكتور الإعدادات مترجمة إلى <b>6 لغات</b> بتوازن كامل (فحص تلقائي: صفر مفاتيح مفقودة وصفر تعارض في placeholder عبر اللغات الست):</p>
+  <table>
+    <tr><th style="width:150px">اللغة</th><th style="width:80px">الرمز</th><th style="width:90px">الاتجاه</th><th>ملاحظة</th></tr>
+    <tr><td>الفارسية</td><td><span class="mono">fa</span></td><td>RTL</td><td>أنصاف مسافات وأرقام فارسية قياسية</td></tr>
+    <tr><td>العربية</td><td><span class="mono">ar</span></td><td>RTL</td><td>مصطلحات موحّدة (نقاط الدخول، الموزّع…)</td></tr>
+    <tr><td>English</td><td><span class="mono">en</span></td><td>LTR</td><td>اللغة المرجعية</td></tr>
+    <tr><td>Chinese</td><td><span class="mono">zh</span></td><td>LTR</td><td>أقواس بعرض كامل وكتابة صينية سلسة</td></tr>
+    <tr><td>Türkçe</td><td><span class="mono">tr</span></td><td>LTR</td><td>مصطلحات موحّدة (Giriş / Sorgula…)</td></tr>
+    <tr><td>Русский</td><td><span class="mono">ru</span></td><td>LTR</td><td>مصطلحات تقنية معرَّبة محلياً</td></tr>
+  </table>
+  <figure>
+    <div class="shot"><img src="shot-fa-dashboard.png" alt="لوحة التحكم بالفارسية"></div>
+    <figcaption><span class="step">الشكل 9</span><span>لوحة التحكم في الوضع الفارسي — انعكاس RTL كامل: المؤشرات والرسوم والتنقل والبث الحي.</span></figcaption>
+  </figure>
+  <div class="callout">
+    <div class="h"><span class="ico">◈</span> ‏RTL حقيقي، لا مجرد محاذاة إلى اليمين</div>
+    <p>يُحقن اتجاه الصفحة من الجذر عبر Radix DirectionProvider؛ أي أن الحوارات والقوائم المنسدلة وتلميحات الأدوات بل ورسائل Toast تنعكس أيضاً. تبقى الأرقام التقنية (المنفذ، الإصدار، الروابط) داخل بلوكات <span class="mono">dir=ltr</span> لتبقى مقروءة.</p>
+  </div>
+  <div class="pfoot"><span><b>الكتاب الكامل لـ Sephiroth</b> · v2.5.0</span><span class="pg">17</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p18 · 12 الجوال ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 12 — RESPONSIVE</span>
+    <h2><span class="n">12</span>الجوال والتصميم المتجاوب</h2>
+    <hr class="rule">
+  </div>
+  <p>كل واجهات اللوحة البالغة 13 واجهة أعيد تصميمها لعرض 390 بكسل أيضاً: تتحول الجداول إلى بطاقات متراصة، وينكمش الشريط العلوي، وتتحول الحوارات الكبيرة (كالفورج) إلى تمرير عمودي بحقول بعرض كامل — في كلا الاتجاهين LTR وRTL، دون أي فيض أفقي (مُختبَر بفحص تخطيط تلقائي).</p>
+  <div class="duo" style="justify-content:center; margin-top:8px">
+    <figure style="flex:0 0 auto; margin:0">
+      <div class="shot" style="width:236px"><img src="shot-mobile-dashboard.png" alt="الجوال — لوحة التحكم" style="width:100%"></div>
+      <figcaption style="justify-content:center"><span class="step">الشكل 10</span><span>لوحة التحكم على الجوال (بالإنجليزية)</span></figcaption>
+    </figure>
+    <figure style="flex:0 0 auto; margin:0">
+      <div class="shot" style="width:236px"><img src="shot-mobile-forge.png" alt="الجوال — فورج بالفارسية" style="width:100%"></div>
+      <figcaption style="justify-content:center"><span class="step">الشكل 11</span><span>فورج الجوال — فارسية RTL</span></figcaption>
+    </figure>
+  </div>
+  <div class="grid2 mt14">
+    <div class="card"><div class="t">MOBILE-FIRST TOUCHES</div><div class="s">البحث الشامل ولوحة الأوامر <span class="mono">Ctrl+K</span> متاحان على الجوال أيضاً؛ والتنقل بين الواجهات من شريط التنقل العلوي نفسه ومن أزرار الإجراءات السريعة في لوحة التحكم.</div></div>
+    <div class="card"><div class="t">QA AUTOMATICO</div><div class="s">مُراجع تخطيط (فيض، تداخل، قص نص) يفحص جميع الواجهات في EN/FA وعند 1280px/390px — وهذا الكتالوغ نفسه اجتاز الفحص.</div></div>
+  </div>
+  <div class="pfoot"><span><b>الكتاب الكامل لـ Sephiroth</b> · v2.5.0</span><span class="pg">18</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p19 · 13 FAQ ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 13 — TROUBLESHOOTING &amp; FAQ</span>
+    <h2><span class="n">13</span>استكشاف الأخطاء · الأسئلة الشائعة</h2>
+    <hr class="rule">
+  </div>
+  <table>
+    <tr><th style="width:200px">السؤال</th><th>جواب مختصر</th></tr>
+    <tr><td>تظهر لي رسالة «المنفذ مشغول»</td><td>في الفورج اضغط زر العصا السحرية ✦ ليُقترح أول منفذ حر؛ وللفحص اليدوي: <span class="mono">ss -tlnp | grep &lt;port&gt;</span></td></tr>
+    <tr><td>يفشل تنزيل ثنائي Xray</td><td>في بطاقة «النواة» أعطِ مسار الثنائي يدوياً أو ثبّت الإصدار؛ وحتى ذلك الحين تواصل اللوحة عملها العادي بالمحاكي.</td></tr>
+    <tr><td>هل تختلف أرقام ترافيك المحاكي عن الحقيقية؟</td><td>نعم — المحاكي تلمترية عرض فقط. والإحصاءات الحقيقية لكل مستخدم تأتي من مشغّل Xray الحقيقي (القسم 07).</td></tr>
+    <tr><td>نسيت كلمة مرور المشرف</td><td>من الخادم: <span class="mono">sephiroth</span> ← الخيار 8 (تغيير كلمة المرور)؛ أو استخدم «مفتاح الاستعادة» في صفحة الدخول.</td></tr>
+    <tr><td>كيف أستعيد نسخة احتياطية؟</td><td>الإعدادات ← الاستعادة ← ملف JSON + تأكيد <span class="mono">RESTORE</span>؛ أو على الخادم: <span class="mono">sephiroth</span> ← الخيار 11. تتم الاستعادة في معاملة واحدة ويبقى مستخدم المشرف دون مساس.</td></tr>
+    <tr><td>كيف أُفعّل HTTPS؟</td><td>ضع بروكسي عكسي (Nginx/Caddy) مع TLS؛ فالكوكي الآمن له وضع <span class="mono">auto</span> ويصبح Secure بنفسه عبر <span class="mono">x-forwarded-proto</span>.</td></tr>
+    <tr><td>لديّ منفذ واحد فقط (استضافة مجانية)</td><td>ابنِ الضبط المسبق «التركيبة أحادية المنفذ» (القسم 03): عدة بروتوكولات مع fallback على منفذ واحد + اللوحة على <span class="mono">/panel</span>.</td></tr>
+    <tr><td>اللوحة ما زالت تشغّل الكود القديم بعد التحديث</td><td>هذا طبيعي — ينتظر التحديث داخل اللوحة حتى «إعادة التشغيل» كي لا تفقد الجلسات؛ اضغط زر إعادة التشغيل.</td></tr>
+  </table>
+  <div class="callout ok">
+    <div class="h"><span class="ico">✓</span> عدّة استكشاف الأخطاء السريعة</div>
+    <p><span class="mono">sephiroth logs</span> لسجل الخدمة · <span class="mono">sephiroth status</span> للحالة · سجل النواة الحي في بطاقة «النواة / Xray» · تقرير دكتور الإعدادات لتطهير الإعداد · وبث «الأنشطة» لمعرفة من فعل ماذا.</p>
+  </div>
+  <div class="pfoot"><span><b>الكتاب الكامل لـ Sephiroth</b> · v2.5.0</span><span class="pg">19</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p20 · 14 خارطة الطريق + الختام ═══════════════ -->
+<div class="page last">
+  <div class="sechead">
+    <span class="kicker">SECTION 14 — ROADMAP &amp; FINALE</span>
+    <h2><span class="n">14</span>خارطة الطريق · الختام</h2>
+    <hr class="rule">
+  </div>
+  <h3>ما تم تسليمه حتى v2.5.0</h3>
+  <p><span class="gcheck">✓</span> فورج مع REALITY ومعاينة حية &nbsp;·&nbsp; <span class="gcheck">✓</span> دكتور إعدادات من 16 نقطة &nbsp;·&nbsp; <span class="gcheck">✓</span> مشغّل Xray حقيقي &nbsp;·&nbsp; <span class="gcheck">✓</span> 2FA (TOTP) &nbsp;·&nbsp; <span class="gcheck">✓</span> نسخ احتياطي مجدول &nbsp;·&nbsp; <span class="gcheck">✓</span> تحديث من داخل اللوحة &nbsp;·&nbsp; <span class="gcheck">✓</span> حزمة تيليجرام SOCKS5 + أداة MTProto &nbsp;·&nbsp; <span class="gcheck">✓</span> 5 صيغ اشتراك + بوابة بعلامة خاصة &nbsp;·&nbsp; <span class="gcheck">✓</span> وكالة/قوالب بيع/بوابات دفع &nbsp;·&nbsp; <span class="gcheck">✓</span> 6 سمات · 6 لغات (RTL) &nbsp;·&nbsp; <span class="gcheck">✓</span> حزمة تثبيت (install.sh + CLI + Docker + GHCR) &nbsp;·&nbsp; <span class="gcheck">✓</span> كشف تلقائي عن IP/المنفذ الحر</p>
+  <h3>ما هو قادم</h3>
+  <ul>
+    <li><b>بوت مبيعات تيليجرام</b> — بيع وتجديد تلقائيان داخل تيليجرام (اكتمل البحث؛ بانتظار القرار النهائي).</li>
+    <li><b>تعدد العقد</b> — مزامنة الإنباندها بين عدة خوادم.</li>
+    <li><b>شهادة ACME</b> — إصدار/تجديد تلقائي لـ Let's Encrypt من داخل اللوحة.</li>
+    <li><b>تطبيق حد الـ IP</b> — قطع تلقائي على طريقة fail2ban للإنباندها الحقيقية.</li>
+  </ul>
+  <hr class="rule mt14">
+  <div class="center mt10">
+    <span class="badge-end">SEPHIROTH · v2.5.0</span>
+    <p class="mt10" style="max-width:540px; margin-inline:auto">‏Sephiroth مشروع <b>مفتوح المصدر برخصة MIT</b> — ففوّرعه وعدّله واستخدمه في مشروعك. وإن أفادك، فشجّعنا بزر «دعم Sephiroth» داخل اللوحة أو بنجمة على GitHub.</p>
+    <p class="small" style="max-width:540px; margin-inline:auto"><b>إخلاء مسؤولية:</b> تُنشر هذه اللوحة للاستخدام الشخصي والتعليمي؛ ومسؤولية أي استخدام منحرف تقع على المستخدم. جميع صور هذا الكتالوغ مأخوذة من النسخة الحقيقية v2.5.0 ولا تحتوي على أي معلومات خاصة.</p>
+    <p class="mt6" style="letter-spacing:2px; color:var(--muted); font-size:10.5px">صُنع بكل ♥ بواسطة <b style="color:var(--text)">EPODONIOS</b> · github.com/Edsel-Rahimi/Sephiroth</p>
+  </div>
+  <div class="pfoot"><span><b>الكتاب الكامل لـ Sephiroth</b> · v2.5.0</span><span class="pg">20</span><span>EPODONIOS</span></div>
+</div>
+
+</body>
+</html>

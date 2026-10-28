@@ -10,6 +10,8 @@
   <strong>Yeni nesil Xray VPN paneli</strong> — obsidyen koyu arayüz, glassmorphism, 6 dil, gerçek Xray çekirdek sürücüsü.
 </p>
 
+![Sephiroth v2.5.0 infografiği](docs/infographic.png)
+
 <p align="center">
   <a href="https://github.com/Edsel-Rahimi/Sephiroth/releases"><img alt="Release" src="https://img.shields.io/github/v/release/edsel-rahimi/sephiroth"></a>&nbsp;
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>&nbsp;
