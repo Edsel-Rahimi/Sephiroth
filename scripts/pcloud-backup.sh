@@ -117,18 +117,19 @@ if [ "${SKIP_UPLOAD:-0}" = "1" ]; then
 fi
 
 for P in "$ROOT_REMOTE" "$ROOT_REMOTE/$LABEL"; do
-  R="$(curl -s -G "$API/mkdir" --data-urlencode "path=$P" --data-urlencode "auth=$TOKEN" | jget result)"
-  if [ "$R" != "0" ] && [ "$R" != "2019" ]; then
-    echo "ERROR: mkdir $P failed (result=$R)" >&2
+  R="$(curl -s -G "$API/createfolderifnotexists" --data-urlencode "path=$P" --data-urlencode "auth=$TOKEN" | jget result)"
+  if [ "$R" != "0" ]; then
+    echo "ERROR: createfolder $P failed (result=$R)" >&2
     exit 1
   fi
 done
 
 for F in "$BUNDLE" "$SRC" "$MANIFEST"; do
   echo ">> uploading $(basename "$F") ..."
-  RESP="$(curl -s -G "$API/uploadfile" \
-    --data-urlencode "path=$ROOT_REMOTE/$LABEL" \
-    --data-urlencode "auth=$TOKEN" \
+  RESP="$(curl -s --max-time 540 "$API/uploadfile" \
+    -F "auth=$TOKEN" \
+    -F "path=$ROOT_REMOTE/$LABEL" \
+    -F "nopartial=1" \
     -F "file=@$F")"
   R="$(printf '%s' "$RESP" | jget result)"
   if [ "$R" != "0" ]; then
