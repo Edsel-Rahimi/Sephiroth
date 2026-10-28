@@ -14,9 +14,11 @@
 #   PCLOUD_EMAIL=you@example.com
 #   PCLOUD_PASSWORD=...
 #   PCLOUD_REGION=eu     # 'eu' -> eapi.pcloud.com, 'us' -> api.pcloud.com
+#   PCLOUD_AUTH=...      # optional: pre-existing auth token (bypasses login/2FA)
 #
-# Auth uses pCloud digest login (SHA1(password+digest)); the long-lived authtoken
-# is cached in ~/.pcloud-authtoken (0600) so the password is only used on re-login.
+# Auth order: cached authtoken (~/.pcloud-authtoken, 0600) -> PCLOUD_AUTH from
+# config -> digest login (SHA1(digest+SHA1(password))). Token is cached after
+# any successful auth so the password is only used on re-login.
 set -euo pipefail
 
 LABEL="${1:-$(date +%Y-%m-%d_%H%M%S)}"
@@ -46,12 +48,23 @@ jget() { python3 -c "import json,sys
 try: print(json.load(sys.stdin).get('$1',''))
 except Exception: print('')"; }
 
-# ---------- auth (cached authtoken; digest login fallback) ----------
+# ---------- auth (cached authtoken -> conf token -> digest login) ----------
 auth_ok=0
 if [ -f "$TOKEN_FILE" ]; then
   TOKEN="$(cat "$TOKEN_FILE")"
   R="$(curl -s -G "$API/userinfo" --data-urlencode "auth=$TOKEN" | jget result || true)"
   [ "$R" = "0" ] && auth_ok=1
+fi
+if [ "$auth_ok" != "1" ] && [ -n "${PCLOUD_AUTH:-}" ]; then
+  TOKEN="$PCLOUD_AUTH"
+  R="$(curl -s -G "$API/userinfo" --data-urlencode "auth=$TOKEN" | jget result || true)"
+  if [ "$R" = "0" ]; then
+    auth_ok=1
+    (umask 077; printf '%s' "$TOKEN" > "$TOKEN_FILE")
+    echo ">> using PCLOUD_AUTH from config (cached)"
+  else
+    echo "WARN: PCLOUD_AUTH token rejected (result=$R)" >&2
+  fi
 fi
 if [ "$auth_ok" != "1" ]; then
   if [ "${SKIP_UPLOAD:-0}" = "1" ]; then
@@ -139,4 +152,24 @@ for F in "$BUNDLE" "$SRC" "$MANIFEST"; do
 done
 
 echo "✅ uploaded to pCloud:$ROOT_REMOTE/$LABEL"
-echo "   (verify anytime: scripts/pcloud-backup.sh --verify  |  restore: see MANIFEST)"
+echo "   (restore: see MANIFEST)"
+
+# ---------- retention: prune auto-* folders older than AUTO_RETENTION_DAYS ----------
+RET_DAYS="${AUTO_RETENTION_DAYS:-7}"
+if [ "$RET_DAYS" != "0" ]; then
+  CUTOFF=$(( $(date -u +%s) - RET_DAYS * 86400 ))
+  PRUNE_LIST="$(printf '%s' "$(curl -s -G "$API/listfolder" --data-urlencode "path=$ROOT_REMOTE" --data-urlencode "auth=$TOKEN")" | python3 -c "
+import json,sys
+try:
+    d=json.load(sys.stdin)
+    for c in (d.get('metadata') or {}).get('contents') or []:
+        n=c.get('name','')
+        if c.get('folder') and n.startswith('auto-') and int(c.get('modified',0)) < $CUTOFF:
+            print(n)
+except Exception: pass")"
+  printf '%s\n' "$PRUNE_LIST" | while IFS= read -r OLD; do
+    [ -n "$OLD" ] || continue
+    echo ">> pruning old auto-backup: $OLD"
+    curl -s -G "$API/deletefolderrecursive" --data-urlencode "path=$ROOT_REMOTE/$OLD" --data-urlencode "auth=$TOKEN" >/dev/null || true
+  done
+fi
