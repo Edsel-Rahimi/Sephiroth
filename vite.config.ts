@@ -23,7 +23,14 @@ export default defineConfig(() => {
       // Do not modify—file watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
-      watch: process.env.DISABLE_HMR === 'true' ? null : {},
+      // Task 25-b — db/** MUST stay ignored in watch mode: every API write
+      // touches db/custom.db-wal + db/sephiroth-store.json, and vite's
+      // watcher treating those as project changes forced full page reloads
+      // mid-flow (autopilot's success report was the loudest victim).
+      watch:
+        process.env.DISABLE_HMR === 'true'
+          ? null
+          : {ignored: ['**/db/**', '**/.git/**', '**/node_modules/**', '**/upload/**', '**/.pcloud-stage/**']},
       // The panel is always reached through proxies (sandbox preview, nginx,
       // CDN tunnels) whose hostnames change — allow every Host header.
       // (Vite 6+ otherwise blocks unknown hosts with "Blocked request".)

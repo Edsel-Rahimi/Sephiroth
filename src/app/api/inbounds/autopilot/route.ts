@@ -67,7 +67,7 @@ function allocatePorts(count: number, used: Set<number>, portStart?: number): nu
   } else {
     seq.push(...PREFERRED_PORTS);
   }
-  for (let p = seq.length ? (seq[seq.length - 1]! < 10000 ? 10000 : seq[seq.length - 1]! + 1) : 10000; seq.length < count + 16; p++) {
+  for (let p = seq.length ? (seq[seq.length - 1]! < 10000 ? 10000 : seq[seq.length - 1]! + 1) : 10000; seq.length < count + 64; p++) {
     seq.push(p);
   }
   for (const p of seq) {

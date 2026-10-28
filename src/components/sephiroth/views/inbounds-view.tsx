@@ -24,6 +24,7 @@ import {
   Radio,
   RadioTower,
   RefreshCcw,
+  Rocket,
   Search,
   Send,
   ShieldCheck,
@@ -92,6 +93,7 @@ import { buildDokoSummary, buildShareLink, buildTelegramMtpLinks, buildTelegramS
 import { genMtpSecret, MTP_DEFAULT_DOMAIN } from "@/lib/mtp-secret";
 import QRCode from "react-qr-code";
 import type { DoctorFinding, DoctorReport } from "@/lib/doctor-types";
+import { InboundsAutopilot } from "@/components/sephiroth/views/inbounds-autopilot";
 import { Progress } from "@/components/ui/progress";
 
 // moved to lib/share-links.ts (shared with the public sub API) — re-exported for older import paths
@@ -1023,6 +1025,8 @@ export function InboundsView() {
 
   /* quick create (simple-panel mode) */
   const [quickOpen, setQuickOpen] = useState(false);
+  /* Task 25-b — one-port autopilot wizard */
+  const [autoOpen, setAutoOpen] = useState(false);
   const [quickProto, setQuickProto] = useState<string>("vless");
   const [quickDraft, setQuickDraft] = useState({
     tag: "",
@@ -3840,6 +3844,16 @@ export function InboundsView() {
             <Zap className="h-4 w-4" />
             {t.inbounds.quickCreate}
           </Button>
+          {/* Task 25-b — one-port autopilot wizard (amber→sky accent, no purple) */}
+          <Button
+            onClick={() => setAutoOpen(true)}
+            variant="outline"
+            className="min-h-11 gap-2 rounded-xl border-[#f59e0b]/30 bg-gradient-to-r from-[#f59e0b]/[0.12] via-transparent to-[#38bdf8]/[0.12] px-4 font-semibold text-[#f59e0b] shadow-[0_0_24px_-12px_#f59e0b] hover:from-[#f59e0b]/20 hover:to-[#38bdf8]/20"
+            title={t.inbounds.autopilotTitle}
+          >
+            <Rocket className="h-4 w-4" />
+            {t.inbounds.autopilotBtn}
+          </Button>
           <Button
             onClick={openCreate}
             className="glow-cyan gap-2 rounded-xl px-5 font-semibold shadow-lg shadow-primary/25"
@@ -4947,6 +4961,13 @@ export function InboundsView() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Task 25-b — one-port autopilot wizard ──────────── */}
+      <InboundsAutopilot
+        open={autoOpen}
+        onOpenChange={setAutoOpen}
+        onCreated={() => void load()}
+      />
     </div>
   );
 }
