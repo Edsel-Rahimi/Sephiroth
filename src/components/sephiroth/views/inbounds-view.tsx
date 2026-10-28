@@ -2584,7 +2584,7 @@ export function InboundsView() {
 
   const renderTransport = () => (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-6" role="radiogroup" aria-label={t.inbounds.transportHint}>
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3" role="radiogroup" aria-label={t.inbounds.transportHint}>
         {TRANSPORTS.map((tr) => {
           const meta = TRANSPORT_META[tr] ?? TRANSPORT_META.tcp;
           const TrIcon = meta.icon;
@@ -2616,13 +2616,13 @@ export function InboundsView() {
               <span className="min-w-0">
                 <span
                   className={cn(
-                    "block text-[12px] font-bold",
+                    "block truncate text-[12px] font-bold",
                     selected ? "text-primary" : "text-silver"
                   )}
                 >
                   {TransportText[tr] ?? tr}
                 </span>
-                <span className="mt-0.5 block text-[10px] leading-snug text-muted-foreground">
+                <span className="mt-0.5 block text-[10px] leading-snug text-muted-foreground line-clamp-2">
                   {t.inbounds[meta.descKey as keyof typeof t.inbounds]}
                 </span>
               </span>
