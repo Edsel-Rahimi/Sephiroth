@@ -51,6 +51,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SwaggerEmbed } from "@/components/sephiroth/swagger-embed";
 import {
   Select,
   SelectContent,
@@ -92,7 +93,7 @@ import { SslCard } from "@/components/sephiroth/views/ssl-card"; // Task 23-f �
    All strings ×6 languages.
    ============================================================ */
 
-type TabId = "general" | "expert";
+type TabId = "general" | "api" | "expert";
 
 type XrayLogLevel = "none" | "warning" | "info" | "debug";
 type DomStrategy = "AsIs" | "IPIfNonMatch" | "IPOnDemand";
@@ -236,6 +237,16 @@ interface BotStatusDTO {
   lastError: string;
   adminChatIds: number;
   tokenConfigured: boolean;
+}
+
+interface ApiTokenDTO {
+  id: string;
+  name: string;
+  prefix: string;
+  enabled: boolean;
+  lastUsedAt: string | null;
+  lastUsedIp: string;
+  createdAt: string;
 }
 
 interface GeneralForm {
@@ -439,6 +450,13 @@ export function SettingsView() {
   const [tokenMasked, setTokenMasked] = useState("");
   const [botStatus, setBotStatus] = useState<BotStatusDTO | null>(null);
 
+  /* Phase 27 — public API tokens */
+  const [apiTokens, setApiTokens] = useState<ApiTokenDTO[]>([]);
+  const [apiTokensLoaded, setApiTokensLoaded] = useState(false);
+  const [newTokenName, setNewTokenName] = useState("");
+  const [minting, setMinting] = useState(false);
+  const [mintedRaw, setMintedRaw] = useState("");
+
   const [generalForm, setGeneralForm] = useState<GeneralForm>({
     datepicker: "gregorian",
     pageSize: "25",
@@ -602,6 +620,78 @@ export function SettingsView() {
   useEffect(() => {
     void loadServerBackups();
   }, [loadServerBackups]);
+
+  /* ---------- Phase 27 — public API tokens ---------- */
+
+  const loadApiTokens = useCallback(async () => {
+    try {
+      const res = await fetch("/api/api-tokens", { cache: "no-store" });
+      if (!res.ok) return;
+      const d = (await res.json()) as { tokens: ApiTokenDTO[] };
+      setApiTokens(d.tokens ?? []);
+      setApiTokensLoaded(true);
+    } catch {
+      /* silent — the card keeps its last state */
+    }
+  }, []);
+
+  useEffect(() => {
+    if (tab === "api") void loadApiTokens();
+  }, [tab, loadApiTokens]);
+
+  const mintApiToken = async () => {
+    const name = newTokenName.trim();
+    if (!name || minting) return;
+    setMinting(true);
+    try {
+      const res = await fetch("/api/api-tokens", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const d = (await res.json()) as { token?: string; error?: string };
+      if (!res.ok || !d.token) {
+        toast({ description: t.inbounds.errGeneric, variant: "destructive" });
+        return;
+      }
+      setMintedRaw(d.token);
+      setNewTokenName("");
+      await loadApiTokens();
+      toast({ description: u.apiTokenCreatedToast });
+    } catch {
+      toast({ description: t.inbounds.errGeneric, variant: "destructive" });
+    } finally {
+      setMinting(false);
+    }
+  };
+
+  const revokeApiToken = async (row: ApiTokenDTO) => {
+    try {
+      const res = await fetch(`/api/api-tokens/${row.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        toast({ description: t.inbounds.errGeneric, variant: "destructive" });
+        return;
+      }
+      await loadApiTokens();
+      toast({ description: u.apiTokenRevokedToast });
+    } catch {
+      toast({ description: t.inbounds.errGeneric, variant: "destructive" });
+    }
+  };
+
+  const toggleApiToken = async (row: ApiTokenDTO, enabled: boolean) => {
+    try {
+      const res = await fetch(`/api/api-tokens/${row.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled }),
+      });
+      if (!res.ok) return;
+      await loadApiTokens();
+    } catch {
+      /* silent */
+    }
+  };
 
   const saveSecurityQuick = async (
     patch: Record<string, unknown>
@@ -1562,6 +1652,20 @@ docker run -d --name mtproxy --restart=always -p ${mtpPort || "443"}:443 \\
             />
             <span className="whitespace-nowrap">{u.tabGeneral}</span>
             {tab === "general" && <span className="orbit-dot" aria-hidden="true" />}
+          </TabsTrigger>
+          <TabsTrigger
+            value="api"
+            className={cn(
+              "relative h-8 gap-2 rounded-full border-transparent bg-transparent px-4 text-[13px] font-medium text-muted-foreground hover:text-foreground md:px-5 data-[state=active]:border-transparent data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary/20 data-[state=active]:to-primary/5 data-[state=active]:text-foreground",
+              tab === "api" && "glow-cyan"
+            )}
+          >
+            <Braces
+              className={cn("h-3.5 w-3.5", tab === "api" ? "text-primary" : "opacity-70")}
+              aria-hidden="true"
+            />
+            <span className="whitespace-nowrap">{u.tabApi}</span>
+            {tab === "api" && <span className="orbit-dot" aria-hidden="true" />}
           </TabsTrigger>
           <TabsTrigger
             value="expert"
@@ -2699,6 +2803,133 @@ docker run -d --name mtproxy --restart=always -p ${mtpPort || "443"}:443 \\
                   </div>
                 )}
               </div>
+            </SectionCard>
+          </div>
+        </TabsContent>
+
+        {/* ═══════════ PUBLIC API ═══════════ */}
+        <TabsContent value="api">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {/* intro + how-to */}
+            <SectionCard icon={Braces} title={u.apiTitle} desc={u.apiDesc}>
+              <div className="space-y-3">
+                <p className="text-xs leading-relaxed text-muted-foreground">{u.apiHint}</p>
+                <pre className="overflow-x-auto rounded-xl bg-black/40 p-3 font-mono text-[11px] leading-relaxed text-emerald-300 ring-1 ring-white/10" dir="ltr">
+{`curl -H "Authorization: Bearer seph_xxxxxxxxxxxx…" \
+     <origin>/api/users`}
+                </pre>
+                <div className="flex flex-wrap gap-2">
+                  <a href="/api/openapi.json" target="_blank" rel="noreferrer">
+                    <Button variant="outline" size="sm" className="h-8 gap-1.5 rounded-full text-[11px]">
+                      <FileJson className="h-3 w-3" />
+                      {u.apiSpecLink}
+                    </Button>
+                  </a>
+                </div>
+              </div>
+            </SectionCard>
+
+            {/* tokens */}
+            <SectionCard icon={KeyRound} title={u.apiTokensTitle} desc={u.apiTokensDesc}>
+              <div className="space-y-4">
+                <div className="flex gap-2">
+                  <Input
+                    value={newTokenName}
+                    onChange={(e) => setNewTokenName(e.target.value)}
+                    placeholder={u.apiTokenNamePh}
+                    maxLength={48}
+                    className="h-9 flex-1 text-sm"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") void mintApiToken();
+                    }}
+                  />
+                  <Button
+                    size="sm"
+                    onClick={() => void mintApiToken()}
+                    disabled={minting || !newTokenName.trim()}
+                    className="h-9 gap-1.5 rounded-full px-4 text-xs"
+                  >
+                    {minting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <KeyRound className="h-3.5 w-3.5" />}
+                    {u.apiTokenCreate}
+                  </Button>
+                </div>
+
+                {mintedRaw && (
+                  <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3">
+                    <p className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-300">
+                      <TriangleAlert className="h-3.5 w-3.5" aria-hidden="true" />
+                      {u.apiTokenOnceTitle}
+                    </p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">{u.apiTokenOnceDesc}</p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <code className="min-w-0 flex-1 truncate rounded-lg bg-black/40 px-2.5 py-1.5 font-mono text-[11px] text-emerald-200" dir="ltr">
+                        {mintedRaw}
+                      </code>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => void copyText(mintedRaw)}
+                        className="h-8 shrink-0 gap-1.5 rounded-full px-3 text-[11px]"
+                      >
+                        <Copy className="h-3 w-3" />
+                        {u.apiTokenCopy}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
+                  {!apiTokensLoaded ? (
+                    <Skeleton className="h-16 w-full rounded-xl" />
+                  ) : apiTokens.length === 0 ? (
+                    <p className="py-6 text-center text-xs text-muted-foreground">{u.apiTokenNone}</p>
+                  ) : (
+                    apiTokens.map((row) => (
+                      <div
+                        key={row.id}
+                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 ring-1 ring-border"
+                      >
+                        <span className="glass flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
+                          <Braces className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-semibold text-foreground">{row.name}</p>
+                          <p className="truncate font-mono text-[10px] text-muted-foreground" dir="ltr">
+                            {row.prefix}
+                          </p>
+                        </div>
+                        <div className="hidden shrink-0 text-right sm:block">
+                          <p className="text-[10px] text-muted-foreground">{u.apiTokenLastUsed}</p>
+                          <p className="text-[10px] font-medium text-foreground">
+                            {row.lastUsedAt
+                              ? new Date(row.lastUsedAt).toLocaleString(lang === "fa" ? "fa-IR" : lang)
+                              : u.apiTokenNever}
+                          </p>
+                        </div>
+                        <Switch
+                          checked={row.enabled}
+                          onCheckedChange={(v) => void toggleApiToken(row, v)}
+                          aria-label={u.apiTokenToggle}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => void revokeApiToken(row)}
+                          className="h-8 w-8 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                          aria-label={u.apiTokenRevoke}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </SectionCard>
+
+            {/* swagger ui — full width */}
+            <SectionCard icon={FileJson} title={u.apiSwaggerTitle} desc={u.apiSwaggerDesc} className="lg:col-span-2">
+              <SwaggerEmbed />
             </SectionCard>
           </div>
         </TabsContent>

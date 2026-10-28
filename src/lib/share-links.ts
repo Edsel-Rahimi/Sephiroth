@@ -268,6 +268,35 @@ export function buildShareLink(
       const mtu = String(st.wgMtu ?? 1420);
       return `wireguard://${priv}@${host}:${port}?address=10.0.0.2%2F32&publickey=${pub}&mtu=${mtu}#${encodeURIComponent(label)}`;
     }
+    case "amnezia-wg": {
+      // Phase 27 — AmneziaWG = WireGuard URI + obfuscation params. v2rayN /
+      // NekoBox / Hiddify parse Jc..H4 straight off the wireguard:// query.
+      const priv = encodeURIComponent(String(first?.wgPrivateKey || "<client-private-key>"));
+      const pub = encodeURIComponent(String(st.wgPublicKey || first?.wgPublicKey || "WG_PUBLIC_KEY"));
+      const mtu = String(st.wgMtu ?? 1420);
+      const numOr = (k: string, d: number): number => {
+        const v = Number(st[k]);
+        return Number.isFinite(v) && v > 0 ? v : d;
+      };
+      const seedHash = str32Hash(`${row.tag}:${row.port}:awg-h`);
+      const hMagic = (i: number): number => {
+        const v = Number(st[`awgH${i}`]);
+        return Number.isFinite(v) && v > 0 ? v : parseInt(seedHash.slice(i * 6, i * 6 + 6), 16) || 1000000 + i * 111111;
+      };
+      q.set("address", "10.0.0.2/32");
+      q.set("publickey", String(st.wgPublicKey || first?.wgPublicKey || "WG_PUBLIC_KEY"));
+      q.set("mtu", mtu);
+      q.set("jc", String(numOr("awgJc", 4)));
+      q.set("jmin", String(numOr("awgJmin", 40)));
+      q.set("jmax", String(numOr("awgJmax", 70)));
+      q.set("s1", String(numOr("awgS1", 15)));
+      q.set("s2", String(numOr("awgS2", 60)));
+      q.set("h1", String(hMagic(1)));
+      q.set("h2", String(hMagic(2)));
+      q.set("h3", String(hMagic(3)));
+      q.set("h4", String(hMagic(4)));
+      return `wireguard://${priv}@${host}:${port}?${q.toString()}#${encodeURIComponent(label)}`;
+    }
     case "socks":
     case "http": {
       const auth = first
@@ -334,6 +363,71 @@ export function buildWgConf(
   ].join("\n");
 }
 
+/** AmneziaWG obfuscation defaults — must mirror the sidecar generator. */
+function str32Hash(input: string): string {
+  // cheap deterministic 32-hex digest (FNV-1a ×4 rounds) — no crypto import
+  // needed in this isomorphic (client+server) module
+  let out = "";
+  for (let r = 0; r < 4; r++) {
+    let h = 0x811c9dc5 ^ (r * 0x9e3779b9);
+    for (let i = 0; i < input.length; i++) {
+      h ^= input.charCodeAt(i) + r;
+      h = Math.imul(h, 0x01000193) >>> 0;
+    }
+    out += h.toString(16).padStart(8, "0");
+  }
+  return out;
+}
+
+/**
+ * AmneziaWG client config (Phase 27) — the wireguard .conf plus the
+ * obfuscation block. The client private key is per-user; the server public
+ * key + header params come from the inbound stream.
+ */
+export function buildAwgConf(
+  row: ShareInbound,
+  first?: ShareClient,
+  fallbackHost?: string,
+  publicHost?: string
+): string {
+  const st = (row.stream ?? {}) as Record<string, unknown>;
+  const host = hostOf(row, fallbackHost, publicHost);
+  const numOr = (k: string, d: number): number => {
+    const v = Number(st[k]);
+    return Number.isFinite(v) && v > 0 ? v : d;
+  };
+  const seedHash = str32Hash(`${row.tag}:${row.port}:awg-h`);
+  const hMagic = (i: number): number => {
+    const v = Number(st[`awgH${i}`]);
+    return Number.isFinite(v) && v > 0 ? v : parseInt(seedHash.slice(i * 6, i * 6 + 6), 16) || 1000000 + i * 111111;
+  };
+  return [
+    `# ${BRAND_TAG} · AmneziaWG · ${row.tag}`,
+    "[Interface]",
+    // per-client private key — the inbound's server secret must never ship
+    `PrivateKey = ${first?.wgPrivateKey || "<client-private-key>"}`,
+    "Address = 10.0.0.2/32",
+    "DNS = 1.1.1.1, 1.0.0.1",
+    `MTU = ${st.wgMtu ?? 1420}`,
+    `Jc = ${numOr("awgJc", 4)}`,
+    `Jmin = ${numOr("awgJmin", 40)}`,
+    `Jmax = ${numOr("awgJmax", 70)}`,
+    `S1 = ${numOr("awgS1", 15)}`,
+    `S2 = ${numOr("awgS2", 60)}`,
+    `H1 = ${hMagic(1)}`,
+    `H2 = ${hMagic(2)}`,
+    `H3 = ${hMagic(3)}`,
+    `H4 = ${hMagic(4)}`,
+    "",
+    "[Peer]",
+    // the inbound's SERVER public key
+    `PublicKey = ${st.wgPublicKey ?? first?.wgPublicKey ?? "<server-public-key>"}`,
+    "AllowedIPs = 0.0.0.0/0, ::/0",
+    `Endpoint = ${host}:${row.port}`,
+    "PersistentKeepalive = 25",
+  ].join("\n");
+}
+
 export function buildDokoSummary(row: ShareInbound, fallbackHost?: string, publicHost?: string): string {
   const st = (row.stream ?? {}) as Record<string, unknown>;
   return [
@@ -353,6 +447,15 @@ export function buildShareMaterial(
   const link = buildShareLink(row, first, fallbackHost, publicHost);
   if (row.protocol === "wireguard") {
     return { link, text: buildWgConf(row, first, fallbackHost, publicHost) };
+  }
+  if (row.protocol === "amnezia-wg") {
+    // Phase 27 — primary copyable payload is the client .conf (universal);
+    // the wireguard:// URI with Jc..H4 params rides as `extra`
+    return {
+      link,
+      text: buildAwgConf(row, first, fallbackHost, publicHost),
+      extra: link ?? undefined,
+    };
   }
   if (row.protocol === "mixed") {
     // Task 25-a — the second protocol half (HTTP proxy URI) rides `extra`

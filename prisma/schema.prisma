@@ -265,6 +265,28 @@ model RoutingRule {
   updatedAt      DateTime @updatedAt
 }
 
+// ------------------------------------------------------------
+// Phase 27 — Public API tokens (Bearer auth for the REST API).
+// A token delegates ADMIN-level access to external integrations
+// (Marzban-style automation, billing glue, monitoring). The raw
+// secret is shown exactly once at creation; only the sha256 hash
+// lives in the store. `prefix` (first 12 chars) is kept for the
+// management UI so owners can recognize a token without holding
+// the secret. Actions taken with a token are attributed to the
+// admin account that minted it (actorUsername).
+// ------------------------------------------------------------
+model ApiToken {
+  id            String    @id @default(cuid())
+  name          String // 1-48 chars, friendly label
+  tokenHash     String    @unique // sha256 hex of "seph_<32hex>"
+  prefix        String // display form: "seph_ab12cd34…"
+  actorUsername String // admin that created the token
+  enabled       Boolean   @default(true)
+  lastUsedAt    DateTime?
+  lastUsedIp    String    @default("")
+  createdAt     DateTime  @default(now())
+}
+
 // ActivityLog — persisted audit trail. The dashboard feed streams
 // socket events; this table keeps history with filters/export.
 model ActivityLog {

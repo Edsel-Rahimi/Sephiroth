@@ -1049,3 +1049,76 @@ export async function installOrUpdateMtg(opts: {
 }): Promise<XrayBinaryInfo> {
   return ensureMtgBinary(opts);
 }
+
+/* ==========================================================================
+ * AmneziaWG sidecar (Phase 27) — awg-quick / amneziawg-go resolution.
+ *
+ * amneziawg-go official releases ship SOURCE tarballs only (no prebuilt
+ * static binaries), so unlike hysteria/mtg/sing-box there is no
+ * auto-install path here. Resolution order is honest:
+ *   1. admin-pinned absolute path   (settings · set_sidecar_awg_bin)
+ *   2. `awg-quick` on PATH          (the bring-up utility this panel drives)
+ *   3. `amneziawg-go` on PATH       (daemon present but no quick wrapper →
+ *                                    still reported, spawn stays unmanaged)
+ * When nothing resolves the caller gets a descriptive error and the panel
+ * keeps generating deployable server + client configs regardless.
+ * ======================================================================== */
+
+const AWG_HINT =
+  "install amneziawg-tools + amneziawg-go (apt/ppa or build from source) " +
+  "or pin the awg-quick path in settings (set_sidecar_awg_bin)";
+
+async function probeAwgVersion(binPath: string): Promise<string> {
+  // awg-quick is a shell script — the version lives in the `awg` tool that
+  // ships next to it (or earlier on PATH). Best-effort; falls back to a
+  // generic marker when neither reports a usable version.
+  const dir = path.dirname(binPath);
+  for (const candidate of [path.join(dir, "awg"), "awg"]) {
+    const isAbsolute = candidate.includes(path.sep);
+    if (isAbsolute && !existsSync(candidate)) continue;
+    try {
+      const r = await execFile(candidate, ["--version"], 5000);
+      if (r.code === 0) {
+        const m = r.stdout.match(/(\d+\.\d+(\.\d+)?)/);
+        if (m) return m[1]!;
+      }
+    } catch {
+      /* next candidate */
+    }
+  }
+  return "awg-quick";
+}
+
+export async function ensureAwgBinary(opts: {
+  binPath?: string;
+  log?: (msg: string) => void;
+}): Promise<XrayBinaryInfo> {
+  const log = opts.log ?? (() => {});
+
+  // 1) admin-pinned absolute path
+  const userPath = (opts.binPath ?? "").trim();
+  if (userPath) {
+    if (!existsSync(userPath)) {
+      throw new Error(`amneziawg binary path points to a missing file: ${userPath}`);
+    }
+    const version = await probeAwgVersion(userPath);
+    return { path: userPath, version, source: "user" };
+  }
+
+  // 2) awg-quick on PATH (preferred — the panel drives `awg-quick up/down`)
+  if (process.platform !== "win32") {
+    for (const tool of ["awg-quick", "amneziawg-go"]) {
+      const which = await execFile("which", [tool], 5000);
+      if (which.code === 0) {
+        const found = which.stdout.trim().split("\n")[0] ?? "";
+        if (found && existsSync(found)) {
+          const version = await probeAwgVersion(found);
+          log(`amneziawg: found ${tool} at ${found} (${version})`);
+          return { path: found, version, source: "path" };
+        }
+      }
+    }
+  }
+
+  throw new Error(`amneziawg binaries not found — ${AWG_HINT}`);
+}

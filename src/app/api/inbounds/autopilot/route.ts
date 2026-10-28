@@ -7,7 +7,7 @@ import {
   validateInbound,
   type InboundClient,
 } from "@/lib/inbounds";
-import { genKey, genSubId } from "@/lib/users";
+import { genKey, genSubId, makeWgKeypair } from "@/lib/users";
 import { buildShareMaterial } from "@/lib/share-links";
 import { MTP_DEFAULT_DOMAIN } from "@/lib/mtp-secret";
 import { logActivity } from "@/lib/activity";
@@ -38,7 +38,7 @@ import { notifyInboundCreated } from "@/lib/bot/notify";
    ============================================================ */
 
 /** Protocols that carry raw sockets — no transport/security layer applies. */
-const NO_STREAM = new Set(["wireguard", "socks", "http", "dokodemo-door", "mixed", "mtproto"]);
+const NO_STREAM = new Set(["wireguard", "amnezia-wg", "socks", "http", "dokodemo-door", "mixed", "mtproto"]);
 /** Protocols that can sit behind TLS stream settings. */
 const STREAM_TLS_OK = new Set(["vless", "vmess", "trojan", "shadowsocks"]);
 /** reality is only sane for these. */
@@ -92,6 +92,20 @@ function defaultStreamFor(
     return { method: m };
   }
   if (proto === "socks") return { socksUdp: true };
+  if (proto === "amnezia-wg") {
+    // Phase 27 — real server keypair + AmneziaWG obfuscation defaults
+    const kp = makeWgKeypair();
+    return {
+      wgSecretKey: kp.privateKey,
+      wgPublicKey: kp.publicKey,
+      wgMtu: 1420,
+      awgJc: 4,
+      awgJmin: 40,
+      awgJmax: 70,
+      awgS1: 15,
+      awgS2: 60,
+    };
+  }
   if (proto === "dokodemo-door")
     return { dokoAddress: "one.one.one.one", dokoPort: 53, dokoNetwork: "tcp,udp" };
   return {};
@@ -108,11 +122,19 @@ function mapClients(
   fresh: boolean,
   port: number
 ): InboundClient[] {
+  const keyFor = (): string => {
+    if (proto === "amnezia-wg") {
+      // Phase 27 — a REAL peer keypair per client; the public half rides the
+      // server conf's [Peer] block, the private half stays client-side
+      return makeWgKeypair().publicKey;
+    }
+    return genKey(proto);
+  };
   if (fresh || tplClients.length === 0) {
     return [
       {
         email: `user-${port}`,
-        key: genKey(proto),
+        key: keyFor(),
         subId: genSubId(),
         flow: "",
         ipLimit: 0,
@@ -124,7 +146,7 @@ function mapClients(
   }
   return tplClients.slice(0, 100).map((c) => ({
     ...c,
-    key: genKey(proto), // email/subId preserved — key format is per-protocol
+    key: keyFor(), // email/subId preserved — key format is per-protocol
     flow: "", // vision flow only makes sense on vless — recomputed by the caller
     enabled: c.enabled,
   }));

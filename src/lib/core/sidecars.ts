@@ -73,7 +73,7 @@ import type { SidecarStatus } from "@/lib/core/types";
 import { asInboundStatus } from "@/lib/core/host-metrics";
 import { parseClients } from "@/lib/user-types";
 import type { InboundClient, InboundStream } from "@/lib/inbounds";
-import { ensureHysteriaBinary, ensureMtgBinary } from "@/lib/core/bin-manager";
+import { ensureHysteriaBinary, ensureMtgBinary, ensureAwgBinary } from "@/lib/core/bin-manager";
 import { isValidMtpSecret } from "@/lib/mtp-secret";
 
 const BYTES_PER_GB = 1024 ** 3;
@@ -313,8 +313,8 @@ function safeTag(tag: string): string {
 
 interface SidecarEntry {
   tag: string;
-  /** which engine this sidecar serves (hysteria2 | mtproto, Task 25-a) */
-  protocol: "hysteria2" | "mtproto";
+  /** which engine this sidecar serves (hysteria2 | mtproto, Task 25-a; amnezia-wg, Phase 27) */
+  protocol: "hysteria2" | "mtproto" | "amnezia-wg";
   port: number;
   listen: string;
   status: string; // inbound store status
@@ -370,6 +370,11 @@ export class SidecarManager {
   private mtgPath = "";
   private mtgVersion = "";
   private mtgResolved = false;
+
+  // amneziawg (awg-quick) engine — resolved lazily, only when an amnezia-wg row exists
+  private awgPath = "";
+  private awgVersion = "";
+  private awgResolved = false;
 
   private readonly entries = new Map<string, SidecarEntry>();
   private regenTimer: NodeJS.Timeout | null = null;
@@ -473,8 +478,40 @@ export class SidecarManager {
   }
 
   /** Engine binary for a sidecar kind ("" when not resolved yet). */
-  private binFor(protocol: "hysteria2" | "mtproto"): string {
-    return protocol === "mtproto" ? this.mtgPath : this.binaryPath;
+  private binFor(protocol: "hysteria2" | "mtproto" | "amnezia-wg"): string {
+    if (protocol === "mtproto") return this.mtgPath;
+    if (protocol === "amnezia-wg") return this.awgPath;
+    return this.binaryPath;
+  }
+
+  /**
+   * Resolve the amneziawg (awg-quick) binary for AmneziaWG sidecars.
+   * NEVER throws — mirrors the mtg contract: a missing binary only
+   * surfaces as a failed amnezia-wg sidecar with an actionable message;
+   * configs are still generated and deployable by hand.
+   */
+  private async ensureAwg(): Promise<void> {
+    if (this.awgPath && this.awgVersion && existsSync(this.awgPath)) return;
+    try {
+      const binOverride = db._syncReadSetting("set_sidecar_awg_bin") || "";
+      const bin = await ensureAwgBinary({
+        binPath: binOverride,
+        log: (m) => this.log("engine", m),
+      });
+      const isNew = !this.awgResolved;
+      this.awgPath = bin.path;
+      this.awgVersion = bin.version;
+      this.awgResolved = true;
+      this.log("engine", `awg binary: ${bin.path} (${bin.version}, source: ${bin.source})`);
+      if (isNew) {
+        for (const entry of this.entries.values()) {
+          if (entry.protocol === "amnezia-wg") entry.configHash = "";
+        }
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.log("engine", `amneziawg binary unavailable: ${msg}`);
+    }
   }
 
   async stopAll(): Promise<void> {
@@ -556,7 +593,12 @@ export class SidecarManager {
     try {
       rows = db
         ._syncReadInboundsFull()
-        .filter((r) => r.protocol === "hysteria2" || r.protocol === "mtproto");
+        .filter(
+          (r) =>
+            r.protocol === "hysteria2" ||
+            r.protocol === "mtproto" ||
+            r.protocol === "amnezia-wg"
+        );
     } catch {
       return;
     }
@@ -588,6 +630,7 @@ export class SidecarManager {
     // established contract; mtg never throws, see ensureMtg)
     if (rows.some((r) => r.protocol === "hysteria2")) await this.ensureBinary();
     if (rows.some((r) => r.protocol === "mtproto")) await this.ensureMtg();
+    if (rows.some((r) => r.protocol === "amnezia-wg")) await this.ensureAwg();
 
     const served = rows.filter((r) => r.status === "online");
     const seen = new Set<string>();
@@ -614,7 +657,7 @@ export class SidecarManager {
           row.tag,
           row.port,
           row.listen,
-          row.protocol === "mtproto" ? "mtproto" : "hysteria2"
+          row.protocol as "hysteria2" | "mtproto" | "amnezia-wg"
         );
         this.entries.set(row.tag, entry);
       }
@@ -678,7 +721,7 @@ export class SidecarManager {
     tag: string,
     port: number,
     listen: string,
-    protocol: "hysteria2" | "mtproto"
+    protocol: "hysteria2" | "mtproto" | "amnezia-wg"
   ): SidecarEntry {
     return {
       tag,
@@ -729,7 +772,103 @@ export class SidecarManager {
     port: number;
   } | null {
     if (row.protocol === "mtproto") return this.buildMtpSidecar(row);
+    if (row.protocol === "amnezia-wg") return this.buildAwgSidecar(row);
     return this.buildHysteriaSidecar(row);
+  }
+
+  /**
+   * AmneziaWG (Phase 27) — wg-quick-compatible server config with the
+   * obfuscation headers (Jc/Jmin/Jmax/S1/S2/H1–H4). Served by an awg-quick
+   * sidecar when the binaries exist; the config file itself is always
+   * written so admins can bring the interface up on any host with
+   * `awg-quick up <configPath>`. Peers map 1:1 to enabled clients — the
+   * client's store key IS its public key (mirrors the wireguard convention).
+   */
+  private buildAwgSidecar(row: InboundRowLike): {
+    yaml: string;
+    yamlHash: string;
+    configPath: string;
+    certPath: string;
+    certSource: "managed" | "self-signed";
+    statsSecret: string;
+    authEmails: string[];
+    port: number;
+  } | null {
+    const st = parseLoose<Record<string, unknown>>(row.streamJson, {});
+    const clients = (parseClients(row.clientsJson) as (InboundClient & { ownerId?: string })[])
+      .filter((c) => c.enabled !== false && c.email && c.key);
+
+    if (clients.length === 0) {
+      this.log(row.tag, "no enabled client with a key — sidecar skipped");
+      return null;
+    }
+    const secretKey = str(st.wgSecretKey).trim();
+    if (!secretKey) {
+      this.log(
+        row.tag,
+        "no server private key (stream.wgSecretKey) — sidecar skipped; generate a key pair in the inbound editor"
+      );
+      return null;
+    }
+
+    const numOr = (k: string, d: number): number => {
+      const v = num(st[k]);
+      return v > 0 ? v : d;
+    };
+    // deterministic header magics per tag+port when unset (stable across reloads)
+    const seed = hashStr(`${row.tag}:${row.port}:awg-h`);
+    const hMagic = (i: number): number => {
+      const k = `awgH${i}`;
+      const v = num(st[k]);
+      if (v > 0) return v;
+      return parseInt(seed.slice(i * 6, i * 6 + 6), 16) || 1000000 + i * 111111;
+    };
+
+    const t = safeTag(row.tag);
+    const configPath = path.join(this.stateDir, `${t}.conf`);
+
+    const lines: string[] = [
+      `# Sephiroth · amnezia-wg · ${row.tag} — bring up with: awg-quick up ${configPath}`,
+      "[Interface]",
+      `PrivateKey = ${secretKey}`,
+      `Address = 172.16.0.1/24`,
+      `ListenPort = ${row.port}`,
+      `MTU = ${numOr("wgMtu", 1420)}`,
+      `Jc = ${numOr("awgJc", 4)}`,
+      `Jmin = ${numOr("awgJmin", 40)}`,
+      `Jmax = ${numOr("awgJmax", 70)}`,
+      `S1 = ${numOr("awgS1", 15)}`,
+      `S2 = ${numOr("awgS2", 60)}`,
+      `H1 = ${hMagic(1)}`,
+      `H2 = ${hMagic(2)}`,
+      `H3 = ${hMagic(3)}`,
+      `H4 = ${hMagic(4)}`,
+    ];
+    clients.forEach((c, i) => {
+      lines.push(
+        "",
+        "[Peer]",
+        `# ${c.email}`,
+        `PublicKey = ${c.key}`,
+        `AllowedIPs = 172.16.0.${i + 2}/32`,
+        `PersistentKeepalive = 25`
+      );
+    });
+
+    const conf = lines.join("\n") + "\n";
+    mkdirSync(this.stateDir, { recursive: true });
+    writeIfChanged(configPath, conf);
+
+    return {
+      yaml: conf,
+      yamlHash: hashStr(conf),
+      configPath,
+      certPath: "",
+      certSource: "self-signed",
+      statsSecret: "", // awg has no per-user traffic API here — counters stay 0
+      authEmails: clients.map((c) => c.email),
+      port: Number(row.port),
+    };
   }
 
   /**
@@ -974,6 +1113,7 @@ export class SidecarManager {
   /* ------------------------------------------------------------- spawning */
 
   private async spawnEntry(entry: SidecarEntry): Promise<void> {
+    if (entry.protocol === "amnezia-wg") return this.spawnAwgEntry(entry);
     const binPath = this.binFor(entry.protocol);
     if (!binPath) {
       throw new Error(
@@ -1046,11 +1186,132 @@ export class SidecarManager {
     );
   }
 
+  /**
+   * AmneziaWG bring-up (Phase 27) — the panel drives `awg-quick up <conf>`
+   * when the binaries exist. awg-quick configures the interface and exits,
+   * leaving amneziawg-go holding the UDP port; health is the UDP probe.
+   * When no binary is available the entry stays honest: lastError carries
+   * the install hint, the config file remains deployable by hand, and no
+   * restart loop spins.
+   */
+  private async spawnAwgEntry(entry: SidecarEntry): Promise<void> {
+    const binPath = this.binFor("amnezia-wg");
+    if (!binPath || !binPath.includes("awg-quick")) {
+      entry.wantRunning = true;
+      entry.running = false;
+      entry.pid = null;
+      entry.lastError =
+        "amneziawg binaries not found — install amneziawg-tools + amneziawg-go " +
+        "(or pin set_sidecar_awg_bin); the server config is ready at " +
+        (entry.configPath || "<stateDir>/<tag>.conf>");
+      this.log(entry.tag, entry.lastError);
+      return; // honest idle state — NOT an error throw, so no restart backoff
+    }
+    entry.wantRunning = true;
+    entry.lastError = "";
+
+    // bring down a leftover interface from a crashed panel first
+    await this.awgQuick(["down", entry.configPath], true);
+    await this.waitUdpPortGone(entry.port, 4000);
+
+    const r = await this.awgQuick(["up", entry.configPath], false);
+    if (r.code !== 0) {
+      const msg = `awg-quick up failed (exit ${r.code})${r.stderr ? `: ${r.stderr.split("\n")[0]?.slice(0, 160)}` : ""}`;
+      entry.lastError = msg;
+      entry.running = false;
+      this.log(entry.tag, msg);
+      throw new Error(msg);
+    }
+    const ok = await this.waitUdpPort(entry.port, PORT_WAIT_MS);
+    if (!ok) {
+      const msg = `amneziawg did not open UDP port ${entry.port} within ${PORT_WAIT_MS / 1000}s`;
+      this.log(entry.tag, msg);
+      entry.lastError = msg;
+      entry.running = false;
+      await this.awgQuick(["down", entry.configPath], true);
+      throw new Error(msg);
+    }
+    entry.running = true;
+    entry.autoAttempts = 0;
+    entry.statsError = "";
+    entry.pid = await this.awgInterfacePid();
+    this.log(entry.tag, `amnezia-wg interface up (udp ${entry.port}, awg ${this.awgVersion})`);
+  }
+
+  /** Run awg-quietly: best-effort wrapper that never throws on `down`. */
+  private awgQuick(
+    args: string[],
+    bestEffort: boolean
+  ): Promise<{ code: number; stderr: string }> {
+    const bin = this.binFor("amnezia-wg") || "awg-quick";
+    return new Promise((resolve) => {
+      try {
+        nodeExecFile(
+          bin,
+          args,
+          { timeout: 20_000 },
+          (err, _stdout, stderr) => {
+            if (err && !bestEffort) {
+              resolve({
+                code: typeof err.code === "number" ? err.code : 1,
+                stderr: String(stderr ?? err.message),
+              });
+            } else {
+              resolve({ code: err ? 1 : 0, stderr: String(stderr ?? "") });
+            }
+          }
+        );
+      } catch (err) {
+        resolve({
+          code: 1,
+          stderr: err instanceof Error ? err.message : String(err),
+        });
+      }
+    });
+  }
+
+  /** pid of the amneziawg-go daemon holding the interface (best-effort). */
+  private async awgInterfacePid(): Promise<number | null> {
+    try {
+      const r = await new Promise<{ code: number; stdout: string }>((resolve) => {
+        nodeExecFile("pgrep", ["-f", "amneziawg-go"], { timeout: 4000 }, (err, stdout) => {
+          resolve({ code: err ? 1 : 0, stdout: String(stdout ?? "") });
+        });
+      });
+      if (r.code === 0) {
+        const pid = Number(r.stdout.trim().split("\n")[0]);
+        return Number.isInteger(pid) ? pid : null;
+      }
+    } catch {
+      /* best effort */
+    }
+    return null;
+  }
+
+  /** Resolve once the UDP port is free again after `awg-quick down`. */
+  private async waitUdpPortGone(port: number, timeoutMs: number): Promise<void> {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      if (!(await this.udpTaken(port))) return;
+      await sleep(250);
+    }
+  }
+
   async stopEntry(entry: SidecarEntry): Promise<void> {
     entry.wantRunning = false;
     if (entry.restartTimer) {
       clearTimeout(entry.restartTimer);
       entry.restartTimer = null;
+    }
+    if (entry.protocol === "amnezia-wg") {
+      // awg-quick is not a long-lived child — bring the interface down
+      if (entry.running || existsSync(entry.configPath)) {
+        await this.awgQuick(["down", entry.configPath], true);
+        this.log(entry.tag, "amnezia-wg interface down (awg-quick)");
+      }
+      entry.running = false;
+      entry.pid = null;
+      return;
     }
     if (!entry.proc) {
       entry.running = false;
@@ -1157,10 +1418,15 @@ export class SidecarManager {
   }
 
   /** true when /proc/<pid>/cmdline (linux) matches the engine — avoids killing a recycled pid */
-  private pidLooksLikeEngine(pid: number, protocol: "hysteria2" | "mtproto"): boolean {
+  private pidLooksLikeEngine(
+    pid: number,
+    protocol: "hysteria2" | "mtproto" | "amnezia-wg"
+  ): boolean {
     try {
       const cmd = readFileSync(`/proc/${pid}/cmdline`, "utf8");
-      return protocol === "mtproto" ? /mtg/i.test(cmd) : /hysteria/i.test(cmd);
+      if (protocol === "mtproto") return /mtg/i.test(cmd);
+      if (protocol === "amnezia-wg") return /amneziawg|awg/i.test(cmd);
+      return /hysteria/i.test(cmd);
     } catch {
       return false;
     }
@@ -1443,7 +1709,12 @@ export class SidecarManager {
       protocol: e.protocol,
       running: e.running,
       pid: e.pid,
-      version: e.protocol === "mtproto" ? this.mtgVersion : this.binaryVersion,
+      version:
+        e.protocol === "mtproto"
+          ? this.mtgVersion
+          : e.protocol === "amnezia-wg"
+            ? this.awgVersion
+            : this.binaryVersion,
       port: e.port,
       lastError: e.lastError || e.statsError,
       restarts: e.restartCount,

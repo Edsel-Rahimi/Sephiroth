@@ -286,6 +286,23 @@ export interface RelayTunnelRow {
   updatedAt: Date;
 }
 
+// ------------------------------------------------------------
+// Phase 27 — Public API tokens (Bearer auth for the REST API).
+// Only the sha256 hash is stored; the raw secret is shown once.
+// ------------------------------------------------------------
+export interface ApiToken {
+  id: string;
+  name: string;
+  tokenHash: string;
+  prefix: string;
+  actorUsername: string;
+  enabled: boolean;
+  lastUsedAt: Date | null;
+  lastUsedIp: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export namespace Prisma {
   export class PrismaClientKnownRequestError extends Error {
     code: string;
@@ -317,7 +334,8 @@ type TableName =
   | "activityLog"
   | "relayTunnel"
   | "tgUser"
-  | "tgOrder";
+  | "tgOrder"
+  | "apiToken";
 
 type StoreData = Record<TableName, Record<string, any>[]>;
 
@@ -342,6 +360,7 @@ function emptyStore(): StoreData {
     relayTunnel: [],
     tgUser: [],
     tgOrder: [],
+    apiToken: [],
   };
 }
 
@@ -351,7 +370,8 @@ function reviveDates(obj: any): any {
   const out: Record<string, any> = {};
   for (const [k, v] of Object.entries(obj)) {
     if (
-      (k === "createdAt" || k === "updatedAt" || k === "lastSeen" || k === "lastResetAt") &&
+      (k === "createdAt" || k === "updatedAt" || k === "lastSeen" || k === "lastResetAt" ||
+        k === "lastUsedAt" || k === "startedAt" || k === "expiryWarnedAt") &&
       typeof v === "string"
     ) {
       const d = new Date(v);
@@ -444,6 +464,7 @@ const UNIQUE_FIELDS: Partial<Record<TableName, string[]>> = {
   reseller: ["username"],
   outbound: ["tag"],
   tgUser: ["tgId"],
+  apiToken: ["tokenHash"],
 };
 
 function checkUniqueness(table: TableName, candidate: Record<string, any>, ignoreId?: string): void {
@@ -636,6 +657,14 @@ const DEFAULTS: Record<TableName, () => Record<string, any>> = {
     authority: "",
     receiptFileId: "",
     provisionedUserId: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }),
+  apiToken: () => ({
+    id: cuid(),
+    enabled: true,
+    lastUsedAt: null,
+    lastUsedIp: "",
     createdAt: new Date(),
     updatedAt: new Date(),
   }),
@@ -1073,6 +1102,7 @@ const baseDb = {
   relayTunnel: makeDelegate("relayTunnel"),
   tgUser: makeDelegate("tgUser"),
   tgOrder: makeDelegate("tgOrder"),
+  apiToken: makeDelegate("apiToken"),
 };
 
 export type DbTransactionClient = typeof baseDb;

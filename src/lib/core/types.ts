@@ -108,8 +108,8 @@ export interface CoreStatusPayload extends CoreBackendStatus {
 /** One sidecar engine process (hysteria2 / mtproto inbound served outside Xray). */
 export interface SidecarStatus {
   tag: string;
-  /** Task 25-a — mtproto rows ride the same sidecar framework (mtg binary) */
-  protocol: "hysteria2" | "mtproto";
+  /** Task 25-a / Phase 27 — sidecar-served kinds (mtg, awg-quick) */
+  protocol: "hysteria2" | "mtproto" | "amnezia-wg";
   running: boolean;
   pid: number | null;
   /** sidecar binary version ("" before first resolve) */

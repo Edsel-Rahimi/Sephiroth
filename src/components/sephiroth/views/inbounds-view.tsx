@@ -223,6 +223,7 @@ const PROTOCOLS = [
   "http",
   "mixed",
   "mtproto",
+  "amnezia-wg",
 ] as const;
 const TRANSPORTS = ["tcp", "ws", "grpc", "httpupgrade", "xhttp", "kcp"] as const;
 const STATUSES = ["online", "maintenance", "disabled"] as const;
@@ -254,6 +255,7 @@ const PROTO_LABEL: Record<string, string> = {
   http: "HTTP",
   mixed: "Mixed",
   mtproto: "MTProto",
+  "amnezia-wg": "AmneziaWG",
 };
 
 const PROTO_CLS: Record<string, string> = {
@@ -269,6 +271,7 @@ const PROTO_CLS: Record<string, string> = {
   http: "bg-[#fb923c]/10 text-[#fb923c] ring-[#fb923c]/30",
   mixed: "bg-[#38bdf8]/10 text-[#38bdf8] ring-[#38bdf8]/30",
   mtproto: "bg-[#f59e0b]/10 text-[#f59e0b] ring-[#f59e0b]/30",
+  "amnezia-wg": "bg-[#a3e635]/10 text-[#a3e635] ring-[#a3e635]/30",
 };
 
 /* Lovable-design per-protocol accents (solid bar / spark color / hover glow) */
@@ -330,7 +333,7 @@ const PROTO_HOVER: Record<string, string> = {
 };
 
 /* protocols that carry raw sockets — no transport/security layers apply */
-const NO_STREAM_PROTOCOLS = new Set(["wireguard", "socks", "http", "dokodemo-door", "mixed", "mtproto"]);
+const NO_STREAM_PROTOCOLS = new Set(["wireguard", "amnezia-wg", "socks", "http", "dokodemo-door", "mixed", "mtproto"]);
 
 /* dictionary key per protocol for the picker card descriptions */
 const PROTO_DESC_KEY: Record<string, string> = {
@@ -500,6 +503,7 @@ function genClientKey(protocol: string, ssMethod?: string): string {
     return `${uuid}:${b64url(18)}`;
   }
   if (protocol === "wireguard") return b64std(32); // peer public key (44-char base64)
+  if (protocol === "amnezia-wg") return b64std(32); // AmneziaWG peer public key
   if (protocol === "socks" || protocol === "http") return genReadableKey();
   if (protocol === "mtproto") {
     // Task 25-a — the key IS the mtg v2 secret (ee + 16-byte hex + fake-TLS
@@ -539,7 +543,7 @@ function genWgPair(): { priv: string; pub: string } {
 
 /* ---------- form <-> payload ---------- */
 
-const NUM_STREAM_KEYS = new Set(["maxEarlyData", "dokoPort", "wgMtu", "upMbps", "downMbps"]);
+const NUM_STREAM_KEYS = new Set(["maxEarlyData", "dokoPort", "wgMtu", "upMbps", "downMbps", "awgJc", "awgJmin", "awgJmax", "awgS1", "awgS2", "awgH1", "awgH2", "awgH3", "awgH4"]);
 const BOOL_STREAM_KEYS = new Set(["multiMode", "mux", "allowInsecure", "socksUdp"]);
 
 const SS_METHODS = [
@@ -600,7 +604,21 @@ function buildQuickStream(proto: string): Record<string, string | number | boole
     const pair = genWgPair();
     return { wgSecretKey: pair.priv, wgPublicKey: pair.pub, wgMtu: 1420 };
   }
+  if (proto === "amnezia-wg") {
+    const pair = genWgPair();
+    return { wgSecretKey: pair.priv, wgPublicKey: pair.pub, wgMtu: 1420, ...awgHeaderDefaults() };
+  }
   return {};
+}
+
+/** AmneziaWG obfuscation defaults (Jc/Jmin/Jmax/S1/S2 + random H1–H4). */
+function awgHeaderDefaults(): Record<string, number> {
+  const h = () => {
+    const arr = new Uint32Array(1);
+    crypto.getRandomValues(arr);
+    return (arr[0] % 0x7fffffff) + 1;
+  };
+  return { awgJc: 4, awgJmin: 40, awgJmax: 70, awgS1: 15, awgS2: 60, awgH1: h(), awgH2: h(), awgH3: h(), awgH4: h() };
 }
 
 function buildStream(form: FormState): Record<string, string | number | boolean> {
@@ -1780,6 +1798,14 @@ export function InboundsView() {
                       // Task 25-a — default fake-TLS camouflage domain
                       stream.mtpDomain = MTP_DEFAULT_DOMAIN;
                     }
+                    if (p === "amnezia-wg" && !stream.wgSecretKey) {
+                      // Phase 27 — server keypair + obfuscation defaults
+                      const pair = genWgPair();
+                      stream.wgSecretKey = pair.priv;
+                      stream.wgPublicKey = pair.pub;
+                      if (!stream.wgMtu) stream.wgMtu = "1420";
+                      if (!stream.awgJc) Object.assign(stream, awgHeaderDefaults());
+                    }
                     const noStream = NO_STREAM_PROTOCOLS.has(p);
                     return {
                       ...f,
@@ -2262,6 +2288,104 @@ export function InboundsView() {
             </MiniField>
           </div>
           <Tip>{t.inbounds.tipWg}</Tip>
+        </div>
+      )}
+
+      {/* amnezia-wg keys + obfuscation (Phase 27) */}
+      {form.protocol === "amnezia-wg" && (
+        <div className="space-y-3 rounded-xl border border-[#a3e635]/20 bg-[#a3e635]/[0.04] p-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-xs font-semibold text-silver">
+              <KeyRound className="h-3.5 w-3.5 text-[#a3e635]" />
+              {PROTO_LABEL["amnezia-wg"]}
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const pair = genWgPair();
+                setForm((f) => ({
+                  ...f,
+                  stream: {
+                    ...f.stream,
+                    wgSecretKey: pair.priv,
+                    wgPublicKey: pair.pub,
+                    ...awgHeaderDefaults(),
+                  },
+                }));
+              }}
+              className="h-7 gap-1.5 rounded-full border-[#a3e635]/30 bg-[#a3e635]/10 px-3 text-[11px] text-[#a3e635] hover:bg-[#a3e635]/20"
+            >
+              <RefreshCcw className="h-3 w-3" />
+              {t.inbounds.wgGen}
+            </Button>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <MiniField id="awg-priv" label={t.inbounds.wgSecret}>
+              <Input
+                id="awg-priv"
+                value={form.stream.wgSecretKey ?? ""}
+                onChange={(e) => setStream("wgSecretKey", e.target.value)}
+                className="font-mono text-[11px]"
+                autoComplete="off"
+              />
+            </MiniField>
+            <MiniField id="awg-pub" label={t.inbounds.wgPublic}>
+              <Input
+                id="awg-pub"
+                value={form.stream.wgPublicKey ?? ""}
+                onChange={(e) => setStream("wgPublicKey", e.target.value)}
+                className="font-mono text-[11px]"
+                autoComplete="off"
+              />
+            </MiniField>
+            <MiniField id="awg-mtu" label={t.inbounds.wgMtu}>
+              <Input
+                id="awg-mtu"
+                value={form.stream.wgMtu ?? ""}
+                onChange={(e) => setStream("wgMtu", e.target.value)}
+                placeholder="1420"
+                inputMode="numeric"
+                className="font-mono text-xs"
+              />
+            </MiniField>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {(
+              [
+                ["awgJc", t.inbounds.awgJc, "4"],
+                ["awgJmin", t.inbounds.awgJmin, "40"],
+                ["awgJmax", t.inbounds.awgJmax, "70"],
+                ["awgS1", t.inbounds.awgS1, "15"],
+                ["awgS2", t.inbounds.awgS2, "60"],
+              ] as const
+            ).map(([key, label, ph]) => (
+              <MiniField key={key} id={`awg-${key}`} label={label}>
+                <Input
+                  id={`awg-${key}`}
+                  value={String(form.stream[key] ?? "")}
+                  onChange={(e) => setStream(key, e.target.value)}
+                  placeholder={ph}
+                  inputMode="numeric"
+                  className="font-mono text-xs"
+                />
+              </MiniField>
+            ))}
+            {(["awgH1", "awgH2", "awgH3", "awgH4"] as const).map((key, i) => (
+              <MiniField key={key} id={`awg-${key}`} label={t.inbounds[`awgH${i + 1}`]}>
+                <Input
+                  id={`awg-${key}`}
+                  value={String(form.stream[key] ?? "")}
+                  onChange={(e) => setStream(key, e.target.value)}
+                  placeholder="random"
+                  inputMode="numeric"
+                  className="font-mono text-xs"
+                />
+              </MiniField>
+            ))}
+          </div>
+          <Tip>{t.inbounds.tipAwg}</Tip>
         </div>
       )}
 

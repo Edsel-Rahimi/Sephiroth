@@ -88,7 +88,7 @@ interface AutopilotResult {
 
 type RowState = "spin" | "ok" | "fail";
 type Phase = "form" | "launching" | "report" | "error";
-type EngineKey = "xray" | "sing" | "mtg" | "sidecar";
+type EngineKey = "xray" | "sing" | "mtg" | "sidecar" | "awg";
 
 type Inb = Dict["inbounds"];
 
@@ -107,6 +107,7 @@ const PROTOCOLS = [
   "http",
   "mixed",
   "mtproto",
+  "amnezia-wg",
 ] as const;
 
 const PROTO_LABEL: Record<string, string> = {
@@ -122,6 +123,7 @@ const PROTO_LABEL: Record<string, string> = {
   http: "HTTP",
   mixed: "Mixed",
   mtproto: "MTProto",
+  "amnezia-wg": "AmneziaWG",
 };
 
 const PROTO_CLS: Record<string, string> = {
@@ -137,6 +139,7 @@ const PROTO_CLS: Record<string, string> = {
   http: "bg-[#fb923c]/10 text-[#fb923c] ring-[#fb923c]/30",
   mixed: "bg-[#38bdf8]/10 text-[#38bdf8] ring-[#38bdf8]/30",
   mtproto: "bg-[#f59e0b]/10 text-[#f59e0b] ring-[#f59e0b]/30",
+  "amnezia-wg": "bg-[#a3e635]/10 text-[#a3e635] ring-[#a3e635]/30",
 };
 
 /* per-protocol accent color (css color string) — used for the selected
@@ -154,6 +157,7 @@ const PROTO_VAR: Record<string, string> = {
   http: "#fb923c",
   mixed: "#38bdf8",
   mtproto: "#f59e0b",
+  "amnezia-wg": "#a3e635",
 };
 
 /* engine attribution — mirrors the autopilot route semantics */
@@ -169,6 +173,7 @@ const ENGINE_OF: Record<string, { label: string; key: EngineKey }> = {
   tuic: { label: "sing-box", key: "sing" },
   mixed: { label: "sing-box", key: "sing" },
   mtproto: { label: "mtg", key: "mtg" },
+  "amnezia-wg": { label: "awg", key: "awg" },
   wireguard: { label: "sidecar", key: "sidecar" },
 };
 
@@ -177,6 +182,7 @@ const ENGINE_SUB: Record<EngineKey, keyof Inb> = {
   sing: "autopilotEngineSing",
   mtg: "autopilotEngineMtg",
   sidecar: "autopilotEngineSidecar",
+  awg: "autopilotEngineSidecar",
 };
 
 /** protocols that can sit behind TLS stream settings (route parity) */

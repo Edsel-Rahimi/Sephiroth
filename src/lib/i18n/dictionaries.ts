@@ -378,6 +378,16 @@ export interface Dict {
     wgPublic: string;
     wgMtu: string;
     wgGen: string;
+    awgJc: string;
+    awgJmin: string;
+    awgJmax: string;
+    awgS1: string;
+    awgS2: string;
+    awgH1: string;
+    awgH2: string;
+    awgH3: string;
+    awgH4: string;
+    tipAwg: string;
     dokoAddr: string;
     dokoPortL: string;
     dokoNet: string;
@@ -995,6 +1005,32 @@ export interface Dict {
       eRate: string;
       eGeneric: string;
     };
+    /* Phase 27 — public API */
+    tabApi: string;
+    apiTitle: string;
+    apiDesc: string;
+    apiHint: string;
+    apiSpecLink: string;
+    apiSwaggerTitle: string;
+    apiSwaggerDesc: string;
+    apiSwaggerLoading: string;
+    apiSwaggerFallback: string;
+    apiOpenSpec: string;
+    apiRetry: string;
+    apiTokensTitle: string;
+    apiTokensDesc: string;
+    apiTokenNamePh: string;
+    apiTokenCreate: string;
+    apiTokenOnceTitle: string;
+    apiTokenOnceDesc: string;
+    apiTokenCopy: string;
+    apiTokenNone: string;
+    apiTokenLastUsed: string;
+    apiTokenNever: string;
+    apiTokenRevoke: string;
+    apiTokenToggle: string;
+    apiTokenCreatedToast: string;
+    apiTokenRevokedToast: string;
   };
 
   hosts: {
@@ -2183,6 +2219,16 @@ export const dictionaries: Record<Lang, Dict> = {
       wgPublic: "Public key",
       wgMtu: "MTU",
       wgGen: "Generate keys",
+      awgJc: "Junk packets (Jc)",
+      awgJmin: "Junk min size (Jmin)",
+      awgJmax: "Junk max size (Jmax)",
+      awgS1: "Init junk size (S1)",
+      awgS2: "Response junk size (S2)",
+      awgH1: "Handshake magic H1",
+      awgH2: "Handshake magic H2",
+      awgH3: "Handshake magic H3",
+      awgH4: "Handshake magic H4",
+      tipAwg: "AmneziaWG = WireGuard + handshake obfuscation. Junk packets and custom handshake magics hide the WG signature from DPI. Keep the server and client values identical.",
       dokoAddr: "Target address",
       dokoPortL: "Target port",
       dokoNet: "Forward",
@@ -2790,6 +2836,32 @@ export const dictionaries: Record<Lang, Dict> = {
         eRate: "ACME rate limit hit — try again later",
         eGeneric: "Issuance failed — see the ACME log for details",
       },
+      /* Phase 27 — public API */
+      tabApi: "Public API",
+      apiTitle: "Public REST API",
+      apiDesc: "Token-authenticated API for external integrations — Marzban-style automation.",
+      apiHint: "Every dashboard endpoint accepts an Authorization: Bearer token. Mint a token below, send it as a header, and manage users, inbounds and system state from anywhere. Explore and try every endpoint in the interactive docs below.",
+      apiSpecLink: "OpenAPI spec (JSON)",
+      apiSwaggerTitle: "Interactive API docs",
+      apiSwaggerDesc: "Swagger UI served from this panel — the Authorize button accepts your seph_ token.",
+      apiSwaggerLoading: "Loading Swagger UI…",
+      apiSwaggerFallback: "The embedded docs could not load. The raw spec is always available at /api/openapi.json.",
+      apiOpenSpec: "Open raw spec",
+      apiRetry: "Retry",
+      apiTokensTitle: "API tokens",
+      apiTokensDesc: "Secrets are stored hashed; the full value is shown exactly once at mint time.",
+      apiTokenNamePh: 'Token name — e.g. "billing-bot"',
+      apiTokenCreate: "Mint token",
+      apiTokenOnceTitle: "Copy your token now",
+      apiTokenOnceDesc: "This is the only time the full token is displayed — it cannot be retrieved again.",
+      apiTokenCopy: "Copy token",
+      apiTokenNone: "No tokens yet — mint one to open the API.",
+      apiTokenLastUsed: "Last used",
+      apiTokenNever: "never",
+      apiTokenRevoke: "Revoke token",
+      apiTokenToggle: "Enable / disable token",
+      apiTokenCreatedToast: "API token minted — copy it now.",
+      apiTokenRevokedToast: "API token revoked.",
     },
 
     hosts: {
@@ -3991,6 +4063,16 @@ export const dictionaries: Record<Lang, Dict> = {
       wgPublic: "کلید عمومی",
       wgMtu: "MTU",
       wgGen: "ساخت کلیدها",
+      awgJc: "بسته‌های قراضه (Jc)",
+      awgJmin: "حداقل اندازه قراضه (Jmin)",
+      awgJmax: "حداکثر اندازه قراضه (Jmax)",
+      awgS1: "اندازه قراضه Init (S1)",
+      awgS2: "اندازه قراضه Response (S2)",
+      awgH1: "عدد جادویی دست‌دادن H1",
+      awgH2: "عدد جادویی دست‌دادن H2",
+      awgH3: "عدد جادویی دست‌دادن H3",
+      awgH4: "عدد جادویی دست‌دادن H4",
+      tipAwg: "‏AmneziaWG یعنی WireGuard به‌همراه مبهم‌سازی دست‌دادن؛ بسته‌های قراضه و اعداد جادویی سفارشی، امضای WG را از دید DPI پنهان می‌کنند. مقادیر سمت سرور و کلاینت باید یکسان باشند.",
       dokoAddr: "آدرس مقصد",
       dokoPortL: "پورت مقصد",
       dokoNet: "انتقال",
@@ -4598,6 +4680,32 @@ export const dictionaries: Record<Lang, Dict> = {
         eRate: "محدودیت نرخ ACME — بعداً تلاش کنید",
         eGeneric: "صدور شکست خورد — جزئیات در گزارش ACME",
       },
+      /* Phase 27 — public API */
+      tabApi: "API عمومی",
+      apiTitle: "REST API عمومی",
+      apiDesc: "API با احراز هویت توکن برای یکپارچه‌سازی‌های بیرونی — اتوماسیون به سبک Marzban.",
+      apiHint: "هر اندپوینت داشبورد، هدر Authorization: Bearer را می‌پذیرد. یک توکن بسازید، آن را در هدر بفرستید و از هر جا کاربران، inbound ها و وضعیت سیستم را مدیریت کنید. همه اندپوینت‌ها را در مستندات تعاملی زیر ببینید و امتحان کنید.",
+      apiSpecLink: "مشخصات OpenAPI (JSON)",
+      apiSwaggerTitle: "مستندات تعاملی API",
+      apiSwaggerDesc: "‏Swagger UI از خود پنل سرو می‌شود؛ دکمه Authorize توکن seph_ شما را می‌پذیرد.",
+      apiSwaggerLoading: "در حال بارگذاری Swagger UI…",
+      apiSwaggerFallback: "مستندات تعاملی بارگذاری نشد. مشخصات خام همیشه در /api/openapi.json در دسترس است.",
+      apiOpenSpec: "مشخصات خام",
+      apiRetry: "تلاش دوباره",
+      apiTokensTitle: "توکن‌های API",
+      apiTokensDesc: "مخفی‌ها هش‌شده ذخیره می‌شوند؛ مقدار کامل فقط یک‌بار در لحظه ساخت نمایش داده می‌شود.",
+      apiTokenNamePh: 'نام توکن — مثلا "فروش-بات"',
+      apiTokenCreate: "ساخت توکن",
+      apiTokenOnceTitle: "توکن را همین حالا کپی کنید",
+      apiTokenOnceDesc: "این تنها باری است که توکن کامل نمایش داده می‌شود — دیگر قابل بازیابی نیست.",
+      apiTokenCopy: "کپی توکن",
+      apiTokenNone: "هنوز توکنی نیست — برای باز کردن API یکی بسازید.",
+      apiTokenLastUsed: "آخرین استفاده",
+      apiTokenNever: "هرگز",
+      apiTokenRevoke: "ابطال توکن",
+      apiTokenToggle: "فعال/غیرفعال کردن توکن",
+      apiTokenCreatedToast: "توکن API ساخته شد — همین حالا کپی کنید.",
+      apiTokenRevokedToast: "توکن API ابطال شد.",
     },
 
     hosts: {
@@ -5795,6 +5903,16 @@ export const dictionaries: Record<Lang, Dict> = {
       wgPublic: "المفتاح العام",
       wgMtu: "MTU",
       wgGen: "توليد المفاتيح",
+      awgJc: "الحزم العشوائية (Jc)",
+      awgJmin: "الحد الأدنى للحزمة (Jmin)",
+      awgJmax: "الحد الأقصى للحزمة (Jmax)",
+      awgS1: "حزمة Init العشوائية (S1)",
+      awgS2: "حزمة Response العشوائية (S2)",
+      awgH1: "رقم المصافحة السحري H1",
+      awgH2: "رقم المصافحة السحري H2",
+      awgH3: "رقم المصافحة السحري H3",
+      awgH4: "رقم المصافحة السحري H4",
+      tipAwg: "‏AmneziaWG هو WireGuard مع تشويش المصافحة؛ الحزم العشوائية وأرقام المصافحة المخصصة تخفي توقيع WG عن أنظمة DPI. حافظ على تطابق القيم بين الخادم والعميل.",
       dokoAddr: "العنوان الهدف",
       dokoPortL: "المنفذ الهدف",
       dokoNet: "تمرير",
@@ -6402,6 +6520,32 @@ export const dictionaries: Record<Lang, Dict> = {
         eRate: "تم بلوغ حد معدل ACME — حاول لاحقًا",
         eGeneric: "فشل الإصدار — راجع سجل ACME",
       },
+      /* Phase 27 — public API */
+      tabApi: "API العامة",
+      apiTitle: "REST API العامة",
+      apiDesc: "API بمصادقة التوكن للتكاملات الخارجية — أتمتة على طريقة Marzban.",
+      apiHint: "كل نقطة نهاية في لوحة التحكم تقبل ترويسة Authorization: Bearer. أنشئ توكنًا أدناه وأرسله في الترويسة وأدر المستخدمين ونقاط الدخول وحالة النظام من أي مكان. استكشف كل نقاط النهاية في الوثائق التفاعلية أدناه.",
+      apiSpecLink: "مواصفات OpenAPI (JSON)",
+      apiSwaggerTitle: "وثائق API التفاعلية",
+      apiSwaggerDesc: "‏Swagger UI يُخدم من هذا اللوحة؛ زر Authorize يقبل توكن seph_ الخاص بك.",
+      apiSwaggerLoading: "جارٍ تحميل Swagger UI…",
+      apiSwaggerFallback: "تعذر تحميل الوثائق المضمنة. المواصفات الخام متاحة دائمًا على /api/openapi.json.",
+      apiOpenSpec: "المواصفات الخام",
+      apiRetry: "إعادة المحاولة",
+      apiTokensTitle: "توكنات API",
+      apiTokensDesc: "تُخزن الأسرار مجزّأة؛ القيمة الكاملة تُعرض مرة واحدة فقط عند الإنشاء.",
+      apiTokenNamePh: 'اسم التوكن — مثل "بوت-الفوترة"',
+      apiTokenCreate: "إنشاء توكن",
+      apiTokenOnceTitle: "انسخ توكنك الآن",
+      apiTokenOnceDesc: "هذه المرة الوحيدة التي يُعرض فيها التوكن الكامل — لا يمكن استعادته مجددًا.",
+      apiTokenCopy: "نسخ التوكن",
+      apiTokenNone: "لا توجد توكنات بعد — أنشئ واحدًا لفتح الـ API.",
+      apiTokenLastUsed: "آخر استخدام",
+      apiTokenNever: "أبدًا",
+      apiTokenRevoke: "إلغاء التوكن",
+      apiTokenToggle: "تفعيل / تعطيل التوكن",
+      apiTokenCreatedToast: "تم إنشاء توكن الـ API — انسخه الآن.",
+      apiTokenRevokedToast: "تم إلغاء توكن الـ API.",
     },
 
     hosts: {
@@ -7597,6 +7741,16 @@ export const dictionaries: Record<Lang, Dict> = {
       wgPublic: "公钥",
       wgMtu: "MTU",
       wgGen: "生成密钥",
+      awgJc: "垃圾包数量 (Jc)",
+      awgJmin: "垃圾包最小 (Jmin)",
+      awgJmax: "垃圾包最大 (Jmax)",
+      awgS1: "Init 垃圾包 (S1)",
+      awgS2: "Response 垃圾包 (S2)",
+      awgH1: "握手魔数 H1",
+      awgH2: "握手魔数 H2",
+      awgH3: "握手魔数 H3",
+      awgH4: "握手魔数 H4",
+      tipAwg: "AmneziaWG = WireGuard + 握手混淆。垃圾包与自定义握手魔数可向 DPI 隐藏 WG 特征。服务端与客户端数值必须一致。",
       dokoAddr: "目标地址",
       dokoPortL: "目标端口",
       dokoNet: "转发",
@@ -8204,6 +8358,32 @@ export const dictionaries: Record<Lang, Dict> = {
         eRate: "触发 ACME 速率限制 — 请稍后再试",
         eGeneric: "签发失败 — 详情见 ACME 日志",
       },
+      /* Phase 27 — public API */
+      tabApi: "公共 API",
+      apiTitle: "公共 REST API",
+      apiDesc: "带令牌认证的 API，用于外部集成 —— Marzban 式自动化。",
+      apiHint: "所有仪表盘端点均接受 Authorization: Bearer 头。在下方铸造令牌，随请求头发送，即可在任何地方管理用户、入站和系统状态。在下方交互式文档中浏览并试用每个端点。",
+      apiSpecLink: "OpenAPI 规范 (JSON)",
+      apiSwaggerTitle: "交互式 API 文档",
+      apiSwaggerDesc: "Swagger UI 由本面板托管 —— Authorize 按钮接受你的 seph_ 令牌。",
+      apiSwaggerLoading: "正在加载 Swagger UI…",
+      apiSwaggerFallback: "内嵌文档加载失败。原始规范始终可在 /api/openapi.json 获取。",
+      apiOpenSpec: "查看原始规范",
+      apiRetry: "重试",
+      apiTokensTitle: "API 令牌",
+      apiTokensDesc: "密钥以哈希存储；完整值仅在创建时显示一次。",
+      apiTokenNamePh: '令牌名称 —— 例如 "billing-bot"',
+      apiTokenCreate: "铸造令牌",
+      apiTokenOnceTitle: "请立即复制令牌",
+      apiTokenOnceDesc: "这是唯一一次显示完整令牌 —— 之后无法再次获取。",
+      apiTokenCopy: "复制令牌",
+      apiTokenNone: "还没有令牌 —— 铸造一个以开放 API。",
+      apiTokenLastUsed: "最近使用",
+      apiTokenNever: "从未",
+      apiTokenRevoke: "吊销令牌",
+      apiTokenToggle: "启用 / 停用令牌",
+      apiTokenCreatedToast: "API 令牌已铸造 —— 请立即复制。",
+      apiTokenRevokedToast: "API 令牌已吊销。",
     },
 
     hosts: {
@@ -9399,6 +9579,16 @@ export const dictionaries: Record<Lang, Dict> = {
       wgPublic: "Genel anahtar",
       wgMtu: "MTU",
       wgGen: "Anahtar üret",
+      awgJc: "Çöp paket sayısı (Jc)",
+      awgJmin: "Çöp paket min (Jmin)",
+      awgJmax: "Çöp paket maks (Jmax)",
+      awgS1: "Init çöp boyutu (S1)",
+      awgS2: "Response çöp boyutu (S2)",
+      awgH1: "El sıkışma sihri H1",
+      awgH2: "El sıkışma sihri H2",
+      awgH3: "El sıkışma sihri H3",
+      awgH4: "El sıkışma sihri H4",
+      tipAwg: "AmneziaWG = WireGuard + el sıkışma gizleme. Çöp paketler ve özel el sıkışma sihirleri WG imzasını DPI'dan saklar. Sunucu ve istemci değerleri aynı olmalıdır.",
       dokoAddr: "Hedef adres",
       dokoPortL: "Hedef port",
       dokoNet: "İlet",
@@ -10006,6 +10196,32 @@ export const dictionaries: Record<Lang, Dict> = {
         eRate: "ACME hız limiti aşıldı — sonra deneyin",
         eGeneric: "Üretim başarısız — ayrıntılar ACME günlüğünde",
       },
+      /* Phase 27 — public API */
+      tabApi: "Genel API",
+      apiTitle: "Genel REST API",
+      apiDesc: "Dış entegrasyonlar için token kimlikli API — Marzban tarzı otomasyon.",
+      apiHint: "Her panel ucu bir Authorization: Bearer başlığı kabul eder. Aşağıda bir token üretin, başlıkla gönderin ve kullanıcıları, inbound'ları ve sistem durumunu her yerden yönetin. Tüm uçları aşağıdaki etkileşimli belgelerde inceleyip deneyin.",
+      apiSpecLink: "OpenAPI şeması (JSON)",
+      apiSwaggerTitle: "Etkileşimli API belgeleri",
+      apiSwaggerDesc: "Swagger UI bu panelden sunulur — Authorize düğmesi seph_ token'ınızı kabul eder.",
+      apiSwaggerLoading: "Swagger UI yükleniyor…",
+      apiSwaggerFallback: "Gömülü belgeler yüklenemedi. Ham şema her zaman /api/openapi.json adresinde.",
+      apiOpenSpec: "Ham şemayı aç",
+      apiRetry: "Tekrar dene",
+      apiTokensTitle: "API token'ları",
+      apiTokensDesc: "Sırlar hash olarak saklanır; tam değer yalnızca üretim anında bir kez gösterilir.",
+      apiTokenNamePh: 'Token adı — örn. "fatura-botu"',
+      apiTokenCreate: "Token üret",
+      apiTokenOnceTitle: "Token'ı şimdi kopyalayın",
+      apiTokenOnceDesc: "Tam token yalnızca bu kez gösterilir — sonra bir daha alınamaz.",
+      apiTokenCopy: "Token'ı kopyala",
+      apiTokenNone: "Henüz token yok — API'yi açmak için bir tane üretin.",
+      apiTokenLastUsed: "Son kullanım",
+      apiTokenNever: "hiç",
+      apiTokenRevoke: "Token'ı iptal et",
+      apiTokenToggle: "Token'ı aç / kapat",
+      apiTokenCreatedToast: "API token üretildi — şimdi kopyalayın.",
+      apiTokenRevokedToast: "API token iptal edildi.",
     },
 
     hosts: {
@@ -11204,6 +11420,16 @@ export const dictionaries: Record<Lang, Dict> = {
       wgPublic: "Публичный ключ",
       wgMtu: "MTU",
       wgGen: "Сгенерировать ключи",
+      awgJc: "Мусорные пакеты (Jc)",
+      awgJmin: "Мин. размер мусора (Jmin)",
+      awgJmax: "Макс. размер мусора (Jmax)",
+      awgS1: "Init мусор (S1)",
+      awgS2: "Response мусор (S2)",
+      awgH1: "Магия рукопожатия H1",
+      awgH2: "Магия рукопожатия H2",
+      awgH3: "Магия рукопожатия H3",
+      awgH4: "Магия рукопожатия H4",
+      tipAwg: "AmneziaWG = WireGuard + обфускация рукопожатия. Мусорные пакеты и кастомные магии скрывают подпись WG от DPI. Значения сервера и клиента должны совпадать.",
       dokoAddr: "Адрес назначения",
       dokoPortL: "Порт назначения",
       dokoNet: "Пересылка",
@@ -11811,6 +12037,32 @@ export const dictionaries: Record<Lang, Dict> = {
         eRate: "Сработал лимит ACME — попробуйте позже",
         eGeneric: "Выпуск не удался — подробности в журнале ACME",
       },
+      /* Phase 27 — public API */
+      tabApi: "Публичный API",
+      apiTitle: "Публичный REST API",
+      apiDesc: "API с токен-аутентификацией для внешних интеграций — автоматизация в стиле Marzban.",
+      apiHint: "Каждый эндпоинт панели принимает заголовок Authorization: Bearer. Создайте токен ниже, отправляйте его в заголовке и управляйте пользователями, inbound'ами и состоянием системы откуда угодно. Изучите и опробуйте все эндпоинты в интерактивной документации ниже.",
+      apiSpecLink: "Спецификация OpenAPI (JSON)",
+      apiSwaggerTitle: "Интерактивная документация API",
+      apiSwaggerDesc: "Swagger UI обслуживается самой панелью — кнопка Authorize принимает ваш токен seph_.",
+      apiSwaggerLoading: "Загрузка Swagger UI…",
+      apiSwaggerFallback: "Встроенные документы не загрузились. Сырая спецификация всегда доступна по /api/openapi.json.",
+      apiOpenSpec: "Открыть сырую спецификацию",
+      apiRetry: "Повторить",
+      apiTokensTitle: "API-токены",
+      apiTokensDesc: "Секреты хранятся в виде хэшей; полное значение показывается ровно один раз при создании.",
+      apiTokenNamePh: 'Имя токена — например "billing-bot"',
+      apiTokenCreate: "Создать токен",
+      apiTokenOnceTitle: "Скопируйте токен сейчас",
+      apiTokenOnceDesc: "Это единственный раз, когда показывается полный токен — повторно получить его нельзя.",
+      apiTokenCopy: "Копировать токен",
+      apiTokenNone: "Токенов пока нет — создайте один, чтобы открыть API.",
+      apiTokenLastUsed: "Последнее использование",
+      apiTokenNever: "никогда",
+      apiTokenRevoke: "Отозвать токен",
+      apiTokenToggle: "Включить / выключить токен",
+      apiTokenCreatedToast: "API-токен создан — скопируйте его сейчас.",
+      apiTokenRevokedToast: "API-токен отозван.",
     },
 
     hosts: {

@@ -325,6 +325,12 @@ function buildInbound(row: InboundRowLike): InboundBuild {
           skipReason: `${row.tag}: mtproto is sidecar-served (mtg) — Xray ≥ v24.10 removed its mtproto inbound`,
         };
       }
+      if (protocol === "amnezia-wg") {
+        return {
+          inbound: null,
+          skipReason: `${row.tag}: amnezia-wg is sidecar-served (awg-quick) — Xray has no AmneziaWG inbound`,
+        };
+      }
       return {
         inbound: null,
         skipReason: `${row.tag}: ${protocol} is not an Xray-core inbound — skipped`,

@@ -165,7 +165,7 @@ async function ensureWgMaterial(access: UserInboundAccess & { inbound: Inbound }
   wgPrivateKey: string;
   wgPublicKey: string;
 }> {
-  if (access.inbound.protocol !== "wireguard") {
+  if (access.inbound.protocol !== "wireguard" && access.inbound.protocol !== "amnezia-wg") {
     return { wgPrivateKey: "", wgPublicKey: "" };
   }
   if (access.wgPrivateKey) {

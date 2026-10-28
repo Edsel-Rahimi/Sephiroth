@@ -109,6 +109,9 @@ import * as apiUsersBulkCreate from "./src/app/api/users/bulk-create/route"; // 
 import * as apiUsersImport from "./src/app/api/users/import/route"; // 26-b — migration in
 import * as apiUsersExport from "./src/app/api/users/export/route"; // 26-b — migration out
 import * as apiUsersId from "./src/app/api/users/[id]/route";
+import * as apiApiTokens from "./src/app/api/api-tokens/route"; // Phase 27 — public API tokens
+import * as apiApiTokensId from "./src/app/api/api-tokens/[id]/route"; // Phase 27 — token revoke/toggle
+import * as apiOpenapi from "./src/app/api/openapi/route"; // Phase 27 — OpenAPI spec
 import * as apiRefProxy from "./src/app/ref/[panel]/[[...path]]/route";
 
 type RouteHandler = (req: Request, ctx: { params: Promise<any> }) => Promise<Response> | Response;
@@ -354,6 +357,9 @@ async function startServer() {
   // Mount specific routes before parameterized routes
   mountRoute(app, "/api", apiRoot);
   mountRoute(app, "/api/activity", apiActivity);
+  mountRoute(app, "/api/api-tokens", apiApiTokens);
+  mountRoute(app, "/api/api-tokens/:id", apiApiTokensId);
+  mountRoute(app, "/api/openapi.json", apiOpenapi);
   mountRoute(app, "/api/auth/change-password", apiAuthChangePassword);
   mountRoute(app, "/api/auth/login", apiAuthLogin);
   mountRoute(app, "/api/auth/logout", apiAuthLogout);

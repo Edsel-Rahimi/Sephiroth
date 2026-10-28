@@ -26,6 +26,7 @@ export const IN_PROTOCOLS = [
   "http",
   "mixed", // Task 25-a — HTTP + SOCKS on ONE port (sing-box-served)
   "mtproto", // Task 25-a — Telegram MTProto (mtg sidecar)
+  "amnezia-wg", // Phase 27 — WireGuard + handshake obfuscation (awg-quick sidecar)
 ] as const;
 
 export const IN_TRANSPORTS = ["tcp", "ws", "grpc", "httpupgrade", "xhttp", "kcp"] as const;
@@ -87,14 +88,16 @@ const STREAM_KEYS: Record<string, { str?: string[]; num?: string[]; bool?: strin
       "method", // shadowsocks cipher
       "authUser", "authPass", // socks / http proxy auth
       "dokoAddress", "dokoNetwork", // dokodemo-door target
-      "wgSecretKey", "wgPublicKey", // wireguard keys
+      "wgSecretKey", "wgPublicKey", // wireguard / amnezia-wg keys
+      "awgJc", "awgJmin", "awgJmax", "awgS1", "awgS2", // amnezia-wg junk params (Phase 27)
+      "awgH1", "awgH2", "awgH3", "awgH4", // amnezia-wg header magics (Phase 27)
       "obfsPassword", // hysteria2 salamander obfs (v2.5 sidecar)
       "hy2Masquerade", // hysteria2 masquerade URL (Task 23-c, sing-box ≥1.14)
       "tuicCongestion", // tuic congestion control: bbr | cubic | new_reno (Task 23-c)
       "mtpDomain", // mtproto fake-TLS camouflage domain (Task 25-a)
       "fallbacksJson", // serialized fallbacks array
     ],
-    num: ["maxEarlyData", "dokoPort", "wgMtu", "upMbps", "downMbps"], // hy2 bandwidth caps (v2.5)
+    num: ["maxEarlyData", "dokoPort", "wgMtu", "upMbps", "downMbps", "awgJc", "awgJmin", "awgJmax", "awgS1", "awgS2", "awgH1", "awgH2", "awgH3", "awgH4"], // hy2 caps (v2.5) + amnezia-wg numeric params
     bool: ["multiMode", "mux", "socksUdp"],
   },
   tls: {

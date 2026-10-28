@@ -77,7 +77,9 @@ export function genAccessFields(protocol: string): {
   wgPrivateKey: string;
   wgPublicKey: string;
 } {
-  if (protocol === "wireguard") {
+  if (protocol === "wireguard" || protocol === "amnezia-wg") {
+    // both WG flavors: the store key IS the peer public key; the per-client
+    // private key rides the access row (never shown to the server side)
     const kp = makeWgKeypair();
     return { key: kp.publicKey, wgPrivateKey: kp.privateKey, wgPublicKey: kp.publicKey };
   }
@@ -117,6 +119,11 @@ export function genKey(protocol: string): string {
     }
     case "wireguard": {
       // preview-grade visual key material (real peers need xray wg tooling)
+      return randomBytes(32).toString("base64");
+    }
+    case "amnezia-wg": {
+      // Phase 27 — the peer public key is the identity; keypair material is
+      // minted in genAccessFields (same convention as plain wireguard)
       return randomBytes(32).toString("base64");
     }
     default:

@@ -1,4 +1,10 @@
-import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "crypto";
+import {
+  createHash,
+  createHmac,
+  randomBytes,
+  scryptSync,
+  timingSafeEqual,
+} from "crypto";
 import { db } from "@/lib/db";
 
 /* ============================================================
@@ -231,6 +237,62 @@ export function sessionCookieOptions(maxAgeSec: number, req?: Request) {
   };
 }
 
+/* ---------- Phase 27 — Public API bearer tokens ---------- */
+
+/** sha256 hex of a raw public-API token — the only stored form. */
+export function hashApiToken(raw: string): string {
+  return createHash("sha256").update(raw).digest("hex");
+}
+
+/** Mint a fresh public-API token: seph_<32hex>. */
+export function genApiToken(): { raw: string; hash: string; prefix: string } {
+  const raw = `seph_${randomBytes(16).toString("hex")}`;
+  return { raw, hash: hashApiToken(raw), prefix: `${raw.slice(0, 12)}…` };
+}
+
+const API_TOKEN_LASTUSE_THROTTLE_MS = 60_000;
+
+const gLastUse = globalThis as unknown as {
+  __sephApiTokenLastUse?: Map<string, number>;
+};
+const lastUseMemo: Map<string, number> =
+  gLastUse.__sephApiTokenLastUse ?? new Map();
+gLastUse.__sephApiTokenLastUse = lastUseMemo;
+
+/**
+ * Resolve an `Authorization: Bearer seph_…` header into an admin actor.
+ * The dashboard REST API doubles as the public API (Marzban-style): any
+ * route that accepts the session cookie also accepts a valid token.
+ * Disabled/revoked tokens are rejected; lastUsed touches are throttled
+ * per token (60s, in-memory) so hot polling clients don't rewrite the store.
+ */
+async function actorFromBearer(
+  req: Request
+): Promise<Actor | null> {
+  const header = req.headers.get("authorization") ?? "";
+  const m = /^Bearer\s+(.+)$/i.exec(header.trim());
+  if (!m) return null;
+  const raw = m[1]!.trim();
+  if (!raw.startsWith("seph_") || raw.length < 12 || raw.length > 128) return null;
+
+  const hash = hashApiToken(raw);
+  const row = await db.apiToken.findUnique({ where: { tokenHash: hash } });
+  if (!row || !row.enabled) return null;
+
+  const now = Date.now();
+  const last = lastUseMemo.get(row.id) ?? 0;
+  if (now - last > API_TOKEN_LASTUSE_THROTTLE_MS) {
+    lastUseMemo.set(row.id, now);
+    void db.apiToken
+      .update({
+        where: { id: row.id },
+        data: { lastUsedAt: new Date(), lastUsedIp: clientIp(req) },
+      })
+      .catch(() => {});
+  }
+  return { role: "admin", username: row.actorUsername };
+}
+
 /* ---------- Phase 6 — dual-role session ---------- */
 
 export type Actor =
@@ -261,6 +323,10 @@ export function setServerFallbackActor(actor: Actor | null): void {
  * deployments stay cookie-authenticated — no anonymous admin access.
  */
 export async function getSession(req: Request): Promise<Actor | null> {
+  // Phase 27 — public API tokens take precedence (explicit credential beats cookie)
+  const bearer = await actorFromBearer(req);
+  if (bearer) return bearer;
+
   const cookieToken = parseSessionCookie(req);
   if (cookieToken) {
     const username = await verifyToken(cookieToken);
