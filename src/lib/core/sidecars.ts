@@ -75,6 +75,8 @@ import { parseClients } from "@/lib/user-types";
 import type { InboundClient, InboundStream } from "@/lib/inbounds";
 import { ensureHysteriaBinary, ensureMtgBinary, ensureAwgBinary } from "@/lib/core/bin-manager";
 import { isValidMtpSecret } from "@/lib/mtp-secret";
+import { logActivity } from "@/lib/activity"; // 26-a — on-hold first-connect activation trail
+import { notifyUserActivated } from "@/lib/bot/notify"; // 26-a — bot alert on first connect
 
 const BYTES_PER_GB = 1024 ** 3;
 const LOG_CAP = 200;
@@ -1675,9 +1677,31 @@ export class SidecarManager {
           if (!userId) continue;
           const gb = delta / BYTES_PER_GB;
           void db.clientUser
-            .findUnique({ where: { id: userId }, select: { usedTrafficGb: true } })
+            .findUnique({
+              where: { id: userId },
+              select: { usedTrafficGb: true, username: true, expiryDays: true, onHold: true, startedAt: true },
+            })
             .then((row) => {
-              const cur = Number(row?.usedTrafficGb) || 0;
+              if (!row) return null;
+              const cur = Number(row.usedTrafficGb) || 0;
+              // 26-a — instant on-hold activation: the expiry clock starts at
+              // the FIRST observed traffic (per-poll) — the maintenance cron
+              // stays as the idempotent fallback.
+              if (row.onHold === true && row.startedAt === null) {
+                const startedAt = new Date();
+                void logActivity({
+                  kind: "user.updated",
+                  level: "info",
+                  actor: "system",
+                  message: `On-hold user "${row.username}" activated on first connection`,
+                  meta: { userId, username: row.username, startedAt: startedAt.toISOString() },
+                });
+                void notifyUserActivated(row.username, row.expiryDays ?? 0);
+                return db.clientUser.update({
+                  where: { id: userId },
+                  data: { usedTrafficGb: cur + gb, startedAt },
+                });
+              }
               return db.clientUser.update({
                 where: { id: userId },
                 data: { usedTrafficGb: cur + gb },

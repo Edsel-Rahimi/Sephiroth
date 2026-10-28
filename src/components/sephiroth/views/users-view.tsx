@@ -16,6 +16,7 @@ import {
   Layers,
   Lightbulb,
   Link2,
+  PauseCircle,
   Power,
   RefreshCw,
   Search,
@@ -382,7 +383,12 @@ export function UsersView() {
   /* ---------- derived ---------- */
 
   const counts = useMemo(() => {
-    const c = { all: 0, active: 0, expired: 0, capped: 0, disabled: 0 } as Record<Filter, number>;
+    // 26-a — every UserStatus must be pre-seeded: onhold users were missing
+    // here and made the KPI/chip counters render NaN.
+    const c = { all: 0, active: 0, expired: 0, capped: 0, disabled: 0, onhold: 0 } as Record<
+      Filter,
+      number
+    >;
     for (const x of users ?? []) {
       c.all++;
       c[x.status]++;
@@ -854,13 +860,14 @@ export function UsersView() {
       </section>
 
       {/* KPI row */}
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label={u.kpiTotal}>
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-5" aria-label={u.kpiTotal}>
         {(
           [
             { key: "all" as Filter, label: u.kpiTotal, icon: UsersIcon, cls: "text-primary" },
             { key: "active" as Filter, label: u.kpiActive, icon: CheckCircle2, cls: "text-chart-3" },
             { key: "expired" as Filter, label: u.kpiExpired, icon: CalendarClock, cls: "text-chart-5" },
             { key: "capped" as Filter, label: u.kpiCapped, icon: Gauge, cls: "text-chart-4" },
+            { key: "onhold" as Filter, label: u.kpiOnhold, icon: PauseCircle, cls: "text-amber-400" },
           ]
         ).map(({ key, label, icon: Icon, cls }) => (
           <button
@@ -904,7 +911,7 @@ export function UsersView() {
             />
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
-            {(["all", "active", "expired", "capped", "disabled"] as Filter[]).map((f) => (
+            {(["all", "active", "expired", "capped", "onhold", "disabled"] as Filter[]).map((f) => (
               <button
                 key={f}
                 type="button"
@@ -916,7 +923,17 @@ export function UsersView() {
                     : "text-muted-foreground ring-border hover:text-foreground"
                 )}
               >
-                {f === "all" ? u.fAll : f === "active" ? u.fActive : f === "expired" ? u.fExpired : f === "capped" ? u.fCapped : u.fDisabled}
+                {f === "all"
+                  ? u.fAll
+                  : f === "active"
+                    ? u.fActive
+                    : f === "expired"
+                      ? u.fExpired
+                      : f === "capped"
+                        ? u.fCapped
+                        : f === "onhold"
+                          ? u.fOnhold
+                          : u.fDisabled}
                 <span className="ms-1.5 font-mono text-[10px] opacity-70">{counts[f]}</span>
               </button>
             ))}

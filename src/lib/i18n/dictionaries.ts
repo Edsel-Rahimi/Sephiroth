@@ -532,11 +532,13 @@ export interface Dict {
     kpiActive: string;
     kpiExpired: string;
     kpiCapped: string;
+    kpiOnhold: string;
     searchPh: string;
     fAll: string;
     fActive: string;
     fExpired: string;
     fCapped: string;
+    fOnhold: string;
     fDisabled: string;
     sortNewest: string;
     sortName: string;
@@ -2377,11 +2379,13 @@ export const dictionaries: Record<Lang, Dict> = {
       kpiActive: "Active",
       kpiExpired: "Expired",
       kpiCapped: "Data capped",
+      kpiOnhold: "On hold",
       searchPh: "Search user…",
       fAll: "All",
       fActive: "Active",
       fExpired: "Expired",
       fCapped: "Capped",
+      fOnhold: "On hold",
       fDisabled: "Disabled",
       sortNewest: "Newest",
       sortName: "Name",
@@ -4227,11 +4231,13 @@ export const dictionaries: Record<Lang, Dict> = {
       kpiActive: "فعال",
       kpiExpired: "منقضی",
       kpiCapped: "به سقف رسیده",
+      kpiOnhold: "در انتظار",
       searchPh: "جستجوی کاربر…",
       fAll: "همه",
       fActive: "فعال",
       fExpired: "منقضی",
       fCapped: "سقف حجم",
+      fOnhold: "در انتظار",
       fDisabled: "غیرفعال",
       sortNewest: "جدیدترین",
       sortName: "نام",
@@ -6073,11 +6079,13 @@ export const dictionaries: Record<Lang, Dict> = {
       kpiActive: "نشط",
       kpiExpired: "منتهي",
       kpiCapped: "بلغ الحد",
+      kpiOnhold: "قيد الانتظار",
       searchPh: "ابحث عن مستخدم…",
       fAll: "الكل",
       fActive: "نشط",
       fExpired: "منتهي",
       fCapped: "بلغ الحد",
+      fOnhold: "قيد الانتظار",
       fDisabled: "معطل",
       sortNewest: "الأحدث",
       sortName: "الاسم",
@@ -7917,11 +7925,13 @@ export const dictionaries: Record<Lang, Dict> = {
       kpiActive: "活跃",
       kpiExpired: "已过期",
       kpiCapped: "已达上限",
+      kpiOnhold: "待激活",
       searchPh: "搜索用户…",
       fAll: "全部",
       fActive: "活跃",
       fExpired: "已过期",
       fCapped: "已达上限",
+      fOnhold: "待激活",
       fDisabled: "已停用",
       sortNewest: "最新",
       sortName: "名称",
@@ -9761,11 +9771,13 @@ export const dictionaries: Record<Lang, Dict> = {
       kpiActive: "Aktif",
       kpiExpired: "Süresi bitmiş",
       kpiCapped: "Kotaya ulaşmış",
+      kpiOnhold: "Beklemede",
       searchPh: "Kullanıcı ara…",
       fAll: "Tümü",
       fActive: "Aktif",
       fExpired: "Süresi bitmiş",
       fCapped: "Kotada",
+      fOnhold: "Beklemede",
       fDisabled: "Devre dışı",
       sortNewest: "En yeni",
       sortName: "İsim",
@@ -11608,11 +11620,13 @@ export const dictionaries: Record<Lang, Dict> = {
       kpiActive: "Активные",
       kpiExpired: "Истёкшие",
       kpiCapped: "Лимит данных",
+      kpiOnhold: "Ожидание",
       searchPh: "Поиск пользователя…",
       fAll: "Все",
       fActive: "Активные",
       fExpired: "Истёкшие",
       fCapped: "Лимит",
+      fOnhold: "Ожидание",
       fDisabled: "Отключены",
       sortNewest: "Новейшие",
       sortName: "Имя",

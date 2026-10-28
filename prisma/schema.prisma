@@ -69,6 +69,9 @@ model ClientUser {
   ipLimit        Int      @default(0) // 0 = unlimited
   // simulated usage (decorated / resettable)
   usedTrafficGb  Float    @default(0)
+  // traffic-counter reset policy (none | daily | weekly | monthly | null)
+  resetPeriod    String?
+  lastResetAt    DateTime?
   // 26-a — lifecycle: on-hold (clock starts at first connect) + auto-renew
   onHold         Boolean  @default(false)
   startedAt      DateTime? // first-connect anchor; null = clock not started
@@ -78,6 +81,11 @@ model ClientUser {
   // Phase 6 hook: owning reseller, null = admin-created
   resellerId     String?
   reseller       Reseller? @relation(fields: [resellerId], references: [id], onDelete: SetNull)
+  // Task 23-c — Telegram linkage for the sales bot
+  tgId           String?
+  // Task 23-g — sub-portal HWID device gate
+  hwidLimit      Int?
+  devices        String   @default("[]") // JSON array of registered devices
   accesses       UserInboundAccess[]
   groupMembers   SubGroupMember[]
   createdAt      DateTime @default(now())

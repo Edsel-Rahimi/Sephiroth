@@ -33,6 +33,8 @@ interface ImportUser {
   autoRenew: boolean;
   startedAt: string | null;
   renewals: number;
+  /** 26-a — migrated usage so quota/on-hold state survives a move (GB) */
+  usedTrafficGb: number;
   tags: string[];
   /** exact keys from a Sephiroth export (kept when present) */
   accessKeys: { tag: string; email?: string; key?: string; flow?: string }[];
@@ -108,6 +110,18 @@ function normalizeImportUser(raw: unknown): ImportUser | null {
       const v = pick(o, "renewals");
       const n = typeof v === "number" ? v : Number(v);
       return Number.isFinite(n) && n > 0 ? Math.min(1_000_000, Math.round(n)) : 0;
+    })(),
+    // 26-a — migrate consumed usage (keeps quota + on-hold semantics honest).
+    // `used_traffic` is the Marzban byte field; everything else is GB.
+    usedTrafficGb: (() => {
+      const rawBytes = pick(o, "used_traffic");
+      if (rawBytes !== undefined) {
+        const n = Number(rawBytes);
+        return Number.isFinite(n) && n > 0 ? Math.min(1_000_000, n / 1024 ** 3) : 0;
+      }
+      const v = pick(o, "usedTrafficGb", "used_traffic_gb");
+      const n = typeof v === "number" ? v : Number(v);
+      return Number.isFinite(n) && n > 0 ? Math.min(1_000_000, n) : 0;
     })(),
     tags: [...new Set(tags)],
     accessKeys,
@@ -187,7 +201,7 @@ export async function POST(req: Request) {
               expiryDays: item.expiryDays === null ? null : Math.min(3650, Math.round(item.expiryDays)),
               ipLimit: Math.min(1000, Math.round(item.ipLimit)),
               resetPeriod: item.resetPeriod,
-              usedTrafficGb: 0,
+              usedTrafficGb: item.usedTrafficGb,
               resellerId: null,
               onHold: item.onHold,
               startedAt: item.startedAt ? new Date(item.startedAt) : null,

@@ -43,6 +43,9 @@ export async function GET(req: Request) {
         // 26-a — lifecycle anchor + counters so a migration keeps the clock
         startedAt: u.startedAt ? new Date(u.startedAt).toISOString() : null,
         renewals: Number(u.renewals) || 0,
+        // 26-a — consumed usage travels with the export so quota + on-hold
+        // state survive the move (import accepts it back, GB-precision)
+        usedTrafficGb: Number(u.usedTrafficGb) || 0,
         inbounds: u.accesses.map((a) => ({
           tag: a.inbound.tag,
           protocol: a.inbound.protocol,

@@ -28,6 +28,7 @@ import { createHash } from "node:crypto";
 import { db } from "@/lib/db";
 import { IpTracker, parseAccessIps } from "@/lib/ip-limit";
 import { logActivity } from "@/lib/activity";
+import { notifyUserActivated } from "@/lib/bot/notify"; // 26-a — bot alert on first connect
 import { syncUserProjection } from "@/lib/user-sync"; // Task 23-b — flip embedded clients on auto-disable
 import type {
   ActivityEvent,
@@ -1133,9 +1134,32 @@ export class XrayDriver implements CoreBackend {
       if (!userId) continue; // manual client without an owner row
       const gb = bytes / BYTES_PER_GB;
       void db.clientUser
-        .findUnique({ where: { id: userId }, select: { usedTrafficGb: true } })
+        .findUnique({
+          where: { id: userId },
+          select: { usedTrafficGb: true, username: true, expiryDays: true, onHold: true, startedAt: true },
+        })
         .then((row) => {
-          const cur = Number(row?.usedTrafficGb) || 0;
+          if (!row) return null;
+          const cur = Number(row.usedTrafficGb) || 0;
+          // 26-a — instant on-hold activation: the expiry clock starts at the
+          // FIRST observed traffic (per-poll, seconds after the first connect)
+          // instead of waiting up to a minute for the maintenance cron, which
+          // remains as the idempotent fallback (agent/nodes flows).
+          if (row.onHold === true && row.startedAt === null) {
+            const startedAt = new Date();
+            void logActivity({
+              kind: "user.updated",
+              level: "info",
+              actor: "system",
+              message: `On-hold user "${row.username}" activated on first connection`,
+              meta: { userId, username: row.username, startedAt: startedAt.toISOString() },
+            });
+            void notifyUserActivated(row.username, row.expiryDays ?? 0);
+            return db.clientUser.update({
+              where: { id: userId },
+              data: { usedTrafficGb: cur + gb, startedAt },
+            });
+          }
           return db.clientUser.update({
             where: { id: userId },
             data: { usedTrafficGb: cur + gb },

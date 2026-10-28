@@ -247,16 +247,24 @@ export function deriveStatus(u: {
   startedAt?: Date | string | null;
   now?: Date;
 }): UserStatus {
-  if (!u.enabled) return "disabled";
+  const now = u.now ?? new Date();
   // 26-a fix — ONLY an on-hold user with a null anchor is "waiting for the
   // first connect"; regular users keep startedAt null forever and must fall
-  // through to the normal createdAt-anchored expiry math.
-  if (u.onHold === true && u.startedAt === null) return "onhold";
-  const now = u.now ?? new Date();
+  // through to the normal createdAt-anchored expiry math. A waiting user can
+  // NEVER be expired (no clock), so this branch must sit before the expiry
+  // math; an admin-disabled waiting subscription still reads as "disabled".
+  if (u.onHold === true && u.startedAt === null) {
+    return u.enabled ? "onhold" : "disabled";
+  }
+  // 26-a fix — expiry BEATS the enabled flag: once the maintenance cron
+  // disables an elapsed subscription, the old ordering ("disabled" first)
+  // masked the reason forever, so admins and the sub portal showed a benign
+  // "disabled" instead of "expired". The window has really ended — say so.
   if (u.expiryDays !== null) {
     const end = new Date(u.startedAt ?? u.createdAt).getTime() + u.expiryDays * 86_400_000;
     if (now.getTime() >= end) return "expired";
   }
+  if (!u.enabled) return "disabled";
   if (u.trafficLimitGb !== null && u.usedTrafficGb >= u.trafficLimitGb) return "capped";
   return "active";
 }
