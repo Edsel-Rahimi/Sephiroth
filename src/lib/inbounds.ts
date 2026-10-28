@@ -1,5 +1,6 @@
 import { getSession } from "@/lib/auth";
 import { db, Prisma, type Inbound } from "@/lib/db";
+import { MTP_SECRET_MAX_LEN, MTP_SECRET_PATTERN } from "@/lib/mtp-secret";
 
 /* ============================================================
    Sephiroth · Phase 3 — Inbounds (server-side helpers)
@@ -23,6 +24,8 @@ export const IN_PROTOCOLS = [
   "dokodemo-door",
   "socks",
   "http",
+  "mixed", // Task 25-a — HTTP + SOCKS on ONE port (sing-box-served)
+  "mtproto", // Task 25-a — Telegram MTProto (mtg sidecar)
 ] as const;
 
 export const IN_TRANSPORTS = ["tcp", "ws", "grpc", "httpupgrade", "xhttp", "kcp"] as const;
@@ -88,6 +91,7 @@ const STREAM_KEYS: Record<string, { str?: string[]; num?: string[]; bool?: strin
       "obfsPassword", // hysteria2 salamander obfs (v2.5 sidecar)
       "hy2Masquerade", // hysteria2 masquerade URL (Task 23-c, sing-box ≥1.14)
       "tuicCongestion", // tuic congestion control: bbr | cubic | new_reno (Task 23-c)
+      "mtpDomain", // mtproto fake-TLS camouflage domain (Task 25-a)
       "fallbacksJson", // serialized fallbacks array
     ],
     num: ["maxEarlyData", "dokoPort", "wgMtu", "upMbps", "downMbps"], // hy2 bandwidth caps (v2.5)
@@ -203,7 +207,8 @@ export type InboundFieldError =
   | "tooLong"
   | "tooMany"
   | "dupEmail"
-  | "ss2022Key";
+  | "ss2022Key"
+  | "mtpSecret"; // Task 25-a — client key is not a valid MTProto secret
 
 /** Prisma-ready write payload (complex fields pre-serialized). */
 export interface InboundWrite {
@@ -434,6 +439,29 @@ function checkSs2022Keys(raw: Record<string, unknown>): InboundFieldError | null
   return null;
 }
 
+/* ---------- mtproto secret cross-field check (Task 25-a) ---------- */
+
+/**
+ * MTProto client keys ARE the wire secret: `[dd|ee]<32 hex>[domain]`
+ * (mtg v2 faketls form — see src/lib/mtp-secret.ts). Mirrors the ss2022
+ * cross-field pattern: needs protocol+clients together.
+ */
+function checkMtpSecrets(raw: Record<string, unknown>): InboundFieldError | null {
+  if (raw.protocol !== "mtproto") return null;
+  if (!Array.isArray(raw.clients)) return null;
+  for (const item of raw.clients) {
+    if (typeof item !== "object" || item === null || Array.isArray(item)) continue;
+    const key = (asString((item as Record<string, unknown>).key) ?? "").trim();
+    if (!key) continue; // empty keys are surfaced by the required-check
+    if (
+      key.length > MTP_SECRET_MAX_LEN ||
+      !MTP_SECRET_PATTERN.test(key)
+    )
+      return "mtpSecret";
+  }
+  return null;
+}
+
 function checkSniffing(value: unknown): InboundFieldError | null {
   if (value === undefined) return null;
   if (typeof value !== "object" || value === null || Array.isArray(value))
@@ -573,6 +601,12 @@ function validateFull(raw: Record<string, unknown>): InboundValidation {
     if (ssKeyError) fields.clients = ssKeyError;
   }
 
+  // cross-field: mtproto client keys must be mtg v2 secrets (needs protocol+clients)
+  if (!fields.protocol && !fields.clients) {
+    const mtpError = checkMtpSecrets(raw);
+    if (mtpError) fields.clients = mtpError;
+  }
+
   if (Object.keys(fields).length > 0) return { ok: false, fields };
 
   const data: InboundWrite = {
@@ -670,12 +704,14 @@ function validatePartial(raw: Record<string, unknown>): InboundValidation {
     else data.streamJson = JSON.stringify(normStream(raw.stream));
   }
 
-  // cross-field ss2022 check — the Forge always sends the full form, so
+  // cross-field ss2022 + mtproto checks — the Forge always sends the full form, so
   // protocol+stream+clients travel together even in patch mode
   if (Object.keys(fields).length === 0 &&
       (raw.protocol !== undefined || raw.stream !== undefined || raw.clients !== undefined)) {
     const ssKeyError = checkSs2022Keys(raw);
     if (ssKeyError) fields.clients = ssKeyError;
+    const mtpError = checkMtpSecrets(raw);
+    if (mtpError) fields.clients = fields.clients ?? mtpError;
   }
 
   if (Object.keys(fields).length > 0) return { ok: false, fields };

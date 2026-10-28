@@ -1,33 +1,46 @@
 /**
  * Sephiroth core adapter — SIDECAR engine manager (server-only). [v2.5]
  *
- * Runs one real OS process per ENABLED hysteria2 inbound, NEXT TO (not
- * inside) the Xray core — Xray never had a hysteria inbound (protocol gap
- * analysis §3). For every such inbound the panel:
+ * Runs one real OS process per ENABLED sidecar-served inbound, NEXT TO (not
+ * inside) the Xray core — protocols Xray cannot or no longer serves:
  *
- *   config   generates a hysteria server YAML at db/core/sidecars/<tag>.yaml
- *              listen :<port> (+ host when the row pins one)
- *              auth   password (single client) | userpass map (multiple)
- *              tls    managed PEM from the stream (certPublic/certPrivate)
- *                     or a generated self-signed cert (node:crypto, CN=host,
- *                     10y) stored at db/certs/<tag>-self.{crt,key}
- *              obfs   salamander when stream.obfsPassword is set
- *              bandwidth up/down Mbps from stream.upMbps/downMbps
- *              trafficStats {enabled, secret} — per-user counters
- *              quic   documented defaults
- *   spawn    `hysteria server -c <yaml>` with a log ring buffer per tag
- *   health   UDP port probe (bind 0.0.0.0 → EADDRINUSE = listening)
+ *   hysteria2 (v2.5) — Xray never had a hysteria inbound
+ *   mtproto   (25-a) — Xray-core removed its mtproto inbound in v24.10+;
+ *                      served by the 9seconds/mtg v2 daemon instead
+ *
+ * For every such inbound the panel:
+ *
+ *   config   generates the engine config at db/core/sidecars/<tag>.<ext>
+ *              hysteria2 → <tag>.yaml   listen :<port> (+ host when the row
+ *                         pins one), auth password (single client) | userpass
+ *                         map (multiple), tls managed PEM from the stream
+ *                         (certPublic/certPrivate) or a generated self-signed
+ *                         cert (node:crypto, CN=host, 10y) stored at
+ *                         db/certs/<tag>-self.{crt,key}, obfs salamander when
+ *                         stream.obfsPassword is set, bandwidth up/down Mbps
+ *                         from stream.upMbps/downMbps, trafficStats
+ *                         {enabled, secret} — per-user counters, quic
+ *                         documented defaults
+ *              mtproto   → <tag>.toml   secret (the first enabled client's
+ *                         key — mtg v2 `ee<hex>[domain]` form), bind-to
+ *                         <listen>:<port>, log-level info
+ *   spawn    `hysteria server -c <yaml>` | `mtg run <toml>` with a log ring
+ *            buffer per tag
+ *   health   UDP port probe for hysteria (bind 0.0.0.0 → EADDRINUSE =
+ *            listening); TCP connect probe for mtproto (mtg is plain TCP)
  *   reload   hash-diff per tag on the 2s mirror loop — restart only the
  *            processes whose config actually changed (xray.ts mirrorDb pattern)
  *   crash    auto-restart 3s/10s/30s backoff (max 5 attempts) per sidecar
- *   stats    polls the REAL trafficStats HTTP API on the listener port:
- *              GET http://127.0.0.1:<port>/traffic/<secret>
+ *   stats    hysteria: polls the REAL trafficStats HTTP API on the listener
+ *            port: GET http://127.0.0.1:<port>/traffic/<secret>
  *            → JSON map { "<auth user>": {"tx": <bytes>, "rx": <bytes>} }
  *            (verified against the shipped binary — tx = client→server,
  *             rx = server→client). Deltas accumulate into ClientUser
  *             .usedTrafficGb (same store field the xray driver writes) and
- *             into the per-sidecar session rx/tx mirror surfaced via
- *             /api/system/core-status (`sidecars: [...]`).
+ *            into the per-sidecar session rx/tx mirror surfaced via
+ *            /api/system/core-status (`sidecars: [...]`).
+ *            mtproto: no traffic API in mtg v2 — counters stay 0 and the
+ *            stats poller skips these entries entirely.
  *
  * The manager is driver-agnostic: it runs with the simulator OR the real
  * Xray core, and is torn down on panel shutdown (server.ts).
@@ -59,7 +72,8 @@ import type { SidecarStatus } from "@/lib/core/types";
 import { asInboundStatus } from "@/lib/core/host-metrics";
 import { parseClients } from "@/lib/user-types";
 import type { InboundClient, InboundStream } from "@/lib/inbounds";
-import { ensureHysteriaBinary } from "@/lib/core/bin-manager";
+import { ensureHysteriaBinary, ensureMtgBinary } from "@/lib/core/bin-manager";
+import { isValidMtpSecret } from "@/lib/mtp-secret";
 
 const BYTES_PER_GB = 1024 ** 3;
 const LOG_CAP = 200;
@@ -81,6 +95,7 @@ function ys(v: unknown): string {
 
 export interface SidecarBuild {
   yaml: string;
+  yamlHash: string;
   port: number;
   listenHost: string;
   certPath: string;
@@ -297,6 +312,8 @@ function safeTag(tag: string): string {
 
 interface SidecarEntry {
   tag: string;
+  /** which engine this sidecar serves (hysteria2 | mtproto, Task 25-a) */
+  protocol: "hysteria2" | "mtproto";
   port: number;
   listen: string;
   status: string; // inbound store status
@@ -347,6 +364,11 @@ export class SidecarManager {
   private binaryPath = "";
   private binaryVersion = "";
   private binaryResolved = false;
+
+  // mtg (mtproto) engine — resolved lazily, only when an mtproto row exists
+  private mtgPath = "";
+  private mtgVersion = "";
+  private mtgResolved = false;
 
   private readonly entries = new Map<string, SidecarEntry>();
   private regenTimer: NodeJS.Timeout | null = null;
@@ -421,6 +443,39 @@ export class SidecarManager {
     this.log("engine", `binary: ${bin.path} (${bin.version}, source: ${bin.source})`);
   }
 
+  /**
+   * Resolve the mtg binary for mtproto sidecars. NEVER throws — a missing
+   * binary only surfaces as a failed mtproto sidecar ("binary missing" in
+   * its lastError), never as a manager-wide failure (hysteria sidecars must
+   * keep running). When the binary first becomes available, mtproto entries
+   * have their config hash cleared so the same reconcile respawns them.
+   */
+  private async ensureMtg(): Promise<void> {
+    if (this.mtgPath && this.mtgVersion && existsSync(this.mtgPath)) return;
+    try {
+      const bin = await ensureMtgBinary({ log: (m) => this.log("engine", m) });
+      const isNew = !this.mtgResolved;
+      this.mtgPath = bin.path;
+      this.mtgVersion = bin.version;
+      this.mtgResolved = true;
+      this.log("engine", `mtg binary: ${bin.path} (${bin.version}, source: ${bin.source})`);
+      if (isNew) {
+        // force the mtproto sidecars to re-run their spawn on this reconcile
+        for (const entry of this.entries.values()) {
+          if (entry.protocol === "mtproto") entry.configHash = "";
+        }
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.log("engine", `mtg binary unavailable: ${msg}`);
+    }
+  }
+
+  /** Engine binary for a sidecar kind ("" when not resolved yet). */
+  private binFor(protocol: "hysteria2" | "mtproto"): string {
+    return protocol === "mtproto" ? this.mtgPath : this.binaryPath;
+  }
+
   async stopAll(): Promise<void> {
     this.clearRegenTimer();
     this.stopStatsTimer();
@@ -490,13 +545,30 @@ export class SidecarManager {
   }
 
   /**
-   * Sync the sidecar set with ENABLED hysteria2 inbounds:
+   * Sync the sidecar set with ENABLED sidecar-served inbounds
+   * (hysteria2 + mtproto, Task 25-a):
    *   new/changed → (re)build config + (re)spawn
    *   removed/disabled/offline → stop + drop
    */
   private async reconcile(force: boolean): Promise<void> {
+    let rows: InboundRowLike[] = [];
+    try {
+      rows = db
+        ._syncReadInboundsFull()
+        .filter((r) => r.protocol === "hysteria2" || r.protocol === "mtproto");
+    } catch {
+      return;
+    }
+
+    // Task 23-c stand-down — when the REAL xray driver runs and the sing-box
+    // secondary core is enabled, hysteria2 inbounds are served by sing-box;
+    // the per-inbound hysteria sidecars would double-bind the same UDP ports,
+    // so they stand down. mtproto is NOT a sing-box protocol (Task 25-a) —
+    // its mtg sidecars keep running and reconcile as usual.
     if (this.shouldStandDown()) {
+      rows = rows.filter((r) => r.protocol !== "hysteria2");
       for (const [tag, entry] of [...this.entries]) {
+        if (entry.protocol !== "hysteria2") continue;
         await this.stopEntry(entry);
         this.entries.delete(tag);
         this.log(tag, "sidecar stood down (sing-box secondary core serves hysteria2)");
@@ -508,15 +580,13 @@ export class SidecarManager {
           })
         );
       }
-      return;
+      if (rows.length === 0) return;
     }
 
-    let rows: InboundRowLike[] = [];
-    try {
-      rows = db._syncReadInboundsFull().filter((r) => r.protocol === "hysteria2");
-    } catch {
-      return;
-    }
+    // resolve the engines each kind needs (hysteria binary may throw — the
+    // established contract; mtg never throws, see ensureMtg)
+    if (rows.some((r) => r.protocol === "hysteria2")) await this.ensureBinary();
+    if (rows.some((r) => r.protocol === "mtproto")) await this.ensureMtg();
 
     const served = rows.filter((r) => r.status === "online");
     const seen = new Set<string>();
@@ -539,7 +609,12 @@ export class SidecarManager {
         // config changed → restart with the new document
         await this.stopEntry(entry);
       } else {
-        entry = this.blankEntry(row.tag, row.port, row.listen);
+        entry = this.blankEntry(
+          row.tag,
+          row.port,
+          row.listen,
+          row.protocol === "mtproto" ? "mtproto" : "hysteria2"
+        );
         this.entries.set(row.tag, entry);
       }
       entry.status = row.status;
@@ -598,9 +673,15 @@ export class SidecarManager {
   /** Optional event sink wired by server.ts (socket activity feed). */
   onEvent: ((event: ActivityEvent) => void) | null = null;
 
-  private blankEntry(tag: string, port: number, listen: string): SidecarEntry {
+  private blankEntry(
+    tag: string,
+    port: number,
+    listen: string,
+    protocol: "hysteria2" | "mtproto"
+  ): SidecarEntry {
     return {
       tag,
+      protocol,
       port,
       listen,
       status: "online",
@@ -631,11 +712,100 @@ export class SidecarManager {
   /* ------------------------------------------------------- config builder */
 
   /**
+   * Build the engine config for one inbound row. Writes the config file
+   * (+ cert files for hysteria, only when contents changed) and returns the
+   * hash. Returns null when the row cannot be served (no enabled client /
+   * invalid mtproto secret).
+   */
+  private buildSidecar(row: InboundRowLike): {
+    yaml: string;
+    yamlHash: string;
+    configPath: string;
+    certPath: string;
+    certSource: "managed" | "self-signed";
+    statsSecret: string;
+    authEmails: string[];
+    port: number;
+  } | null {
+    if (row.protocol === "mtproto") return this.buildMtpSidecar(row);
+    return this.buildHysteriaSidecar(row);
+  }
+
+  /**
+   * mtproto (mtg v2) sidecar config — Task 25-a. Minimal TOML: the secret
+   * comes from the FIRST enabled client's key (mtg carries a single secret
+   * per listener; additional enabled clients are counted in `users` but
+   * cannot be served by one mtg port — surfaced honestly in the logs).
+   */
+  private buildMtpSidecar(row: InboundRowLike): {
+    yaml: string;
+    yamlHash: string;
+    configPath: string;
+    certPath: string;
+    certSource: "managed" | "self-signed";
+    statsSecret: string;
+    authEmails: string[];
+    port: number;
+  } | null {
+    const clients = (parseClients(row.clientsJson) as (InboundClient & { ownerId?: string })[])
+      .filter((c) => c.enabled !== false && c.email && c.key);
+
+    if (clients.length === 0) {
+      this.log(row.tag, "no enabled client with a secret — sidecar skipped");
+      return null;
+    }
+
+    const secret = clients[0]!.key.trim();
+    if (!isValidMtpSecret(secret)) {
+      this.log(
+        row.tag,
+        "client secret is not a valid MTProto secret (need ee/dd + 32 hex) — sidecar skipped"
+      );
+      return null;
+    }
+    if (clients.length > 1) {
+      // mtg v2 serves ONE secret per listener — extra clients are decorative
+      this.log(
+        row.tag,
+        `mtproto serves a single secret per port — using "${clients[0]!.email}" (${clients.length - 1} more enabled client(s) ignored by mtg)`
+      );
+    }
+
+    mkdirSync(this.stateDir, { recursive: true });
+    const t = safeTag(row.tag);
+
+    // mtg needs host:port — bare ":port" is not a valid bind-to
+    const host = (row.listen || "").trim();
+    const bindTo =
+      !host || host === "0.0.0.0" || host === "::" ? `0.0.0.0:${row.port}` : `${host}:${row.port}`;
+
+    const toml = [
+      `secret = "${secret}"`,
+      `bind-to = "${bindTo}"`,
+      `log-level = "info"`,
+      "",
+    ].join("\n");
+    const configPath = path.join(this.stateDir, `${t}.toml`);
+    writeIfChanged(configPath, toml);
+
+    return {
+      yaml: toml,
+      yamlHash: hashStr(toml),
+      configPath,
+      certPath: "",
+      certSource: "self-signed",
+      statsSecret: "", // mtg v2 has no traffic API — stats stay 0
+      authEmails: clients.map((c) => c.email),
+      port: Number(row.port),
+    };
+  }
+
+  /**
    * Build the hysteria server YAML for one inbound row. Writes the config
    * file + cert files (only when contents changed) and returns the hash.
    * Returns null when the row cannot be served (no enabled client).
    */
-  private buildSidecar(row: InboundRowLike): {
+  private buildHysteriaSidecar(row: InboundRowLike): {
     yaml: string;
     yamlHash: string;
     configPath: string;
@@ -767,14 +937,25 @@ export class SidecarManager {
   /* ------------------------------------------------------------- spawning */
 
   private async spawnEntry(entry: SidecarEntry): Promise<void> {
-    if (!this.binaryPath) throw new Error("hysteria binary not resolved yet");
+    const binPath = this.binFor(entry.protocol);
+    if (!binPath) {
+      throw new Error(
+        entry.protocol === "mtproto"
+          ? "mtg binary not resolved (download failed / unreachable)"
+          : "hysteria binary not resolved yet"
+      );
+    }
     entry.wantRunning = true;
     entry.lastError = "";
 
     // free the port first — a stale sibling from a crashed panel would EADDRINUSE
     await this.killStaleFromPidFile(entry);
 
-    const child = spawn(this.binaryPath, ["server", "-c", entry.configPath], {
+    const args =
+      entry.protocol === "mtproto"
+        ? ["run", entry.configPath]
+        : ["server", "-c", entry.configPath];
+    const child = spawn(binPath, args, {
       detached: false,
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -804,10 +985,17 @@ export class SidecarManager {
       }
     });
 
-    // health: wait for the UDP listener (QUIC)
-    const ok = await this.waitUdpPort(entry.port, PORT_WAIT_MS);
+    // health: hysteria listens on QUIC (UDP bind probe); mtg is plain TCP
+    // (connect probe to 127.0.0.1)
+    const ok =
+      entry.protocol === "mtproto"
+        ? await this.waitTcpPort(entry.port, PORT_WAIT_MS)
+        : await this.waitUdpPort(entry.port, PORT_WAIT_MS);
     if (!ok) {
-      const msg = `hysteria did not open UDP port ${entry.port} within ${PORT_WAIT_MS / 1000}s`;
+      const msg =
+        entry.protocol === "mtproto"
+          ? `mtg did not open TCP port ${entry.port} within ${PORT_WAIT_MS / 1000}s`
+          : `hysteria did not open UDP port ${entry.port} within ${PORT_WAIT_MS / 1000}s`;
       this.log(entry.tag, msg);
       await this.stopEntry(entry);
       throw new Error(msg);
@@ -815,7 +1003,10 @@ export class SidecarManager {
     entry.running = true;
     entry.autoAttempts = 0;
     entry.statsError = "";
-    this.log(entry.tag, `sidecar running (pid ${entry.pid}, udp ${entry.port})`);
+    this.log(
+      entry.tag,
+      `sidecar running (pid ${entry.pid}, ${entry.protocol === "mtproto" ? "tcp" : "udp"} ${entry.port})`
+    );
   }
 
   async stopEntry(entry: SidecarEntry): Promise<void> {
@@ -928,11 +1119,11 @@ export class SidecarManager {
     }
   }
 
-  /** true when /proc/<pid>/cmdline (linux) mentions hysteria — avoids killing a recycled pid */
-  private pidLooksLikeHysteria(pid: number): boolean {
+  /** true when /proc/<pid>/cmdline (linux) matches the engine — avoids killing a recycled pid */
+  private pidLooksLikeEngine(pid: number, protocol: "hysteria2" | "mtproto"): boolean {
     try {
       const cmd = readFileSync(`/proc/${pid}/cmdline`, "utf8");
-      return /hysteria/i.test(cmd);
+      return protocol === "mtproto" ? /mtg/i.test(cmd) : /hysteria/i.test(cmd);
     } catch {
       return false;
     }
@@ -944,8 +1135,11 @@ export class SidecarManager {
       if (!existsSync(p)) return;
       const pid = Number(readFileSync(p, "utf8").trim());
       if (!Number.isInteger(pid) || pid <= 1 || pid === process.pid) return;
-      if (!this.pidLooksLikeHysteria(pid)) return;
-      this.log(entry.tag, `killing stale hysteria from a previous run (pid ${pid})`);
+      if (!this.pidLooksLikeEngine(pid, entry.protocol)) return;
+      this.log(
+        entry.tag,
+        `killing stale ${entry.protocol === "mtproto" ? "mtg" : "hysteria"} from a previous run (pid ${pid})`
+      );
       process.kill(pid, "SIGTERM");
       await sleep(700);
       try {
@@ -1026,6 +1220,32 @@ export class SidecarManager {
     return false;
   }
 
+  /**
+   * TCP connect probe (Task 25-a) — mtg has no UDP listener; a successful
+   * 127.0.0.1 connect means the daemon is accepting connections.
+   */
+  private tcpAlive(port: number): Promise<boolean> {
+    return new Promise((resolve) => {
+      const sock = net.connect({ port, host: "127.0.0.1" });
+      const done = (ok: boolean): void => {
+        sock.destroy();
+        resolve(ok);
+      };
+      sock.once("connect", () => done(true));
+      sock.once("error", () => done(false));
+      setTimeout(() => done(false), 1_200).unref();
+    });
+  }
+
+  private async waitTcpPort(port: number, timeoutMs: number): Promise<boolean> {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      if (await this.tcpAlive(port)) return true;
+      await sleep(400);
+    }
+    return false;
+  }
+
   /* ---------------------------------------------------------------- stats */
 
   private startStatsTimer(): void {
@@ -1047,7 +1267,10 @@ export class SidecarManager {
 
   private async pollStats(): Promise<void> {
     if (this.statsBusy) return;
-    const running = [...this.entries.values()].filter((e) => e.running && e.statsSecret);
+    // mtproto sidecars have no traffic API — only hysteria entries poll
+    const running = [...this.entries.values()].filter(
+      (e) => e.running && e.statsSecret && e.protocol === "hysteria2"
+    );
     if (running.length === 0) return;
     this.statsBusy = true;
     try {
@@ -1180,10 +1403,10 @@ export class SidecarManager {
   statusList(): SidecarStatus[] {
     return [...this.entries.values()].map((e) => ({
       tag: e.tag,
-      protocol: "hysteria2",
+      protocol: e.protocol,
       running: e.running,
       pid: e.pid,
-      version: this.binaryVersion,
+      version: e.protocol === "mtproto" ? this.mtgVersion : this.binaryVersion,
       port: e.port,
       lastError: e.lastError || e.statsError,
       restarts: e.restartCount,

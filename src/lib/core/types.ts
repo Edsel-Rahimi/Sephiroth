@@ -105,10 +105,11 @@ export interface CoreStatusPayload extends CoreBackendStatus {
   singbox?: SingboxStatus;
 }
 
-/** One sidecar engine process (hysteria2 inbound served outside Xray). */
+/** One sidecar engine process (hysteria2 / mtproto inbound served outside Xray). */
 export interface SidecarStatus {
   tag: string;
-  protocol: "hysteria2";
+  /** Task 25-a — mtproto rows ride the same sidecar framework (mtg binary) */
+  protocol: "hysteria2" | "mtproto";
   running: boolean;
   pid: number | null;
   /** sidecar binary version ("" before first resolve) */
@@ -152,7 +153,7 @@ export interface SingboxStatus {
   restarts: number;
   logTail: string[];
   configPath: string;
-  /** idle reason when running=false ("" = none) — e.g. "no hy2/tuic inbounds" */
+  /** idle reason when running=false ("" = none) — e.g. "no hy2/tuic/mixed inbounds" */
   idleReason: string;
   /** exact session totals from clash_api (deltas accumulated) */
   txBytes: number;

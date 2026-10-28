@@ -88,7 +88,8 @@ import { dictionaries } from "@/lib/i18n/dictionaries";
 import { lfmt } from "@/lib/i18n/live-strings";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { buildDokoSummary, buildShareLink, buildTelegramSocksLinks, buildWgConf, hostOf } from "@/lib/share-links";
+import { buildDokoSummary, buildShareLink, buildTelegramMtpLinks, buildTelegramSocksLinks, buildWgConf, hostOf } from "@/lib/share-links";
+import { genMtpSecret, MTP_DEFAULT_DOMAIN } from "@/lib/mtp-secret";
 import QRCode from "react-qr-code";
 import type { DoctorFinding, DoctorReport } from "@/lib/doctor-types";
 import { Progress } from "@/components/ui/progress";
@@ -186,10 +187,11 @@ interface ServerInfoPayload {
   nodeVersion: string;
 }
 
-/* v2.5 — hysteria2 sidecar engine entry from GET /api/system/core-status */
+/* v2.5 — sidecar engine entry from GET /api/system/core-status (hysteria2 |
+   mtproto·mtg since Task 25-a) */
 interface SidecarWire {
   tag: string;
-  protocol: "hysteria2";
+  protocol: "hysteria2" | "mtproto";
   running: boolean;
   pid: number | null;
   version: string;
@@ -217,6 +219,8 @@ const PROTOCOLS = [
   "dokodemo-door",
   "socks",
   "http",
+  "mixed",
+  "mtproto",
 ] as const;
 const TRANSPORTS = ["tcp", "ws", "grpc", "httpupgrade", "xhttp", "kcp"] as const;
 const STATUSES = ["online", "maintenance", "disabled"] as const;
@@ -246,6 +250,8 @@ const PROTO_LABEL: Record<string, string> = {
   "dokodemo-door": "Dokodemo",
   socks: "SOCKS",
   http: "HTTP",
+  mixed: "Mixed",
+  mtproto: "MTProto",
 };
 
 const PROTO_CLS: Record<string, string> = {
@@ -259,6 +265,8 @@ const PROTO_CLS: Record<string, string> = {
   "dokodemo-door": "bg-[#f472b6]/10 text-[#f472b6] ring-[#f472b6]/30",
   socks: "bg-[#fde047]/10 text-[#fde047] ring-[#fde047]/30",
   http: "bg-[#fb923c]/10 text-[#fb923c] ring-[#fb923c]/30",
+  mixed: "bg-[#38bdf8]/10 text-[#38bdf8] ring-[#38bdf8]/30",
+  mtproto: "bg-[#f59e0b]/10 text-[#f59e0b] ring-[#f59e0b]/30",
 };
 
 /* Lovable-design per-protocol accents (solid bar / spark color / hover glow) */
@@ -273,6 +281,8 @@ const PROTO_BAR: Record<string, string> = {
   "dokodemo-door": "bg-[#f472b6]",
   socks: "bg-[#fde047]",
   http: "bg-[#fb923c]",
+  mixed: "bg-[#38bdf8]",
+  mtproto: "bg-[#f59e0b]",
 };
 
 const PROTO_VAR: Record<string, string> = {
@@ -286,6 +296,8 @@ const PROTO_VAR: Record<string, string> = {
   "dokodemo-door": "#f472b6",
   socks: "#fde047",
   http: "#fb923c",
+  mixed: "#38bdf8",
+  mtproto: "#f59e0b",
 };
 
 const PROTO_HOVER: Record<string, string> = {
@@ -309,10 +321,14 @@ const PROTO_HOVER: Record<string, string> = {
     "hover:border-[#fde047]/50 hover:shadow-[0_0_38px_-12px_#fde047]",
   http:
     "hover:border-[#fb923c]/50 hover:shadow-[0_0_38px_-12px_#fb923c]",
+  mixed:
+    "hover:border-[#38bdf8]/50 hover:shadow-[0_0_38px_-12px_#38bdf8]",
+  mtproto:
+    "hover:border-[#f59e0b]/50 hover:shadow-[0_0_38px_-12px_#f59e0b]",
 };
 
 /* protocols that carry raw sockets — no transport/security layers apply */
-const NO_STREAM_PROTOCOLS = new Set(["wireguard", "socks", "http", "dokodemo-door"]);
+const NO_STREAM_PROTOCOLS = new Set(["wireguard", "socks", "http", "dokodemo-door", "mixed", "mtproto"]);
 
 /* dictionary key per protocol for the picker card descriptions */
 const PROTO_DESC_KEY: Record<string, string> = {
@@ -326,6 +342,8 @@ const PROTO_DESC_KEY: Record<string, string> = {
   "dokodemo-door": "pdDoko",
   socks: "pdSocks",
   http: "pdHttp",
+  mixed: "pdMixed",
+  mtproto: "pdMtp",
 };
 
 const TRANSPORT_META: Record<string, { icon: LucideIcon; descKey: string }> = {
@@ -481,6 +499,11 @@ function genClientKey(protocol: string, ssMethod?: string): string {
   }
   if (protocol === "wireguard") return b64std(32); // peer public key (44-char base64)
   if (protocol === "socks" || protocol === "http") return genReadableKey();
+  if (protocol === "mtproto") {
+    // Task 25-a — the key IS the mtg v2 secret (ee + 16-byte hex + fake-TLS
+    // domain); a fresh secret rides every new mtproto client
+    return genMtpSecret(MTP_DEFAULT_DOMAIN);
+  }
   if (protocol === "shadowsocks" && isSs2022(ssMethod)) {
     // ss2022 wants the base64 of the RAW key — 16 bytes (aes-128) or 32
     return b64std(ssMethod === "2022-blake3-aes-128-gcm" ? 16 : 32);
@@ -560,12 +583,15 @@ const QUICK_PRESET: Record<string, { transport: string; security: string }> = {
   "dokodemo-door": { transport: "tcp", security: "none" },
   socks: { transport: "tcp", security: "none" },
   http: { transport: "tcp", security: "none" },
+  mixed: { transport: "tcp", security: "none" },
+  mtproto: { transport: "tcp", security: "none" },
 };
 
 /** Sensible default stream values for Quick Create, per protocol. */
 function buildQuickStream(proto: string): Record<string, string | number | boolean> {
   if (proto === "shadowsocks") return { method: "2022-blake3-aes-128-gcm" };
   if (proto === "socks") return { socksUdp: true };
+  if (proto === "mtproto") return { mtpDomain: MTP_DEFAULT_DOMAIN };
   if (proto === "dokodemo-door")
     return { dokoAddress: "one.one.one.one", dokoPort: 53, dokoNetwork: "tcp,udp" };
   if (proto === "wireguard") {
@@ -1038,6 +1064,7 @@ export function InboundsView() {
     tooMany: t.inbounds.errBadValue,
     dupEmail: t.inbounds.errBadValue,
     ss2022Key: t.inbounds.errSs2022Key,
+    mtpSecret: t.inbounds.errMtpSecret,
   };
 
   /** which tab owns each server-side field error */
@@ -1052,9 +1079,10 @@ export function InboundsView() {
     expiryDays: "general",
     clients: form.protocol === "dokodemo-door" ? "general" : "clients",
     transport: "transport",
-    // per-protocol connection fields (socks/http auth, doko target, wg keys,
-    // ss cipher) live in the General tab for those protocols, otherwise Transport
-    stream: ["dokodemo-door", "wireguard", "socks", "http", "shadowsocks"].includes(form.protocol)
+    // per-protocol connection fields (socks/http/mixed auth, doko target, wg
+    // keys, ss cipher, mtproto domain) live in the General tab for those
+    // protocols, otherwise Transport
+    stream: ["dokodemo-door", "wireguard", "socks", "http", "mixed", "mtproto", "shadowsocks"].includes(form.protocol)
       ? "general"
       : "transport",
     security: "security",
@@ -1744,6 +1772,10 @@ export function InboundsView() {
                       if (!stream.dokoPort) stream.dokoPort = "53";
                       if (!stream.dokoNetwork) stream.dokoNetwork = "tcp,udp";
                     }
+                    if (p === "mtproto" && !stream.mtpDomain) {
+                      // Task 25-a — default fake-TLS camouflage domain
+                      stream.mtpDomain = MTP_DEFAULT_DOMAIN;
+                    }
                     const noStream = NO_STREAM_PROTOCOLS.has(p);
                     return {
                       ...f,
@@ -1878,8 +1910,8 @@ export function InboundsView() {
         </div>
       )}
 
-      {/* socks / http auth */}
-      {(form.protocol === "socks" || form.protocol === "http") && (
+      {/* socks / http / mixed auth (raw-socket proxy auth) */}
+      {(form.protocol === "socks" || form.protocol === "http" || form.protocol === "mixed") && (
         <div className="space-y-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
           <div className="flex items-center gap-2 text-xs font-semibold text-silver">
             <Users className="h-3.5 w-3.5 text-primary" />
@@ -1915,6 +1947,7 @@ export function InboundsView() {
               </label>
             )}
           </div>
+          {form.protocol === "mixed" && <Tip>{t.inbounds.mixedHint}</Tip>}
           <Tip>{t.inbounds.tipAuth}</Tip>
         </div>
       )}
@@ -1983,6 +2016,136 @@ export function InboundsView() {
                     aria-label={t.inbounds.tgQrAlt}
                   >
                     <QRCode value={tg.web} size={104} bgColor="#ffffff" fgColor="#060b0f" />
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* Task 25-a — MTProto (mtg) secret + fake-TLS + Telegram deep links */}
+      {form.protocol === "mtproto" && (
+        <div className="space-y-3 rounded-xl border border-[#f59e0b]/25 bg-[#f59e0b]/[0.05] p-4">
+          <div className="flex items-center gap-2 text-xs font-semibold text-silver">
+            <Send className="h-3.5 w-3.5 text-[#f59e0b]" />
+            {PROTO_LABEL["mtproto"]}
+          </div>
+          <p className="text-[11px] leading-relaxed text-muted-foreground">{t.inbounds.mtpHint}</p>
+          <div className="grid gap-4 sm:grid-cols-[1.4fr_1fr]">
+            <MiniField id="mtp-secret" label={t.inbounds.mtpSecretLabel}>
+              <div className="flex items-stretch gap-2">
+                <Input
+                  id="mtp-secret"
+                  readOnly
+                  dir="ltr"
+                  value={form.clients[0]?.key ?? ""}
+                  placeholder="ee…"
+                  className="min-w-0 flex-1 font-mono text-[11px]"
+                  onFocus={(e) => e.currentTarget.select()}
+                  aria-readonly="true"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="shrink-0 gap-1 rounded-lg px-2.5 text-[11px]"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(form.clients[0]?.key ?? "");
+                      toast({ title: t.inbounds.toastCopied });
+                    } catch {
+                      toast({ title: t.inbounds.toastFail, variant: "destructive" });
+                    }
+                  }}
+                >
+                  <Copy className="h-3 w-3" aria-hidden="true" />
+                  {t.inbounds.tgCopy}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="shrink-0 gap-1 rounded-lg border-white/10 bg-white/[0.03] px-2.5 text-[11px] hover:bg-white/[0.06]"
+                  onClick={() =>
+                    setForm((f) => ({
+                      ...f,
+                      clients: f.clients.map((c, i) =>
+                        i === 0 ? { ...c, key: genMtpSecret(f.stream.mtpDomain) } : c
+                      ),
+                    }))
+                  }
+                  title={t.inbounds.mtpRegen}
+                >
+                  <KeyRound className="h-3.5 w-3.5 text-[#f59e0b]" />
+                  {t.inbounds.mtpRegen}
+                </Button>
+              </div>
+            </MiniField>
+            <MiniField id="mtp-domain" label={t.inbounds.mtpDomainLabel}>
+              <Input
+                id="mtp-domain"
+                value={form.stream.mtpDomain ?? ""}
+                onChange={(e) => setStream("mtpDomain", e.target.value)}
+                placeholder="www.cloudflare.com"
+                dir="ltr"
+                className="font-mono text-xs"
+                autoComplete="off"
+              />
+            </MiniField>
+          </div>
+          {(() => {
+            const portNum = Number(form.port) || 0;
+            const secret = form.clients[0]?.key?.trim() ?? "";
+            if (!portNum || !secret) return <Tip>{t.inbounds.tgNeedPort}</Tip>;
+            const host = hostOf({ listen: form.listen, stream: form.stream });
+            const mtp = buildTelegramMtpLinks(host, portNum, secret);
+            const linkRow = (label: string, value: string) => (
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-bold tracking-wide text-muted-foreground">{label}</span>
+                <div className="flex items-stretch gap-2">
+                  <code
+                    dir="ltr"
+                    className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap rounded-lg border border-white/10 bg-black/30 px-2.5 py-2 font-mono text-[10.5px] text-foreground/90"
+                  >
+                    {value}
+                  </code>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="shrink-0 gap-1 rounded-lg px-2.5 text-[11px]"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(value);
+                        toast({ title: t.inbounds.toastCopied });
+                      } catch {
+                        toast({ title: t.inbounds.toastFail, variant: "destructive" });
+                      }
+                    }}
+                  >
+                    <Copy className="h-3 w-3" aria-hidden="true" />
+                    {t.inbounds.tgCopy}
+                  </Button>
+                </div>
+              </div>
+            );
+            return (
+              <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
+                <div className="min-w-0 space-y-3">
+                  {linkRow("Telegram app link (t.me)", mtp.web)}
+                  {linkRow("Deep link (tg://)", mtp.tg)}
+                  <p className="text-[10.5px] leading-relaxed text-muted-foreground">
+                    {t.inbounds.mtpLinkNote}
+                  </p>
+                </div>
+                <div className="flex items-start justify-center sm:justify-end">
+                  <div
+                    className="rounded-xl bg-white p-2 shadow-[0_0_24px_-10px_#f59e0b]"
+                    role="img"
+                    aria-label={t.inbounds.mtpQrAlt}
+                  >
+                    <QRCode value={mtp.web} size={104} bgColor="#ffffff" fgColor="#060b0f" />
                   </div>
                 </div>
               </div>

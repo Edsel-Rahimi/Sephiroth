@@ -1,9 +1,9 @@
 /**
  * Sephiroth core adapter — SECONDARY sing-box core (server-only). [Task 23-c]
  *
- * Xray-core has no hysteria2 or tuic inbound (protocol gap report §1), so a
- * single `sing-box run -c config.json` process serves ALL enabled
- * hysteria2 + tuic inbounds NEXT TO the Xray core:
+ * Xray-core has no hysteria2, tuic or mixed inbound (protocol gap report §1
+ * + Task 25-a), so a single `sing-box run -c config.json` process serves ALL
+ * enabled hysteria2 + tuic + mixed inbounds NEXT TO the Xray core:
  *
  *   config   generated from the store at db/core/singbox/config.json
  *              hysteria2  users [{name,email→password,key}], up/down Mbps,
@@ -11,6 +11,10 @@
  *              tuic       users [{name, uuid, password}] — the client key IS
  *                         the wire composite "uuid:password" (same form the
  *                         tuic:// URI carries), congestion bbr/cubic/new_reno
+ *              mixed      HTTP + SOCKS on ONE port, users [{name,email,
+ *                         password→key}] — zero enabled users is refused
+ *                         (never an open relay). UDP-only pre-flight/health
+ *                         checks are skipped for these TCP listeners.
  *              tls        managed PEM/paths from the stream, else a generated
  *                         self-signed cert (db/certs, same DER generator the
  *                         hysteria sidecar uses — E2E-proven)
@@ -33,6 +37,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { createHash } from "node:crypto";
 import dgram from "node:dgram";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import net from "node:net";
 import path from "node:path";
 
 import { db } from "@/lib/db";
@@ -151,10 +156,54 @@ function udpTaken(port: number): Promise<boolean> {
   });
 }
 
+/** TCP pre-flight — BIND the port; EADDRINUSE = someone already listens (mixed). */
+function tcpTaken(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const srv = net.createServer();
+    const done = (taken: boolean): void => {
+      try {
+        srv.close();
+      } catch {
+        /* already closed */
+      }
+      resolve(taken);
+    };
+    srv.once("error", (err) => done((err as NodeJS.ErrnoException).code === "EADDRINUSE"));
+    try {
+      srv.listen({ port, host: "0.0.0.0" }, () => done(false));
+    } catch {
+      done(false);
+    }
+  });
+}
+
+/** TCP connect probe (mixed inbounds are TCP-only — no UDP listener to wait for). */
+function tcpAlive(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const sock = net.connect({ port, host: "127.0.0.1" });
+    const done = (ok: boolean): void => {
+      sock.destroy();
+      resolve(ok);
+    };
+    sock.once("connect", () => done(true));
+    sock.once("error", () => done(false));
+    setTimeout(() => done(false), 1_200).unref();
+  });
+}
+
 async function waitUdpPort(port: number, timeoutMs: number): Promise<boolean> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     if (await udpTaken(port)) return true;
+    await sleep(400);
+  }
+  return false;
+}
+
+async function waitTcpPort(port: number, timeoutMs: number): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (await tcpAlive(port)) return true;
     await sleep(400);
   }
   return false;
@@ -178,6 +227,8 @@ interface SbBuild {
   configPath: string;
   inboundCount: number;
   ports: number[];
+  /** ports served by TCP-only inbounds (mixed) — excluded from UDP probes */
+  tcpPorts: number[];
   protocols: Record<string, number>;
   users: number;
   tlsByTag: Map<string, TlsMaterial>;
@@ -211,6 +262,7 @@ export class SingboxDriver {
   private configHash = "";
   private apiPort: number | null = null;
   private ports: number[] = [];
+  private tcpPorts: number[] = [];
   private protocols: Record<string, number> = {};
   private userCount = 0;
   private lastError = "";
@@ -386,7 +438,8 @@ export class SingboxDriver {
   }
 
   /**
-   * Sync the ONE sing-box process with the store's hysteria2 + tuic rows:
+   * Sync the ONE sing-box process with the store's hysteria2 + tuic + mixed
+   * rows (Task 25-a adds mixed):
    *   config changed → check + pre-flight + restart the process
    *   nothing to serve → stop the process
    */
@@ -400,7 +453,9 @@ export class SingboxDriver {
     let rows: InboundRowLike[] = [];
     try {
       rows = (db._syncReadInboundsFull() as InboundRowLike[]).filter(
-        (r) => (r.protocol === "hysteria2" || r.protocol === "tuic") && r.status === "online"
+        (r) =>
+          (r.protocol === "hysteria2" || r.protocol === "tuic" || r.protocol === "mixed") &&
+          r.status === "online"
       );
     } catch {
       return;
@@ -416,15 +471,16 @@ export class SingboxDriver {
     }
     if (built.inboundCount === 0) {
       // nothing to serve → tear down (also covers rows-all-offline)
-      if (this.proc || this.running) await this.killProcess("no hy2/tuic inbounds");
+      if (this.proc || this.running) await this.killProcess("no hy2/tuic/mixed inbounds");
       this.configHash = built.hash;
-      this.idleReason = "no enabled hysteria2/tuic inbound";
+      this.idleReason = "no enabled hysteria2/tuic/mixed inbound";
       return;
     }
 
     this.configHash = built.hash;
     this.configPath = built.configPath;
     this.ports = built.ports;
+    this.tcpPorts = built.tcpPorts;
     this.protocols = built.protocols;
     this.userCount = built.users;
 
@@ -434,7 +490,7 @@ export class SingboxDriver {
         this.makeEvent("inbound.updated", "success", {
           inbound: built.ports.join("+"),
           port: built.ports[0] ?? 0,
-          detail: `sing-box core ${force ? "reloaded" : "started"} (${built.inboundCount} hy2/tuic)`,
+          detail: `sing-box core ${force ? "reloaded" : "started"} (${built.inboundCount} hy2/tuic/mixed)`,
         })
       );
     } catch (err) {
@@ -492,6 +548,7 @@ export class SingboxDriver {
 
     const inbounds: Record<string, unknown>[] = [];
     const ports: number[] = [];
+    const tcpPorts: number[] = [];
     const protocols: Record<string, number> = {};
     const tlsByTag = new Map<string, TlsMaterial>();
     const skipped: string[] = [];
@@ -502,17 +559,26 @@ export class SingboxDriver {
       const clients = (parseClients(row.clientsJson) as (InboundClient & { ownerId?: string })[])
         .filter((c) => c.enabled !== false && c.email && c.key);
 
+      if (row.protocol === "mixed" && clients.length === 0) {
+        // never serve an open relay — mixed needs at least one enabled user
+        skipped.push(`${row.tag}: mixed inbound has no enabled users (open proxy refused) — skipped`);
+        continue;
+      }
+
       if (clients.length === 0) {
         skipped.push(`${row.tag}: no enabled client with a key — skipped`);
         continue;
       }
 
-      const tls = this.resolveTls(row.tag, stream, row.listen);
-      const tlsObj: Record<string, unknown> = {
-        enabled: true,
-        certificate_path: tls.certPath,
-        key_path: tls.keyPath,
-      };
+      // mixed is a raw TCP listener — no TLS material needed at all
+      const tls = row.protocol === "mixed" ? null : this.resolveTls(row.tag, stream, row.listen);
+      const tlsObj: Record<string, unknown> | null = tls
+        ? {
+            enabled: true,
+            certificate_path: tls.certPath,
+            key_path: tls.keyPath,
+          }
+        : null;
 
       if (row.protocol === "hysteria2") {
         const sbUsers = clients.map((c) => ({ name: c.email, password: c.key }));
@@ -540,7 +606,7 @@ export class SingboxDriver {
         inbounds.push(inbound);
         ports.push(Number(row.port));
         protocols.hysteria2 = (protocols.hysteria2 ?? 0) + 1;
-        tlsByTag.set(row.tag, tls);
+        tlsByTag.set(row.tag, tls!);
         users += sbUsers.length;
       } else if (row.protocol === "tuic") {
         const sbUsers: Array<{ name: string; uuid: string; password: string }> = [];
@@ -564,7 +630,7 @@ export class SingboxDriver {
         const ccRaw = str(stream.tuicCongestion).trim();
         const congestion = ["bbr", "cubic", "new_reno"].includes(ccRaw) ? ccRaw : "bbr";
         const alpn = csv(stream.alpn);
-        tlsObj.alpn = alpn.length > 0 ? alpn : ["h3"];
+        tlsObj!.alpn = alpn.length > 0 ? alpn : ["h3"];
         const inbound: Record<string, unknown> = {
           type: "tuic",
           tag: row.tag,
@@ -580,7 +646,24 @@ export class SingboxDriver {
         inbounds.push(inbound);
         ports.push(Number(row.port));
         protocols.tuic = (protocols.tuic ?? 0) + 1;
-        tlsByTag.set(row.tag, tls);
+        tlsByTag.set(row.tag, tls!);
+        users += sbUsers.length;
+      } else if (row.protocol === "mixed") {
+        // Task 25-a — one port speaks HTTP + SOCKS. stream.socksUdp is
+        // intentionally ignored: sing-box mixed always supports UDP relay and
+        // has no per-inbound flag for it.
+        const sbUsers = clients.map((c) => ({ name: c.email, password: c.key }));
+        const inbound: Record<string, unknown> = {
+          type: "mixed",
+          tag: row.tag,
+          listen: (row.listen || "").trim() || "0.0.0.0",
+          listen_port: Number(row.port),
+          users: sbUsers,
+        };
+        inbounds.push(inbound);
+        ports.push(Number(row.port));
+        tcpPorts.push(Number(row.port));
+        protocols.mixed = (protocols.mixed ?? 0) + 1;
         users += sbUsers.length;
       } else {
         skipped.push(`${row.tag}: ${row.protocol} is not a sing-box inbound — skipped`);
@@ -616,6 +699,7 @@ export class SingboxDriver {
       configPath,
       inboundCount: inbounds.length,
       ports,
+      tcpPorts,
       protocols,
       users,
       tlsByTag,
@@ -665,8 +749,15 @@ export class SingboxDriver {
       throw new Error(msg);
     }
 
-    // 2) UDP pre-flight — hy2/tuic are QUIC (UDP); a taken port fails loudly here
+    // 2) port pre-flight — hy2/tuic are QUIC (UDP), mixed is plain TCP;
+    // a taken port fails loudly here before the spawn
     for (const port of this.ports) {
+      if (this.tcpPorts.includes(port)) {
+        if (!(await tcpTaken(port))) continue;
+        const msg = `sing-box TCP port ${port} is already in use`;
+        this.log(msg);
+        throw new Error(msg);
+      }
       if (!(await udpTaken(port))) continue;
       const msg = `sing-box UDP port ${port} is already in use`;
       this.log(msg);
@@ -704,11 +795,14 @@ export class SingboxDriver {
       }
     });
 
-    // 4) health: wait for the UDP listeners (QUIC)
+    // 4) health: wait for the listeners (QUIC=UDP bind probe, mixed=TCP connect)
     for (const port of this.ports) {
-      const ok = await waitUdpPort(port, PORT_WAIT_MS);
+      const ok = this.tcpPorts.includes(port)
+        ? await waitTcpPort(port, PORT_WAIT_MS)
+        : await waitUdpPort(port, PORT_WAIT_MS);
       if (!ok) {
-        const msg = `sing-box did not open UDP port ${port} within ${PORT_WAIT_MS / 1000}s`;
+        const kind = this.tcpPorts.includes(port) ? "TCP" : "UDP";
+        const msg = `sing-box did not open ${kind} port ${port} within ${PORT_WAIT_MS / 1000}s`;
         this.log(msg);
         await this.killProcess("port wait failed");
         throw new Error(msg);
@@ -720,7 +814,7 @@ export class SingboxDriver {
     this.lastStatsError = "";
     this.prevTotals = null;
     this.connPrev.clear();
-    this.log(`sing-box running (pid ${this.pid}, udp ${this.ports.join("+")}, api ${this.apiPort})`);
+    this.log(`sing-box running (pid ${this.pid}, ${this.ports.join("+")}, api ${this.apiPort})`);
   }
 
   private scheduleAutoRestart(): void {

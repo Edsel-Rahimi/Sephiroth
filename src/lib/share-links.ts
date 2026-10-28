@@ -123,6 +123,25 @@ export function buildTelegramSocksLinks(
   return { tg: `tg://socks?${qs}`, web: `https://t.me/socks?${qs}` };
 }
 
+/**
+ * Telegram-native MTProto proxy links (Task 25-a). The `secret` is the
+ * mtg v2 wire secret (`ee<32hex>[domain]`) — exactly what an mtproto
+ * inbound's client key carries. Both the tg:// deep link and the
+ * https://t.me/proxy web link open the "Add Proxy" sheet in Telegram.
+ */
+export function buildTelegramMtpLinks(
+  host: string,
+  port: number,
+  secret: string
+): { tg: string; web: string } {
+  const q = new URLSearchParams();
+  q.set("server", host);
+  q.set("port", String(port));
+  q.set("secret", secret);
+  const qs = q.toString();
+  return { tg: `tg://proxy?${qs}`, web: `https://t.me/proxy?${qs}` };
+}
+
 export function buildShareLink(
   row: ShareInbound,
   first?: ShareClient,
@@ -256,6 +275,24 @@ export function buildShareLink(
         : "";
       return `${row.protocol}://${auth}${host}:${port}#${encodeURIComponent(label)}`;
     }
+    case "mixed": {
+      // Task 25-a — one port speaks HTTP + SOCKS. The PRIMARY link is the
+      // SOCKS half (base64 userinfo — the form most clients accept for
+      // socks://); the HTTP half travels as the material `extra` (see
+      // buildShareMaterial below). No client → a plain open socks URI.
+      const auth = first?.email && first?.key
+        ? b64utf8(`${first.email}:${first.key}`)
+        : "";
+      const userinfo = auth ? `${auth}@` : "";
+      return `socks://${userinfo}${host}:${port}#${encodeURIComponent(label)}`;
+    }
+    case "mtproto": {
+      // Task 25-a — Telegram-native MTProto deep link. The client key IS
+      // the mtg v2 secret; without one there is nothing shareable.
+      const secret = first?.key?.trim();
+      if (!secret) return null;
+      return buildTelegramMtpLinks(host, row.port, secret).tg;
+    }
     default:
       return null;
   }
@@ -302,13 +339,44 @@ export function buildShareMaterial(
   first?: ShareClient,
   fallbackHost?: string,
   publicHost?: string
-): { link: string | null; text: string } {
+): { link: string | null; text: string; extra?: string | null } {
   const link = buildShareLink(row, first, fallbackHost, publicHost);
   if (row.protocol === "wireguard") {
     return { link, text: buildWgConf(row, first, fallbackHost, publicHost) };
   }
+  if (row.protocol === "mixed") {
+    // Task 25-a — the second protocol half (HTTP proxy URI) rides `extra`
+    const httpLink = buildMixedHttpLink(row, first, fallbackHost, publicHost);
+    const parts = [link, httpLink].filter((v): v is string => Boolean(v));
+    return { link, text: parts.join("\n"), extra: httpLink };
+  }
+  if (row.protocol === "mtproto") {
+    // Task 25-a — both Telegram-native forms: tg:// deep link + t.me web link
+    const secret = first?.key?.trim();
+    if (secret) {
+      const host = hostOf(row, fallbackHost, publicHost);
+      const both = buildTelegramMtpLinks(host, row.port, secret);
+      return { link: both.tg, text: `${both.tg}\n${both.web}`, extra: both.web };
+    }
+    return { link: null, text: buildDokoSummary(row, fallbackHost, publicHost) };
+  }
   if (link) return { link, text: link };
   return { link: null, text: buildDokoSummary(row, fallbackHost, publicHost) };
+}
+
+/** The HTTP-proxy half of a mixed inbound (primary is the socks:// URI). */
+export function buildMixedHttpLink(
+  row: ShareInbound,
+  first?: ShareClient,
+  fallbackHost?: string,
+  publicHost?: string
+): string | null {
+  const host = hostOf(row, fallbackHost, publicHost);
+  const label = first?.email ? `${BRAND_TAG} · ${row.tag} · ${first.email}` : `${BRAND_TAG} · ${row.tag}`;
+  const auth = first
+    ? `${encodeURIComponent(first.email ?? "")}:${encodeURIComponent(first.key ?? "")}@`
+    : "";
+  return `http://${auth}${host}:${row.port}#${encodeURIComponent(label)}`;
 }
 
 /* ============================================================
@@ -481,6 +549,25 @@ export function buildClashMetaYaml(
         `    disable-sni: false`,
         `    skip-cert-verify: ${Boolean(st.allowInsecure)}`
       );
+    } else if (item.protocol === "mixed") {
+      // Task 25-a — the SOCKS half of the mixed listener (clash socks5 also
+      // carries udp); the HTTP half needs a second entry type and is covered
+      // by the socks5 one (both protocols answer on the same port)
+      proxyNames.push(name);
+      proxyLines.push(
+        `  - name: "${name}"`,
+        `    type: socks5`,
+        `    server: ${host}`,
+        `    port: ${item.port}`,
+        ...(item.email && item.key
+          ? [`    username: "${item.email}"`, `    password: "${item.key}"`]
+          : []),
+        `    udp: true`
+      );
+    } else if (item.protocol === "mtproto") {
+      // Task 25-a — no Clash/Mihomo client speaks MTProto proxy: the node is
+      // skipped here on purpose (share it via the tg:// links instead)
+      return;
     }
   });
 
@@ -685,6 +772,22 @@ export function buildSingboxJson(
           ...(alpn.length > 0 ? { alpn } : {}),
         },
       });
+    } else if (item.protocol === "mixed") {
+      // Task 25-a — the mixed listener speaks HTTP AND SOCKS on one port;
+      // we dial the HTTP half (sing-box http outbound) — a socks outbound
+      // would work identically, this is the documented choice.
+      tags.push(tag);
+      outbounds.push({
+        type: "http",
+        tag,
+        server: host,
+        server_port: item.port,
+        ...(item.email && item.key ? { username: item.email, password: item.key } : {}),
+      });
+    } else if (item.protocol === "mtproto") {
+      // Task 25-a — sing-box has no MTProto outbound: the node is skipped
+      // on purpose (share it via the tg:// proxy links instead)
+      return;
     }
   });
 

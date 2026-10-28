@@ -303,15 +303,31 @@ function buildInbound(row: InboundRowLike): InboundBuild {
       break;
     }
     default: {
-      // hysteria2 and tuic are not Xray protocols — they are served by the
-      // SECONDARY sing-box core (src/lib/core/singbox.ts, Task 23-c), one
-      // process next to the Xray core.
+      // hysteria2 / tuic are served by the SECONDARY sing-box core
+      // (src/lib/core/singbox.ts, Task 23-c); mixed is sing-box-only too
+      // (one port speaks HTTP + SOCKS, Task 25-a). mtproto left Xray-core
+      // in v24.10 and is served by a per-inbound mtg sidecar
+      // (src/lib/core/sidecars.ts, Task 25-a). None of them belong in the
+      // Xray config.
+      if (
+        protocol === "hysteria2" ||
+        protocol === "tuic" ||
+        protocol === "mixed"
+      ) {
+        return {
+          inbound: null,
+          skipReason: `${row.tag}: ${protocol} is served by the secondary sing-box core — not part of the Xray config`,
+        };
+      }
+      if (protocol === "mtproto") {
+        return {
+          inbound: null,
+          skipReason: `${row.tag}: mtproto is sidecar-served (mtg) — Xray ≥ v24.10 removed its mtproto inbound`,
+        };
+      }
       return {
         inbound: null,
-        skipReason:
-          protocol === "hysteria2" || protocol === "tuic"
-            ? `${row.tag}: ${protocol} is served by the secondary sing-box core — not part of the Xray config`
-            : `${row.tag}: ${protocol} is not an Xray-core inbound — skipped`,
+        skipReason: `${row.tag}: ${protocol} is not an Xray-core inbound — skipped`,
       };
     }
   }

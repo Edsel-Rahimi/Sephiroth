@@ -127,6 +127,8 @@ export interface SubConfigDTO {
   email: string;
   link: string | null;
   text: string;
+  /** Task 25-a — secondary URI (mixed → http://, mtproto → t.me/proxy web link) */
+  extra: string | null;
 }
 
 export interface SubMemberDTO {
@@ -213,6 +215,7 @@ async function configFromAccess(
     email: access.email,
     link: material.link,
     text: material.text,
+    extra: material.extra ?? null,
   };
 }
 

@@ -786,3 +786,266 @@ export async function installOrUpdateSingbox(opts: {
 }): Promise<XrayBinaryInfo> {
   return ensureSingboxBinary(opts);
 }
+
+/* ============================================================
+   mtg sidecar binary (Task 25-a — first-class mtproto inbound)
+   9seconds/mtg v2 — Telegram MTProto proxy daemon. Release
+   assets are tar.gz ARCHIVES containing the flat `mtg` binary;
+   naming changed across generations (goreleaser dash-separated
+   `mtg-<ver>-<os>-<arch>.tar.gz` today, legacy underscores in
+   early v2) — fetchMtgRelease probes both. Tags carry a `v`.
+   ============================================================ */
+
+const MTG_REPO_API = "https://api.github.com/repos/9seconds/mtg/releases";
+const MTG_REPO_WEB = "https://github.com/9seconds/mtg";
+
+/**
+ * Probe the mtg version. mtg v2 (urfave/cli) answers `mtg --version`;
+ * fall back to a `version` subcommand for robustness across releases.
+ */
+export async function probeMtgVersion(binPath: string): Promise<string> {
+  for (const args of [["--version"], ["version"]]) {
+    const r = await execFile(binPath, args, 10_000);
+    if (r.code !== 0) continue;
+    const m = (r.stdout + " " + r.stderr).match(/v?(\d+\.\d+\.\d+)/);
+    if (m) return m[1]!;
+  }
+  return "";
+}
+
+/** mtg platform/arch → release asset arch fragment (goreleaser names). */
+function mtgArch(arch: string): string {
+  if (arch === "arm64" || arch === "aarch64") return "arm64";
+  if (arch === "arm" || arch === "armv7l") return "armv7";
+  if (arch === "ia32") return "386";
+  return "amd64";
+}
+
+function mtgOs(platform: string): string {
+  if (platform === "linux" || platform === "darwin" || platform === "freebsd") return platform;
+  return "";
+}
+
+/**
+ * Asset naming changed across mtg v2 generations:
+ *   goreleaser (current, e.g. v2.2.8): mtg-<ver>-<os>-<arch>.tar.gz
+ *   legacy (early v2):                 mtg_<ver>_<os>_<arch>.tar.gz
+ * Returns both candidates in preference order.
+ */
+function mtgAssetUrls(tag: string, platform: string, arch: string): string[] {
+  const os = mtgOs(platform);
+  if (!os) return [];
+  const ver = tag.replace(/^v/, "");
+  const a = mtgArch(arch);
+  return [
+    `${MTG_REPO_WEB}/releases/download/${tag}/mtg-${ver}-${os}-${a}.tar.gz`,
+    `${MTG_REPO_WEB}/releases/download/${tag}/mtg_${ver}_${os}_${a}.tar.gz`,
+  ];
+}
+
+/** True when the asset URL actually serves bytes (200/206 on a range GET). */
+async function assetReachable(url: string): Promise<boolean> {
+  try {
+    const res = await fetch(url, {
+      headers: { "User-Agent": UA, Range: "bytes=0-1023" },
+      redirect: "follow",
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
+    });
+    return res.ok || res.status === 206;
+  } catch {
+    return false;
+  }
+}
+
+async function fetchMtgRelease(versionPin: string): Promise<ReleaseInfo> {
+  if (!mtgOs(process.platform)) {
+    throw new Error(`unsupported platform ${process.platform}/${process.arch} for mtg`);
+  }
+
+  // resolve the tag first (REST API is rate-limited much harder than the site)
+  let tag = "";
+  try {
+    const url = versionPin
+      ? `${MTG_REPO_API}/tags/${encodeURIComponent(normalizeTag(versionPin))}`
+      : `${MTG_REPO_API}/latest`;
+    const res = await fetch(url, {
+      headers: { "User-Agent": UA, Accept: "application/vnd.github+json" },
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
+    });
+    if (res.ok) {
+      const release = (await res.json()) as { tag_name?: string; assets?: ReleaseAsset[] };
+      if (release.tag_name) {
+        // exact asset from the API when one of the known shapes matches
+        const names = new Set((release.assets ?? []).map((a) => a.name));
+        for (const candidate of mtgAssetUrls(release.tag_name, process.platform, process.arch)) {
+          if (names.has(candidate.split("/").pop() ?? "")) {
+            return { tag: release.tag_name, assetUrl: candidate };
+          }
+        }
+        tag = release.tag_name; // tag known but asset shape unknown → probe below
+      }
+    }
+  } catch {
+    /* fall through to the redirect strategy */
+  }
+
+  // fallback: releases/latest redirect → tag
+  if (!tag) {
+    const res = await fetch(`${MTG_REPO_WEB}/releases/latest`, {
+      headers: { "User-Agent": UA },
+      redirect: "manual",
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
+    });
+    const location = res.headers.get("location") ?? "";
+    const m = location.match(/\/releases\/tag\/(v?\d+\.\d+\.\d+)/);
+    if (!m) throw new Error("could not resolve latest mtg release tag");
+    tag = m[1]!;
+  }
+
+  // probe the naming candidates (dash-separated goreleaser first, legacy second)
+  for (const url of mtgAssetUrls(tag, process.platform, process.arch)) {
+    if (await assetReachable(url)) {
+      return { tag, assetUrl: url };
+    }
+  }
+  throw new Error(`no mtg release asset found for tag ${tag}`);
+}
+
+/**
+ * Resolve the mtg binary. Same contract as ensureHysteriaBinary: never
+ * throws when a usable binary already exists (user path / PATH / previously
+ * auto-installed); throws only when a fresh install is required and fails
+ * (the caller marks the sidecar as failed / binary-missing).
+ */
+export async function ensureMtgBinary(opts: {
+  binPath?: string;
+  versionPin?: string;
+  installDir?: string;
+  log?: (msg: string) => void;
+}): Promise<XrayBinaryInfo> {
+  const log = opts.log ?? (() => {});
+  const pin = normalizeTag(opts.versionPin ?? "");
+
+  // 1) admin-pinned absolute path
+  const userPath = (opts.binPath ?? "").trim();
+  if (userPath) {
+    if (!existsSync(userPath)) {
+      throw new Error(`mtg binary path points to a missing file: ${userPath}`);
+    }
+    const version = await probeMtgVersion(userPath);
+    if (!version) throw new Error(`${userPath} is not a runnable mtg binary`);
+    return { path: userPath, version, source: "user" };
+  }
+
+  // 2) PATH lookup
+  if (process.platform !== "win32") {
+    const which = await execFile("which", ["mtg"], 5000);
+    if (which.code === 0) {
+      const found = which.stdout.trim().split("\n")[0] ?? "";
+      if (found && existsSync(found)) {
+        const version = await probeMtgVersion(found);
+        if (version) return { path: found, version, source: "path" };
+      }
+    }
+  }
+
+  // 3) auto-install into <dbDir>/bin/mtg
+  const installDir = opts.installDir ?? path.resolve(process.cwd(), "db", "bin", "mtg");
+  const exeName = process.platform === "win32" ? "mtg.exe" : "mtg";
+  const exePath = path.join(installDir, exeName);
+  const markerPath = path.join(installDir, ".version");
+
+  const existingVersion = existsSync(exePath) ? await probeMtgVersion(exePath) : "";
+  if (existingVersion) {
+    if (pin && existingVersion === pin.replace(/^v/, "")) {
+      return { path: exePath, version: existingVersion, source: "auto" };
+    }
+    if (!pin) {
+      // latest requested but the release may be unreachable — keep working install
+      return { path: exePath, version: existingVersion, source: "auto" };
+    }
+  }
+
+  log(`resolving mtg release (${pin || "latest"})…`);
+  const release = await fetchMtgRelease(pin);
+
+  // marker + binary already match the resolved release → reuse
+  if (
+    existingVersion &&
+    existsSync(markerPath) &&
+    readFileSync(markerPath, "utf8").trim() === release.tag &&
+    existingVersion === release.tag.replace(/^v/, "")
+  ) {
+    return { path: exePath, version: existingVersion, source: "auto" };
+  }
+
+  log(`downloading ${release.assetUrl}…`);
+  mkdirSync(installDir, { recursive: true });
+  const res = await fetch(release.assetUrl, {
+    headers: { "User-Agent": UA },
+    redirect: "follow",
+    signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
+  });
+  if (!res.ok) throw new Error(`download failed: HTTP ${res.status}`);
+  const buf = Buffer.from(await res.arrayBuffer());
+  if (buf.length < 1024) throw new Error("downloaded archive is too small");
+
+  const tmpDir = `${installDir}.dl-${Date.now()}`;
+  try {
+    mkdirSync(tmpDir, { recursive: true });
+    const archivePath = path.join(tmpDir, process.platform === "win32" ? "mtg.zip" : "mtg.tar.gz");
+    writeFileSync(archivePath, buf);
+    if (process.platform === "win32") {
+      // windows mtg builds are not shipped — keep the zip chain for safety
+      const chain: Array<{ tool: string; args: string[] }> = [
+        { tool: "unzip", args: ["-o", archivePath, "-d", tmpDir] },
+        { tool: "7z", args: ["x", "-y", `-o${tmpDir}`, archivePath] },
+        { tool: "python3", args: ["-m", "zipfile", "-e", archivePath, tmpDir] },
+      ];
+      let ok = false;
+      for (const step of chain) {
+        if (!(await toolExists(step.tool))) continue;
+        const r = await execFile(step.tool, step.args, 60_000);
+        if (r.code === 0) {
+          ok = true;
+          break;
+        }
+      }
+      if (!ok) throw new Error("no zip extractor available for the mtg archive");
+    } else {
+      await extractTarGz(archivePath, tmpDir);
+    }
+    let extracted = path.join(tmpDir, exeName);
+    if (!existsSync(extracted)) {
+      const found = findFileRecursive(tmpDir, exeName);
+      if (!found) throw new Error("archive did not contain the mtg binary");
+      extracted = found;
+    }
+    rmSync(exePath, { force: true });
+    try {
+      renameSync(extracted, exePath);
+    } catch {
+      copyFileSync(extracted, exePath);
+      rmSync(extracted, { force: true });
+    }
+    if (process.platform !== "win32") chmodSync(exePath, 0o755);
+    writeFileSync(markerPath, release.tag, { mode: 0o644 });
+
+    const version = await probeMtgVersion(exePath);
+    if (!version) throw new Error("installed binary failed to run");
+    log(`mtg ${version} installed at ${exePath}`);
+    return { path: exePath, version, source: "auto" };
+  } finally {
+    rmSync(tmpDir, { recursive: true, force: true });
+  }
+}
+
+/** Public wrapper for a sidecar-install API action (download / update only). */
+export async function installOrUpdateMtg(opts: {
+  binPath?: string;
+  versionPin?: string;
+  installDir?: string;
+  log?: (msg: string) => void;
+}): Promise<XrayBinaryInfo> {
+  return ensureMtgBinary(opts);
+}

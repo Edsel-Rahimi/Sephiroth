@@ -2596,6 +2596,10 @@ docker run -d --name mtproxy --restart=always -p ${mtpPort || "443"}:443 \\
                   <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   <span>{sys.mtpNote}</span>
                 </p>
+                {/* Task 25-a — the panel can now serve mtproto itself (mtg sidecar) */}
+                <p className="text-[11px] leading-relaxed text-muted-foreground" dir="auto">
+                  {sys.mtpPanelHint}
+                </p>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <div className="space-y-1">
                     <Label htmlFor="mtp-host">{sys.mtpHost}</Label>

@@ -142,6 +142,9 @@ function payloadToRaw(payload: SubPayload): string {
   for (const c of payload.configs) {
     if (c.link) lines.push(c.link);
     else lines.push(`# ${c.tag} — copy from the sub page`);
+    // Task 25-a — the secondary half of a config (mixed → http:// URI,
+    // mtproto → https://t.me/proxy web link) joins the plain list too
+    if (c.extra) lines.push(c.extra);
   }
   return lines.join("\n") + (lines.length ? "\n" : "");
 }

@@ -140,6 +140,8 @@ export interface Dict {
     pdDoko: string;
     pdSocks: string;
     pdHttp: string;
+    pdMixed: string;
+    pdMtp: string;
     subGeneral: string;
     subClients: string;
     subTransport: string;
@@ -406,6 +408,14 @@ export interface Dict {
     ss2022KeyHint: string;
     ssKeyGen: string;
     errSs2022Key: string;
+    errMtpSecret: string;
+    mixedHint: string;
+    mtpHint: string;
+    mtpSecretLabel: string;
+    mtpDomainLabel: string;
+    mtpRegen: string;
+    mtpLinkNote: string;
+    mtpQrAlt: string;
     noClients: string;
     toastQuick: string;
     autoFillIp: string;
@@ -1674,6 +1684,7 @@ export interface Dict {
     mtpSetup: string;
     mtpSetupTitle: string;
     mtpNote: string;
+    mtpPanelHint: string;
     // — one-port combo (quick create) —
     comboTile: string;
     comboHint: string;
@@ -1850,6 +1861,8 @@ export const dictionaries: Record<Lang, Dict> = {
       pdDoko: "Forward a port to any target",
       pdSocks: "Local SOCKS5 entry point",
       pdHttp: "Plain HTTP proxy entry point",
+      pdMixed: "SOCKS5 + HTTP proxy on one port",
+      pdMtp: "Dedicated Telegram MTProto proxy (mtg)",
       subGeneral: "Identity and limits",
       subClients: "Accounts and keys",
       subTransport: "Carrier network",
@@ -2114,6 +2127,14 @@ export const dictionaries: Record<Lang, Dict> = {
       ss2022KeyHint: "2022 ciphers need a standard base64 key — 24 chars for AES-128, 44 for AES-256/ChaCha20 (use the generate button).",
       ssKeyGen: "Generate 2022 keys",
       errSs2022Key: "For 2022 ciphers the key must be valid base64 of the right length (24 or 44 chars).",
+      errMtpSecret: "MTProto secrets look like ee + 32 hex chars (plus an optional fake-TLS domain).",
+      mixedHint: "One port serves both SOCKS5 and HTTP proxy — auth applies to both halves.",
+      mtpHint: "The client key IS the MTProto secret (ee + 32 hex + optional fake-TLS domain) — the mtg daemon serves it on this port.",
+      mtpSecretLabel: "MTProto secret",
+      mtpDomainLabel: "Fake-TLS domain",
+      mtpRegen: "Regenerate",
+      mtpLinkNote: "Open either link in Telegram to add this proxy; the QR code carries the web link.",
+      mtpQrAlt: "MTProto proxy QR code",
       noClients: "Dokodemo-door forwards traffic to a fixed target — it has no client accounts.",
       toastQuick: "Quick inbound “{tag}” created",
       autoFillIp: "Auto-detect server IP",
@@ -3395,6 +3416,7 @@ export const dictionaries: Record<Lang, Dict> = {
       mtpSetup: "Server setup",
       mtpSetupTitle: "Run an MTProto proxy on your server",
       mtpNote: "Xray-core removed its mtproto inbound in v24.10+; run a dedicated daemon (mtg / MTProtoProxy) instead. MTProto needs a raw TCP port — on single-port hosts use a second port or SNI routing.",
+      mtpPanelHint: "A first-class mtproto inbound (served by an mtg sidecar) now lives in the Inbounds module — this generator stays for manual server setups.",
       comboTile: "One-Port Combo",
       comboHint: "Several protocols on one public port via Xray fallbacks",
       comboWill: "Will be created",
@@ -3566,6 +3588,8 @@ export const dictionaries: Record<Lang, Dict> = {
       pdDoko: "هر پورتی را به هر مقصدی فوروارد کن",
       pdSocks: "نقطه ورود محلی SOCKS5",
       pdHttp: "نقطه ورود پروکسی HTTP ساده",
+      pdMixed: "پروکسی SOCKS و HTTP روی یک پورت",
+      pdMtp: "پروکسی اختصاصی تلگرام (mtg)",
       subGeneral: "هویت و محدودیت‌ها",
       subClients: "حساب‌ها و کلیدها",
       subTransport: "شبکه حامل",
@@ -3830,6 +3854,14 @@ export const dictionaries: Record<Lang, Dict> = {
       ss2022KeyHint: "شیفرهای 2022 کلید Base64 می‌خواهند — 24 نویسه برای AES-128 و 44 نویسه برای AES-256/ChaCha20 (دکمه تولید کلید را بزنید).",
       ssKeyGen: "تولید کلید 2022",
       errSs2022Key: "برای شیفرهای 2022 کلید باید Base64 معتبر با طول درست باشد (24 یا 44 نویسه).",
+      errMtpSecret: "سکرت MTProto باید چیزی شبیه ee + 32 کاراکتر هگز (و اختیاراً دامنه) باشد.",
+      mixedHint: "یک پورت هم SOCKS5 و هم پروکسی HTTP را سرو می‌کند؛ احراز هویت روی هر دو اعمال می‌شود.",
+      mtpHint: "کلید کاربر همان سکرت MTProto است (ee + 32 کاراکتر هگز + دامنهٔ اختیاری TLS جعلی) و دیمن mtg آن را روی این پورت سرو می‌کند.",
+      mtpSecretLabel: "سکرت MTProto",
+      mtpDomainLabel: "دامنهٔ TLS جعلی",
+      mtpRegen: "تولید دوباره",
+      mtpLinkNote: "هر یک از لینک‌ها را در تلگرام باز کنید تا پروکسی اضافه شود؛ کد QR همان لینک وب را حمل می‌کند.",
+      mtpQrAlt: "کد QR پروکسی MTProto",
       noClients: "Dokodemo-door ترافیک را به مقصد ثابت می‌فرستد — حساب کاربری ندارد.",
       toastQuick: "کانفیگ سریع «{tag}» ساخته شد",
       autoFillIp: "تشخیص خودکار آی‌پی سرور",
@@ -5107,6 +5139,7 @@ export const dictionaries: Record<Lang, Dict> = {
       mtpSetup: "راه‌اندازی سرور",
       mtpSetupTitle: "اجرای پروکسی MTProto روی سرور",
       mtpNote: "Xray-core از نسخه v24.10 به بعد inbound مربوط به mtproto را حذف کرده؛ به‌جای آن دیمن اختصاصی (mtg / MTProtoProxy) را اجرا کنید. MTProto به یک پورت TCP خام نیاز دارد — روی هاست تک‌پورتی از پورت دوم یا روتینگ SNI استفاده کنید.",
+      mtpPanelHint: "یک اینباند mtproto درجه‌یک (با سایدکار mtg) حالا در ماژول اینباندها هست — این مولد برای راه‌اندازی دستی سرور باقی می‌ماند.",
       comboTile: "کمبو تک‌پورت",
       comboHint: "چند پروتکل روی یک پورت عمومی با fallback Xray",
       comboWill: "ساخته می‌شود",
@@ -5278,6 +5311,8 @@ export const dictionaries: Record<Lang, Dict> = {
       pdDoko: "حوّل أي منفذ إلى أي هدف",
       pdSocks: "نقطة دخول SOCKS5 محلية",
       pdHttp: "نقطة دخول بروكسي HTTP عادي",
+      pdMixed: "SOCKS و HTTP على منفذ واحد",
+      pdMtp: "بروكسي تلغرام MTProto مخصص (mtg)",
       subGeneral: "الهوية والحدود",
       subClients: "الحسابات والمفاتيح",
       subTransport: "الشبكة الناقلة",
@@ -5542,6 +5577,14 @@ export const dictionaries: Record<Lang, Dict> = {
       ss2022KeyHint: "شيفرات 2022 تتطلب مفتاح Base64 — 24 حرفاً لـ AES-128 و44 حرفاً لـ AES-256/ChaCha20 (اضغط زر توليد المفتاح).",
       ssKeyGen: "توليد مفتاح 2022",
       errSs2022Key: "لتشفير 2022 يجب أن يكون المفتاح Base64 صحيحاً بالطول الصحيح (24 أو 44 حرفاً).",
+      errMtpSecret: "يجب أن يكون سر MTProto بصيغة ee + 32 حرفاً سداسيًا عشريًا (ومجال اختياري).",
+      mixedHint: "منفذ واحد يخدم SOCKS5 وبروكسي HTTP معاً؛ تُطبّق المصادقة على كليهما.",
+      mtpHint: "مفتاح العميل هو سر MTProto نفسه (ee + 32 حرفاً سداسيًا + مجال TLS اختياري) ويقدّمه ديمن mtg على هذا المنفذ.",
+      mtpSecretLabel: "سر MTProto",
+      mtpDomainLabel: "مجال TLS المزيف",
+      mtpRegen: "إعادة التوليد",
+      mtpLinkNote: "افتح أيًّا من الروابط في تيليجرام لإضافة البروكسي؛ رمز QR يحمل رابط الويب.",
+      mtpQrAlt: "رمز QR لبروكسي MTProto",
       noClients: "‏Dokodemo-door يحوّل الترافيك إلى هدف ثابت — لا يحتوي حسابات عملاء.",
       toastQuick: "تم إنشاء نقطة الدخول السريعة «{tag}»",
       autoFillIp: "اكتشاف تلقائي لعنوان IP الخادم",
@@ -6818,6 +6861,7 @@ export const dictionaries: Record<Lang, Dict> = {
       mtpSetup: "إعداد الخادم",
       mtpSetupTitle: "تشغيل بروكسي MTProto على خادمك",
       mtpNote: "أزال Xray-core مدخل mtproto اعتبارًا من v24.10؛ شغّل ديمون مخصص (mtg / MTProtoProxy) بدلًا منه. يحتاج MTProto منفذ TCP خام — على المضيفين أحاديي المنفذ استخدم منفذًا ثانيًا أو توجيه SNI.",
+      mtpPanelHint: "أصبح هناك مدخل mtproto من الدرجة الأولى (يخدمه سايدكار mtg) في وحدة نقاط الدخول — يبقى هذا المولد للإعداد اليدوي للخادم.",
       comboTile: "كومبو المنفذ الواحد",
       comboHint: "عدة بروتوكولات على منفذ عام واحد عبر fallback في Xray",
       comboWill: "سيُنشأ",
@@ -6988,6 +7032,8 @@ export const dictionaries: Record<Lang, Dict> = {
       pdDoko: "把端口转发到任意目标",
       pdSocks: "本地 SOCKS5 入口",
       pdHttp: "纯 HTTP 代理入口",
+      pdMixed: "单端口同时支持 SOCKS 与 HTTP 代理",
+      pdMtp: "电报专用 MTProto 代理",
       subGeneral: "身份与限额",
       subClients: "账户与密钥",
       subTransport: "承载网络",
@@ -7252,6 +7298,14 @@ export const dictionaries: Record<Lang, Dict> = {
       ss2022KeyHint: "2022 加密需要标准 Base64 密钥 — AES-128 为 24 字符，AES-256/ChaCha20 为 44 字符（可用生成按钮）。",
       ssKeyGen: "生成 2022 密钥",
       errSs2022Key: "2022 加密要求密钥为合法 Base64 且长度正确（24 或 44 字符）。",
+      errMtpSecret: "MTProto 密钥需为 ee + 32 位十六进制字符（可附带域名）。",
+      mixedHint: "同一端口同时提供 SOCKS5 与 HTTP 代理；认证对两者均生效。",
+      mtpHint: "客户端密钥即 MTProto 密钥（ee + 32 位十六进制 + 可选 TLS 域名），由专用守护进程在此端口提供服务。",
+      mtpSecretLabel: "MTProto 密钥",
+      mtpDomainLabel: "伪装 TLS 域名",
+      mtpRegen: "重新生成",
+      mtpLinkNote: "在电报中打开任一链接即可添加代理；二维码承载网页链接。",
+      mtpQrAlt: "MTProto 代理二维码",
       noClients: "Dokodemo-door 把流量转发到固定目标——没有客户端账户。",
       toastQuick: "快速入站“{tag}”已创建",
       autoFillIp: "自动检测服务器 IP",
@@ -8527,6 +8581,7 @@ export const dictionaries: Record<Lang, Dict> = {
       mtpSetup: "服务器部署",
       mtpSetupTitle: "在你的服务器上运行 MTProto 代理",
       mtpNote: "Xray-core 自 v24.10 起移除了 mtproto 入站；请改用专用守护进程（mtg / MTProtoProxy）。MTProto 需要原始 TCP 端口——单端口主机请使用第二个端口或 SNI 分流。",
+      mtpPanelHint: "入站模块现在提供一等 mtproto 入站（由专用边车进程服务）——此生成器仍可用于手动服务器部署。",
       comboTile: "单端口组合",
       comboHint: "通过 Xray fallback 在一个公网端口上承载多个协议",
       comboWill: "将创建",
@@ -8698,6 +8753,8 @@ export const dictionaries: Record<Lang, Dict> = {
       pdDoko: "Herhangi bir hedefe port yönlendir",
       pdSocks: "Yerel SOCKS5 giriş noktası",
       pdHttp: "Düz HTTP proxy girişi",
+      pdMixed: "Tek portta SOCKS + HTTP proxy",
+      pdMtp: "Özel Telegram MTProto proxy'si (mtg)",
       subGeneral: "Kimlik ve limitler",
       subClients: "Hesaplar ve anahtarlar",
       subTransport: "Taşıyıcı ağ",
@@ -8962,6 +9019,14 @@ export const dictionaries: Record<Lang, Dict> = {
       ss2022KeyHint: "2022 şifreleri standart Base64 anahtar ister — AES-128 için 24, AES-256/ChaCha20 için 44 karakter (üret düğmesini kullanın).",
       ssKeyGen: "2022 anahtarı üret",
       errSs2022Key: "2022 şifrelerinde anahtar geçerli ve doğru uzunlukta Base64 olmalı (24 veya 44 karakter).",
+      errMtpSecret: "MTProto sırrı şöyle olmalı: ee + 32 onaltılık karakter (isteğe bağlı alan ile).",
+      mixedHint: "Tek port hem SOCKS5 hem HTTP proxy sunar; kimlik doğrulama ikisine de uygulanır.",
+      mtpHint: "İstemci anahtarı MTProto sırrının kendisidir (ee + 32 hex + isteğe bağlı fake-TLS alanı); mtg daemon'ı bu portu sunar.",
+      mtpSecretLabel: "MTProto sırrı",
+      mtpDomainLabel: "Fake-TLS alanı",
+      mtpRegen: "Yeniden üret",
+      mtpLinkNote: "Proxy'yi eklemek için bağlantılardan birini Telegram'da açın; QR kod web bağlantısını taşır.",
+      mtpQrAlt: "MTProto proxy QR kodu",
       noClients: "Dokodemo-door trafiği sabit bir hedefe iletir — istemci hesabı yoktur.",
       toastQuick: "Hızlı inbound “{tag}” oluşturuldu",
       autoFillIp: "Sunucu IP'sini otomatik algıla",
@@ -10239,6 +10304,7 @@ export const dictionaries: Record<Lang, Dict> = {
       mtpSetup: "Sunucu kurulumu",
       mtpSetupTitle: "Sunucunuzda MTProto proxy çalıştırın",
       mtpNote: "Xray-core v24.10+ sürümünde mtproto inbound'ı kaldırdı; bunun yerine özel bir daemon (mtg / MTProtoProxy) çalıştırın. MTProto ham bir TCP portu ister — tek portlu sunucularda ikinci bir port veya SNI yönlendirme kullanın.",
+      mtpPanelHint: "Artık Inbounds modülünde birinci sınıf bir mtproto inbound (mtg yan motoruyla) var — bu üretici manuel sunucu kurulumları için duruyor.",
       comboTile: "Tek Port Kombo",
       comboHint: "Xray fallback ile tek genel portta birden çok protokol",
       comboWill: "Oluşturulacak",
@@ -10411,6 +10477,8 @@ export const dictionaries: Record<Lang, Dict> = {
       pdDoko: "Проброс порта на любую цель",
       pdSocks: "Локальная точка входа SOCKS5",
       pdHttp: "Точка входа простого HTTP-прокси",
+      pdMixed: "SOCKS + HTTP на одном порту",
+      pdMtp: "Выделенный MTProto-прокси для Телеграм (mtg)",
       subGeneral: "Личность и лимиты",
       subClients: "Аккаунты и ключи",
       subTransport: "Транспортная сеть",
@@ -10675,6 +10743,14 @@ export const dictionaries: Record<Lang, Dict> = {
       ss2022KeyHint: "Шифрам 2022 нужен стандартный ключ Base64 — 24 символа для AES-128 и 44 для AES-256/ChaCha20 (используйте кнопку генерации).",
       ssKeyGen: "Сгенерировать ключ 2022",
       errSs2022Key: "Для шифров 2022 ключ должен быть корректным Base64 нужной длины (24 или 44 символа).",
+      errMtpSecret: "Секрет MTProto имеет вид ee + 32 шестнадцатеричных символа (и опциональный домен).",
+      mixedHint: "Один порт обслуживает и SOCKS5, и HTTP-прокси; аутентификация действует на оба.",
+      mtpHint: "Ключ клиента — это и есть секрет MTProto (ee + 32 hex-символа + опциональный TLS-домен); его обслуживает демон mtg на этом порту.",
+      mtpSecretLabel: "Секрет MTProto",
+      mtpDomainLabel: "Подменный TLS-домен",
+      mtpRegen: "Сгенерировать заново",
+      mtpLinkNote: "Откройте любую из ссылок в Телеграме, чтобы добавить прокси; QR-код несёт веб-ссылку.",
+      mtpQrAlt: "QR-код MTProto-прокси",
       noClients: "Dokodemo-door пересылает трафик на фиксированную цель — клиентских аккаунтов нет.",
       toastQuick: "Быстрый инбаунд «{tag}» создан",
       autoFillIp: "Автоопределение IP сервера",
@@ -11952,6 +12028,7 @@ export const dictionaries: Record<Lang, Dict> = {
       mtpSetup: "Настройка сервера",
       mtpSetupTitle: "Запуск MTProto прокси на вашем сервере",
       mtpNote: "Xray-core удалил inbound mtproto начиная с v24.10; вместо него запустите отдельный демон (mtg / MTProtoProxy). MTProto требует «сырой» TCP-порт — на хостингах с одним портом используйте второй порт или SNI-маршрутизацию.",
+      mtpPanelHint: "Полновесный mtproto-инбаунд (со сайдкаром mtg) теперь есть в модуле инбаундов — этот генератор остаётся для ручной настройки сервера.",
       comboTile: "Комбо «один порт»",
       comboHint: "Несколько протоколов на одном публичном порту через fallback Xray",
       comboWill: "Будет создано",

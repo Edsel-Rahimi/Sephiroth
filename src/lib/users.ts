@@ -102,11 +102,18 @@ export function genKey(protocol: string): string {
     case "shadowsocks":
     case "hysteria2":
     case "socks":
-    case "http": {
+    case "http":
+    case "mixed": {
       let out = "";
       const bytes = randomBytes(28);
       for (let i = 0; i < 28; i++) out += PW_ALPHABET[bytes[i] % PW_ALPHABET.length];
       return out;
+    }
+    case "mtproto": {
+      // Task 25-a — the access key IS the mtg v2 secret (ee + 16-byte hex).
+      // The fake-TLS domain, when configured, lives in the inbound stream and
+      // is appended there; the bare faketls secret is valid on its own.
+      return `ee${randomBytes(16).toString("hex")}`;
     }
     case "wireguard": {
       // preview-grade visual key material (real peers need xray wg tooling)
