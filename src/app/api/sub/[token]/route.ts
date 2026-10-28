@@ -13,10 +13,10 @@ import {
   type SubExportItem,
 } from "@/lib/share-links";
 import { appVersion, getGeneralSettings } from "@/lib/settings";
-import { deviceFingerprint, parseDevices, registerDevice, type DeviceEntry } from "@/lib/hwid"; // Task 23-g
+import { deviceFingerprint, explicitDeviceId, parseDevices, registerDevice, type DeviceEntry } from "@/lib/hwid"; // Task 23-g/23-b
 import { logActivity } from "@/lib/activity"; // Task 23-g
 import { LANGS, type Lang } from "@/lib/i18n/dictionaries"; // Task 23-g — blocked page
-import { subDictionaries } from "@/lib/i18n/sub-dictionary"; // Task 23-g — blocked page
+import { subDictionaries, sfmt } from "@/lib/i18n/sub-dictionary"; // Task 23-g/23-b — blocked page
 
 /* ============================================================
    Sephiroth · Phase 5+ — Public Subscription Endpoint
@@ -28,11 +28,12 @@ import { subDictionaries } from "@/lib/i18n/sub-dictionary"; // Task 23-g — bl
         /api/sub/[token]?format=xray   → Xray/v2ray-core full JSON profile
    POST /api/sub/[token] {password}     → unlock a password-protected group page
 
-   Task 23-g — HWID device gate: when the owning user has hwidLimit > 0,
-   every request is fingerprinted (UA + Accept-Language + sec-ch-ua-platform).
-   Known devices always pass; unknown devices are rejected with a branded
-   403 (HTML for config clients, JSON for the pass page) once the device
-   list is full. Device ids are stored on the ClientUser row.
+   Task 23-g/23-b — HWID device gate: when the owning user has hwidLimit > 0,
+   every request is identified by `?hwid=<client-sent>` when the client appends
+   it (v2box/v2rayNG-style), else by a fingerprint of UA + Accept-Language +
+   sec-ch-ua-platform. Known devices always pass; unknown devices are rejected
+   with a branded 403 (HTML for config clients, JSON for the pass page) once
+   the device list is full. Device ids are stored on the ClientUser row.
    ============================================================ */
 
 type Resolved =
@@ -162,7 +163,7 @@ function langFromAcceptLanguage(header: string | null): Lang {
 }
 
 /** Branded 403 page shown to config clients when the device list is full. */
-function blockedHtmlPage(lang: Lang): string {
+function blockedHtmlPage(lang: Lang, devices: number, limit: number): string {
   const t = subDictionaries[lang];
   const rtl = lang === "fa" || lang === "ar" ? ` dir="rtl"` : "";
   return `<!doctype html>
@@ -194,6 +195,8 @@ function blockedHtmlPage(lang: Lang): string {
     box-shadow: 0 0 34px rgba(34,216,238,.25); }
   h1 { font-size: 19px; font-weight: 700; color: #fff; }
   p.desc { margin-top: 10px; font-size: 13px; line-height: 1.7; color: rgba(231,236,239,.72); }
+  p.count { margin-top: 12px; display: inline-block; font-size: 11px; letter-spacing: .06em; color: rgba(231,236,239,.85);
+    border: 1px solid rgba(34,216,238,.3); background: rgba(34,216,238,.06); border-radius: 999px; padding: 4px 12px; }
   p.contact { margin-top: 14px; font-size: 12px; color: #22d8ee; }
   .foot { margin-top: 26px; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: rgba(231,236,239,.35); }
 </style>
@@ -207,6 +210,7 @@ function blockedHtmlPage(lang: Lang): string {
     </div>
     <h1>${t.blockedTitle}</h1>
     <p class="desc">${t.blockedDesc}</p>
+    <p class="count">${sfmt(t.blockedCount, { n: devices, s: limit })}</p>
     <p class="contact">${t.blockedContact}</p>
     <div class="foot">${t.poweredBy}</div>
   </main>
@@ -229,30 +233,34 @@ async function hwidGate(
   if (!(limit > 0)) return null;
 
   const ua = req.headers.get("user-agent") || "";
-  const deviceId = deviceFingerprint({
-    "user-agent": ua,
-    "accept-language": req.headers.get("accept-language"),
-    "sec-ch-ua-platform": req.headers.get("sec-ch-ua-platform"),
-  });
+  // Task 23-b — device id: the client-sent `?hwid=` wins (v2box/v2rayNG can
+  // append it), otherwise fall back to the header fingerprint.
+  const deviceId =
+    explicitDeviceId(new URL(req.url).searchParams.get("hwid")) ??
+    deviceFingerprint({
+      "user-agent": ua,
+      "accept-language": req.headers.get("accept-language"),
+      "sec-ch-ua-platform": req.headers.get("sec-ch-ua-platform"),
+    });
   const reg = registerDevice(found.devices, deviceId, ua, limit);
 
   if (reg.blocked) {
     void logActivity({
-      kind: "user.updated",
+      kind: "sub.hwidBlocked",
       level: "warn",
       actor: "sub-portal",
       message: `Subscription "${found.payload.name}" blocked an unknown device — HWID limit ${limit} reached`,
-      meta: { token: token.slice(0, 8), deviceId, reason: "hwid_limit" },
+      meta: { token: token.slice(0, 8), deviceId, devices: found.devices.length, limit, reason: "hwid_limit" },
     });
     if (isPageRequest) {
       // the pass page fetches JSON — it renders the branded blocked state itself
       return NextResponse.json(
-        { kind: "user", blocked: true, hwid: true, token },
+        { kind: "user", blocked: true, hwid: true, devices: found.devices.length, limit, token },
         { status: 403, headers: { "cache-control": "no-store" } }
       );
     }
     const lang = langFromAcceptLanguage(req.headers.get("accept-language"));
-    return new Response(blockedHtmlPage(lang), {
+    return new Response(blockedHtmlPage(lang, found.devices.length, limit), {
       status: 403,
       headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
     });

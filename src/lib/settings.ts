@@ -30,6 +30,8 @@ export interface CoreSettings {
   hysteriaVersion: string;
   /** absolute path to a user-provided hysteria binary ("" = PATH → auto-install) */
   hysteriaBin: string;
+  /** Task 23-c — serve hysteria2+tuic via the secondary sing-box core when the real driver runs (default ON) */
+  singboxEnabled: boolean;
   /** Task 23-g — auto-disable users that exceed their concurrent-IP limit (default OFF) */
   enforceIpLimit: boolean;
 }
@@ -41,19 +43,31 @@ export interface TelegramNotify {
   loginAlert: boolean;
 }
 
+/** Languages the bot can speak (bot-facing texts live in lib/bot/texts.ts). */
+export const BOT_LANGS = ["fa", "en", "ar", "zh", "tr", "ru"] as const;
+export type BotLangCode = (typeof BOT_LANGS)[number];
+
 export interface TelegramSettings {
   enabled: boolean;
   chatId: string;
   tokenConfigured: boolean;
   tokenMasked: string;
   notify: TelegramNotify;
-  /** "console" (admin tools executor, default) | "sales" (in-panel shop worker). */
-  botMode: "console" | "sales";
-  /** Telegram chat ids allowed to drive the sales bot admin flows (owner first). */
+  /** "console" (test executor, no worker) | "notify" (worker: alerts + admin commands) | "sales" (worker: everything + shop). */
+  botMode: "console" | "notify" | "sales";
+  /** Telegram chat ids allowed to drive the bot admin flows (owner first). */
   adminChatIds: string[];
+  /** Bot API base (default https://api.telegram.org; can point at a mock for testing). */
+  botApiBase: string;
   /** Optional HTTPS proxy for api.telegram.org ("" = direct). SOCKS5 not supported in Phase 1. */
   botProxyUrl: string;
-  /** Default shop language for new bot users ("fa" | "en"). */
+  /** Default bot language for new users — one of BOT_LANGS (default "fa"). */
+  botLang: BotLangCode;
+  /** When set, the shop shows ONLY this sale template ("" = every active template). */
+  salesTemplateId: string;
+  /** Which payment method the buy flow leads with ("manual" | "zarinpal"). */
+  salesPayMode: "manual" | "zarinpal";
+  /** Legacy fa/en default (pre-23-a) — kept only as the botLang fallback. */
   shopLang: "fa" | "en";
 }
 
@@ -67,7 +81,10 @@ const CORE_DEFAULT: CoreSettings = {
   statsInterval: 10,
   hysteriaVersion: "",
   hysteriaBin: "",
-  enforceIpLimit: false,
+  singboxEnabled: true,
+  // Task 23-b — concurrent-IP enforcement is ON by default (per-user ipLimit > 0
+  // is the admin's per-user opt-in); the global toggle is a kill switch.
+  enforceIpLimit: true,
 };
 
 const NOTIFY_DEFAULT: TelegramNotify = {
@@ -88,17 +105,25 @@ const K = {
   // hysteria2 sidecar engines (v2.5)
   sidecarHysteriaVersion: "set_sidecar_hysteria_version",
   sidecarHysteriaBin: "set_sidecar_hysteria_bin",
+  // secondary sing-box core (Task 23-c, default ON)
+  coreSingboxEnabled: "set_core_singbox_enabled",
   // concurrent-IP limit enforcement (Task 23-g, default OFF)
   coreEnforceIpLimit: "set_enforce_ip_limit",
   tgEnabled: "set_tg_enabled",
   tgToken: "set_tg_token",
   tgChatId: "set_tg_chat_id",
   tgNotify: "set_tg_notify",
-  // sales bot (23-c)
+  // sales bot (23-c, extended by 23-a)
   tgBotMode: "set_tg_bot_mode",
   tgAdminChatIds: "set_tg_admin_chat_ids",
   tgProxyUrl: "set_tg_proxy_url",
   tgShopLang: "set_tg_shop_lang",
+  tgApiBase: "set_tg_api_base",
+  tgBotLang: "set_tg_bot_lang",
+  tgSalesTemplateId: "set_tg_sales_template_id",
+  tgSalesPayMode: "set_tg_sales_pay_mode",
+  /** Long-poll offset persistence (23-a) — internal bookkeeping. */
+  tgOffset: "set_tg_bot_offset",
   // payment credentials read by the sales bot (card-to-card + ZarinPal)
   payCardNumber: "set_pay_card_number",
   payCardHolder: "set_pay_card_holder",
@@ -170,6 +195,7 @@ export async function getCoreSettings(): Promise<CoreSettings> {
     K.coreStatsInterval,
     K.sidecarHysteriaVersion,
     K.sidecarHysteriaBin,
+    K.coreSingboxEnabled,
   ]);
   const driver = m.get(K.coreDriver);
   return {
@@ -182,7 +208,8 @@ export async function getCoreSettings(): Promise<CoreSettings> {
     statsInterval: toInt(m.get(K.coreStatsInterval), CORE_DEFAULT.statsInterval, 5, 120),
     hysteriaVersion: m.get(K.sidecarHysteriaVersion) ?? CORE_DEFAULT.hysteriaVersion,
     hysteriaBin: m.get(K.sidecarHysteriaBin) ?? CORE_DEFAULT.hysteriaBin,
-    enforceIpLimit: m.get(K.coreEnforceIpLimit) === "1",
+    singboxEnabled: m.get(K.coreSingboxEnabled) !== "0", // default ON — "0" opts out
+    enforceIpLimit: m.get(K.coreEnforceIpLimit) !== "0", // default ON — "0" opts out
   };
 }
 
@@ -266,7 +293,14 @@ export async function validateCorePatch(body: unknown): Promise<PatchResult<Core
     }
     out.hysteriaBin = v;
   }
-  // Task 23-g — opt-in concurrent-IP enforcement
+  // Task 23-c — secondary sing-box core (hysteria2 + tuic next to Xray)
+  if (b.singboxEnabled !== undefined) {
+    if (typeof b.singboxEnabled !== "boolean") {
+      return { ok: false, fields: [{ field: "singboxEnabled", code: "format" }] };
+    }
+    out.singboxEnabled = b.singboxEnabled;
+  }
+  // Task 23-b — concurrent-IP auto-disable (default ON; "0" = warn only)
   if (b.enforceIpLimit !== undefined) {
     if (typeof b.enforceIpLimit !== "boolean") {
       return { ok: false, fields: [{ field: "enforceIpLimit", code: "format" }] };
@@ -287,6 +321,7 @@ export async function saveCoreSettings(s: CoreSettings): Promise<void> {
     writeSetting(K.coreStatsInterval, String(s.statsInterval)),
     writeSetting(K.sidecarHysteriaVersion, s.hysteriaVersion),
     writeSetting(K.sidecarHysteriaBin, s.hysteriaBin),
+    writeSetting(K.coreSingboxEnabled, s.singboxEnabled ? "1" : "0"),
     writeSetting(K.coreEnforceIpLimit, s.enforceIpLimit ? "1" : "0"),
   ]);
 }
@@ -304,6 +339,7 @@ export async function getTelegramSettings(): Promise<TelegramSettings> {
   const m = await readSettings([
     K.tgEnabled, K.tgToken, K.tgChatId, K.tgNotify,
     K.tgBotMode, K.tgAdminChatIds, K.tgProxyUrl, K.tgShopLang,
+    K.tgApiBase, K.tgBotLang, K.tgSalesTemplateId, K.tgSalesPayMode,
   ]);
   const token = m.get(K.tgToken) ?? "";
   let notify = NOTIFY_DEFAULT;
@@ -323,25 +359,49 @@ export async function getTelegramSettings(): Promise<TelegramSettings> {
   }
   const modeRaw = m.get(K.tgBotMode);
   const adminIdsRaw = m.get(K.tgAdminChatIds) ?? "";
+  const shopLangRaw = m.get(K.tgShopLang) === "fa" ? "fa" : "en";
+  // botLang (23-a, 6 languages) wins; legacy shopLang stays as the fallback
+  const botLangRaw = m.get(K.tgBotLang) ?? shopLangRaw;
+  const botLang = (BOT_LANGS as readonly string[]).includes(botLangRaw)
+    ? (botLangRaw as BotLangCode)
+    : "fa";
+  const payModeRaw = m.get(K.tgSalesPayMode);
   return {
     enabled: m.get(K.tgEnabled) === "1",
     chatId: m.get(K.tgChatId) ?? "",
     tokenConfigured: token.length > 0,
     tokenMasked: token ? maskBotToken(token) : "",
     notify,
-    botMode: modeRaw === "sales" ? "sales" : "console",
+    botMode: modeRaw === "sales" ? "sales" : modeRaw === "notify" ? "notify" : "console",
     adminChatIds: adminIdsRaw
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean),
+    botApiBase: m.get(K.tgApiBase) ?? "https://api.telegram.org",
     botProxyUrl: m.get(K.tgProxyUrl) ?? "",
-    shopLang: m.get(K.tgShopLang) === "fa" ? "fa" : "en",
+    botLang,
+    salesTemplateId: m.get(K.tgSalesTemplateId) ?? "",
+    salesPayMode: payModeRaw === "zarinpal" ? "zarinpal" : "manual",
+    shopLang: botLang === "en" ? "en" : "fa",
   };
 }
 
 export async function getTelegramToken(): Promise<string> {
   const m = await readSettings([K.tgToken]);
   return m.get(K.tgToken) ?? "";
+}
+
+/* ---------- bot long-poll offset (23-a, internal bookkeeping) ---------- */
+
+/** Persisted getUpdates offset so a worker restart never replays old updates. */
+export async function getBotOffset(): Promise<number> {
+  const m = await readSettings([K.tgOffset]);
+  const n = Number(m.get(K.tgOffset));
+  return Number.isInteger(n) && n >= 0 ? n : 0;
+}
+
+export async function saveBotOffset(offset: number): Promise<void> {
+  await writeSetting(K.tgOffset, String(Math.max(0, Math.floor(offset))));
 }
 
 export function validateTelegramPatch(
@@ -351,10 +411,14 @@ export function validateTelegramPatch(
   chatId: string;
   token: string | null | undefined; // undefined = keep, null = clear, string = replace
   notify: TelegramNotify;
-  botMode?: "console" | "sales";
+  botMode?: "console" | "notify" | "sales";
   adminChatIds?: string[];
+  botApiBase?: string;
   botProxyUrl?: string;
-  shopLang?: "fa" | "en";
+  botLang?: BotLangCode;
+  salesTemplateId?: string;
+  salesPayMode?: "manual" | "zarinpal";
+  shopLang?: "fa" | "en"; // legacy — kept for older clients, ignored when botLang is sent
 }> {
   const b = (body ?? {}) as Record<string, unknown>;
   let token: string | null | undefined = undefined;
@@ -396,12 +460,49 @@ export function validateTelegramPatch(
     }
   }
 
-  let botMode: "console" | "sales" | undefined;
+  let botMode: "console" | "notify" | "sales" | undefined;
   if (b.botMode !== undefined) {
-    if (b.botMode !== "console" && b.botMode !== "sales") {
+    if (b.botMode !== "console" && b.botMode !== "notify" && b.botMode !== "sales") {
       return { ok: false, fields: [{ field: "botMode", code: "format" }] };
     }
     botMode = b.botMode;
+  }
+
+  let botApiBase: string | undefined;
+  if (b.botApiBase !== undefined) {
+    const v = String(b.botApiBase).trim().replace(/\/+$/, "");
+    if (v !== "" && !/^https?:\/\/\S+$/.test(v)) {
+      return { ok: false, fields: [{ field: "botApiBase", code: "format" }] };
+    }
+    if (v.length > 300) {
+      return { ok: false, fields: [{ field: "botApiBase", code: "range" }] };
+    }
+    botApiBase = v;
+  }
+
+  let botLang: BotLangCode | undefined;
+  if (b.botLang !== undefined) {
+    if (typeof b.botLang !== "string" || !(BOT_LANGS as readonly string[]).includes(b.botLang)) {
+      return { ok: false, fields: [{ field: "botLang", code: "format" }] };
+    }
+    botLang = b.botLang as BotLangCode;
+  }
+
+  let salesTemplateId: string | undefined;
+  if (b.salesTemplateId !== undefined) {
+    const v = String(b.salesTemplateId).trim();
+    if (v.length > 64 || /\s/.test(v)) {
+      return { ok: false, fields: [{ field: "salesTemplateId", code: "format" }] };
+    }
+    salesTemplateId = v;
+  }
+
+  let salesPayMode: "manual" | "zarinpal" | undefined;
+  if (b.salesPayMode !== undefined) {
+    if (b.salesPayMode !== "manual" && b.salesPayMode !== "zarinpal") {
+      return { ok: false, fields: [{ field: "salesPayMode", code: "format" }] };
+    }
+    salesPayMode = b.salesPayMode;
   }
 
   let adminChatIds: string[] | undefined;
@@ -451,7 +552,11 @@ export function validateTelegramPatch(
       notify,
       botMode,
       adminChatIds,
+      botApiBase,
       botProxyUrl,
+      botLang,
+      salesTemplateId,
+      salesPayMode,
       shopLang,
     },
   };
@@ -462,9 +567,13 @@ export async function saveTelegramSettings(patch: {
   chatId: string;
   token: string | null | undefined;
   notify: TelegramNotify;
-  botMode?: "console" | "sales";
+  botMode?: "console" | "notify" | "sales";
   adminChatIds?: string[];
+  botApiBase?: string;
   botProxyUrl?: string;
+  botLang?: BotLangCode;
+  salesTemplateId?: string;
+  salesPayMode?: "manual" | "zarinpal";
   shopLang?: "fa" | "en";
 }): Promise<void> {
   await writeSetting(K.tgEnabled, patch.enabled ? "1" : "0");
@@ -483,6 +592,18 @@ export async function saveTelegramSettings(patch: {
   }
   if (patch.botProxyUrl !== undefined) {
     await writeSetting(K.tgProxyUrl, patch.botProxyUrl);
+  }
+  if (patch.botApiBase !== undefined) {
+    await writeSetting(K.tgApiBase, patch.botApiBase);
+  }
+  if (patch.botLang !== undefined) {
+    await writeSetting(K.tgBotLang, patch.botLang);
+  }
+  if (patch.salesTemplateId !== undefined) {
+    await writeSetting(K.tgSalesTemplateId, patch.salesTemplateId);
+  }
+  if (patch.salesPayMode !== undefined) {
+    await writeSetting(K.tgSalesPayMode, patch.salesPayMode);
   }
   if (patch.shopLang !== undefined) {
     await writeSetting(K.tgShopLang, patch.shopLang);

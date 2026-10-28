@@ -112,6 +112,28 @@ export async function GET(req: Request) {
     if (ib.port < 1024 && ib.status === "online") {
       push("privilegedPort", "warn", { tag: ib.tag, port: String(ib.port) });
     }
+
+    // 9. Task 23-c — hysteria2/tuic without TLS material: the sing-box core
+    //    auto-provisions a self-signed cert, but production clients should
+    //    get a managed/ACME cert + a proper SNI (self-signed forces insecure=1).
+    if ((ib.protocol === "hysteria2" || ib.protocol === "tuic") && ib.status === "online") {
+      const hasCert =
+        (typeof st.certPublic === "string" && st.certPublic.trim().length > 0) ||
+        (typeof st.certPrivate === "string" && st.certPrivate.trim().length > 0) ||
+        (typeof st.certFile === "string" && st.certFile.trim().length > 0);
+      if (!hasCert) {
+        push("hy2TuicSelfSigned", "warn", { tag: ib.tag, port: String(ib.port), proto: ib.protocol });
+      }
+    }
+
+    // 10. Task 23-c — tuic congestion control outside sing-box's accepted set
+    //     (bbr | cubic | new_reno — binary-verified against sing-box 1.14.4)
+    if (ib.protocol === "tuic" && typeof st.tuicCongestion === "string" && st.tuicCongestion.trim()) {
+      const cc = st.tuicCongestion.trim();
+      if (!["bbr", "cubic", "new_reno"].includes(cc)) {
+        push("tuicCongestionInvalid", "info", { tag: ib.tag, value: cc });
+      }
+    }
   }
 
   // wireguard cross-inbound secret reuse

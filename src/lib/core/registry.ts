@@ -6,8 +6,9 @@
  * (single process, so a module singleton is the natural rendezvous).
  */
 
-import type { CoreBackend, CoreStatusPayload, SidecarStatus } from "@/lib/core/types";
+import type { CoreBackend, CoreStatusPayload, SidecarStatus, SingboxStatus } from "@/lib/core/types";
 import type { SidecarManager } from "@/lib/core/sidecars";
+import type { SingboxDriver } from "@/lib/core/singbox";
 
 interface RegistryState {
   backend: CoreBackend | null;
@@ -15,13 +16,15 @@ interface RegistryState {
   fallbackReason: string;
   /** v2.5 — hysteria2 sidecar engines running next to the core (may be null). */
   sidecars: SidecarManager | null;
+  /** Task 23-c — secondary sing-box core (hysteria2 + tuic), may be null. */
+  singbox: SingboxDriver | null;
 }
 
 const g = globalThis as unknown as { __sephCoreRegistry?: RegistryState };
 
 function state(): RegistryState {
   if (!g.__sephCoreRegistry) {
-    g.__sephCoreRegistry = { backend: null, fallbackActive: false, fallbackReason: "", sidecars: null };
+    g.__sephCoreRegistry = { backend: null, fallbackActive: false, fallbackReason: "", sidecars: null, singbox: null };
   }
   return g.__sephCoreRegistry;
 }
@@ -55,18 +58,29 @@ export function getSidecarManager(): SidecarManager | null {
   return state().sidecars;
 }
 
+/** Register the sing-box driver (Task 23-c, called once at boot). */
+export function setSingboxDriver(driver: SingboxDriver | null): void {
+  state().singbox = driver;
+}
+
+export function getSingboxDriver(): SingboxDriver | null {
+  return state().singbox;
+}
+
 /** Status payload for GET /api/system/core-status (null backend → honest zero state). */
 export function coreStatusPayload(): CoreStatusPayload | null {
   const backend = state().backend;
   if (!backend) return null;
   const fb = isFallbackActive();
   const sidecars: SidecarStatus[] | null = state().sidecars?.statusList() ?? null;
+  const singbox: SingboxStatus | null = state().singbox?.status() ?? null;
   return {
     ...backend.status(),
     fallbackActive: fb.active,
     fallbackReason: fb.reason,
     // additive — consumers that predate sidecars keep working untouched
     ...(sidecars ? { sidecars } : {}),
+    ...(singbox ? { singbox } : {}),
   };
 }
 

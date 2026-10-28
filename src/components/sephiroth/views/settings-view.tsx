@@ -79,6 +79,7 @@ import { sfmt } from "@/lib/i18n/sub-dictionary";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { TelegramBotPanel } from "@/components/sephiroth/views/telegram-bot-panel";
+import { TelegramBotSettings } from "@/components/sephiroth/views/telegram-bot-settings"; // Task 23-a — bot card
 import { SslCard } from "@/components/sephiroth/views/ssl-card"; // Task 23-f — SSL/ACME card
 
 /* ============================================================
@@ -1833,6 +1834,9 @@ docker run -d --name mtproxy --restart=always -p ${mtpPort || "443"}:443 \\
               </div>
               <Tip className="mt-4">{u.tipTg}</Tip>
             </SectionCard>
+
+            {/* telegram bot (23-a — worker / sales config + live pill) */}
+            <TelegramBotSettings />
 
             {/* telegram notifications */}
             <SectionCard icon={Sparkles} title={u.tgNotify}>

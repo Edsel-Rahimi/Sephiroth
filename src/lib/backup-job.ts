@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { buildBackupPayload } from "@/app/api/settings/backup/route";
 import { getSecuritySettings, markAutoBackupRun } from "@/lib/settings";
 import { logActivity } from "@/lib/activity";
+import { notifyBackupDone } from "@/lib/bot/notify"; // Task 23-a — bot alert
 
 /* ============================================================
    Sephiroth · v2.2 — Scheduled server-side backups
@@ -69,6 +70,7 @@ export async function runAutoBackup(force = false): Promise<{ ran: boolean; file
       message: `Scheduled backup created (${(body.length / 1024).toFixed(1)} KB, keeping ${keep})`,
       meta: { file: `sephiroth-auto-${stamp}.json`, sizeBytes: body.length, auto: true },
     });
+    void notifyBackupDone(`sephiroth-auto-${stamp}.json`, body.length); // Task 23-a — bot alert
     return { ran: true, file };
   } catch (err) {
     console.error("[backup-job] auto backup failed:", err);

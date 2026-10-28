@@ -212,6 +212,7 @@ const PROTOCOLS = [
   "trojan",
   "shadowsocks",
   "hysteria2",
+  "tuic",
   "wireguard",
   "dokodemo-door",
   "socks",
@@ -240,6 +241,7 @@ const PROTO_LABEL: Record<string, string> = {
   trojan: "Trojan",
   shadowsocks: "Shadowsocks",
   hysteria2: "Hysteria2",
+  tuic: "TUIC",
   wireguard: "WireGuard",
   "dokodemo-door": "Dokodemo",
   socks: "SOCKS",
@@ -252,6 +254,7 @@ const PROTO_CLS: Record<string, string> = {
   trojan: "bg-chart-4/10 text-chart-4 ring-chart-4/30",
   shadowsocks: "bg-chart-3/10 text-chart-3 ring-chart-3/30",
   hysteria2: "bg-chart-5/10 text-chart-5 ring-chart-5/30",
+  tuic: "bg-[#2dd4bf]/10 text-[#2dd4bf] ring-[#2dd4bf]/30",
   wireguard: "bg-[#c084fc]/10 text-[#c084fc] ring-[#c084fc]/30",
   "dokodemo-door": "bg-[#f472b6]/10 text-[#f472b6] ring-[#f472b6]/30",
   socks: "bg-[#fde047]/10 text-[#fde047] ring-[#fde047]/30",
@@ -265,6 +268,7 @@ const PROTO_BAR: Record<string, string> = {
   trojan: "bg-chart-4",
   shadowsocks: "bg-chart-3",
   hysteria2: "bg-chart-5",
+  tuic: "bg-[#2dd4bf]",
   wireguard: "bg-[#c084fc]",
   "dokodemo-door": "bg-[#f472b6]",
   socks: "bg-[#fde047]",
@@ -277,6 +281,7 @@ const PROTO_VAR: Record<string, string> = {
   trojan: "var(--chart-4)",
   shadowsocks: "var(--chart-3)",
   hysteria2: "var(--chart-5)",
+  tuic: "#2dd4bf",
   wireguard: "#c084fc",
   "dokodemo-door": "#f472b6",
   socks: "#fde047",
@@ -294,6 +299,8 @@ const PROTO_HOVER: Record<string, string> = {
     "hover:border-chart-3/50 hover:shadow-[0_0_38px_-12px_var(--chart-3)]",
   hysteria2:
     "hover:border-chart-5/50 hover:shadow-[0_0_38px_-12px_var(--chart-5)]",
+  tuic:
+    "hover:border-[#2dd4bf]/50 hover:shadow-[0_0_38px_-12px_#2dd4bf]",
   wireguard:
     "hover:border-[#c084fc]/50 hover:shadow-[0_0_38px_-12px_#c084fc]",
   "dokodemo-door":
@@ -314,6 +321,7 @@ const PROTO_DESC_KEY: Record<string, string> = {
   trojan: "pdTrojan",
   shadowsocks: "pdSs",
   hysteria2: "pdHy2",
+  tuic: "pdTuic",
   wireguard: "pdWg",
   "dokodemo-door": "pdDoko",
   socks: "pdSocks",
@@ -465,6 +473,12 @@ function genClientKey(protocol: string, ssMethod?: string): string {
     if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
     return b64url(16);
   }
+  if (protocol === "tuic") {
+    // TUIC v5 needs uuid + password — the store carries the wire composite
+    // "uuid:password" (the exact form the tuic:// URI splits on)
+    const uuid = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : b64url(16);
+    return `${uuid}:${b64url(18)}`;
+  }
   if (protocol === "wireguard") return b64std(32); // peer public key (44-char base64)
   if (protocol === "socks" || protocol === "http") return genReadableKey();
   if (protocol === "shadowsocks" && isSs2022(ssMethod)) {
@@ -541,6 +555,7 @@ const QUICK_PRESET: Record<string, { transport: string; security: string }> = {
   trojan: { transport: "tcp", security: "tls" },
   shadowsocks: { transport: "tcp", security: "none" },
   hysteria2: { transport: "tcp", security: "none" },
+  tuic: { transport: "tcp", security: "none" },
   wireguard: { transport: "tcp", security: "none" },
   "dokodemo-door": { transport: "tcp", security: "none" },
   socks: { transport: "tcp", security: "none" },
@@ -2710,6 +2725,16 @@ export function InboundsView() {
                 autoComplete="off"
               />
             </MiniField>
+            <MiniField id="st-hy2mq" label={t.inbounds.hy2Masquerade}>
+              <Input
+                id="st-hy2mq"
+                value={form.stream.hy2Masquerade ?? ""}
+                onChange={(e) => setStream("hy2Masquerade", e.target.value)}
+                placeholder="https://example.com"
+                className="font-mono text-xs"
+                autoComplete="off"
+              />
+            </MiniField>
             <div className="grid grid-cols-2 gap-3">
               <MiniField id="st-hy2up" label={t.inbounds.hy2Up}>
                 <Input
@@ -2734,6 +2759,48 @@ export function InboundsView() {
             </div>
           </div>
           <Tip>{t.inbounds.scHint}</Tip>
+        </div>
+      )}
+
+      {/* Task 23-c — TUIC v5 fields (served by the secondary sing-box core) */}
+      {form.protocol === "tuic" && (
+        <div className="space-y-4 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="flex items-center gap-2 text-xs font-semibold text-silver">
+            <Waves className="h-3.5 w-3.5 text-[#2dd4bf]" />
+            TUIC v5
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <MiniField id="st-tuiccc" label={t.inbounds.tuicCongestion}>
+              <Select
+                value={["bbr", "cubic", "new_reno"].includes(String(form.stream.tuicCongestion || ""))
+                  ? String(form.stream.tuicCongestion)
+                  : "bbr"}
+                onValueChange={(v) => setStream("tuicCongestion", v)}
+              >
+                <SelectTrigger id="st-tuiccc" className="w-full font-mono text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="glass-strong">
+                  {["bbr", "cubic", "new_reno"].map((cc) => (
+                    <SelectItem key={cc} value={cc} className="font-mono text-xs">
+                      {cc}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </MiniField>
+            <MiniField id="st-tuicalpn" label={t.inbounds.tuicAlpn}>
+              <Input
+                id="st-tuicalpn"
+                value={form.stream.alpn ?? ""}
+                onChange={(e) => setStream("alpn", e.target.value)}
+                placeholder="h3"
+                className="font-mono text-xs"
+                autoComplete="off"
+              />
+            </MiniField>
+          </div>
+          <Tip>{t.inbounds.tuicHint}</Tip>
         </div>
       )}
 

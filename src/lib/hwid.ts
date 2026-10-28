@@ -45,6 +45,17 @@ function createSha256Hex(s: string): string {
   return createHash("sha256").update(s).digest("hex");
 }
 
+/**
+ * Task 23-b — explicit device id sent by the client as `?hwid=<id>` on the
+ * subscription URL (v2box/v2rayNG-style clients can be configured to append
+ * it). Sanitized to a safe storage/display charset and capped at 64 chars;
+ * anything empty after sanitizing falls back to the header fingerprint.
+ */
+export function explicitDeviceId(raw: string | null | undefined): string | null {
+  const clean = (raw ?? "").trim().replace(/[^A-Za-z0-9._:-]/g, "").slice(0, 64);
+  return clean.length > 0 ? clean : null;
+}
+
 export function parseDevices(raw: string | null | undefined): DeviceEntry[] {
   if (!raw) return [];
   try {

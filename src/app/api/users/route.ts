@@ -12,6 +12,7 @@ import {
 import { parseClients, validateUser } from "@/lib/user-types";
 import { resellerQuota } from "@/lib/resellers";
 import { logActivity } from "@/lib/activity";
+import { notifyUserCreated } from "@/lib/bot/notify"; // Task 23-a — bot alert
 
 /* ============================================================
    Sephiroth · Phase 4 — Users collection API
@@ -188,6 +189,11 @@ export async function POST(req: Request) {
       actor: actor.username,
       message: `User "${created.username}" created on ${created.accesses.length} inbound(s)`,
       meta: { userId: created.id, username: created.username },
+    });
+    void notifyUserCreated({ // Task 23-a — Telegram admin alert (fire-and-forget)
+      username: created.username,
+      trafficLimitGb: created.trafficLimitGb,
+      expiryDays: created.expiryDays,
     });
     return NextResponse.json({ user: toUserDTO(created) }, { status: 201 });
   } catch (err) {

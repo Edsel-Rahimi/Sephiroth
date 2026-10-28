@@ -28,6 +28,7 @@ import {
   copyFileSync,
   existsSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
   renameSync,
   rmSync,
@@ -530,4 +531,258 @@ export async function installOrUpdateHysteria(opts: {
   log?: (msg: string) => void;
 }): Promise<XrayBinaryInfo> {
   return ensureHysteriaBinary(opts);
+}
+
+/* ============================================================
+   Sing-box secondary core (Task 23-c — protocol gap report §3)
+   Serves the hysteria2 + tuic inbounds Xray cannot, as ONE
+   process next to the Xray core.
+   ============================================================ */
+
+/* SagerNet/sing-box (tar.gz assets; flat binary inside a versioned dir) */
+const SB_REPO_API = "https://api.github.com/repos/SagerNet/sing-box/releases";
+const SB_REPO_WEB = "https://github.com/SagerNet/sing-box";
+
+/** Run the binary's `version` command and extract "1.14.4"-style semver. */
+export async function probeSingboxVersion(binPath: string): Promise<string> {
+  const r = await execFile(binPath, ["version"], 10_000);
+  if (r.code !== 0) return "";
+  const m = r.stdout.match(/version\s+v?(\d+\.\d+\.\d+)/i) ?? r.stdout.match(/v?(\d+\.\d+\.\d+)/);
+  return m ? m[1]! : "";
+}
+
+/**
+ * sing-box release assets carry the VERSION in the filename
+ * (sing-box-1.14.4-linux-amd64.tar.gz — verified against the real releases).
+ * fetchSingboxRelease() builds the exact name from the resolved tag.
+ */
+
+/** tar.gz extraction — tar is present on every supported host (bsdtar on macOS). */
+async function extractTarGz(tarPath: string, destDir: string): Promise<void> {
+  const r = await execFile("tar", ["-xzf", tarPath, "-C", destDir], 120_000);
+  if (r.code !== 0) throw new Error(`tar extraction failed: ${r.stderr || r.stdout || "exit " + r.code}`);
+}
+
+async function fetchSingboxRelease(versionPin: string): Promise<ReleaseInfo> {
+  // tag first — the asset filename embeds it
+  let tag = "";
+  const platform: string = process.platform;
+  const arch: string = process.arch;
+  const assetSuffix = ((): string => {
+    if (platform === "linux") {
+      if (arch === "arm64" || arch === "aarch64") return "-linux-arm64.tar.gz";
+      if (arch === "arm" || arch === "armv7l") return "-linux-armv7.tar.gz";
+      if (arch === "ia32") return "-linux-386.tar.gz";
+      return "-linux-amd64.tar.gz";
+    }
+    if (platform === "darwin") {
+      return arch === "arm64" ? "-darwin-arm64.tar.gz" : "-darwin-amd64.tar.gz";
+    }
+    if (platform === "freebsd") {
+      return arch === "arm64" || arch === "aarch64" ? "-freebsd-arm64.tar.gz" : "-freebsd-amd64.tar.gz";
+    }
+    if (platform === "win32") return "-windows-amd64.zip";
+    return "";
+  })();
+  if (!assetSuffix) throw new Error(`unsupported platform ${process.platform}/${process.arch}`);
+
+  // secondary: GitHub REST API (rate-limited much harder than the website)
+  try {
+    const url = versionPin
+      ? `${SB_REPO_API}/tags/${encodeURIComponent(normalizeTag(versionPin))}`
+      : `${SB_REPO_API}/latest`;
+    const res = await fetch(url, {
+      headers: { "User-Agent": UA, Accept: "application/vnd.github+json" },
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
+    });
+    if (res.ok) {
+      const release = (await res.json()) as { tag_name?: string; assets?: ReleaseAsset[] };
+      if (release.tag_name) {
+        const assetName = `sing-box-${release.tag_name.replace(/^v/, "")}${assetSuffix}`;
+        const asset = (release.assets ?? []).find((a) => a.name === assetName);
+        if (asset) {
+          return { tag: release.tag_name, assetUrl: asset.browser_download_url };
+        }
+      }
+    }
+  } catch {
+    /* fall through to the redirect strategy */
+  }
+
+  // primary: releases/latest redirect → tag → constructed asset URL
+  tag = normalizeTag(versionPin);
+  if (!tag) {
+    const res = await fetch(`${SB_REPO_WEB}/releases/latest`, {
+      headers: { "User-Agent": UA },
+      redirect: "manual",
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
+    });
+    const location = res.headers.get("location") ?? "";
+    const m = location.match(/\/releases\/tag\/(v?\d+\.\d+\.\d+)/);
+    if (!m) throw new Error("could not resolve latest sing-box release tag");
+    tag = m[1]!;
+  }
+  return {
+    tag,
+    assetUrl: `${SB_REPO_WEB}/releases/download/${tag}/sing-box-${tag.replace(/^v/, "")}${assetSuffix}`,
+  };
+}
+
+/**
+ * Resolve the sing-box binary. Same contract as ensureXrayBinary: never
+ * throws when a usable binary already exists (user path / PATH / previously
+ * auto-installed); throws only when a fresh install is required and fails.
+ */
+export async function ensureSingboxBinary(opts: {
+  binPath?: string;
+  versionPin?: string;
+  installDir?: string;
+  log?: (msg: string) => void;
+}): Promise<XrayBinaryInfo> {
+  const log = opts.log ?? (() => {});
+  const pin = normalizeTag(opts.versionPin ?? "");
+
+  // 1) admin-pinned absolute path
+  const userPath = (opts.binPath ?? "").trim();
+  if (userPath) {
+    if (!existsSync(userPath)) {
+      throw new Error(`sing-box binary path points to a missing file: ${userPath}`);
+    }
+    const version = await probeSingboxVersion(userPath);
+    if (!version) throw new Error(`${userPath} is not a runnable sing-box binary`);
+    return { path: userPath, version, source: "user" };
+  }
+
+  // 2) PATH lookup
+  if (process.platform !== "win32") {
+    const which = await execFile("which", ["sing-box"], 5000);
+    if (which.code === 0) {
+      const found = which.stdout.trim().split("\n")[0] ?? "";
+      if (found && existsSync(found)) {
+        const version = await probeSingboxVersion(found);
+        if (version) return { path: found, version, source: "path" };
+      }
+    }
+  }
+
+  // 3) auto-install into <dbDir>/bin/sing-box
+  const installDir = opts.installDir ?? path.resolve(process.cwd(), "db", "bin", "sing-box");
+  const exeName = process.platform === "win32" ? "sing-box.exe" : "sing-box";
+  const exePath = path.join(installDir, exeName);
+  const markerPath = path.join(installDir, ".version");
+
+  const existingVersion = existsSync(exePath) ? await probeSingboxVersion(exePath) : "";
+  if (existingVersion) {
+    if (pin && existingVersion === pin.replace(/^v/, "")) {
+      return { path: exePath, version: existingVersion, source: "auto" };
+    }
+    if (!pin) {
+      // latest requested but the release may be unreachable — keep working install
+      return { path: exePath, version: existingVersion, source: "auto" };
+    }
+  }
+
+  log(`resolving sing-box release (${pin || "latest"})…`);
+  const release = await fetchSingboxRelease(pin);
+
+  // marker + binary already match the resolved release → reuse
+  if (
+    existingVersion &&
+    existsSync(markerPath) &&
+    readFileSync(markerPath, "utf8").trim() === release.tag &&
+    existingVersion === release.tag.replace(/^v/, "")
+  ) {
+    return { path: exePath, version: existingVersion, source: "auto" };
+  }
+
+  log(`downloading ${release.assetUrl}…`);
+  mkdirSync(installDir, { recursive: true });
+  const res = await fetch(release.assetUrl, {
+    headers: { "User-Agent": UA },
+    redirect: "follow",
+    signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
+  });
+  if (!res.ok) throw new Error(`download failed: HTTP ${res.status}`);
+  const buf = Buffer.from(await res.arrayBuffer());
+  if (buf.length < 1024) throw new Error("downloaded archive is too small");
+
+  const tmpDir = `${installDir}.dl-${Date.now()}`;
+  try {
+    mkdirSync(tmpDir, { recursive: true });
+    const archivePath = path.join(tmpDir, process.platform === "win32" ? "sing-box.zip" : "sing-box.tar.gz");
+    writeFileSync(archivePath, buf);
+    if (process.platform === "win32") {
+      // windows release assets are zip — reuse the xray extractor chain
+      const chain: Array<{ tool: string; args: string[] }> = [
+        { tool: "unzip", args: ["-o", archivePath, "-d", tmpDir] },
+        { tool: "7z", args: ["x", "-y", `-o${tmpDir}`, archivePath] },
+        { tool: "python3", args: ["-m", "zipfile", "-e", archivePath, tmpDir] },
+      ];
+      let ok = false;
+      for (const step of chain) {
+        if (!(await toolExists(step.tool))) continue;
+        const r = await execFile(step.tool, step.args, 60_000);
+        if (r.code === 0) {
+          ok = true;
+          break;
+        }
+      }
+      if (!ok) throw new Error("no zip extractor available for the sing-box archive");
+    } else {
+      await extractTarGz(archivePath, tmpDir);
+    }
+    // the tarball nests the binary in sing-box-<ver>-linux-<arch>/
+    let extracted = path.join(tmpDir, exeName);
+    if (!existsSync(extracted)) {
+      const found = findFileRecursive(tmpDir, exeName);
+      if (!found) throw new Error("archive did not contain the sing-box binary");
+      extracted = found;
+    }
+    rmSync(exePath, { force: true });
+    try {
+      renameSync(extracted, exePath);
+    } catch {
+      copyFileSync(extracted, exePath);
+      rmSync(extracted, { force: true });
+    }
+    if (process.platform !== "win32") chmodSync(exePath, 0o755);
+    writeFileSync(markerPath, release.tag, { mode: 0o644 });
+
+    const version = await probeSingboxVersion(exePath);
+    if (!version) throw new Error("installed binary failed to run");
+    log(`sing-box ${version} installed at ${exePath}`);
+    return { path: exePath, version, source: "auto" };
+  } finally {
+    rmSync(tmpDir, { recursive: true, force: true });
+  }
+}
+
+function findFileRecursive(dir: string, name: string, depth = 0): string | null {
+  if (depth > 4) return null;
+  let entries: Array<{ name: string; isDirectory: () => boolean }> = [];
+  try {
+    entries = readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return null;
+  }
+  for (const e of entries) {
+    const full = path.join(dir, e.name);
+    if (e.isDirectory()) {
+      const hit = findFileRecursive(full, name, depth + 1);
+      if (hit) return hit;
+    } else if (e.name === name) {
+      return full;
+    }
+  }
+  return null;
+}
+
+/** Public wrapper for a core-install API action (download / update only). */
+export async function installOrUpdateSingbox(opts: {
+  binPath?: string;
+  versionPin?: string;
+  installDir?: string;
+  log?: (msg: string) => void;
+}): Promise<XrayBinaryInfo> {
+  return ensureSingboxBinary(opts);
 }

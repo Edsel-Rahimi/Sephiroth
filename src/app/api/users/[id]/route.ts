@@ -5,6 +5,7 @@ import { emailFor, flowFor, genAccessFields, toUserDTO } from "@/lib/users";
 import { parseClients, validateUserPatch } from "@/lib/user-types";
 import { stripUserEverywhere, syncUserProjection } from "@/lib/user-sync";
 import { logActivity } from "@/lib/activity";
+import { notifyUserDeleted } from "@/lib/bot/notify"; // Task 23-a — bot alert
 
 /* ============================================================
    Sephiroth · Phase 4 — Users item API
@@ -175,7 +176,7 @@ export async function DELETE(
 
     const existing = await db.clientUser.findUnique({
       where: { id },
-      select: { id: true, resellerId: true },
+      select: { id: true, resellerId: true, username: true },
     });
     if (!existing) {
       return NextResponse.json({ error: "not_found" }, { status: 404 });
@@ -193,6 +194,7 @@ export async function DELETE(
       message: `User deleted (id ${id})`,
       meta: { userId: id },
     });
+    void notifyUserDeleted(existing.username); // Task 23-a — Telegram admin alert
 
     return NextResponse.json({ ok: true });
   } catch (err) {

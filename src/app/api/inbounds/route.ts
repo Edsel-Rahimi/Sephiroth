@@ -8,6 +8,7 @@ import {
 } from "@/lib/inbounds";
 import { getSession } from "@/lib/auth";
 import { logActivity } from "@/lib/activity";
+import { notifyInboundCreated } from "@/lib/bot/notify"; // Task 23-a — bot alert
 
 /* ============================================================
    Sephiroth · Phase 3 — Inbounds collection API
@@ -80,6 +81,7 @@ export async function POST(req: Request) {
         message: `Inbound "${created.tag}" created (${created.protocol} :${created.port})`,
         meta: { inboundId: created.id, tag: created.tag },
       });
+      void notifyInboundCreated(created.tag, created.protocol, created.port); // Task 23-a
       return NextResponse.json({ inbound: toDTO(created) }, { status: 201 });
     } catch (err) {
       const kind = mapInboundWriteError(err); // Prisma P2002 race

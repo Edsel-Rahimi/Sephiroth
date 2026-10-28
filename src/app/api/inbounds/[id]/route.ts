@@ -9,6 +9,7 @@ import {
 } from "@/lib/inbounds";
 import { reprojectInbound } from "@/lib/user-sync";
 import { logActivity } from "@/lib/activity";
+import { notifyInboundDeleted } from "@/lib/bot/notify"; // Task 23-a — bot alert
 
 /* ============================================================
    Sephiroth · Phase 3 — Inbounds item API
@@ -120,6 +121,7 @@ export async function DELETE(
           message: `Inbound "${existing.tag}" deleted`,
           meta: { inboundId: id, tag: existing.tag },
         });
+        void notifyInboundDeleted(existing.tag); // Task 23-a — bot alert
       }
     } catch (err) {
       if (prismaErrorCode(err) === "P2025") {

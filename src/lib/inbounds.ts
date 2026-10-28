@@ -18,6 +18,7 @@ export const IN_PROTOCOLS = [
   "trojan",
   "shadowsocks",
   "hysteria2",
+  "tuic",
   "wireguard",
   "dokodemo-door",
   "socks",
@@ -85,6 +86,8 @@ const STREAM_KEYS: Record<string, { str?: string[]; num?: string[]; bool?: strin
       "dokoAddress", "dokoNetwork", // dokodemo-door target
       "wgSecretKey", "wgPublicKey", // wireguard keys
       "obfsPassword", // hysteria2 salamander obfs (v2.5 sidecar)
+      "hy2Masquerade", // hysteria2 masquerade URL (Task 23-c, sing-box ≥1.14)
+      "tuicCongestion", // tuic congestion control: bbr | cubic | new_reno (Task 23-c)
       "fallbacksJson", // serialized fallbacks array
     ],
     num: ["maxEarlyData", "dokoPort", "wgMtu", "upMbps", "downMbps"], // hy2 bandwidth caps (v2.5)

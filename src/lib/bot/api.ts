@@ -17,9 +17,17 @@ import { ProxyAgent, fetch as undiciFetch } from "undici";
 
 const env = (typeof process !== "undefined" ? process.env : {}) as Record<string, string | undefined>;
 
-/** Base URL for the Bot API (mock harness can point it at 127.0.0.1). */
+/** Runtime override (23-a): the botApiBase SETTING wins over the env fallback. */
+let apiBaseOverride = "";
+
+/** Called by the worker when settings load/change (and by tests). */
+export function setTgApiBase(base: string): void {
+  apiBaseOverride = base.trim().replace(/\/+$/, "");
+}
+
+/** Base URL for the Bot API (setting > env > https://api.telegram.org). */
 export function tgApiBase(): string {
-  return (env.SEPH_TG_API_BASE || "https://api.telegram.org").replace(/\/+$/, "");
+  return (apiBaseOverride || env.SEPH_TG_API_BASE || "https://api.telegram.org").replace(/\/+$/, "");
 }
 
 const agentCache = new Map<string, ProxyAgent>();

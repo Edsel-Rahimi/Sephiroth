@@ -28,6 +28,7 @@ import { createHash } from "node:crypto";
 import { db } from "@/lib/db";
 import { IpTracker, parseAccessIps } from "@/lib/ip-limit";
 import { logActivity } from "@/lib/activity";
+import { syncUserProjection } from "@/lib/user-sync"; // Task 23-b — flip embedded clients on auto-disable
 import type {
   ActivityEvent,
   CoreBackend,
@@ -78,7 +79,7 @@ const RESTART_MAX = 5;
 /** Task 23-g — access-log tail cadence + read cap (bytes per poll). */
 const ACCESS_POLL_MS = 5_000;
 const ACCESS_MAX_CHUNK = 512 * 1024;
-/** Settings key — opt-in auto-disable on IP breach (default OFF). */
+/** Settings key — concurrent-IP auto-disable kill switch (default ON, "0" = warn only). */
 const ENFORCE_IP_LIMIT_KEY = "set_enforce_ip_limit";
 
 /**
@@ -400,7 +401,11 @@ export class XrayDriver implements CoreBackend {
     //    IMPORTANT: only inbounds the built config actually serves are probed
     //    (v2.5 — hysteria2 rows are sidecar-served, skipped by the builder, and
     //    must NOT block or stall the core start).
-    const built = buildXrayServerConfig(this.apiPort, { accessLogPath: this.accessLogPath });
+    const built = buildXrayServerConfig(this.apiPort, {
+      // Task 23-b — the access log is only written while at least one user has
+      // an IP limit (the tracker has nothing to enforce otherwise).
+      accessLogPath: this.accessLogActive() ? this.accessLogPath : undefined,
+    });
     for (const s of built.skipped) this.log(`config: ${s}`);
     const enabledRows = db._syncReadInboundsFull().filter((r) => r.status === "online");
     const servedRows = servedInboundRows(enabledRows, built);
@@ -562,13 +567,32 @@ export class XrayDriver implements CoreBackend {
     return this.ipTracker.windowMinutes;
   }
 
+  /**
+   * Task 23-b — the file access log only feeds the IP-limit tracker, so it is
+   * enabled exactly while some ClientUser carries ipLimit > 0. Setting a limit
+   * rewrites clientsJson (ipLimit is projected per client) → mirrorDb diff →
+   * regen → this re-evaluates and the config hash changes → core restart.
+   */
+  private accessLogActive(): boolean {
+    try {
+      return db._syncReadClientUsers().some((u) => u.ipLimit > 0);
+    } catch {
+      return false; // store read raced a write — skip the log this build
+    }
+  }
+
   private startAccessTail(): void {
     this.stopAccessTail();
     // fresh process → fresh window (in-memory only; breach events persist in
     // the activity log)
     this.ipTracker.clear();
     this.ipBreached.clear();
-    this.accessOffset = 0;
+    // Task 23-b — xray opens the access log in APPEND mode (never truncates),
+    // so the read offset is PRESERVED across core restarts. Replaying the
+    // whole file after every config regen would re-observe old connections as
+    // fresh pairs and instantly re-disable a user the admin just restored.
+    // Genuine rotation/truncation (size < offset) is still detected per poll.
+    if (!existsSync(this.accessLogPath)) this.accessOffset = 0;
     this.accessTimer = setInterval(() => void this.pollAccessLog(), ACCESS_POLL_MS);
     this.accessTimer.unref?.();
   }
@@ -627,15 +651,17 @@ export class XrayDriver implements CoreBackend {
   /**
    * Enforcement hook — every email whose distinct-IP set grew this poll:
    *   always        logActivity warn (breach list lives in the audit trail)
-   *   enforce ON    (set_enforce_ip_limit=1) → auto-disable the user +
-   *                 trigger the config reload path (mirrorDb → regen)
+   *   enforce ON    (set_enforce_ip_limit != "0", default) → auto-disable the
+   *                 user (row + clientsJson projection so the config regen
+   *                 really drops the client) + hash-diff restart. The panel
+   *                 never re-enables automatically — an admin does.
    */
   private async enforceIpLimits(emails: string[], now: number): Promise<void> {
     if (emails.length === 0) return;
     try {
       const accessByEmail = new Map(db._syncReadAccessEmails().map((a) => [a.email, a.userId]));
       const users = new Map(db._syncReadClientUsers().map((u) => [u.id, u]));
-      const enforce = db._syncReadSetting(ENFORCE_IP_LIMIT_KEY) === "1";
+      const enforce = db._syncReadSetting(ENFORCE_IP_LIMIT_KEY) !== "0";
       for (const email of emails) {
         const userId = accessByEmail.get(email);
         const user = userId ? users.get(userId) : undefined;
@@ -643,18 +669,27 @@ export class XrayDriver implements CoreBackend {
         const over = this.ipTracker.overLimit(email, user.ipLimit, now);
         if (over && !this.ipBreached.has(email)) {
           this.ipBreached.add(email);
-          this.log(`ip-limit breach: ${email} — ${this.ipTracker.count(email, now)} IPs > limit ${user.ipLimit}`);
+          const ips = this.ipTracker.ips(email, now);
+          this.log(`ip-limit breach: ${email} — ${ips.length} IPs > limit ${user.ipLimit}`);
           void logActivity({
-            kind: "user.updated",
+            kind: "user.ipLimitExceeded",
             level: "warn",
             actor: "core",
-            message: `IP limit exceeded for "${user.username}" (${this.ipTracker.count(email, now)} distinct IPs in ${this.ipTracker.windowMinutes}m > limit ${user.ipLimit})`,
-            meta: { userId: user.id, username: user.username, reason: "ip_limit", ips: this.ipTracker.ips(email, now).length },
+            message: `IP limit exceeded for "${user.username}" (${ips.length} distinct IPs in ${this.ipTracker.windowMinutes}m > limit ${user.ipLimit})`,
+            meta: { userId: user.id, username: user.username, reason: "ip_limit", ips, count: ips.length, limit: user.ipLimit },
           });
           if (enforce && user.enabled) {
             await db.clientUser
               .update({ where: { id: user.id }, data: { enabled: false } })
-              .then(() => {
+              .then(async () => {
+                // mirror the admin-disable path exactly: embedded client entries
+                // flip to enabled:false so the next regen drops them from xray
+                await syncUserProjection(user.id, {
+                  ipLimit: user.ipLimit,
+                  trafficLimitGb: user.trafficLimitGb,
+                  expiryDays: user.expiryDays,
+                  enabled: false,
+                });
                 this.log(`ip-limit enforce: user "${user.username}" disabled`);
                 void logActivity({
                   kind: "user.updated",
@@ -744,7 +779,9 @@ export class XrayDriver implements CoreBackend {
 
   private async applyConfig(force: boolean): Promise<void> {
     if (!this.binaryPath) return; // never started — nothing to apply yet
-    const built = buildXrayServerConfig(this.apiPort, { accessLogPath: this.accessLogPath });
+    const built = buildXrayServerConfig(this.apiPort, {
+      accessLogPath: this.accessLogActive() ? this.accessLogPath : undefined, // Task 23-b — when needed
+    });
     for (const s of built.skipped) this.log(`config: ${s}`);
     const hashNew = hash(built.json);
     if (!force && hashNew === this.lastConfigHash) return;

@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/inbounds";
-import { coreStatusPayload, getSidecarManager } from "@/lib/core/registry";
+import { coreStatusPayload, getSidecarManager, getSingboxDriver } from "@/lib/core/registry";
 
 /* ============================================================
-   Sephiroth · v2.4/2.5 — Core backend status (admin)
+   Sephiroth · v2.4/2.5/2.6 — Core backend status (admin)
    GET /api/system/core-status
    Reports which engine drives the telemetry (sim | xray), the
    real process state (pid/version/uptime/api door), the last
    error and whether the xray driver fell back to the simulator.
    v2.5: also reports the hysteria2 sidecar engines.
+   Task 23-c: also reports the secondary sing-box core (hy2+tuic).
    ============================================================ */
 
 export async function GET(req: Request) {
@@ -21,5 +22,6 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "core_not_ready" }, { status: 503 });
   }
   const sidecars = getSidecarManager()?.statusList() ?? [];
-  return NextResponse.json({ status, sidecars });
+  const singbox = getSingboxDriver()?.status() ?? null;
+  return NextResponse.json({ status, sidecars, singbox });
 }

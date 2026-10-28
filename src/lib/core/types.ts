@@ -97,6 +97,12 @@ export interface CoreStatusPayload extends CoreBackendStatus {
    * OUTSIDE the Xray core. Additive field: absent when no manager is wired.
    */
   sidecars?: SidecarStatus[];
+  /**
+   * Task 23-c — secondary sing-box core serving the hysteria2 + tuic
+   * inbounds next to the Xray core. Additive field: absent when the driver
+   * is not wired.
+   */
+  singbox?: SingboxStatus;
 }
 
 /** One sidecar engine process (hysteria2 inbound served outside Xray). */
@@ -120,4 +126,40 @@ export interface SidecarStatus {
   configPath: string;
   certPath: string;
   certSource: "managed" | "self-signed";
+}
+
+/**
+ * Task 23-c — the secondary sing-box core (ONE process serving all
+ * hysteria2 + tuic inbounds next to the Xray core).
+ */
+export interface SingboxStatus {
+  /** sing-box process alive */
+  running: boolean;
+  /** sing-box binary version ("" before first resolve) */
+  version: string;
+  pid: number | null;
+  startedAt: number;
+  uptimeMs: number;
+  /** loopback clash_api door used for stats (null before first start) */
+  apiPort: number | null;
+  /** UDP/TCP listener ports served by the generated inbounds */
+  ports: number[];
+  /** protocols currently served, e.g. { hysteria2: 1, tuic: 1 } */
+  protocols: Record<string, number>;
+  /** number of enabled clients mapped into the config */
+  users: number;
+  lastError: string;
+  restarts: number;
+  logTail: string[];
+  configPath: string;
+  /** idle reason when running=false ("" = none) — e.g. "no hy2/tuic inbounds" */
+  idleReason: string;
+  /** exact session totals from clash_api (deltas accumulated) */
+  txBytes: number;
+  rxBytes: number;
+  /** best-effort per-inbound session bytes (clash_api /connections attribution) */
+  perInbound: Record<string, { txBytes: number; rxBytes: number }>;
+  liveConnections: number;
+  lastStatsAt: number;
+  lastStatsError: string;
 }

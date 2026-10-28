@@ -40,6 +40,7 @@ export async function GET(req: Request) {
     const where: Prisma.ActivityLogWhereInput = {};
     if (["info", "success", "warn", "error"].includes(level)) where.level = level;
     if (kinds) where.kind = { in: kinds };
+    else if (group.includes(".")) where.kind = group; // Task 23-b — exact-kind drill-down (e.g. sub.hwidBlocked)
     if (q) {
       where.OR = [
         { message: { contains: q } },

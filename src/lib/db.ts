@@ -1129,6 +1129,11 @@ export const db = {
       username: String(u.username || ""),
       enabled: u.enabled === true,
       ipLimit: Number(u.ipLimit) || 0,
+      // Task 23-b — full limit set so core-side auto-disable can re-sync the
+      // clientsJson projection (embedded entries flip to enabled:false) without
+      // a second async read in the enforcement hot path.
+      trafficLimitGb: u.trafficLimitGb === null || u.trafficLimitGb === undefined ? null : Number(u.trafficLimitGb),
+      expiryDays: u.expiryDays === null || u.expiryDays === undefined ? null : Number(u.expiryDays),
       resellerId: u.resellerId ? String(u.resellerId) : null,
     }));
   },

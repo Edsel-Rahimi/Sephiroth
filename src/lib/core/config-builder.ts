@@ -170,7 +170,13 @@ interface InboundBuild {
 }
 
 function buildInbound(row: InboundRowLike): InboundBuild {
-  const clients = parseClients(row.clientsJson) as (InboundClient & { ownerId?: string })[];
+  // Task 23-b — a client whose owning user is disabled (enabled:false is
+  // written by the admin toggle AND by the core's IP-limit auto-disable)
+  // must not appear in the generated config; undefined stays included so
+  // manual Phase-3 entries without the flag keep working.
+  const clients = (
+    parseClients(row.clientsJson) as (InboundClient & { ownerId?: string })[]
+  ).filter((c) => c.enabled !== false);
   const st = parseLoose<InboundStream>(row.streamJson, {});
   const sniff = parseLoose<{ enabled?: boolean; destOverride?: string[]; routeOnly?: boolean }>(
     row.sniffingJson,
@@ -297,14 +303,14 @@ function buildInbound(row: InboundRowLike): InboundBuild {
       break;
     }
     default: {
-      // hysteria2 and anything else Xray-core cannot serve. hysteria2 is NOT
-      // dead weight — v2.5 serves it through a real sidecar process managed
-      // by src/lib/core/sidecars.ts (one `hysteria server` per inbound).
+      // hysteria2 and tuic are not Xray protocols — they are served by the
+      // SECONDARY sing-box core (src/lib/core/singbox.ts, Task 23-c), one
+      // process next to the Xray core.
       return {
         inbound: null,
         skipReason:
-          protocol === "hysteria2"
-            ? `${row.tag}: hysteria2 is served by the sidecar engine — not part of the Xray config`
+          protocol === "hysteria2" || protocol === "tuic"
+            ? `${row.tag}: ${protocol} is served by the secondary sing-box core — not part of the Xray config`
             : `${row.tag}: ${protocol} is not an Xray-core inbound — skipped`,
       };
     }

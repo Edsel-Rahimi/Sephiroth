@@ -4,6 +4,7 @@ import { logActivity } from "@/lib/activity";
 import {
   getActiveBackend,
   getSidecarManager,
+  getSingboxDriver,
   isFallbackActive,
   swapBackend,
 } from "@/lib/core/registry";
@@ -20,9 +21,10 @@ import { appVersion, getCoreSettings } from "@/lib/settings";
    stop     → SIGTERM/SIGKILL the real core (no-op on the simulator)
    restart  → stop + start
    reload   → regenerate config from the store; restart only when it changed
-   Every action also drives the v2.5 hysteria2 SIDECAR engines (they serve
-   the inbounds the Xray core cannot) and answers with the resulting
-   status payload incl. the `sidecars` array.
+   Every action also drives the v2.5 hysteria2 SIDECAR engines and the
+   Task 23-c secondary sing-box core (they serve the inbounds the Xray
+   core cannot) and answers with the resulting status payload incl. the
+   `sidecars` array and the `singbox` object.
    ============================================================ */
 
 async function startXrayFromSettings(): Promise<{ ok: true; driver: XrayDriver } | { ok: false; reason: string }> {
@@ -71,6 +73,8 @@ export async function POST(req: Request) {
   try {
     // Task 23-e — the hysteria2 sidecars ride along with every core action
     const sidecars = getSidecarManager();
+    // Task 23-c — so does the secondary sing-box core (hy2 + tuic)
+    const singbox = getSingboxDriver();
     if (action === "stop") {
       if (backend.kind === "xray") {
         await backend.stop();
@@ -80,6 +84,7 @@ export async function POST(req: Request) {
         message = "sim_no_stop";
       }
       if (sidecars) await sidecars.stopAll().catch(() => undefined);
+      if (singbox) await singbox.stop().catch(() => undefined);
     } else if (action === "start") {
       let coreMsg = "";
       let coreOk = true;
@@ -115,13 +120,33 @@ export async function POST(req: Request) {
           sidecarErr = err instanceof Error ? err.message : String(err);
         }
       }
+      // Task 23-c — the sing-box core starts only under the real driver;
+      // idle gates (sim / no hy2+tuic inbounds / disabled) resolve to no-ops
+      let singboxErr = "";
+      if (singbox) {
+        try {
+          await singbox.start();
+        } catch (err) {
+          singboxErr = err instanceof Error ? err.message : String(err);
+        }
+      }
       if (coreOk) {
         ok = true;
-        message = sidecarErr ? `core ${coreMsg}; sidecar error: ${sidecarErr}` : coreMsg;
+        message = [sidecarErr && `sidecar error: ${sidecarErr}`, singboxErr && `singbox error: ${singboxErr}`]
+          .filter(Boolean)
+          .join("; ")
+          ? `core ${coreMsg}; ${[sidecarErr && `sidecar error: ${sidecarErr}`, singboxErr && `singbox error: ${singboxErr}`]
+              .filter(Boolean)
+              .join("; ")}`
+          : coreMsg;
       } else {
-        ok = sidecarErr === "" && sidecars !== null; // sidecars may still have started
-        message = sidecarErr
-          ? `core ${coreMsg}; sidecar error: ${sidecarErr}`
+        ok = sidecarErr === "" && singboxErr === "" && sidecars !== null; // sidecars may still have started
+        message = [sidecarErr && `sidecar error: ${sidecarErr}`, singboxErr && `singbox error: ${singboxErr}`]
+          .filter(Boolean)
+          .join("; ")
+          ? `core ${coreMsg}; ${[sidecarErr && `sidecar error: ${sidecarErr}`, singboxErr && `singbox error: ${singboxErr}`]
+              .filter(Boolean)
+              .join("; ")}`
           : `core ${coreMsg}; sidecars ok`;
       }
     } else if (action === "restart") {
@@ -157,13 +182,31 @@ export async function POST(req: Request) {
           sidecarErr = err instanceof Error ? err.message : String(err);
         }
       }
+      let singboxErr = "";
+      if (singbox) {
+        try {
+          await singbox.restart();
+        } catch (err) {
+          singboxErr = err instanceof Error ? err.message : String(err);
+        }
+      }
       if (coreOk) {
         ok = true;
-        message = sidecarErr ? `core ${coreMsg}; sidecar error: ${sidecarErr}` : coreMsg;
+        message = [sidecarErr && `sidecar error: ${sidecarErr}`, singboxErr && `singbox error: ${singboxErr}`]
+          .filter(Boolean)
+          .join("; ")
+          ? `core ${coreMsg}; ${[sidecarErr && `sidecar error: ${sidecarErr}`, singboxErr && `singbox error: ${singboxErr}`]
+              .filter(Boolean)
+              .join("; ")}`
+          : coreMsg;
       } else {
-        ok = sidecarErr === "" && sidecars !== null;
-        message = sidecarErr
-          ? `core ${coreMsg}; sidecar error: ${sidecarErr}`
+        ok = sidecarErr === "" && singboxErr === "" && sidecars !== null;
+        message = [sidecarErr && `sidecar error: ${sidecarErr}`, singboxErr && `singbox error: ${singboxErr}`]
+          .filter(Boolean)
+          .join("; ")
+          ? `core ${coreMsg}; ${[sidecarErr && `sidecar error: ${sidecarErr}`, singboxErr && `singbox error: ${singboxErr}`]
+              .filter(Boolean)
+              .join("; ")}`
           : `core ${coreMsg}; sidecars ok`;
       }
     } else if (action === "reload") {
@@ -184,13 +227,31 @@ export async function POST(req: Request) {
           sidecarErr = err instanceof Error ? err.message : String(err);
         }
       }
+      let singboxErr = "";
+      if (singbox) {
+        try {
+          await singbox.reload();
+        } catch (err) {
+          singboxErr = err instanceof Error ? err.message : String(err);
+        }
+      }
       if (coreOk) {
         ok = true;
-        message = sidecarErr ? `core ${coreMsg}; sidecar error: ${sidecarErr}` : coreMsg;
+        message = [sidecarErr && `sidecar error: ${sidecarErr}`, singboxErr && `singbox error: ${singboxErr}`]
+          .filter(Boolean)
+          .join("; ")
+          ? `core ${coreMsg}; ${[sidecarErr && `sidecar error: ${sidecarErr}`, singboxErr && `singbox error: ${singboxErr}`]
+              .filter(Boolean)
+              .join("; ")}`
+          : coreMsg;
       } else {
-        ok = sidecarErr === "" && sidecars !== null;
-        message = sidecarErr
-          ? `core ${coreMsg}; sidecar error: ${sidecarErr}`
+        ok = sidecarErr === "" && singboxErr === "" && sidecars !== null;
+        message = [sidecarErr && `sidecar error: ${sidecarErr}`, singboxErr && `singbox error: ${singboxErr}`]
+          .filter(Boolean)
+          .join("; ")
+          ? `core ${coreMsg}; ${[sidecarErr && `sidecar error: ${sidecarErr}`, singboxErr && `singbox error: ${singboxErr}`]
+              .filter(Boolean)
+              .join("; ")}`
           : `core ${coreMsg}; sidecars ok`;
       }
     }
@@ -210,6 +271,7 @@ export async function POST(req: Request) {
   const status = getActiveBackend()?.status();
   const fb = isFallbackActive();
   const sidecarList = getSidecarManager()?.statusList() ?? null;
+  const singboxStatus = getSingboxDriver()?.status() ?? null;
   return NextResponse.json({
     ok,
     message,
@@ -219,7 +281,9 @@ export async function POST(req: Request) {
           fallbackActive: fb.active,
           fallbackReason: fb.reason,
           ...(sidecarList ? { sidecars: sidecarList } : {}),
+          ...(singboxStatus ? { singbox: singboxStatus } : {}),
         }
       : null,
+    singbox: singboxStatus,
   });
 }

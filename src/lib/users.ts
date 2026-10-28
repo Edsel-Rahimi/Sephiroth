@@ -90,6 +90,14 @@ export function genKey(protocol: string): string {
     case "vless":
     case "vmess":
       return randomUUID();
+    case "tuic": {
+      // Task 23-c — TUIC v5 needs uuid + password; the store carries the wire
+      // composite "uuid:password" (the exact form the tuic:// URI splits on)
+      let pw = "";
+      const bytes = randomBytes(28);
+      for (let i = 0; i < 28; i++) pw += PW_ALPHABET[bytes[i] % PW_ALPHABET.length];
+      return `${randomUUID()}:${pw}`;
+    }
     case "trojan":
     case "shadowsocks":
     case "hysteria2":

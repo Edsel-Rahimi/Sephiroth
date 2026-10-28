@@ -11,12 +11,15 @@ import type { ActivityEvent } from "./mini-services/core-sim/types";
 import { SimBackend } from "./src/lib/core/sim-backend";
 import { XrayDriver } from "./src/lib/core/xray";
 import { SidecarManager } from "./src/lib/core/sidecars"; // Task 23-e — hysteria2 sidecar engines
+import { SingboxDriver } from "./src/lib/core/singbox"; // Task 23-c — secondary sing-box core (hy2 + tuic)
 import type { CoreBackend } from "./src/lib/core/types";
 import {
   getActiveBackend,
   getSidecarManager,
+  getSingboxDriver,
   setActiveBackend,
   setSidecarManager,
+  setSingboxDriver,
   swapBackend,
 } from "./src/lib/core/registry";
 import { ensureSeed } from "./src/lib/auth";
@@ -82,6 +85,12 @@ import * as apiSystemUpdateStatus from "./src/app/api/system/update-status/route
 import * as apiTelegramBotAction from "./src/app/api/telegram/bot-action/route";
 import * as apiTelegramBotStatus from "./src/app/api/telegram/bot-status/route";
 import { salesWorkerBoot, salesWorkerShutdown } from "./src/lib/bot/sales-worker"; // Task 23-c — Sephiroth Sales Bot worker
+import {
+  notifyPanelRestarted,
+  notifyQuotaCapped,
+  notifyTrafficReset,
+  notifyUserExpired,
+} from "./src/lib/bot/notify"; // Task 23-a — bot notifications
 import { runSslRenewalTick } from "./src/lib/acme"; // Task 23-f — daily ACME renewal watcher
 import * as apiSystemSsl from "./src/app/api/system/ssl/route";
 import * as apiSystemSslInstall from "./src/app/api/system/ssl-install-acme/route";
@@ -192,8 +201,21 @@ async function runPeriodicUserMaintenance(): Promise<void> {
             message: `User "${user.username}" expired and was disabled by maintenance`,
             meta: { userId: user.id, username: user.username, reason: "expired" },
           });
+          void notifyUserExpired(user.username); // Task 23-a — bot alert (deduped)
           continue;
         }
+      }
+
+      // 1b) quota-cap WATCH (23-a) — alert admins when an enabled user is at
+      // or beyond their traffic limit (enforcement stays with the core;
+      // this is the notification hook the bot spec asks for, deduped).
+      if (
+        user.enabled &&
+        user.trafficLimitGb !== null &&
+        (Number(user.usedTrafficGb) || 0) >= user.trafficLimitGb &&
+        user.trafficLimitGb > 0
+      ) {
+        void notifyQuotaCapped(user.username, Number(user.usedTrafficGb) || 0, user.trafficLimitGb);
       }
 
       // 2) traffic counter reset by period (daily=1d, weekly=7d,
@@ -228,6 +250,7 @@ async function runPeriodicUserMaintenance(): Promise<void> {
               message: `Traffic counter reset for "${user.username}" (${period})`,
               meta: { userId: user.id, username: user.username, period },
             });
+            void notifyTrafficReset(user.username, period); // Task 23-a — bot alert (deduped)
           }
         }
       }
@@ -412,6 +435,33 @@ async function startServer() {
       );
   }, 2_000);
 
+  // Task 23-c — secondary sing-box core. Serves the hysteria2 + tuic inbounds
+  // the Xray core cannot, as ONE process next to it (driver=xray only; the
+  // sidecars above stand down for hysteria2 while this is active). The 2s
+  // mirror loop hash-diffs the store and restarts the core only on change.
+  const singboxDriver = new SingboxDriver({
+    statsIntervalMs: coreSettings.statsInterval * 1000,
+  });
+  setSingboxDriver(singboxDriver);
+  singboxDriver.onEvent = emitEvent;
+  setTimeout(() => {
+    void singboxDriver
+      .start()
+      .then(() => {
+        const st = getSingboxDriver()?.status();
+        if (st?.running) {
+          console.log(
+            `[singbox] secondary core running v${st.version} (udp ${st.ports.join("+")}, api :${st.apiPort})`
+          );
+        } else if (st?.idleReason) {
+          console.log(`[singbox] ${st.idleReason}`);
+        }
+      })
+      .catch((err) =>
+        console.warn("[singbox] start failed:", err instanceof Error ? err.message : err)
+      );
+  }, 4_000);
+
   io.on("connection", (socket) => {
     socket.emit("core:init", activeCore().snapshot());
   });
@@ -440,6 +490,8 @@ async function startServer() {
       const events = activeCore().mirrorDb();
       // Task 23-e — sidecars hash-diff the same store changes
       sidecarManager.mirrorDb();
+      // Task 23-c — the sing-box core hash-diffs the same store changes
+      singboxDriver.mirrorDb();
       if (events.length > 0) {
         io.emit("core:inbounds", activeCore().inboundsPayload());
         for (const e of events) emitEvent(e);
@@ -449,12 +501,15 @@ async function startServer() {
     }
   }, 2000);
 
-  // Graceful shutdown — never leave the real xray process or the hysteria
-  // sidecars orphaned.
+  // Graceful shutdown — never leave the real xray process, the hysteria
+  // sidecars or the sing-box core orphaned.
   const shutdownCore = (signal: string): void => {
     console.log(`[sephiroth] ${signal} received — stopping core…`);
     salesWorkerShutdown(); // Task 23-c — stop the sales bot long-poll first
     void getSidecarManager()
+      ?.dispose()
+      .catch(() => undefined);
+    void getSingboxDriver()
       ?.dispose()
       .catch(() => undefined);
     const backend = getActiveBackend();
@@ -495,6 +550,8 @@ async function startServer() {
     void salesWorkerBoot().catch((err) =>
       console.warn("[sephiroth] sales worker boot failed:", err)
     );
+    // Task 23-a — “panel restarted” notification (notify+sales modes, deduped)
+    void notifyPanelRestarted(appVersion()).catch(() => {});
   }, 3_000);
 
   // Serve static dist in production (or whenever a built dist/ exists),

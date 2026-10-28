@@ -4,10 +4,11 @@ import { getTelegramSettings } from "@/lib/settings";
 import { getSalesWorkerStatus } from "@/lib/bot/sales-worker";
 
 /* ============================================================
-   Sephiroth · Task 23-c — Sales worker status (admin)
+   Sephiroth · Task 23-c/23-a — Bot worker status (admin)
    GET /api/telegram/bot-status →
-   { mode, running, lastPollAt, handledUpdates, errors, lastError }
-   Polled by the Settings → Telegram card for the live badge.
+   { mode, running, lastPollAt, handledUpdates, errors, lastError,
+     adminChatIds, tokenConfigured, botLang, salesPayMode }
+   Polled by the Settings → Telegram Bot card for the live pill.
    ============================================================ */
 
 export async function GET(req: Request) {
@@ -19,7 +20,8 @@ export async function GET(req: Request) {
     const tg = await getTelegramSettings();
     const status = getSalesWorkerStatus();
     return NextResponse.json({
-      mode: status.mode === "sales" || tg.botMode === "sales" ? "sales" : "console",
+      // the worker snapshots its mode on start; when idle, echo the saved one
+      mode: status.running ? status.mode : tg.botMode,
       running: status.running,
       startedAt: status.startedAt,
       lastPollAt: status.lastPollAt,
@@ -28,6 +30,8 @@ export async function GET(req: Request) {
       lastError: status.lastError,
       adminChatIds: tg.adminChatIds.length,
       tokenConfigured: tg.tokenConfigured,
+      botLang: tg.botLang,
+      salesPayMode: tg.salesPayMode,
     });
   } catch (err) {
     console.error("[telegram:bot-status]", err);

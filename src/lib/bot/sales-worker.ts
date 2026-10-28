@@ -1,12 +1,18 @@
-import { db, type TgOrder, type TgUser } from "@/lib/db";
+import { db, type ClientUser, type TgOrder, type TgUser } from "@/lib/db";
 import {
+  appVersion,
+  getBotOffset,
+  getCoreSettings,
   getGeneralSettings,
   getPaymentSettings,
   getTelegramSettings,
   getTelegramToken,
+  saveBotOffset,
 } from "@/lib/settings";
 import { logActivity } from "@/lib/activity";
+import { syncUserProjection } from "@/lib/user-sync";
 import { buildBackupPayload } from "@/app/api/settings/backup/route";
+import { coreStatusPayload } from "@/lib/core/registry";
 import { ProxyAgent, fetch as undiciFetch } from "undici";
 import {
   answerCallbackQuery,
@@ -15,6 +21,7 @@ import {
   sendDocument,
   sendMessage,
   sendPhoto,
+  setTgApiBase,
   tgApiBase,
   tgCall,
   type InlineKeyboard,
@@ -26,6 +33,7 @@ import {
   transitionOrder,
 } from "@/lib/bot/orders";
 import {
+  BOT_LANG_LABELS,
   botTexts,
   fmt,
   fmtDays,
@@ -36,7 +44,7 @@ import {
 import { zarinpalRequest, zarinpalStartPayUrl, zarinpalVerify } from "@/lib/bot/zarinpal";
 
 /* ============================================================
-   Sephiroth · Task 23-c — Sephiroth Sales Bot v1 (Phase-1 MVP)
+   Sephiroth · Task 23-c/23-a — Sephiroth Bot worker (Phase-1 MVP)
 
    In-process long-poll worker (design doc §E). Zero external
    services: the worker calls the same lib functions the API
@@ -44,9 +52,15 @@ import { zarinpalRequest, zarinpalStartPayUrl, zarinpalVerify } from "@/lib/bot/
    buildBackupPayload / logActivity) — no HTTP hop.
 
    Lifecycle: startSalesWorker()/stopSalesWorker() driven by
-   settings (botMode === "sales" + token). single-instance guard,
+   settings (botMode notify|sales + token). single-instance guard,
    sequential getUpdates (1s idle, error backoff 1s→5s→30s),
-   never crashes the panel.
+   offset persisted to the store (survives restarts), never
+   crashes the panel.
+
+   Modes (23-a):
+   • console — legacy test executor only (no worker, no alerts)
+   • notify  — worker: event notifications + admin commands
+   • sales   — worker: everything above + the shop/payment flow
 
    Env overrides (documented, test-only):
    • SEPH_TG_API_BASE   — Bot API base (mock E2E harness)
@@ -57,7 +71,7 @@ import { zarinpalRequest, zarinpalStartPayUrl, zarinpalVerify } from "@/lib/bot/
 /* ---------- status ---------- */
 
 export interface SalesWorkerStatus {
-  mode: "console" | "sales";
+  mode: "console" | "notify" | "sales";
   running: boolean;
   startedAt: string | null;
   lastPollAt: string | null;
@@ -102,12 +116,14 @@ interface WorkerCtx {
   token: string;
   proxyUrl: string;
   adminChatIds: string[];
-  shopLang: BotLang;
+  botLang: BotLang;
   publicHost: string;
   supportUrl: string;
   cardNumber: string;
   cardHolder: string;
   zarinpalMerchant: string;
+  salesTemplateId: string;
+  salesPayMode: "manual" | "zarinpal";
 }
 
 async function loadCtx(): Promise<WorkerCtx> {
@@ -117,16 +133,20 @@ async function loadCtx(): Promise<WorkerCtx> {
     getPaymentSettings(),
   ]);
   const token = await getTelegramToken();
+  // the botApiBase SETTING (23-a) drives every Bot API call
+  setTgApiBase(tg.botApiBase);
   return {
     token,
     proxyUrl: tg.botProxyUrl,
     adminChatIds: tg.adminChatIds,
-    shopLang: tg.shopLang,
+    botLang: tg.botLang as BotLang,
     publicHost: general.publicHost.replace(/\/+$/, ""),
     supportUrl: general.subSupportUrl,
     cardNumber: payment.cardNumber,
     cardHolder: payment.cardHolder,
     zarinpalMerchant: payment.zarinpalMerchant,
+    salesTemplateId: tg.salesTemplateId,
+    salesPayMode: tg.salesPayMode,
   };
 }
 
@@ -135,7 +155,7 @@ async function loadCtx(): Promise<WorkerCtx> {
 let payTimer: ReturnType<typeof setInterval> | null = null;
 let booting = false;
 
-/** Start the worker if settings say sales mode + token present. Safe to call repeatedly. */
+/** Start the worker if settings say notify|sales mode + token present. Safe to call repeatedly. */
 export async function startSalesWorker(): Promise<void> {
   if (status.running || booting) return;
   booting = true;
@@ -143,11 +163,18 @@ export async function startSalesWorker(): Promise<void> {
     const tg = await getTelegramSettings();
     status.mode = tg.botMode;
     const token = await getTelegramToken();
-    if (tg.botMode !== "sales" || !token) return; // console mode or no token → stay idle
+    if (tg.botMode === "console" || !token) return; // console mode or no token → stay idle
     if (tg.adminChatIds.length === 0) {
-      console.warn("[sales-bot] mode=sales but adminChatIds is empty — worker idle");
+      console.warn("[telegram-bot] mode=" + tg.botMode + " but adminChatIds is empty — worker idle");
       return;
     }
+
+    // Bot API base comes from the botApiBase setting (23-a)
+    setTgApiBase(tg.botApiBase);
+
+    // restore the persisted long-poll offset — a restart must never
+    // replay updates that were already handled (23-a)
+    offset = Math.max(offset, await getBotOffset());
 
     status.running = true;
     status.stopRequested = false;
@@ -155,20 +182,20 @@ export async function startSalesWorker(): Promise<void> {
     status.generation += 1;
     const gen = status.generation;
 
-    // officially drop any backlog so a restart never replays old commands
+    // officially drop any webhook backlog so a restart never replays old commands
     try {
       await apiCall(ctx0(token, tg.botProxyUrl), "deleteWebhook", { drop_pending_updates: true });
     } catch {
       /* fine — polling still works */
     }
 
-    console.log("[sales-bot] worker started (generation", gen, ")");
+    console.log("[telegram-bot] worker started (mode", tg.botMode, ", generation", gen, ")");
     void pollLoop(gen);
 
     if (!payTimer) {
       payTimer = setInterval(() => {
         void verifyAwaitingZarinpal().catch((err) =>
-          console.warn("[sales-bot] zarinpal poll error:", err)
+          console.warn("[telegram-bot] zarinpal poll error:", err)
         );
       }, PAY_POLL_MS);
       payTimer.unref?.();
@@ -187,7 +214,9 @@ export function stopSalesWorker(): void {
     clearInterval(payTimer);
     payTimer = null;
   }
-  console.log("[sales-bot] worker stopped");
+  // flush the offset so the next start resumes cleanly
+  void saveBotOffset(offset).catch(() => {});
+  console.log("[telegram-bot] worker stopped");
 }
 
 /** Called after the telegram settings are saved — re-syncs the worker. */
@@ -211,12 +240,14 @@ function ctx0(token: string, proxyUrl: string): WorkerCtx {
     token,
     proxyUrl,
     adminChatIds: [],
-    shopLang: "en",
+    botLang: "fa",
     publicHost: "",
     supportUrl: "",
     cardNumber: "",
     cardHolder: "",
     zarinpalMerchant: "",
+    salesTemplateId: "",
+    salesPayMode: "manual",
   };
 }
 
@@ -239,13 +270,17 @@ async function pollLoop(gen: number): Promise<void> {
         try {
           await handleUpdate(update);
         } catch (err) {
-          console.warn("[sales-bot] update handling error:", err);
+          console.warn("[telegram-bot] update handling error:", err);
         } finally {
           status.handledUpdates += 1;
           if (typeof update.update_id === "number" && update.update_id >= 0) {
             offset = update.update_id + 1;
           }
         }
+      }
+      if (updates.length > 0) {
+        // persist the offset so a crash/restart never replays handled updates
+        await saveBotOffset(offset).catch(() => {});
       }
       await sleep(backoffMs || 1000);
     } catch (err) {
@@ -255,7 +290,7 @@ async function pollLoop(gen: number): Promise<void> {
       // 1s → 5s → 30s → 30s … — never crash the panel
       backoffMs = consecutiveErrors === 1 ? 1000 : consecutiveErrors === 2 ? 5000 : 30_000;
       if (status.running) {
-        console.warn(`[sales-bot] poll error (x${consecutiveErrors}) — retry in ${backoffMs}ms`);
+        console.warn(`[telegram-bot] poll error (x${consecutiveErrors}) — retry in ${backoffMs}ms`);
       }
       await sleep(backoffMs);
     }
@@ -378,7 +413,7 @@ async function handleUpdate(update: TgUpdate): Promise<void> {
   const chatId = String(cb?.message?.chat?.id ?? msg?.chat?.id ?? from.id);
   const isAdmin = ctx.adminChatIds.includes(fromId);
 
-  const [tgUser, isNewTgUser] = await upsertTgUser(from, ctx.shopLang);
+  const [tgUser, isNewTgUser] = await upsertTgUser(from, ctx.botLang);
   if (tgUser.banned && !isAdmin) return; // banned users get nothing at all
 
   if (cb) {
@@ -389,6 +424,20 @@ async function handleUpdate(update: TgUpdate): Promise<void> {
   if (msg) {
     await handleMessage(ctx, msg, fromId, chatId, isAdmin, isNewTgUser);
   }
+}
+
+/* ---------- admin command grammar (23-a) ---------- */
+
+const ADMIN_COMMANDS = new Set(["/admin", "/help", "/status", "/users", "/inbounds", "/user", "/backup_now"]);
+
+function daysLeftFor(u: ClientUser): string {
+  if (u.expiryDays === null || u.expiryDays === undefined) return "∞";
+  const left = Math.ceil((new Date(u.createdAt).getTime() + u.expiryDays * 86_400_000 - Date.now()) / 86_400_000);
+  return String(Math.max(0, left));
+}
+
+function stateMark(u: ClientUser): string {
+  return u.enabled ? "" : " · ⛔";
 }
 
 /* ---------- message handling ---------- */
@@ -402,7 +451,7 @@ async function handleMessage(
   isNewTgUser = false
 ): Promise<void> {
   const tgRow = await db.tgUser.findUnique({ where: { tgId: fromId } });
-  const lang = (tgRow?.lang as BotLang) ?? ctx.shopLang;
+  const lang = ((tgRow?.lang as BotLang) ?? ctx.botLang) as BotLang;
   const t = botTexts(lang);
 
   // receipt photo for a pending card order?
@@ -412,21 +461,47 @@ async function handleMessage(
   }
 
   const text = (msg.text ?? "").trim();
+  const firstToken = text.split(/[\s@]+/, 1)[0] ?? "";
+  const isCommand = firstToken.startsWith("/") && ADMIN_COMMANDS.has(firstToken.split("@")[0] ?? firstToken);
+
+  if (isCommand && !isAdmin) {
+    // polite refusal in the bot language — admin flows are adminChatIds-only
+    await sendMessage(ctx.token, chatId, t.notAuthorized, undefined, { proxyUrl: ctx.proxyUrl });
+    return;
+  }
 
   if (isAdmin) {
-    if (text === "/admin") {
+    if (firstToken === "/admin") {
       await sendAdminDashboard(ctx, chatId, lang);
       return;
     }
-    if (text === "/status") {
-      await sendConsoleParityStatus(ctx, chatId);
+    if (firstToken === "/help") {
+      await sendMessage(ctx.token, chatId, t.help, undefined, { proxyUrl: ctx.proxyUrl });
       return;
     }
-    if (text === "/users") {
-      await sendConsoleParityUsers(ctx, chatId);
+    if (firstToken === "/status") {
+      await sendStatus(ctx, chatId, lang);
       return;
     }
-    if (text === "/backup_now") {
+    if (firstToken === "/users") {
+      const n = Math.min(20, Math.max(1, Number(text.split(/\s+/)[1]) || 5));
+      await sendUsersTop(ctx, chatId, lang, n);
+      return;
+    }
+    if (firstToken === "/inbounds") {
+      await sendInbounds(ctx, chatId, lang);
+      return;
+    }
+    if (firstToken === "/user") {
+      const query = text.slice(firstToken.length).trim();
+      if (!query) {
+        await sendMessage(ctx.token, chatId, t.userQueryHint, undefined, { proxyUrl: ctx.proxyUrl });
+      } else {
+        await sendUserCard(ctx, chatId, lang, query);
+      }
+      return;
+    }
+    if (firstToken === "/backup_now") {
       await sendBackupNow(ctx, chatId);
       return;
     }
@@ -434,14 +509,7 @@ async function handleMessage(
 
   if (text.startsWith("/start")) {
     if (!tgRow || isNewTgUser) { // brand-new user → language picker first (§E)
-      await sendMessage(ctx.token, chatId, t.pickLang, {
-        inline_keyboard: [
-          [
-            { text: "🇮🇷 فارسی", callback_data: "lang:fa" },
-            { text: "🇬🇧 English", callback_data: "lang:en" },
-          ],
-        ],
-      }, { proxyUrl: ctx.proxyUrl });
+      await sendLangPicker(ctx, chatId);
       return;
     }
     await sendMenu(ctx, chatId, lang);
@@ -450,6 +518,17 @@ async function handleMessage(
 
   // any other text → the menu (gentle, no state machine needed)
   await sendMenu(ctx, chatId, lang);
+}
+
+async function sendLangPicker(ctx: WorkerCtx, chatId: string): Promise<void> {
+  const t = botTexts(ctx.botLang);
+  const entries = Object.entries(BOT_LANG_LABELS) as [BotLang, string][];
+  await sendMessage(ctx.token, chatId, t.pickLang, {
+    inline_keyboard: [
+      entries.slice(0, 3).map(([code, label]) => ({ text: label, callback_data: `lang:${code}` })),
+      entries.slice(3).map(([code, label]) => ({ text: label, callback_data: `lang:${code}` })),
+    ],
+  }, { proxyUrl: ctx.proxyUrl });
 }
 
 async function sendMenu(ctx: WorkerCtx, chatId: string, lang: BotLang): Promise<void> {
@@ -474,11 +553,24 @@ async function handleCallback(
   const data = cb.data ?? "";
   const chatId = String(cb.message?.chat?.id ?? fromId);
 
-  // ---- admin-only callbacks ----
+  // ---- admin-only callbacks (checked on EVERY callback — §D hardening) ----
   if (data.startsWith("ok:") || data.startsWith("no:")) {
     if (!isAdmin) return; // silently ignore (already answered)
     const orderId = data.slice(3);
     await adminReviewOrder(ctx, chatId, cb.message?.message_id ?? 0, orderId, data.startsWith("ok:"));
+    return;
+  }
+  if (data.startsWith("useen:") || data.startsWith("usdis:") || data.startsWith("usreset:")) {
+    if (!isAdmin) {
+      const tgRowA = await db.tgUser.findUnique({ where: { tgId: fromId } });
+      const ta = botTexts(((tgRowA?.lang as BotLang) ?? ctx.botLang) as BotLang);
+      await answerCallbackQuery(ctx.token, cb.id, ta.notAuthorized, { proxyUrl: ctx.proxyUrl }).catch(() => {});
+      return;
+    }
+    const sep = data.indexOf(":");
+    const action = data.slice(0, sep); // "useen" | "usdis" | "usreset"
+    const userId = data.slice(sep + 1);
+    await adminUserAction(ctx, cb, chatId, action, userId);
     return;
   }
   if (data.startsWith("noop:")) {
@@ -486,11 +578,12 @@ async function handleCallback(
   }
 
   const tgRow = await db.tgUser.findUnique({ where: { tgId: fromId } });
-  const lang = (tgRow?.lang as BotLang) ?? ctx.shopLang;
+  const lang = ((tgRow?.lang as BotLang) ?? ctx.botLang) as BotLang;
   const t = botTexts(lang);
 
   if (data.startsWith("lang:")) {
-    const next = data.slice(5) === "fa" ? "fa" : "en";
+    const code = data.slice(5);
+    const next = (Object.keys(BOT_LANG_LABELS) as BotLang[]).includes(code as BotLang) ? (code as BotLang) : "fa";
     await db.tgUser.update({ where: { tgId: fromId }, data: { lang: next } });
     await sendMenu(ctx, chatId, next);
     return;
@@ -537,16 +630,20 @@ async function handleCallback(
 
 /* ---------- shop ---------- */
 
-async function shopTemplates() {
-  return db.saleTemplate.findMany({
-    where: { enabled: true, botVisible: true },
-    orderBy: { createdAt: "asc" },
-  });
+async function shopTemplates(ctx: WorkerCtx) {
+  // 23-a — an admin-pinned salesTemplateId shows ONLY that template;
+  // empty = the whole active catalog. A stale pin falls back to the catalog.
+  const where = { enabled: true, botVisible: true };
+  if (ctx.salesTemplateId) {
+    const pinned = await db.saleTemplate.findFirst({ where: { ...where, id: ctx.salesTemplateId } });
+    if (pinned) return [pinned];
+  }
+  return db.saleTemplate.findMany({ where, orderBy: { createdAt: "asc" } });
 }
 
 async function sendShop(ctx: WorkerCtx, chatId: string, lang: BotLang): Promise<void> {
   const t = botTexts(lang);
-  const templates = await shopTemplates();
+  const templates = await shopTemplates(ctx);
   if (templates.length === 0) {
     await sendMessage(ctx.token, chatId, t.shopEmpty, menuBackKeyboard(t.backMenu), { proxyUrl: ctx.proxyUrl });
     return;
@@ -603,15 +700,24 @@ async function sendTemplateDetail(
       ],
     };
   } else {
-    keyboard = {
-      inline_keyboard: [
-        [
-          { text: t.payZarin, callback_data: `pay:${tpl.id}:z` },
-          { text: t.payCard, callback_data: `pay:${tpl.id}:c` },
-        ],
-        [{ text: t.backMenu, callback_data: "menu" }],
-      ],
-    };
+    // 23-a — the salesPayMode setting leads the flow:
+    //   manual    → card-to-card only
+    //   zarinpal  → ZarinPal button (+ card stays available as the
+    //               manual fallback the spec requires)
+    const zarinReady = ctx.salesPayMode === "zarinpal" && Boolean(ctx.zarinpalMerchant);
+    const rows: { text: string; callback_data: string }[][] = [];
+    if (zarinReady && ctx.cardNumber && ctx.cardHolder) {
+      rows.push([
+        { text: t.payZarin, callback_data: `pay:${tpl.id}:z` },
+        { text: t.payCard, callback_data: `pay:${tpl.id}:c` },
+      ]);
+    } else if (zarinReady) {
+      rows.push([{ text: t.payZarin, callback_data: `pay:${tpl.id}:z` }]);
+    } else {
+      rows.push([{ text: t.payCard, callback_data: `pay:${tpl.id}:c` }]);
+    }
+    rows.push([{ text: t.backMenu, callback_data: "menu" }]);
+    keyboard = { inline_keyboard: rows };
   }
   await sendMessage(ctx.token, chatId, `${fmt(t.payPicker, { name: tpl.name, price })}\n\n${text}`, keyboard, { proxyUrl: ctx.proxyUrl });
 }
@@ -788,7 +894,7 @@ async function provisionAndDeliverClaimed(ctx: WorkerCtx, order: TgOrder): Promi
   const template = await db.saleTemplate.findUnique({ where: { id: order.templateId } });
   const user = await provisionOrderUser(order, template);
   const langRow = await db.tgUser.findUnique({ where: { tgId: order.tgId } });
-  const lang = (langRow?.lang as BotLang) ?? ctx.shopLang;
+  const lang = ((langRow?.lang as BotLang) ?? ctx.botLang) as BotLang;
   const t = botTexts(lang);
 
   const subPath = `/sub/${user.subId}`;
@@ -931,7 +1037,7 @@ async function adminReviewOrder(
     if (res.ok) {
       await logOrderEvent(res.order, "rejected", "admin reject");
       const langRow = await db.tgUser.findUnique({ where: { tgId: res.order.tgId } });
-      const t = botTexts((langRow?.lang as BotLang) ?? ctx.shopLang);
+      const t = botTexts(((langRow?.lang as BotLang) ?? ctx.botLang) as BotLang);
       await sendMessage(ctx.token, res.order.tgId, t.rejected, undefined, { proxyUrl: ctx.proxyUrl }).catch(() => {});
       await notifyAdmins(ctx, `❌ Order <code>${orderId.slice(-6)}</code> rejected.`);
       await editMessageText(
@@ -998,48 +1104,187 @@ async function sendAdminDashboard(ctx: WorkerCtx, chatId: string, _lang: BotLang
   }
 }
 
-/* ---------- console-command parity (same libs, no HTTP) ---------- */
+/* ---------- admin commands (23-a — same libs, no HTTP) ---------- */
 
-async function sendConsoleParityStatus(ctx: WorkerCtx, chatId: string): Promise<void> {
-  const [inbounds, users] = await Promise.all([db.inbound.findMany(), db.clientUser.findMany()]);
-  const enabled = users.filter((u) => u.enabled).length;
-  const totalTraffic = users.reduce((acc, u) => acc + (Number(u.usedTrafficGb) || 0), 0);
-  await sendMessage(
-    ctx.token,
-    chatId,
-    [
-      "🛰 <b>Sephiroth · System Telemetry</b>",
-      `• Active Inbounds: ${inbounds.filter((i) => i.status === "online").length} / ${inbounds.length}`,
-      `• Users: ${enabled} enabled / ${users.length} total`,
-      `• Total Consumed Traffic: ${totalTraffic.toFixed(2)} GB`,
-      `• Panel Uptime: ${Math.floor(process.uptime() / 60)}m`,
-    ].join("\n"),
-    undefined,
-    { proxyUrl: ctx.proxyUrl }
-  );
+function fmtUptime(seconds: number): string {
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  return d > 0 ? `${d}d ${h}h ${m}m` : h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
-async function sendConsoleParityUsers(ctx: WorkerCtx, chatId: string): Promise<void> {
+async function sendStatus(ctx: WorkerCtx, chatId: string, lang: BotLang): Promise<void> {
+  const t = botTexts(lang);
+  const [inbounds, users, core] = await Promise.all([
+    db.inbound.findMany(),
+    db.clientUser.findMany(),
+    getCoreSettings(),
+  ]);
+  const coreStatus = coreStatusPayload();
+  const coreName = core.driver === "simulator" ? "simulator" : `Xray API ${core.apiHost}:${core.apiPort}`;
+  const coreRunning = coreStatus ? (coreStatus.running ? "running" : "stopped") : "stopped";
+  const totalTraffic = users.reduce((acc, u) => acc + (Number(u.usedTrafficGb) || 0), 0);
+  const lines = [
+    t.stTitle,
+    fmt(t.stVersion, { ver: appVersion() }),
+    fmt(t.stCore, { core: coreName, status: coreRunning }),
+    fmt(t.stInbounds, { online: inbounds.filter((i) => i.status === "online").length, total: inbounds.length }),
+    fmt(t.stUsers, { enabled: users.filter((u) => u.enabled).length, total: users.length }),
+    fmt(t.stTraffic, { gb: totalTraffic.toFixed(2) }),
+    fmt(t.stUptime, { up: fmtUptime(process.uptime()) }),
+  ];
+  await sendMessage(ctx.token, chatId, lines.join("\n"), undefined, { proxyUrl: ctx.proxyUrl });
+}
+
+async function sendUsersTop(ctx: WorkerCtx, chatId: string, lang: BotLang, n: number): Promise<void> {
+  const t = botTexts(lang);
   const users = await db.clientUser.findMany();
   const top = [...users]
     .sort((a, b) => (Number(b.usedTrafficGb) || 0) - (Number(a.usedTrafficGb) || 0))
-    .slice(0, 5);
-  await sendMessage(
-    ctx.token,
-    chatId,
-    [
-      "👥 <b>Top Users &amp; Quota Report</b>",
-      ...(top.length
-        ? top.map(
-            (u, i) =>
-              `${i + 1}. <code>${u.username}</code> — ${(Number(u.usedTrafficGb) || 0).toFixed(1)} / ${u.trafficLimitGb ?? "∞"} GB (${u.enabled ? "Active" : "Disabled"})`
-          )
-        : ["No users created yet."]),
-    ].join("\n"),
-    undefined,
-    { proxyUrl: ctx.proxyUrl }
-  );
+    .slice(0, Math.max(1, Math.min(20, n)));
+  if (top.length === 0) {
+    await sendMessage(ctx.token, chatId, t.usersEmpty, undefined, { proxyUrl: ctx.proxyUrl });
+    return;
+  }
+  const lines = [
+    t.usersTitle,
+    ...top.map((u, i) =>
+      fmt(t.usersLine, {
+        n: i + 1,
+        user: u.username,
+        used: (Number(u.usedTrafficGb) || 0).toFixed(1),
+        limit: fmtGb(u.trafficLimitGb),
+        days: daysLeftFor(u),
+        state: stateMark(u),
+      })
+    ),
+  ];
+  await sendMessage(ctx.token, chatId, lines.join("\n"), undefined, { proxyUrl: ctx.proxyUrl });
 }
+
+async function sendInbounds(ctx: WorkerCtx, chatId: string, lang: BotLang): Promise<void> {
+  const t = botTexts(lang);
+  const inbounds = await db.inbound.findMany({ orderBy: { createdAt: "asc" } });
+  if (inbounds.length === 0) {
+    await sendMessage(ctx.token, chatId, t.inbEmpty, undefined, { proxyUrl: ctx.proxyUrl });
+    return;
+  }
+  const lines = [
+    t.inbTitle,
+    ...inbounds.slice(0, 15).map((i) => {
+      let clients = 0;
+      try {
+        clients = (JSON.parse(i.clientsJson) as unknown[]).length;
+      } catch {
+        clients = 0;
+      }
+      return fmt(t.inbLine, {
+        tag: i.tag,
+        proto: i.protocol,
+        port: i.port,
+        status: i.status,
+        clients,
+      });
+    }),
+  ];
+  await sendMessage(ctx.token, chatId, lines.join("\n"), undefined, { proxyUrl: ctx.proxyUrl });
+}
+
+async function sendUserCard(ctx: WorkerCtx, chatId: string, lang: BotLang, query: string): Promise<void> {
+  const t = botTexts(lang);
+  const q = query.toLowerCase();
+  const user = await db.clientUser.findFirst({
+    where: {
+      OR: [{ username: query }, { username: { contains: q } }],
+    },
+  });
+  if (!user) {
+    await sendMessage(ctx.token, chatId, t.userNotFound, undefined, { proxyUrl: ctx.proxyUrl });
+    return;
+  }
+  const status = user.enabled ? (daysLeftFor(user) === "0" ? "expired" : "active") : "disabled";
+  const text = fmt(t.userCard, {
+    user: user.username,
+    status,
+    used: (Number(user.usedTrafficGb) || 0).toFixed(1),
+    limit: fmtGb(user.trafficLimitGb),
+    days: daysLeftFor(user),
+    ip: user.ipLimit === 0 ? "∞" : String(user.ipLimit),
+  });
+  const keyboard: InlineKeyboard = {
+    inline_keyboard: [
+      [
+        user.enabled
+          ? { text: t.btnDisable, callback_data: `usdis:${user.id}` }
+          : { text: t.btnEnable, callback_data: `useen:${user.id}` },
+        { text: t.btnReset, callback_data: `usreset:${user.id}` },
+      ],
+    ],
+  };
+  await sendMessage(ctx.token, chatId, text, keyboard, { proxyUrl: ctx.proxyUrl });
+}
+
+/**
+ * Inline enable/disable/reset-traffic with an answerCallbackQuery
+ * confirmation toast + refreshed card (23-a). The action re-checks
+ * admin membership via the caller — callback_data can never be
+ * replayed by a non-admin (§D hardening).
+ */
+async function adminUserAction(
+  ctx: WorkerCtx,
+  cb: TgCallback,
+  chatId: string,
+  action: string,
+  userId: string
+): Promise<void> {
+  const tgRow = await db.tgUser.findUnique({ where: { tgId: cb.from.id ? String(cb.from.id) : "" } });
+  const lang = ((tgRow?.lang as BotLang) ?? ctx.botLang) as BotLang;
+  const t = botTexts(lang);
+  const user = await db.clientUser.findUnique({ where: { id: userId } });
+  if (!user) {
+    await answerCallbackQuery(ctx.token, cb.id, t.userNotFound, { proxyUrl: ctx.proxyUrl }).catch(() => {});
+    return;
+  }
+
+  if (action === "useen" || action === "usdis") {
+    const enabled = action === "useen";
+    await db.clientUser.update({ where: { id: user.id }, data: { enabled } });
+    await syncUserProjection(user.id, {
+      ipLimit: user.ipLimit,
+      trafficLimitGb: user.trafficLimitGb,
+      expiryDays: user.expiryDays,
+      enabled,
+    });
+    await logActivity({
+      kind: "user.updated",
+      level: enabled ? "success" : "warn",
+      actor: "telegram-bot",
+      message: `Telegram bot ${enabled ? "enabled" : "disabled"} user "${user.username}"`,
+      meta: { userId: user.id, username: user.username },
+    });
+    const toast = fmt(enabled ? t.doneEnable : t.doneDisable, { user: user.username });
+    await answerCallbackQuery(ctx.token, cb.id, toast, { proxyUrl: ctx.proxyUrl }).catch(() => {});
+    await sendMessage(ctx.token, chatId, `✅ ${toast}`, undefined, { proxyUrl: ctx.proxyUrl }).catch(() => {});
+    return;
+  }
+
+  if (action === "usreset") {
+    await db.clientUser.update({ where: { id: user.id }, data: { usedTrafficGb: 0 } });
+    await logActivity({
+      kind: "user.updated",
+      level: "info",
+      actor: "telegram-bot",
+      message: `Telegram bot reset traffic for "${user.username}"`,
+      meta: { userId: user.id, username: user.username },
+    });
+    const toast = fmt(t.doneReset, { user: user.username });
+    await answerCallbackQuery(ctx.token, cb.id, toast, { proxyUrl: ctx.proxyUrl }).catch(() => {});
+    await sendMessage(ctx.token, chatId, `♻️ ${toast}`, undefined, { proxyUrl: ctx.proxyUrl }).catch(() => {});
+    return;
+  }
+}
+
+/* ---------- backup delivery ---------- */
 
 async function sendBackupNow(ctx: WorkerCtx, chatId: string): Promise<void> {
   // buildBackupPayload EXCLUDES the bot token (Task 23-c) — safe to send

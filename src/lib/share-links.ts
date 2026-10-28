@@ -1,7 +1,7 @@
 /* ============================================================
    Sephiroth · Phase 5+ — Isomorphic Share-Link & Client Config Builders
    Supports:
-   - Standard URI schemes (vless://, vmess://, trojan://, ss://, hy2://, wireguard://, socks://, http://)
+   - Standard URI schemes (vless://, vmess://, trojan://, ss://, hy2://, tuic://, wireguard://, socks://, http://)
    - WireGuard .conf generator
    - Clash Meta (Mihomo) full YAML profile generator
    - Sing-Box 1.10+ full JSON profile generator
@@ -90,7 +90,18 @@ const KEY_FALLBACK: Record<string, string> = {
   trojan: "password",
   shadowsocks: "password",
   hysteria2: "password",
+  tuic: "00000000-0000-0000-0000-000000000000:password",
 };
+
+/**
+ * TUIC client keys are the wire composite "uuid:password" (exactly how the
+ * tuic:// URI carries them) — split on the FIRST colon for the outbound.
+ */
+function splitTuicKey(key: string): { uuid: string; password: string } {
+  const sep = key.indexOf(":");
+  if (sep <= 0) return { uuid: "", password: key };
+  return { uuid: key.slice(0, sep), password: key.slice(sep + 1) };
+}
 
 /**
  * Telegram-native SOCKS5 proxy links. Telegram clients do NOT understand
@@ -209,10 +220,26 @@ export function buildShareLink(
         q.set("obfs", "salamander");
         q.set("obfs-password", String(st.obfsPassword));
       }
-      if (typeof st.upMbps === "number" && st.upMbps > 0) q.set("upmbps", String(st.upMbps));
-      if (typeof st.downMbps === "number" && st.downMbps > 0) q.set("downmbps", String(st.downMbps));
+      // up/down travel as numbers from the API but as STRINGS through the
+      // Forge's dtoToForm preview path — accept both
+      const up = Number(st.upMbps);
+      const down = Number(st.downMbps);
+      if (Number.isFinite(up) && up > 0) q.set("upmbps", String(up));
+      if (Number.isFinite(down) && down > 0) q.set("downmbps", String(down));
       if (st.allowInsecure === true || row.security === "none") q.set("insecure", "1");
       return `hy2://${encodeURIComponent(key)}@${host}:${port}?${q.toString()}#${encodeURIComponent(label)}`;
+    }
+    case "tuic": {
+      // TUIC v5 share convention (v2rayN/NekoBox/Hiddify):
+      // tuic://uuid:password@host:port?congestion_control=&alpn=&sni=&allow_insecure=
+      const { uuid, password } = splitTuicKey(first?.key || KEY_FALLBACK.tuic);
+      const cc = String(st.tuicCongestion || "bbr");
+      if (cc) q.set("congestion_control", cc);
+      const alpn = String(st.alpn || "h3").split(",").map((s) => s.trim()).filter(Boolean);
+      if (alpn.length > 0) q.set("alpn", alpn.join(","));
+      if (st.sni) q.set("sni", String(st.sni));
+      if (st.allowInsecure === true || row.security === "none") q.set("allow_insecure", "1");
+      return `tuic://${encodeURIComponent(uuid)}:${encodeURIComponent(password)}@${host}:${port}?${q.toString()}#${encodeURIComponent(label)}`;
     }
     case "wireguard": {
       // the CLIENT private key (never the server/inbound secret)
@@ -427,12 +454,33 @@ export function buildClashMetaYaml(
       if (st.obfsPassword) {
         proxyLines.push(`    obfs: salamander`, `    obfs-password: "${String(st.obfsPassword)}"`);
       }
-      if (typeof st.upMbps === "number" && st.upMbps > 0) {
-        proxyLines.push(`    up: "${st.upMbps} Mbps"`);
+      const upNum = Number(st.upMbps);
+      const downNum = Number(st.downMbps);
+      if (Number.isFinite(upNum) && upNum > 0) {
+        proxyLines.push(`    up: "${upNum} Mbps"`);
       }
-      if (typeof st.downMbps === "number" && st.downMbps > 0) {
-        proxyLines.push(`    down: "${st.downMbps} Mbps"`);
+      if (Number.isFinite(downNum) && downNum > 0) {
+        proxyLines.push(`    down: "${downNum} Mbps"`);
       }
+    } else if (item.protocol === "tuic") {
+      // mihomo tuic v5 proxy (uuid + password, congestion-controller, alpn)
+      const { uuid, password } = splitTuicKey(item.key || KEY_FALLBACK.tuic);
+      proxyNames.push(name);
+      proxyLines.push(
+        `  - name: "${name}"`,
+        `    type: tuic`,
+        `    server: ${host}`,
+        `    port: ${item.port}`,
+        `    uuid: ${uuid || KEY_FALLBACK.tuic.split(":")[0]}`,
+        `    password: "${password}"`,
+        `    sni: ${sni}`,
+        `    udp: true`,
+        `    congestion-controller: ${String(st.tuicCongestion || "bbr")}`,
+        `    alpn:`,
+        `      - ${String(st.alpn || "h3").split(",")[0]?.trim() || "h3"}`,
+        `    disable-sni: false`,
+        `    skip-cert-verify: ${Boolean(st.allowInsecure)}`
+      );
     }
   });
 
@@ -605,14 +653,36 @@ export function buildSingboxJson(
         ...(st.obfsPassword
           ? { obfs: { type: "salamander", password: String(st.obfsPassword) } }
           : {}),
-        ...(typeof st.upMbps === "number" && st.upMbps > 0 ? { up_mbps: st.upMbps } : {}),
-        ...(typeof st.downMbps === "number" && st.downMbps > 0
-          ? { down_mbps: st.downMbps }
-          : {}),
+        ...(Number(st.upMbps) > 0 ? { up_mbps: Number(st.upMbps) } : {}),
+        ...(Number(st.downMbps) > 0 ? { down_mbps: Number(st.downMbps) } : {}),
         tls: {
           enabled: true,
           server_name: sni,
           insecure: Boolean(st.allowInsecure),
+        },
+      });
+    } else if (item.protocol === "tuic") {
+      // Task 23-c — TUIC v5 outbound; key is the wire composite uuid:password
+      const { uuid, password } = splitTuicKey(item.key || KEY_FALLBACK.tuic);
+      const alpn = String(st.alpn || "h3")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      tags.push(tag);
+      outbounds.push({
+        type: "tuic",
+        tag,
+        server: host,
+        server_port: item.port,
+        uuid: uuid || KEY_FALLBACK.tuic.split(":")[0],
+        password: password || "password",
+        congestion_control: String(st.tuicCongestion || "bbr"),
+        udp_relay_mode: "native",
+        tls: {
+          enabled: true,
+          server_name: sni,
+          insecure: Boolean(st.allowInsecure),
+          ...(alpn.length > 0 ? { alpn } : {}),
         },
       });
     }

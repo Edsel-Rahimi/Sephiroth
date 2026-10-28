@@ -208,6 +208,8 @@ export default function SubPage() {
   /* ---------- data ---------- */
   const [phase, setPhase] = useState<Phase>("loading");
   const [payload, setPayload] = useState<SubPayload | null>(null);
+  /* Task 23-b — device-limit meta from the blocked 403 JSON (rendered on the card) */
+  const [blockedInfo, setBlockedInfo] = useState<{ devices: number; limit: number } | null>(null);
   const [pw, setPw] = useState(""); // gate input
   const [pwValue, setPwValue] = useState(""); // accepted password (kept for formats)
   const [pwErr, setPwErr] = useState(false);
@@ -232,7 +234,11 @@ export default function SubPage() {
         return;
       }
       if (data?.blocked) {
-        // Task 23-g — HWID device limit reached for this subscription
+        // Task 23-b — HWID device limit reached for this subscription
+        setBlockedInfo({
+          devices: Number(data.devices) || 0,
+          limit: Number(data.limit) || 0,
+        });
         setPhase("blocked");
         return;
       }
@@ -369,7 +375,11 @@ export default function SubPage() {
           <StateCard
             icon={<Fingerprint className="h-8 w-8 text-chart-4" />}
             title={t.blockedTitle}
-            desc={`${t.blockedDesc} ${t.blockedContact}`}
+            desc={
+              blockedInfo && blockedInfo.limit > 0
+                ? `${t.blockedDesc} ${sfmt(t.blockedCount, { n: blockedInfo.devices, s: blockedInfo.limit })} ${t.blockedContact}`
+                : `${t.blockedDesc} ${t.blockedContact}`
+            }
           />
         )}
 

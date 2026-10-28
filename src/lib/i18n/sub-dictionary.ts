@@ -45,6 +45,7 @@ export interface SubDict {
   disabledDesc: string;
   blockedTitle: string;
   blockedDesc: string;
+  blockedCount: string; // Task 23-b — {n} devices in use, {s} allowed
   blockedContact: string;
   poweredBy: string;
   loading: string;
@@ -95,6 +96,7 @@ const en: SubDict = {
   disabledDesc: "This subscription has been suspended by the administrator.",
   blockedTitle: "Device limit reached",
   blockedDesc: "This subscription is already active on the maximum number of devices.",
+  blockedCount: "Devices in use: {n} of {s}",
   blockedContact: "Contact your administrator to reset your devices and try again.",
   poweredBy: "Powered by Sephiroth Panel",
   loading: "Decrypting pass…",
@@ -138,6 +140,7 @@ const fa: SubDict = {
   disabledDesc: "این اشتراک توسط مدیر تعلیق شده است.",
   blockedTitle: "سقف دستگاه‌ها پر شد",
   blockedDesc: "این اشتراک از قبل روی بیشترین تعداد دستگاه مجاز فعال است.",
+  blockedCount: "دستگاه‌های در حال استفاده: {n} از {s}",
   blockedContact: "برای بازنشانی دستگاه‌هایتان با مدیر تماس بگیرید و دوباره تلاش کنید.",
   poweredBy: "قدرت‌گرفته از پنل Sephiroth",
   loading: "در حال رمزگشایی کارت…",
@@ -181,6 +184,7 @@ const ar: SubDict = {
   disabledDesc: "تم تعليق هذا الاشتراك من قبل المدير.",
   blockedTitle: "تم بلوغ حد الأجهزة",
   blockedDesc: "هذا الاشتراك نشط بالفعل على الحد الأقصى لعدد الأجهزة.",
+  blockedCount: "الأجهزة قيد الاستخدام: {n} من {s}",
   blockedContact: "اتصل بالمسؤول لإعادة تعيين أجهزتك ثم حاول مجددًا.",
   poweredBy: "مدعوم من لوحة Sephiroth",
   loading: "جارٍ فك تشفير البطاقة…",
@@ -224,6 +228,7 @@ const zh: SubDict = {
   disabledDesc: "此订阅已被管理员停用。",
   blockedTitle: "已达到设备上限",
   blockedDesc: "此订阅已在最大数量的设备上激活。",
+  blockedCount: "已用设备：{n} / {s}",
   blockedContact: "请联系管理员重置你的设备后重试。",
   poweredBy: "由 Sephiroth 面板提供",
   loading: "正在解密通行证…",
@@ -267,6 +272,7 @@ const tr: SubDict = {
   disabledDesc: "Bu abonelik yönetici tarafından askıya alındı.",
   blockedTitle: "Cihaz sınırına ulaşıldı",
   blockedDesc: "Bu abonelik zaten izin verilen maksimum cihaz sayısında aktif.",
+  blockedCount: "Kullanımdaki cihazlar: {n} / {s}",
   blockedContact: "Cihazlarınızın sıfırlanması için yöneticinizle iletişime geçin.",
   poweredBy: "Sephiroth Panel tarafından",
   loading: "Kart şifresi çözülüyor…",
@@ -310,6 +316,7 @@ const ru: SubDict = {
   disabledDesc: "Эта подписка приостановлена администратором.",
   blockedTitle: "Достигнут лимит устройств",
   blockedDesc: "Эта подписка уже активна на максимальном числе устройств.",
+  blockedCount: "Устройств в использовании: {n} из {s}",
   blockedContact: "Свяжитесь с администратором, чтобы сбросить ваши устройства.",
   poweredBy: "Работает на панели Sephiroth",
   loading: "Расшифровка карты…",

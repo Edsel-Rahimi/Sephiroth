@@ -472,11 +472,45 @@ export class SidecarManager {
   }
 
   /**
+   * Task 23-c — when the REAL xray driver runs and the sing-box secondary
+   * core is enabled (default), hysteria2 inbounds are served by sing-box;
+   * the per-inbound sidecars would double-bind the same UDP ports, so they
+   * stand down entirely. They resume automatically when sing-box is
+   * disabled via settings or the driver returns to the simulator.
+   */
+  private shouldStandDown(): boolean {
+    try {
+      return (
+        db._syncReadSetting("set_core_driver") === "xray" &&
+        db._syncReadSetting("set_core_singbox_enabled") !== "0"
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Sync the sidecar set with ENABLED hysteria2 inbounds:
    *   new/changed → (re)build config + (re)spawn
    *   removed/disabled/offline → stop + drop
    */
   private async reconcile(force: boolean): Promise<void> {
+    if (this.shouldStandDown()) {
+      for (const [tag, entry] of [...this.entries]) {
+        await this.stopEntry(entry);
+        this.entries.delete(tag);
+        this.log(tag, "sidecar stood down (sing-box secondary core serves hysteria2)");
+        this.onEvent?.(
+          this.makeEvent("inbound.updated", "info", {
+            inbound: tag,
+            port: entry.port,
+            detail: "sidecar stood down (sing-box core)",
+          })
+        );
+      }
+      return;
+    }
+
     let rows: InboundRowLike[] = [];
     try {
       rows = db._syncReadInboundsFull().filter((r) => r.protocol === "hysteria2");

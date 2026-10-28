@@ -8,21 +8,28 @@
    ============================================================ */
 
 /**
- * Xray access-log line (default text format), two shapes seen in the wild:
+ * Xray access-log line — REAL shapes (verified against Xray-core v26.10.21
+ * with log.access = file, Task 23-b E2E):
  *
- *   2026/10/28 12:00:00 127.0.0.1:52194 accepted tcp:example.com:443 [inbound -> direct] email: user@tag
- *   2026/10/28 12:00:00 from 1.2.3.4:5555 accepted tcp:example.com:443 [inbound -> direct] email: user@tag
- *   2026/10/28 12:00:00 from [2001:db8::1]:443 accepted tcp:example.com:443 [inbound -> direct] email: user@tag
+ *   2026/10/28 13:14:27.698359 from tcp:127.0.0.1:57423 accepted tcp:127.0.0.1:3100 [ipsoc >> direct] email: ipu@ipsoc
+ *   2026/10/28 13:12:34.302255 from 127.0.0.1:45534 accepted tcp:127.0.0.1:46577 [api >> api]
+ *   2026/10/28 12:00:00 1.2.3.4:52194 accepted tcp:example.com:443 [inbound -> direct] email: user@tag   (older cores)
+ *   2026/10/28 12:00:00 from [2001:db8::1]:443 accepted tcp:d.tld:443 [in -> out] email: v6@tag          (IPv6 source)
+ *
+ * Format is built by common/log/access.go: `from <src> accepted <to> [detour]
+ * [reason] [email: <email>]` where <src> serializes WITH its network prefix
+ * ("tcp:1.2.3.4:5"). The email suffix is only present when the inbound sets
+ * AccessMessage.Email — vless/vmess/trojan/ss per-client users do; SOCKS
+ * accounts do NOT (upstream omits it), so IP-limit attribution needs a
+ * per-client-email protocol.
  *
  * Parser rules (liberal by design):
  *   - the SOURCE is the first `IP:port` token after the optional timestamp,
- *     optionally preceded by the literal `from ` (older cores emit it,
- *     newer ones don't — we accept both);
- *   - IPv4 dotted-quad OR bracketed IPv6 `[...]:port`;
- *   - the CLIENT email is the token after `email:` (Xray appends
- *     `email: <client email>` for inbounds with per-client emails);
+ *     optionally preceded by `from ` and/or the network prefix `tcp:` — we
+ *     scan for the first IPv4 / bracketed-IPv6 :port shape and take it;
+ *   - the CLIENT email is the token after `email:`;
  *   - lines that are clearly not access records (warnings, errors, DNS
- *     failures) return null — never throw.
+ *     failures, the api door's email-less records) return null — never throw.
  */
 export interface AccessLine {
   ip: string;

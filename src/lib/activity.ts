@@ -23,9 +23,11 @@ export type ActivityKind =
   | "user.created"
   | "user.updated"
   | "user.deleted"
+  | "user.ipLimitExceeded" // Task 23-b — core auto-enforcement, distinct-IP breach
   | "sub.created"
   | "sub.updated"
   | "sub.deleted"
+  | "sub.hwidBlocked" // Task 23-b — subscription delivery gate rejected an unknown device
   | "reseller.created"
   | "reseller.updated"
   | "reseller.deleted"

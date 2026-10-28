@@ -303,6 +303,9 @@ export function UsersView() {
   const [loadErr, setLoadErr] = useState(false);
   /* Task 23-g — live concurrent-IP usage from the core driver (empty on sim) */
   const [ipUsage, setIpUsage] = useState<IpUsageRow[]>([]);
+  /* Task 23-b — tracker live only with the real xray core; window for the tooltip */
+  const [ipLive, setIpLive] = useState(false);
+  const [ipWindowMin, setIpWindowMin] = useState(10);
 
   /* toolbar */
   const [q, setQ] = useState("");
@@ -347,10 +350,13 @@ export function UsersView() {
         setTemplates([]);
       }
       if (pr && pr.ok) {
-        const pj = (await pr.json()) as { usage?: IpUsageRow[] };
+        const pj = (await pr.json()) as { usage?: IpUsageRow[]; live?: boolean; windowMinutes?: number };
         setIpUsage(pj.usage ?? []);
+        setIpLive(pj.live === true);
+        setIpWindowMin(Number(pj.windowMinutes) || 10);
       } else {
         setIpUsage([]);
+        setIpLive(false);
       }
       setLoadErr(false);
     } catch {
@@ -785,6 +791,9 @@ export function UsersView() {
                 <th className="px-3 py-3 text-start font-medium">{u.colTraffic}</th>
                 <th className="hidden px-3 py-3 text-start font-medium lg:table-cell">{u.colExpiry}</th>
                 <th className="hidden px-3 py-3 text-start font-medium lg:table-cell">{u.colIp}</th>
+                <th className="hidden px-3 py-3 text-start font-medium xl:table-cell" title={u.fieldHwid}>
+                  HWID
+                </th>
                 <th className="px-3 py-3 text-end font-medium">{u.colActions}</th>
               </tr>
             </thead>
@@ -799,7 +808,7 @@ export function UsersView() {
                 ))}
               {!loading && filtered.length === 0 && (
                 <tr className="border-t border-border/60">
-                  <td colSpan={8} className="px-6 py-14 text-center">
+                  <td colSpan={9} className="px-6 py-14 text-center">
                     <UsersIcon className="mx-auto h-10 w-10 text-muted-foreground/40" aria-hidden="true" />
                     <p className="mt-3 text-sm font-medium">{u.empty}</p>
                     <p className="mx-auto mt-1 max-w-md text-xs text-muted-foreground">{u.emptyDesc}</p>
@@ -924,6 +933,17 @@ export function UsersView() {
                       </td>
                       <td className="hidden px-3 py-3 lg:table-cell">
                         {(() => {
+                          /* Task 23-b — sim core has no access log: honest "—" + hint chip */
+                          if (!ipLive) {
+                            return (
+                              <span className="inline-flex items-center gap-1.5" title={u.ipNeedsCore}>
+                                <span className="font-mono text-xs text-muted-foreground">—</span>
+                                <span className="inline-flex max-w-[110px] items-center truncate rounded-full bg-muted/50 px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground ring-1 ring-border">
+                                  {u.ipNeedsCore}
+                                </span>
+                              </span>
+                            );
+                          }
                           const live = usageByUsername.get(user.username);
                           const count = live?.ips.length ?? 0;
                           const breach = count > 0 && user.ipLimit > 0 && count > user.ipLimit;
@@ -937,7 +957,7 @@ export function UsersView() {
                           const shown = live!.ips.slice(0, 5);
                           const more = count - shown.length;
                           const tip =
-                            `${lfmt(u.ipActive, { n: 10 })}\n${shown.join("\n")}` +
+                            `${lfmt(u.ipActive, { n: ipWindowMin })}\n${shown.join("\n")}` +
                             (more > 0 ? `\n+${more}` : "") +
                             (breach ? `\n${u.ipBreach}` : "");
                           return (
@@ -951,6 +971,25 @@ export function UsersView() {
                               title={tip}
                             >
                               {count}/{user.ipLimit === 0 ? "∞" : user.ipLimit}
+                            </span>
+                          );
+                        })()}
+                      </td>
+                      <td className="hidden px-3 py-3 xl:table-cell">
+                        {(() => {
+                          /* Task 23-b — subtle HWID registrations chip */
+                          const n = user.devices.length;
+                          const lim = user.hwidLimit ?? 0;
+                          if (n === 0 && lim === 0) {
+                            return <span className="text-[11px] text-muted-foreground">—</span>;
+                          }
+                          return (
+                            <span
+                              className="inline-flex cursor-help items-center rounded-full bg-muted/40 px-2 py-0.5 font-mono text-[11px] font-semibold text-muted-foreground ring-1 ring-border"
+                              title={`${lfmt(u.devicesCount, { n })}${lim > 0 ? ` / ${lim}` : ""}`}
+                            >
+                              HWID {n}
+                              {lim > 0 ? `/${lim}` : ""}
                             </span>
                           );
                         })()}
@@ -1556,6 +1595,62 @@ export function UsersView() {
                       </span>
                     </div>
                   </div>
+                </div>
+
+                {/* Task 23-b — registered devices (sub portal HWID gate) */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <h4 className="text-[11px] font-semibold uppercase tracking-wider text-primary/80">
+                      {u.devicesTitle} · {drawerUser.devices.length}
+                      {drawerUser.hwidLimit ? `/${drawerUser.hwidLimit}` : ""}
+                    </h4>
+                    {drawerUser.devices.length > 0 && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 gap-1 text-[11px]"
+                        onClick={() => void resetDevices(drawerUser)}
+                      >
+                        <RefreshCw className="h-3 w-3" aria-hidden="true" /> {u.resetDevices}
+                      </Button>
+                    )}
+                  </div>
+                  {drawerUser.devices.length === 0 ? (
+                    <p className="rounded-xl bg-background/50 p-3 text-xs text-muted-foreground ring-1 ring-border">
+                      {u.devicesEmpty}
+                    </p>
+                  ) : (
+                    <div className="max-h-44 space-y-1.5 overflow-y-auto pe-1">
+                      {drawerUser.devices.map((d) => (
+                        <div
+                          key={d.id}
+                          className="flex items-center gap-2 rounded-xl bg-background/50 px-3 py-2 ring-1 ring-border"
+                        >
+                          <Fingerprint className="h-3.5 w-3.5 shrink-0 text-primary/70" aria-hidden="true" />
+                          <span
+                            className="shrink-0 font-mono text-[10px] text-foreground/90"
+                            dir="ltr"
+                            title={d.id}
+                          >
+                            {d.id.slice(0, 10)}
+                          </span>
+                          <span
+                            className="min-w-0 flex-1 truncate text-[10px] text-muted-foreground"
+                            dir="ltr"
+                            title={d.ua}
+                          >
+                            {d.ua || "—"}
+                          </span>
+                          <span
+                            className="shrink-0 text-[10px] tabular-nums text-muted-foreground"
+                            title={new Date(d.lastSeen).toLocaleString(lang)}
+                          >
+                            {new Date(d.lastSeen).toLocaleDateString(lang)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* linked configs */}

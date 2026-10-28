@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { stripUserEverywhere, syncUserProjection } from "@/lib/user-sync";
+import { notifyTrafficReset } from "@/lib/bot/notify"; // Task 23-a — bot alert
 
 /* ============================================================
    Sephiroth · Phase 4 — Users bulk API
@@ -62,6 +63,14 @@ export async function POST(req: Request) {
     } else if (action === "resetTraffic") {
       await db.clientUser.updateMany({ where: { id: { in: rows.map((r) => r.id) } }, data: { usedTrafficGb: 0 } });
       affected = rows.length;
+      // Task 23-a — one deduped bot alert per reset user (bulk storm-safe)
+      const names = await db.clientUser.findMany({
+        where: { id: { in: rows.map((r) => r.id) } },
+        select: { username: true },
+      });
+      for (const n of names.slice(0, 10)) {
+        void notifyTrafficReset(n.username, "manual");
+      }
     } else {
       const enabled = action === "enable";
       for (const row of rows) {

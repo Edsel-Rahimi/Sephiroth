@@ -135,6 +135,7 @@ export interface Dict {
     pdTrojan: string;
     pdSs: string;
     pdHy2: string;
+    pdTuic: string;
     pdWg: string;
     pdDoko: string;
     pdSocks: string;
@@ -394,6 +395,11 @@ export interface Dict {
     hy2Obfs: string;
     hy2Up: string;
     hy2Down: string;
+    /** Task 23-c — hysteria2 masquerade + TUIC v5 (sing-box secondary core) */
+    hy2Masquerade: string;
+    tuicCongestion: string;
+    tuicAlpn: string;
+    tuicHint: string;
     scRunning: string;
     scStopped: string;
     scHint: string;
@@ -544,9 +550,13 @@ export interface Dict {
     devicesCount: string;
     resetDevices: string;
     toastDevicesReset: string;
-    /** Task 23-g — concurrent-IP usage chip */
+    /** Task 23-b — registered device list (user drawer) */
+    devicesTitle: string;
+    devicesEmpty: string;
+    /** Task 23-b — concurrent-IP usage chip */
     ipActive: string;
     ipBreach: string;
+    ipNeedsCore: string;
   };
 
   resellers: {
@@ -1467,6 +1477,7 @@ export interface Dict {
   bot: {
     modeLabel: string;
     modeConsole: string;
+    modeNotify: string;
     modeSales: string;
     modeDesc: string;
     adminChatIds: string;
@@ -1475,10 +1486,23 @@ export interface Dict {
     proxyUrl: string;
     proxyUrlPh: string;
     proxyUrlDesc: string;
-    shopLang: string;
-    shopLangFa: string;
-    shopLangEn: string;
-    shopLangDesc: string;
+    apiBase: string;
+    apiBasePh: string;
+    apiBaseDesc: string;
+    langLabel: string;
+    langFa: string;
+    langEn: string;
+    langAr: string;
+    langZh: string;
+    langTr: string;
+    langRu: string;
+    langDesc: string;
+    payMode: string;
+    payManual: string;
+    payZarinpal: string;
+    tplPick: string;
+    tplAll: string;
+    botSaved: string;
     worker: string;
     workerRunning: string;
     workerStopped: string;
@@ -1577,6 +1601,12 @@ export interface Dict {
     privilegedPort: string;
     privilegedPortD: string;
     privilegedPortF: string;
+    hy2TuicSelfSigned: string;
+    hy2TuicSelfSignedD: string;
+    hy2TuicSelfSignedF: string;
+    tuicCongestionInvalid: string;
+    tuicCongestionInvalidD: string;
+    tuicCongestionInvalidF: string;
   };
   system: {
     // — software update —
@@ -1815,6 +1845,7 @@ export const dictionaries: Record<Lang, Dict> = {
       pdTrojan: "Hardened trojan gate in HTTPS camouflage",
       pdSs: "Shadowsocks 2022 ciphers — fast and simple",
       pdHy2: "QUIC-based — built for lossy links",
+      pdTuic: "QUIC v5 with 0-RTT UDP relay",
       pdWg: "Kernel-grade VPN tunnel and mesh",
       pdDoko: "Forward a port to any target",
       pdSocks: "Local SOCKS5 entry point",
@@ -2073,9 +2104,13 @@ export const dictionaries: Record<Lang, Dict> = {
       hy2Obfs: "Salamander obfs password (optional)",
       hy2Up: "Uplink cap (Mbps)",
       hy2Down: "Downlink cap (Mbps)",
+      hy2Masquerade: "Masquerade URL (optional)",
+      tuicCongestion: "Congestion control",
+      tuicAlpn: "ALPN",
+      tuicHint: "TUIC v5 runs on the sing-box secondary core next to Xray. Each client key is uuid:password (the exact form the tuic:// link carries) — the forge generates both.",
       scRunning: "sidecar: running",
       scStopped: "sidecar: stopped",
-      scHint: "Hysteria2 runs on its own sidecar engine (the hysteria binary), not inside the Xray core — the panel starts one process per inbound and feeds per-user traffic back into the store.",
+      scHint: "Hysteria2 is served by the secondary sing-box core when the real Xray driver runs (one process for all hy2+tuic inbounds); with the simulator the per-inbound hysteria sidecar engine takes over.",
       ss2022KeyHint: "2022 ciphers need a standard base64 key — 24 chars for AES-128, 44 for AES-256/ChaCha20 (use the generate button).",
       ssKeyGen: "Generate 2022 keys",
       errSs2022Key: "For 2022 ciphers the key must be valid base64 of the right length (24 or 44 chars).",
@@ -2222,8 +2257,11 @@ export const dictionaries: Record<Lang, Dict> = {
       devicesCount: "{n} device(s)",
       resetDevices: "Reset devices",
       toastDevicesReset: "Device registrations reset",
+      devicesTitle: "Registered devices",
+      devicesEmpty: "No devices have fetched this subscription yet.",
       ipActive: "Active IPs ({n} min)",
       ipBreach: "Over the IP limit",
+      ipNeedsCore: "needs real core",
     },
     resellers: {
     badge: "PHASE 6",
@@ -3162,18 +3200,32 @@ export const dictionaries: Record<Lang, Dict> = {
     bot: {
       modeLabel: "Bot mode",
       modeConsole: "Console",
+      modeNotify: "Notifications",
       modeSales: "Sales shop",
-      modeDesc: "Console answers admin commands from the panel. Sales runs the in-panel shop worker (Telegram long-poll).",
+      modeDesc: "Console = test executor only. Notifications run the worker for alerts + admin commands. Sales adds the in-panel shop (Telegram long-poll).",
       adminChatIds: "Admin chat IDs",
       adminChatIdsPh: "123456789, 987654321",
       adminChatIdsDesc: "Comma-separated chat IDs allowed to use the admin bot flows (owner first).",
       proxyUrl: "API proxy (HTTPS)",
       proxyUrlPh: "https://user:pass@proxy.example:8080",
       proxyUrlDesc: "Optional HTTPS proxy for api.telegram.org. SOCKS5 is not supported in this release — run a local https-forward instead.",
-      shopLang: "Default shop language",
-      shopLangFa: "Persian",
-      shopLangEn: "English",
-      shopLangDesc: "Used for new bot users until they pick a language.",
+      apiBase: "Bot API base URL",
+      apiBasePh: "https://api.telegram.org",
+      apiBaseDesc: "Leave as-is in production. Advanced: point it at a self-hosted Bot API server for testing.",
+      langLabel: "Bot language",
+      langFa: "Persian",
+      langEn: "English",
+      langAr: "Arabic",
+      langZh: "Chinese",
+      langTr: "Turkish",
+      langRu: "Russian",
+      langDesc: "Default language for bot messages until each user picks their own.",
+      payMode: "Payment method",
+      payManual: "Card-to-card (manual approval)",
+      payZarinpal: "ZarinPal gateway",
+      tplPick: "Sales template",
+      tplAll: "All active templates",
+      botSaved: "Bot settings saved — worker resynced",
       worker: "Sales worker",
       workerRunning: "running",
       workerStopped: "stopped",
@@ -3274,6 +3326,12 @@ export const dictionaries: Record<Lang, Dict> = {
       privilegedPort: "Privileged port — {tag}",
       privilegedPortD: "Port {port} is below 1024; Linux needs root or CAP_NET_BIND_SERVICE.",
       privilegedPortF: "Prefer ports ≥ 1024 or grant the capability to Xray.",
+      hy2TuicSelfSigned: "{proto} on a self-signed certificate — {tag}",
+      hy2TuicSelfSignedD: "Port {port} has no certificate material, so the sing-box core generated a self-signed cert; clients must dial with insecure mode.",
+      hy2TuicSelfSignedF: "Paste or issue a managed/ACME certificate in the Security tab and set the SNI clients will see.",
+      tuicCongestionInvalid: "Invalid TUIC congestion control — {tag}",
+      tuicCongestionInvalidD: "Value \"{value}\" is not one of bbr, cubic, new_reno — the sing-box core falls back to bbr.",
+      tuicCongestionInvalidF: "Pick bbr, cubic or new_reno in the transport tab.",
     },
     system: {
       updTitle: "Software Update",
@@ -3503,6 +3561,7 @@ export const dictionaries: Record<Lang, Dict> = {
       pdTrojan: "دروازه تروجان مقاوم با پوشش HTTPS",
       pdSs: "شیفرهای Shadowsocks 2022 — سریع و ساده",
       pdHy2: "بر پایه QUIC — ساخته‌شده برای شبکه‌های پرلاس",
+      pdTuic: "QUIC v5 با رله UDP بی‌درنگ",
       pdWg: "تونل VPN هسته‌ای و مش",
       pdDoko: "هر پورتی را به هر مقصدی فوروارد کن",
       pdSocks: "نقطه ورود محلی SOCKS5",
@@ -3761,9 +3820,13 @@ export const dictionaries: Record<Lang, Dict> = {
       hy2Obfs: "رمز استتار Salamander (اختیاری)",
       hy2Up: "سقف آپلود (Mbps)",
       hy2Down: "سقف دانلود (Mbps)",
+      hy2Masquerade: "نشانی استتار (اختیاری)",
+      tuicCongestion: "کنترل ازدحام",
+      tuicAlpn: "ALPN",
+      tuicHint: "TUIC v5 روی هسته فرعی sing-box کنار Xray اجرا می‌شود. کلید هر کلاینت به شکل uuid:password است (همان شکلی که لینک tuic:// حمل می‌کند) — فورج هر دو را می‌سازد.",
       scRunning: "سایدکار: در حال اجرا",
       scStopped: "سایدکار: متوقف",
-      scHint: "Hysteria2 روی موتور سایدکار مستقل خودش (باینری hysteria) اجرا می‌شود، نه داخل هسته Xray — پنل برای هر اینباند یک پروسس می‌سازد و ترافیک هر کاربر را به مخزن برمی‌گرداند.",
+      scHint: "Hysteria2 وقتی درایور واقعی Xray فعال است توسط هسته فرعی sing-box سرو می‌شود (یک پروسس برای همه اینباندهای hy2+tuic)؛ با شبیه‌ساز، موتور سایدکار hysteria برای هر اینباند کار را به عهده می‌گیرد.",
       ss2022KeyHint: "شیفرهای 2022 کلید Base64 می‌خواهند — 24 نویسه برای AES-128 و 44 نویسه برای AES-256/ChaCha20 (دکمه تولید کلید را بزنید).",
       ssKeyGen: "تولید کلید 2022",
       errSs2022Key: "برای شیفرهای 2022 کلید باید Base64 معتبر با طول درست باشد (24 یا 44 نویسه).",
@@ -3910,8 +3973,11 @@ export const dictionaries: Record<Lang, Dict> = {
       devicesCount: "{n} دستگاه",
       resetDevices: "بازنشانی دستگاه‌ها",
       toastDevicesReset: "دستگاه‌های ثبت‌شده بازنشانی شد",
+      devicesTitle: "دستگاه‌های ثبت‌شده",
+      devicesEmpty: "هنوز هیچ دستگاهی این اشتراک را دریافت نکرده است.",
       ipActive: "آی‌پی‌های فعال ({n} دقیقه)",
       ipBreach: "از سقف آی‌پی گذشته",
+      ipNeedsCore: "نیازمند هستهٔ واقعی",
     },
     resellers: {
     badge: "فاز ۶",
@@ -4846,18 +4912,32 @@ export const dictionaries: Record<Lang, Dict> = {
     bot: {
       modeLabel: "حالت ربات",
       modeConsole: "کنسول",
+      modeNotify: "اعلان‌ها",
       modeSales: "فروشگاه",
-      modeDesc: "کنسول به فرمان‌های مدیریتی از پنل پاسخ می‌دهد. فروشگاه، ورکر فروش درون‌پنلی را اجرا می‌کند (اتصال طولانی به تلگرام).",
+      modeDesc: "کنسول فقط اجراکنندهٔ آزمایشی است. اعلان‌ها ورکر را برای هشدارها و فرمان‌های مدیریتی اجرا می‌کند. فروشگاه، فروش درون‌پنلی را هم اضافه می‌کند (اتصال طولانی به تلگرام).",
       adminChatIds: "شناسه‌های گفتگوی مدیر",
       adminChatIdsPh: "123456789, 987654321",
       adminChatIdsDesc: "فهرست شناسه‌های مجاز برای عملیات مدیریتی ربات، جدا شده با ویرگول (مالک اول).",
       proxyUrl: "پروکسی API (HTTPS)",
       proxyUrlPh: "https://user:pass@proxy.example:8080",
       proxyUrlDesc: "پروکسی اختیاری HTTPS برای api.telegram.org. SOCKS5 در این نسخه پشتیبانی نمی‌شود — به‌جای آن یک https-forward محلی اجرا کنید.",
-      shopLang: "زبان پیش‌فرض فروشگاه",
-      shopLangFa: "فارسی",
-      shopLangEn: "انگلیسی",
-      shopLangDesc: "برای کاربران تازه ربات تا زمان انتخاب زبان استفاده می‌شود.",
+      apiBase: "نشانی پایه Bot API",
+      apiBasePh: "https://api.telegram.org",
+      apiBaseDesc: "در عملیات عادی دست نزنید. پیشرفته: برای آزمایش می‌توانید آن را به سرور Bot API خودی اشاره دهید.",
+      langLabel: "زبان ربات",
+      langFa: "فارسی",
+      langEn: "انگلیسی",
+      langAr: "عربی",
+      langZh: "چینی",
+      langTr: "ترکی",
+      langRu: "روسی",
+      langDesc: "زبان پیش‌فرض پیام‌های ربات تا زمانی که هر کاربر زبان خود را انتخاب کند.",
+      payMode: "روش پرداخت",
+      payManual: "کارت به کارت (تأیید دستی)",
+      payZarinpal: "درگاه زرین‌پال",
+      tplPick: "قالب فروش",
+      tplAll: "همهٔ قالب‌های فعال",
+      botSaved: "تنظیمات ربات ذخیره شد — ورکر همگام شد",
       worker: "ورکر فروش",
       workerRunning: "در حال اجرا",
       workerStopped: "متوقف",
@@ -4958,6 +5038,12 @@ export const dictionaries: Record<Lang, Dict> = {
       privilegedPort: "پورت ممتاز — {tag}",
       privilegedPortD: "پورت {port} زیر ۱۰۲۴ است؛ لینوکس root یا CAP_NET_BIND_SERVICE می‌خواهد.",
       privilegedPortF: "پورت ≥ ۱۰۲۴ بگیرید یا قابلیت مربوطه را به Xray بدهید.",
+      hy2TuicSelfSigned: "{proto} روی گواهی خودامضا — {tag}",
+      hy2TuicSelfSignedD: "پورت {port} هیچ متریال گواهی‌ای ندارد، پس هستهٔ sing-box یک گواهی خودامضا ساخته؛ کلاینت‌ها باید با حالت insecure وصل شوند.",
+      hy2TuicSelfSignedF: "در تب «امنیت» یک گواهی مدیریت‌شده/ACME بدهید و SNIای که کلاینت‌ها می‌بینند را تنظیم کنید.",
+      tuicCongestionInvalid: "کنترل ازدحام TUIC نامعتبر — {tag}",
+      tuicCongestionInvalidD: "مقدار «{value}» یکی از bbr، cubic یا new_reno نیست — هستهٔ sing-box به bbr برمی‌گردد.",
+      tuicCongestionInvalidF: "در تب ترنسپورت یکی از bbr، cubic یا new_reno را انتخاب کنید.",
     },
     system: {
       updTitle: "به‌روزرسانی نرم‌افزار",
@@ -5187,6 +5273,7 @@ export const dictionaries: Record<Lang, Dict> = {
       pdTrojan: "بوابة تروجان متينة بتمويه HTTPS",
       pdSs: "شيفرات Shadowsocks 2022 — سريع وبسيط",
       pdHy2: "مبني على QUIC — مصمم للشبكات المفقدة",
+      pdTuic: "QUIC v5 مع ترحيل UDP فوري",
       pdWg: "نفق VPN من مستوى النواة وشبكة Mesh",
       pdDoko: "حوّل أي منفذ إلى أي هدف",
       pdSocks: "نقطة دخول SOCKS5 محلية",
@@ -5445,9 +5532,13 @@ export const dictionaries: Record<Lang, Dict> = {
       hy2Obfs: "كلمة تشويش Salamander (اختياري)",
       hy2Up: "حد الرفع (Mbps)",
       hy2Down: "حد التنزيل (Mbps)",
+      hy2Masquerade: "عنوان التنكّر (اختياري)",
+      tuicCongestion: "التحكم في الازدحام",
+      tuicAlpn: "ALPN",
+      tuicHint: "يعمل TUIC v5 على نواة sing-box الفرعية بجانب Xray. مفتاح كل عميل بصيغة uuid:password (نفس الصيغة التي يحملها رابط tuic://) — المولّد ينشئ الاثنين.",
       scRunning: "السايدكار: يعمل",
       scStopped: "السايدكار: متوقف",
-      scHint: "يعمل Hysteria2 على محرك سايدكار مستقل (ملف hysteria الثنائي)، وليس داخل نواة Xray — ينشئ اللوحة عملية لكل نقطة دخول ويعيد إحصاءات كل مستخدم إلى المخزن.",
+      scHint: "يخدم Hysteria2 عبر نواة sing-box الفرعية عند تشغيل مشغّل Xray الحقيقي (عملية واحدة لكل نقاط hy2+tuic)؛ ومع المحاكي يتولى محرك السايدكار hysteria العمل لكل نقطة على حدة.",
       ss2022KeyHint: "شيفرات 2022 تتطلب مفتاح Base64 — 24 حرفاً لـ AES-128 و44 حرفاً لـ AES-256/ChaCha20 (اضغط زر توليد المفتاح).",
       ssKeyGen: "توليد مفتاح 2022",
       errSs2022Key: "لتشفير 2022 يجب أن يكون المفتاح Base64 صحيحاً بالطول الصحيح (24 أو 44 حرفاً).",
@@ -5594,8 +5685,11 @@ export const dictionaries: Record<Lang, Dict> = {
       devicesCount: "{n} جهاز",
       resetDevices: "إعادة تعيين الأجهزة",
       toastDevicesReset: "تمت إعادة تعيين الأجهزة المسجلة",
+      devicesTitle: "الأجهزة المسجلة",
+      devicesEmpty: "لم تجلب أي أجهزة هذا الاشتراك بعد.",
       ipActive: "عناوين IP نشطة ({n} دقيقة)",
       ipBreach: "تجاوز حد IP",
+      ipNeedsCore: "يتطلب النواة الحقيقية",
     },
     resellers: {
     badge: "المرحلة ٦",
@@ -6529,18 +6623,32 @@ export const dictionaries: Record<Lang, Dict> = {
     bot: {
       modeLabel: "وضعية البوت",
       modeConsole: "لوحة التحكم",
+      modeNotify: "الإشعارات",
       modeSales: "متجر البيع",
-      modeDesc: "لوحة التحكم تجيب على أوامر المشرف من اللوحة. متجر البيع يشغّل عامل البيع داخل اللوحة (اتصال طويل مع تيليجرام).",
+      modeDesc: "لوحة التحكم = منفّذ اختبارات فقط. الإشعارات تشغّل العامل للتنبيهات وأوامر المشرف. متجر البيع يضيف المتجر داخل اللوحة (اتصال طويل مع تيليجرام).",
       adminChatIds: "معرّفات محادثات المشرفين",
       adminChatIdsPh: "123456789, 987654321",
       adminChatIdsDesc: "قائمة معرّفات مفصولة بفواصل يُسمح لها بعمليات البوت الإدارية (المالك أولاً).",
       proxyUrl: "بروكسي API (HTTPS)",
       proxyUrlPh: "https://user:pass@proxy.example:8080",
       proxyUrlDesc: "بروكسي HTTPS اختياري لـ api.telegram.org. SOCKS5 غير مدعوم في هذا الإصدار — شغّل تحويلة https محلية بدلاً منه.",
-      shopLang: "لغة المتجر الافتراضية",
-      shopLangFa: "الفارسية",
-      shopLangEn: "الإنجليزية",
-      shopLangDesc: "تُستخدم لمستخدمي البوت الجدد حتى يختاروا لغتهم.",
+      apiBase: "عنوان Bot API الأساسي",
+      apiBasePh: "https://api.telegram.org",
+      apiBaseDesc: "اتركه كما هو في الإنتاج. متقدم: يمكن توجيهه إلى خادم Bot API خاص للاختبار.",
+      langLabel: "لغة البوت",
+      langFa: "الفارسية",
+      langEn: "الإنجليزية",
+      langAr: "العربية",
+      langZh: "الصينية",
+      langTr: "التركية",
+      langRu: "الروسية",
+      langDesc: "اللغة الافتراضية لرسائل البوت حتى يختار كل مستخدم لغته.",
+      payMode: "طريقة الدفع",
+      payManual: "بطاقة إلى بطاقة (اعتماد يدوي)",
+      payZarinpal: "بوابة زارين بال",
+      tplPick: "قالب البيع",
+      tplAll: "كل القوالب النشطة",
+      botSaved: "تم حفظ إعدادات البوت — أُعيدت مزامنة العامل",
       worker: "عامل البيع",
       workerRunning: "يعمل",
       workerStopped: "متوقف",
@@ -6641,6 +6749,12 @@ export const dictionaries: Record<Lang, Dict> = {
       privilegedPort: "منفذ مميز — {tag}",
       privilegedPortD: "المنفذ {port} أقل من ١٠٢٤؛ لينكس يحتاج root أو CAP_NET_BIND_SERVICE.",
       privilegedPortF: "اختر منفذًا ≥ ١٠٢٤ أو امنح Xray القدرة المطلوبة.",
+      hy2TuicSelfSigned: "{proto} بشهادة موقّعة ذاتيًا — {tag}",
+      hy2TuicSelfSignedD: "المنفذ {port} بلا أي مادة شهادة، فأنشأت نواة sing-box شهادة موقّعة ذاتيًا؛ على العملاء الاتصال بوضع insecure.",
+      hy2TuicSelfSignedF: "الصق أو أصدر شهادة مُدارة/ACME من تبويب «الأمان» واضبط SNI الذي سيراه العملاء.",
+      tuicCongestionInvalid: "تحكم ازدحام TUIC غير صالح — {tag}",
+      tuicCongestionInvalidD: "القيمة «{value}» ليست من bbr أو cubic أو new_reno — تعود نواة sing-box إلى bbr.",
+      tuicCongestionInvalidF: "اختر bbr أو cubic أو new_reno من تبويب النقل.",
     },
     system: {
       updTitle: "تحديث البرنامج",
@@ -6869,6 +6983,7 @@ export const dictionaries: Record<Lang, Dict> = {
       pdTrojan: "HTTPS 伪装的坚固木马网关",
       pdSs: "Shadowsocks 2022 加密 — 快速简洁",
       pdHy2: "基于 QUIC — 专为高丢包链路而生",
+      pdTuic: "QUIC v5，支持 0-RTT UDP 中继",
       pdWg: "内核级 VPN 隧道与组网",
       pdDoko: "把端口转发到任意目标",
       pdSocks: "本地 SOCKS5 入口",
@@ -7127,9 +7242,13 @@ export const dictionaries: Record<Lang, Dict> = {
       hy2Obfs: "Salamander 混淆密码（可选）",
       hy2Up: "上行带宽上限 (Mbps)",
       hy2Down: "下行带宽上限 (Mbps)",
+      hy2Masquerade: "伪装 URL（可选）",
+      tuicCongestion: "拥塞控制",
+      tuicAlpn: "ALPN",
+      tuicHint: "TUIC v5 由 Xray 旁边的 sing-box 副核心运行。每个客户端密钥为 uuid:password（与 tuic:// 链接携带的格式完全一致）——Forge 会自动生成两者。",
       scRunning: "边车：运行中",
       scStopped: "边车：已停止",
-      scHint: "Hysteria2 由独立的边车引擎（hysteria 二进制）运行，不在 Xray 核心内——面板为每个入站启动一个进程，并把每用户流量写回存储。",
+      scHint: "真实的 Xray 驱动运行时，Hysteria2 由 sing-box 副核心提供服务（一个进程服务所有 hy2+tuic 入站）；模拟器模式下则由每入站的 hysteria 边车引擎接管。",
       ss2022KeyHint: "2022 加密需要标准 Base64 密钥 — AES-128 为 24 字符，AES-256/ChaCha20 为 44 字符（可用生成按钮）。",
       ssKeyGen: "生成 2022 密钥",
       errSs2022Key: "2022 加密要求密钥为合法 Base64 且长度正确（24 或 44 字符）。",
@@ -7276,8 +7395,11 @@ export const dictionaries: Record<Lang, Dict> = {
       devicesCount: "{n} 台设备",
       resetDevices: "重置设备",
       toastDevicesReset: "设备注册已重置",
+      devicesTitle: "已注册设备",
+      devicesEmpty: "还没有设备获取过此订阅。",
       ipActive: "活跃 IP（{n} 分钟）",
       ipBreach: "已超出 IP 上限",
+      ipNeedsCore: "需要真实内核",
     },
     resellers: {
     badge: "阶段 6",
@@ -8210,18 +8332,32 @@ export const dictionaries: Record<Lang, Dict> = {
     bot: {
       modeLabel: "机器人模式",
       modeConsole: "控制台",
+      modeNotify: "仅通知",
       modeSales: "销售商店",
-      modeDesc: "控制台从面板响应管理员命令。销售模式运行面板内商店工作进程（Telegram 长轮询）。",
+      modeDesc: "控制台 = 仅测试执行器。仅通知模式运行工作进程以推送告警和管理命令。销售模式在此基础上增加面板内商店（Telegram 长轮询）。",
       adminChatIds: "管理员会话 ID",
       adminChatIdsPh: "123456789, 987654321",
       adminChatIdsDesc: "允许使用机器人管理功能的会话 ID，逗号分隔（所有者在前）。",
       proxyUrl: "API 代理（HTTPS）",
       proxyUrlPh: "https://user:pass@proxy.example:8080",
       proxyUrlDesc: "api.telegram.org 的可选 HTTPS 代理。本版本不支持 SOCKS5 — 请改用本地 https-forward。",
-      shopLang: "商店默认语言",
-      shopLangFa: "波斯语",
-      shopLangEn: "英语",
-      shopLangDesc: "新机器人用户在自行选择语言之前使用该语言。",
+      apiBase: "Bot API 基础地址",
+      apiBasePh: "https://api.telegram.org",
+      apiBaseDesc: "生产环境请保持默认。高级：测试时可指向自托管的 Bot API 服务器。",
+      langLabel: "机器人语言",
+      langFa: "波斯语",
+      langEn: "英语",
+      langAr: "阿拉伯语",
+      langZh: "中文",
+      langTr: "土耳其语",
+      langRu: "俄语",
+      langDesc: "机器人消息的默认语言，直到每位用户自行选择。",
+      payMode: "支付方式",
+      payManual: "卡对卡（人工审核）",
+      payZarinpal: "ZarinPal 支付网关",
+      tplPick: "销售模板",
+      tplAll: "所有启用的模板",
+      botSaved: "机器人设置已保存 — 工作进程已重新同步",
       worker: "销售工作进程",
       workerRunning: "运行中",
       workerStopped: "已停止",
@@ -8322,6 +8458,12 @@ export const dictionaries: Record<Lang, Dict> = {
       privilegedPort: "特权端口 — {tag}",
       privilegedPortD: "端口 {port} 低于 1024；Linux 需要 root 或 CAP_NET_BIND_SERVICE。",
       privilegedPortF: "优先使用 ≥1024 的端口，或为 Xray 授予相应能力。",
+      hy2TuicSelfSigned: "{proto} 使用自签名证书 — {tag}",
+      hy2TuicSelfSignedD: "端口 {port} 没有任何证书材料，sing-box 核心生成了自签名证书；客户端必须以 insecure 模式连接。",
+      hy2TuicSelfSignedF: "在“安全”标签页粘贴或签发托管/ACME 证书，并设置客户端看到的 SNI。",
+      tuicCongestionInvalid: "TUIC 拥塞控制无效 — {tag}",
+      tuicCongestionInvalidD: "值“{value}”不是 bbr、cubic、new_reno 之一 — sing-box 核心会回退到 bbr。",
+      tuicCongestionInvalidF: "在传输标签页选择 bbr、cubic 或 new_reno。",
     },
     system: {
       updTitle: "软件更新",
@@ -8551,6 +8693,7 @@ export const dictionaries: Record<Lang, Dict> = {
       pdTrojan: "HTTPS kamuflajlı sağlam trojan kapısı",
       pdSs: "Shadowsocks 2022 şifreleri — hızlı ve basit",
       pdHy2: "QUIC tabanlı — paket kayıplı hatlar için",
+      pdTuic: "0-RTT UDP aktarımlı QUIC v5",
       pdWg: "Çekirdek seviye VPN tüneli ve mesh",
       pdDoko: "Herhangi bir hedefe port yönlendir",
       pdSocks: "Yerel SOCKS5 giriş noktası",
@@ -8809,9 +8952,13 @@ export const dictionaries: Record<Lang, Dict> = {
       hy2Obfs: "Salamander obfs şifresi (isteğe bağlı)",
       hy2Up: "Yükleme sınırı (Mbps)",
       hy2Down: "İndirme sınırı (Mbps)",
+      hy2Masquerade: "Maskeleme URL'si (isteğe bağlı)",
+      tuicCongestion: "Tıkanıklık kontrolü",
+      tuicAlpn: "ALPN",
+      tuicHint: "TUIC v5, Xray'in yanındaki sing-box yan çekirdeğinde çalışır. Her istemci anahtarı uuid:password biçimindedir (tuic:// bağlantısının taşıdığı tam biçim) — Forge ikisini de üretir.",
       scRunning: "yan motor: çalışıyor",
       scStopped: "yan motor: durdu",
-      scHint: "Hysteria2, Xray çekirdeğinin içinde değil kendi yan motorunda (hysteria ikili dosyası) çalışır — panel her inbound için bir süreç başlatır ve kullanıcı başına trafiği depoya yazar.",
+      scHint: "Gerçek Xray sürücüsü çalışırken Hysteria2, ikincil sing-box çekirdeği tarafından sunulur (tüm hy2+tuic inbound'lar için tek süreç); simülatörde ise inbound başına hysteria yan motoru devreye girer.",
       ss2022KeyHint: "2022 şifreleri standart Base64 anahtar ister — AES-128 için 24, AES-256/ChaCha20 için 44 karakter (üret düğmesini kullanın).",
       ssKeyGen: "2022 anahtarı üret",
       errSs2022Key: "2022 şifrelerinde anahtar geçerli ve doğru uzunlukta Base64 olmalı (24 veya 44 karakter).",
@@ -8958,8 +9105,11 @@ export const dictionaries: Record<Lang, Dict> = {
       devicesCount: "{n} cihaz",
       resetDevices: "Cihazları sıfırla",
       toastDevicesReset: "Cihaz kayıtları sıfırlandı",
+      devicesTitle: "Kayıtlı cihazlar",
+      devicesEmpty: "Henüz hiçbir cihaz bu aboneliği almadı.",
       ipActive: "Aktif IP'ler ({n} dk)",
       ipBreach: "IP sınırı aşıldı",
+      ipNeedsCore: "gerçek çekirdek gerekli",
     },
     resellers: {
     badge: "AŞAMA 6",
@@ -9894,18 +10044,32 @@ export const dictionaries: Record<Lang, Dict> = {
     bot: {
       modeLabel: "Bot modu",
       modeConsole: "Konsol",
+      modeNotify: "Bildirimler",
       modeSales: "Satış mağazası",
-      modeDesc: "Konsol panelden yönetici komutlarını yanıtlar. Satış, panel içi satış işçisini çalıştırır (Telegram long-poll).",
+      modeDesc: "Konsol = yalnızca test çalıştırıcı. Bildirimler, uyarılar ve yönetici komutları için işçiyi çalıştırır. Satış, panel içi mağazayı ekler (Telegram long-poll).",
       adminChatIds: "Yönetici sohbet kimlikleri",
       adminChatIdsPh: "123456789, 987654321",
       adminChatIdsDesc: "Botun yönetici işlemlerini kullanmasına izin verilen, virgülle ayrılmış sohbet kimlikleri (önce sahip).",
       proxyUrl: "API proxy (HTTPS)",
       proxyUrlPh: "https://user:pass@proxy.example:8080",
       proxyUrlDesc: "api.telegram.org için isteğe bağlı HTTPS proxy. Bu sürümde SOCKS5 desteklenmez — bunun yerine yerel bir https-forward çalıştırın.",
-      shopLang: "Varsayılan mağaza dili",
-      shopLangFa: "Farsça",
-      shopLangEn: "İngilizce",
-      shopLangDesc: "Kullanıcı dilini seçene kadar yeni bot kullanıcıları için kullanılır.",
+      apiBase: "Bot API taban adresi",
+      apiBasePh: "https://api.telegram.org",
+      apiBaseDesc: "Üretimde olduğu gibi bırakın. Gelişmiş: test için kendi Barındırılan Bot API sunucunuza yönlendirebilirsiniz.",
+      langLabel: "Bot dili",
+      langFa: "Farsça",
+      langEn: "İngilizce",
+      langAr: "Arapça",
+      langZh: "Çince",
+      langTr: "Türkçe",
+      langRu: "Rusça",
+      langDesc: "Her kullanıcı kendi dilini seçene kadar bot mesajlarının varsayılan dili.",
+      payMode: "Ödeme yöntemi",
+      payManual: "Kart-karta (elle onay)",
+      payZarinpal: "ZarinPal ödeme ağ geçidi",
+      tplPick: "Satış şablonu",
+      tplAll: "Tüm etkin şablonlar",
+      botSaved: "Bot ayarları kaydedildi — işçi yeniden eşitlendi",
       worker: "Satış işçisi",
       workerRunning: "çalışıyor",
       workerStopped: "durdu",
@@ -10006,6 +10170,12 @@ export const dictionaries: Record<Lang, Dict> = {
       privilegedPort: "Ayrıcalıklı port — {tag}",
       privilegedPortD: "{port} portu 1024'ün altında; Linux root veya CAP_NET_BIND_SERVICE ister.",
       privilegedPortF: "≥1024 portları tercih edin veya Xray'e yetki verin.",
+      hy2TuicSelfSigned: "{proto} kendinden imzalı sertifikayla — {tag}",
+      hy2TuicSelfSignedD: "{port} portunda sertifika malzemesi yok, sing-box çekirdeği kendinden imzalı bir sertifika üretti; istemciler insecure modda bağlanmalı.",
+      hy2TuicSelfSignedF: "Güvenlik sekmesinden yönetilen/ACME bir sertifika ekleyin ve istemcilerin göreceği SNI'yi ayarlayın.",
+      tuicCongestionInvalid: "Geçersiz TUIC congestion control — {tag}",
+      tuicCongestionInvalidD: "\"{value}\" değeri bbr, cubic, new_reno'dan biri değil — sing-box çekirdeği bbr'a döner.",
+      tuicCongestionInvalidF: "Aktarım sekmesinden bbr, cubic veya new_reno seçin.",
     },
     system: {
       updTitle: "Yazılım Güncellemesi",
@@ -10236,6 +10406,7 @@ export const dictionaries: Record<Lang, Dict> = {
       pdTrojan: "Троян-шлюз в маскировке HTTPS",
       pdSs: "Шифры Shadowsocks 2022 — быстро и просто",
       pdHy2: "На базе QUIC — для сетей с потерями",
+      pdTuic: "QUIC v5 с 0-RTT UDP-ретрансляцией",
       pdWg: "Туннель VPN уровня ядра и mesh",
       pdDoko: "Проброс порта на любую цель",
       pdSocks: "Локальная точка входа SOCKS5",
@@ -10494,9 +10665,13 @@ export const dictionaries: Record<Lang, Dict> = {
       hy2Obfs: "Пароль обфускации Salamander (необязательно)",
       hy2Up: "Лимит отдачи (Mbps)",
       hy2Down: "Лимит загрузки (Mbps)",
+      hy2Masquerade: "URL маскировки (опционально)",
+      tuicCongestion: "Управление перегрузкой",
+      tuicAlpn: "ALPN",
+      tuicHint: "TUIC v5 работает во вторичном ядре sing-box рядом с Xray. Ключ каждого клиента — uuid:password (ровно та форма, что несёт ссылка tuic://) — Forge генерирует обе части.",
       scRunning: "сайдкар: работает",
       scStopped: "сайдкар: остановлен",
-      scHint: "Hysteria2 работает в собственном сайдкар-движке (бинарник hysteria), а не внутри ядра Xray — панель запускает процесс на каждый инбаунд и записывает трафик по пользователям в хранилище.",
+      scHint: "При работе реального драйвера Xray Hysteria2 обслуживается вторичным ядром sing-box (один процесс для всех hy2+tuic инбаундов); в режиме симулятора подхватывает сайдкар-движок hysteria на каждый инбаунд.",
       ss2022KeyHint: "Шифрам 2022 нужен стандартный ключ Base64 — 24 символа для AES-128 и 44 для AES-256/ChaCha20 (используйте кнопку генерации).",
       ssKeyGen: "Сгенерировать ключ 2022",
       errSs2022Key: "Для шифров 2022 ключ должен быть корректным Base64 нужной длины (24 или 44 символа).",
@@ -10643,8 +10818,11 @@ export const dictionaries: Record<Lang, Dict> = {
       devicesCount: "Устройств: {n}",
       resetDevices: "Сбросить устройства",
       toastDevicesReset: "Регистрации устройств сброшены",
+      devicesTitle: "Зарегистрированные устройства",
+      devicesEmpty: "Пока ни одно устройство не получало эту подписку.",
       ipActive: "Активные IP ({n} мин)",
       ipBreach: "Превышен лимит IP",
+      ipNeedsCore: "нужно реальное ядро",
     },
     resellers: {
     badge: "ФАЗА 6",
@@ -11579,18 +11757,32 @@ export const dictionaries: Record<Lang, Dict> = {
     bot: {
       modeLabel: "Режим бота",
       modeConsole: "Консоль",
+      modeNotify: "Уведомления",
       modeSales: "Магазин",
-      modeDesc: "Консоль отвечает на команды администратора из панели. Магазин запускает встроенный воркер продаж (long-poll Telegram).",
+      modeDesc: "Консоль = только тестовый исполнитель. Уведомления запускают воркер для алертов и админ-команд. Магазин добавляет встроенный магазин (long-poll Telegram).",
       adminChatIds: "ID чатов администраторов",
       adminChatIdsPh: "123456789, 987654321",
       adminChatIdsDesc: "Список ID чатов (через запятую), которым разрешены админ-функции бота (владелец первым).",
       proxyUrl: "Прокси для API (HTTPS)",
       proxyUrlPh: "https://user:pass@proxy.example:8080",
       proxyUrlDesc: "Необязательный HTTPS-прокси для api.telegram.org. SOCKS5 в этом релизе не поддерживается — используйте локальный https-forward.",
-      shopLang: "Язык магазина по умолчанию",
-      shopLangFa: "Персидский",
-      shopLangEn: "Английский",
-      shopLangDesc: "Используется для новых пользователей бота, пока они не выберут язык.",
+      apiBase: "Базовый URL Bot API",
+      apiBasePh: "https://api.telegram.org",
+      apiBaseDesc: "В рабочем режиме оставьте как есть. Дополнительно: для тестов можно указать свой сервер Bot API.",
+      langLabel: "Язык бота",
+      langFa: "Персидский",
+      langEn: "Английский",
+      langAr: "Арабский",
+      langZh: "Китайский",
+      langTr: "Турецкий",
+      langRu: "Русский",
+      langDesc: "Язык сообщений бота по умолчанию, пока каждый пользователь не выберет свой.",
+      payMode: "Способ оплаты",
+      payManual: "Перевод на карту (ручное подтверждение)",
+      payZarinpal: "Шлюз ZarinPal",
+      tplPick: "Шаблон продаж",
+      tplAll: "Все активные шаблоны",
+      botSaved: "Настройки бота сохранены — воркер ресинхронизирован",
       worker: "Воркер продаж",
       workerRunning: "работает",
       workerStopped: "остановлен",
@@ -11691,6 +11883,12 @@ export const dictionaries: Record<Lang, Dict> = {
       privilegedPort: "Привилегированный порт — {tag}",
       privilegedPortD: "Порт {port} ниже 1024; Linux требует root или CAP_NET_BIND_SERVICE.",
       privilegedPortF: "Берите порты ≥ 1024 или выдайте capability Xray.",
+      hy2TuicSelfSigned: "{proto} на самоподписанном сертификате — {tag}",
+      hy2TuicSelfSignedD: "У порта {port} нет материала сертификата, поэтому ядро sing-box сгенерировало самоподписанное; клиенты должны подключаться с insecure.",
+      hy2TuicSelfSignedF: "Вставьте или выпустите управляемый/ACME-сертификат во вкладке «Безопасность» и задайте SNI, который увидят клиенты.",
+      tuicCongestionInvalid: "Недопустимый контроль перегрузки TUIC — {tag}",
+      tuicCongestionInvalidD: "Значение «{value}» — не из bbr, cubic, new_reno; ядро sing-box откатится к bbr.",
+      tuicCongestionInvalidF: "Выберите bbr, cubic или new_reno во вкладке транспорта.",
     },
     system: {
       updTitle: "Обновление панели",
