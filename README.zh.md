@@ -25,7 +25,7 @@
 
 ## Sephiroth 是什么？
 
-**Sephiroth** 是一个开源的下一代 [Xray-core](https://github.com/XTLS/Xray-core) 服务器控制面板。VPN 运营者要做的一切——创建入站、给用户发放配置、盯着流量、运行真实的 Xray 核心——都收在一间安静的黑曜石玻璃驾驶舱里；它会说 6 种语言，并把从右到左的排版当作一等公民来对待。无需看管任何外部数据库：单个 Node.js 进程搭配原子化的本地 JSON 存储，在**一个端口**上同时提供 UI、API、实时遥测套接字和定时维护。当前版本：**v2.4.0**。
+**Sephiroth** 是一个开源的下一代 [Xray-core](https://github.com/XTLS/Xray-core) 服务器控制面板。VPN 运营者要做的一切——创建入站、给用户发放配置、盯着流量、运行真实的 Xray 核心——都收在一间安静的黑曜石玻璃驾驶舱里；它会说 6 种语言，并把从右到左的排版当作一等公民来对待。无需看管任何外部数据库：单个 Node.js 进程搭配原子化的本地 JSON 存储，在**一个端口**上同时提供 UI、API、实时遥测套接字和定时维护。当前版本：**v2.5.0**。
 
 它的与众不同之处：
 
@@ -128,7 +128,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/in
 想固定安装某个版本，把标签作为参数传入（该标签必须存在于本仓库的 git tag 中，否则安装脚本会带着明确提示退出）：
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh) v2.4.0
+bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh) v2.5.0
 ```
 
 无人值守 / cloud-init — 零交互，密码照常写入结果文件：

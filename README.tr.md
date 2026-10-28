@@ -25,7 +25,7 @@
 
 ## Sephiroth nedir?
 
-**Sephiroth**, [Xray-core](https://github.com/XTLS/Xray-core) sunucuları için açık kaynaklı, yeni nesil bir yönetim panelidir. Bir VPN operatörünün dokunduğu her şey — giriş oluşturmak, kullanıcılara config dağıtmak, trafiği izlemek, gerçek Xray çekirdeğini çalıştırmak — altı dil konuşan ve sağdan sola yazımı birinci sınıf vatandaş sayan sakin bir obsidyen-cam kokpitinin ardındadır. Bakılacak harici bir veritabanı yok: tek bir Node.js süreci, atomik yerel JSON deposuyla arayüzü, API'yi, canlı telemetri soketini ve bakım görevlerini **tek portta** sunar. Güncel sürüm: **v2.4.0**.
+**Sephiroth**, [Xray-core](https://github.com/XTLS/Xray-core) sunucuları için açık kaynaklı, yeni nesil bir yönetim panelidir. Bir VPN operatörünün dokunduğu her şey — giriş oluşturmak, kullanıcılara config dağıtmak, trafiği izlemek, gerçek Xray çekirdeğini çalıştırmak — altı dil konuşan ve sağdan sola yazımı birinci sınıf vatandaş sayan sakin bir obsidyen-cam kokpitinin ardındadır. Bakılacak harici bir veritabanı yok: tek bir Node.js süreci, atomik yerel JSON deposuyla arayüzü, API'yi, canlı telemetri soketini ve bakım görevlerini **tek portta** sunar. Güncel sürüm: **v2.5.0**.
 
 Onu farklı yapan ne?
 
@@ -128,7 +128,7 @@ Kurulum betiği dağıtımınızı ve mimarinizi algılar, sistem bağımlılık
 Belirli bir sürümü sabitlemek için etiketi argüman olarak geçirin (etiket bu depodaki git tag'lerinde bulunmalıdır; yoksa kurulum betiği açıklayıcı bir ipucuyla çıkar):
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh) v2.4.0
+bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh) v2.5.0
 ```
 
 Katılımsız / cloud-init — sıfır soru; parola yine de sonuç dosyasına yazılır:

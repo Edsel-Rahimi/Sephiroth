@@ -25,7 +25,7 @@
 
 ## What is Sephiroth?
 
-**Sephiroth** is an open-source, next-generation control panel for [Xray-core](https://github.com/XTLS/Xray-core) servers. Everything a VPN operator touches — building inbounds, issuing client configs, watching traffic, running the real Xray core — lives behind one calm obsidian-glass cockpit that speaks six languages and treats right-to-left as a first-class citizen. There is no external database to babysit: a single Node.js process with an atomic local JSON store serves the UI, the API, the live telemetry socket and the maintenance cron on one port. Current release: **v2.4.0**.
+**Sephiroth** is an open-source, next-generation control panel for [Xray-core](https://github.com/XTLS/Xray-core) servers. Everything a VPN operator touches — building inbounds, issuing client configs, watching traffic, running the real Xray core — lives behind one calm obsidian-glass cockpit that speaks six languages and treats right-to-left as a first-class citizen. There is no external database to babysit: a single Node.js process with an atomic local JSON store serves the UI, the API, the live telemetry socket and the maintenance cron on one port. Current release: **v2.5.0**.
 
 What makes it different:
 
@@ -128,7 +128,7 @@ The installer detects your distro and architecture, installs system dependencies
 Pin a specific release by passing the tag as an argument (the tag must exist in this repository's git tags — otherwise the installer exits with an actionable hint):
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh) v2.4.0
+bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh) v2.5.0
 ```
 
 Unattended / cloud-init — zero prompts, credentials still written to the result file:
