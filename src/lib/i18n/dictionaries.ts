@@ -1026,6 +1026,9 @@ export interface Dict {
     apiSwaggerFallback: string;
     apiOpenSpec: string;
     apiRetry: string;
+    apiDocsTitle: string;
+    apiDocsBack: string;
+    apiDocsNeedLogin: string;
     apiTokensTitle: string;
     apiTokensDesc: string;
     apiTokenNamePh: string;
@@ -2865,6 +2868,9 @@ export const dictionaries: Record<Lang, Dict> = {
       apiSwaggerFallback: "The embedded docs could not load. The raw spec is always available at /api/openapi.json.",
       apiOpenSpec: "Open raw spec",
       apiRetry: "Retry",
+      apiDocsTitle: "Public API · Docs",
+      apiDocsBack: "Back to panel",
+      apiDocsNeedLogin: "Admin sign-in is required to view the API docs.",
       apiTokensTitle: "API tokens",
       apiTokensDesc: "Secrets are stored hashed; the full value is shown exactly once at mint time.",
       apiTokenNamePh: 'Token name — e.g. "billing-bot"',
@@ -4717,6 +4723,9 @@ export const dictionaries: Record<Lang, Dict> = {
       apiSwaggerFallback: "مستندات تعاملی بارگذاری نشد. مشخصات خام همیشه در /api/openapi.json در دسترس است.",
       apiOpenSpec: "مشخصات خام",
       apiRetry: "تلاش دوباره",
+      apiDocsTitle: "API عمومی · مستندات",
+      apiDocsBack: "بازگشت به پنل",
+      apiDocsNeedLogin: "برای مشاهدهٔ مستندات API، ورود مدیر لازم است.",
       apiTokensTitle: "توکن‌های API",
       apiTokensDesc: "مخفی‌ها هش‌شده ذخیره می‌شوند؛ مقدار کامل فقط یک‌بار در لحظه ساخت نمایش داده می‌شود.",
       apiTokenNamePh: 'نام توکن — مثلا "فروش-بات"',
@@ -6565,6 +6574,9 @@ export const dictionaries: Record<Lang, Dict> = {
       apiSwaggerFallback: "تعذر تحميل الوثائق المضمنة. المواصفات الخام متاحة دائمًا على /api/openapi.json.",
       apiOpenSpec: "المواصفات الخام",
       apiRetry: "إعادة المحاولة",
+      apiDocsTitle: "API العامة · الوثائق",
+      apiDocsBack: "العودة إلى اللوحة",
+      apiDocsNeedLogin: "يلزم تسجيل دخول المدير لعرض وثائق API.",
       apiTokensTitle: "توكنات API",
       apiTokensDesc: "تُخزن الأسرار مجزّأة؛ القيمة الكاملة تُعرض مرة واحدة فقط عند الإنشاء.",
       apiTokenNamePh: 'اسم التوكن — مثل "بوت-الفوترة"',
@@ -8411,6 +8423,9 @@ export const dictionaries: Record<Lang, Dict> = {
       apiSwaggerFallback: "内嵌文档加载失败。原始规范始终可在 /api/openapi.json 获取。",
       apiOpenSpec: "查看原始规范",
       apiRetry: "重试",
+      apiDocsTitle: "公共 API · 文档",
+      apiDocsBack: "返回面板",
+      apiDocsNeedLogin: "查看 API 文档需要管理员登录。",
       apiTokensTitle: "API 令牌",
       apiTokensDesc: "密钥以哈希存储；完整值仅在创建时显示一次。",
       apiTokenNamePh: '令牌名称 —— 例如 "billing-bot"',
@@ -10257,6 +10272,9 @@ export const dictionaries: Record<Lang, Dict> = {
       apiSwaggerFallback: "Gömülü belgeler yüklenemedi. Ham şema her zaman /api/openapi.json adresinde.",
       apiOpenSpec: "Ham şemayı aç",
       apiRetry: "Tekrar dene",
+      apiDocsTitle: "Genel API · Belgeler",
+      apiDocsBack: "Panele dön",
+      apiDocsNeedLogin: "API belgelerini görmek için yönetici girişi gerekir.",
       apiTokensTitle: "API token'ları",
       apiTokensDesc: "Sırlar hash olarak saklanır; tam değer yalnızca üretim anında bir kez gösterilir.",
       apiTokenNamePh: 'Token adı — örn. "fatura-botu"',
@@ -12106,6 +12124,9 @@ export const dictionaries: Record<Lang, Dict> = {
       apiSwaggerFallback: "Встроенные документы не загрузились. Сырая спецификация всегда доступна по /api/openapi.json.",
       apiOpenSpec: "Открыть сырую спецификацию",
       apiRetry: "Повторить",
+      apiDocsTitle: "Публичный API · Документация",
+      apiDocsBack: "Вернуться в панель",
+      apiDocsNeedLogin: "Для просмотра документации API требуется вход администратора.",
       apiTokensTitle: "API-токены",
       apiTokensDesc: "Секреты хранятся в виде хэшей; полное значение показывается ровно один раз при создании.",
       apiTokenNamePh: 'Имя токена — например "billing-bot"',

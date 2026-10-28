@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { DirectionProvider } from "@radix-ui/react-direction";
 import Home from "@/app/page";
 import SubscriptionPortalPage from "@/app/sub/[token]/page";
+import ApiDocsPage from "@/app/api-docs/page"; // Phase 28 — standalone Swagger UI
 import { Toaster } from "@/components/ui/toaster";
 import { useAppStore } from "@/lib/store/app-store";
 import { RTL_LANGS } from "@/lib/i18n/dictionaries";
@@ -18,6 +19,7 @@ export default function App() {
   }, []);
 
   const isSubRoute = pathname.startsWith("/sub/");
+  const isApiDocs = pathname === "/api-docs" || pathname.startsWith("/api-docs/");
 
   /* Radix direction follows the same source of truth as <html dir>
      (RTL_LANGS ∋ lang in src/app/page.tsx) so every popper-based
@@ -27,7 +29,13 @@ export default function App() {
 
   return (
     <DirectionProvider dir={dir}>
-      {isSubRoute ? <SubscriptionPortalPage /> : <Home />}
+      {isSubRoute ? (
+        <SubscriptionPortalPage />
+      ) : isApiDocs ? (
+        <ApiDocsPage />
+      ) : (
+        <Home />
+      )}
       <Toaster />
     </DirectionProvider>
   );

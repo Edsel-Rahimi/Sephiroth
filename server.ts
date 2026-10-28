@@ -113,6 +113,7 @@ import * as apiUsersId from "./src/app/api/users/[id]/route";
 import * as apiApiTokens from "./src/app/api/api-tokens/route"; // Phase 27 — public API tokens
 import * as apiApiTokensId from "./src/app/api/api-tokens/[id]/route"; // Phase 27 — token revoke/toggle
 import * as apiOpenapi from "./src/app/api/openapi/route"; // Phase 27 — OpenAPI spec
+import * as apiV1Ping from "./src/app/api/v1/ping/route"; // Phase 28 — /api/v1 health probe
 import * as apiRefProxy from "./src/app/ref/[panel]/[[...path]]/route";
 
 type RouteHandler = (req: Request, ctx: { params: Promise<any> }) => Promise<Response> | Response;
@@ -382,6 +383,26 @@ async function startServer() {
   mountRoute(app, "/api/api-tokens", apiApiTokens);
   mountRoute(app, "/api/api-tokens/:id", apiApiTokensId);
   mountRoute(app, "/api/openapi.json", apiOpenapi);
+
+  /* Phase 28 — /api/v1 public namespace: curated bearer-authed aliases of the
+     dashboard REST API under a stable versioned prefix for external
+     integrations. Ping is open; everything else needs a `seph_` token.
+     Order matters — literal segments mount before :id catch-alls. */
+  mountRoute(app, "/api/v1/ping", apiV1Ping);
+  mountRoute(app, "/api/v1/users", apiUsers);
+  mountRoute(app, "/api/v1/users/bulk", apiUsersBulk);
+  mountRoute(app, "/api/v1/users/bulk-create", apiUsersBulkCreate);
+  mountRoute(app, "/api/v1/users/export", apiUsersExport);
+  mountRoute(app, "/api/v1/users/import", apiUsersImport);
+  mountRoute(app, "/api/v1/users/ip-usage", apiUsersIpUsage);
+  mountRoute(app, "/api/v1/users/:id/reset-devices", apiUsersResetDevices);
+  mountRoute(app, "/api/v1/users/:id", apiUsersId);
+  mountRoute(app, "/api/v1/inbounds", apiInbounds);
+  mountRoute(app, "/api/v1/inbounds/:id", apiInboundsId);
+  mountRoute(app, "/api/v1/system/server-info", apiSystemServerInfo);
+  mountRoute(app, "/api/v1/system/core-status", apiSystemCoreStatus);
+  mountRoute(app, "/api/v1/activity", apiActivity);
+
   mountRoute(app, "/api/auth/change-password", apiAuthChangePassword);
   mountRoute(app, "/api/auth/login", apiAuthLogin);
   mountRoute(app, "/api/auth/logout", apiAuthLogout);

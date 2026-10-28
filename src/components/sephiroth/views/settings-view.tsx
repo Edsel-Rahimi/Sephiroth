@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRightLeft,
+  BookOpen,
   Braces,
   CalendarClock,
   Check,
@@ -2929,6 +2930,20 @@ docker run -d --name mtproxy --restart=always -p ${mtpPort || "443"}:443 \\
 
             {/* swagger ui — full width */}
             <SectionCard icon={FileJson} title={u.apiSwaggerTitle} desc={u.apiSwaggerDesc} className="lg:col-span-2">
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <a href="/api-docs" target="_blank" rel="noreferrer">
+                  <Button variant="outline" size="sm" className="h-8 gap-1.5 rounded-full text-[11px]">
+                    <BookOpen className="h-3 w-3" aria-hidden="true" />
+                    {u.apiDocsTitle}
+                  </Button>
+                </a>
+                <a href="/api/openapi.json" target="_blank" rel="noreferrer">
+                  <Button variant="outline" size="sm" className="h-8 gap-1.5 rounded-full text-[11px]">
+                    <FileJson className="h-3 w-3" aria-hidden="true" />
+                    {u.apiOpenSpec}
+                  </Button>
+                </a>
+              </div>
               <SwaggerEmbed />
             </SectionCard>
           </div>

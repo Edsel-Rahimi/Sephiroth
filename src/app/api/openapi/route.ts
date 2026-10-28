@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 
 /* ============================================================
-   Sephiroth · Phase 27 — OpenAPI 3.1 specification
+   Sephiroth · Phase 27/28 — OpenAPI 3.1 specification
    Served at /api/openapi.json and consumed by the embedded
-   Swagger UI in Settings → Public API. The spec is generated
+   Swagger UI in Settings → Public API AND the standalone
+   /api-docs page. The spec is generated
    per-request so `servers` always matches the deployment origin
    (LAN IP, domain, or localhost preview alike).
 
@@ -12,6 +13,8 @@ import { getSession } from "@/lib/auth";
      • cookieAuth  — the dashboard session (same-site UI)
      • bearerAuth  — `Authorization: Bearer seph_…` public-API
                      tokens minted in Settings → Public API
+   The /api/v1/* paths are the stable public namespace (Phase 28):
+   curated bearer-authed aliases of the dashboard routes.
    ============================================================ */
 
 export async function GET(req: Request) {
@@ -39,16 +42,68 @@ export async function GET(req: Request) {
     },
   };
 
+  /* Phase 28 — /api/v1 public namespace. The same handlers as the dashboard
+     REST API, also mounted under a stable versioned prefix so external
+     integrations can pin /api/v1 without tracking internal routes. */
+  const v1 = (summary: string) => ({
+    tags: ["Public v1"],
+    summary,
+    responses: {
+      "200": { description: "OK — same payload as the aliased dashboard route" },
+      "401": { description: "Missing or invalid seph_ bearer token" },
+    },
+  });
+  const v1Paths: Record<string, unknown> = {
+    "/api/v1/ping": {
+      get: {
+        tags: ["Public v1"],
+        summary: "Unauthenticated health probe (no token needed)",
+        security: [],
+        responses: { "200": { description: "{ ok, service, version, time }" } },
+      },
+    },
+    "/api/v1/users": {
+      get: v1("List users — alias of GET /api/users"),
+      post: v1("Create a user — alias of POST /api/users"),
+    },
+    "/api/v1/users/{id}": {
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      get: v1("Get one user — alias of GET /api/users/{id}"),
+      patch: v1("Update a user — alias of PATCH /api/users/{id}"),
+      delete: v1("Delete a user — alias of DELETE /api/users/{id}"),
+    },
+    "/api/v1/users/bulk": { post: v1("Bulk action — alias of POST /api/users/bulk") },
+    "/api/v1/users/bulk-create": { post: v1("Batch create — alias of POST /api/users/bulk-create") },
+    "/api/v1/users/export": { get: v1("Export users — alias of GET /api/users/export") },
+    "/api/v1/users/import": { post: v1("Import users — alias of POST /api/users/import") },
+    "/api/v1/users/ip-usage": { get: v1("Per-user IP usage — alias of GET /api/users/ip-usage") },
+    "/api/v1/inbounds": {
+      get: v1("List inbounds — alias of GET /api/inbounds"),
+      post: v1("Create an inbound — alias of POST /api/inbounds"),
+    },
+    "/api/v1/inbounds/{id}": {
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      get: v1("Get one inbound — alias of GET /api/inbounds/{id}"),
+      patch: v1("Update an inbound — alias of PATCH /api/inbounds/{id}"),
+      delete: v1("Delete an inbound — alias of DELETE /api/inbounds/{id}"),
+    },
+    "/api/v1/system/server-info": { get: v1("Server info & stats — alias of GET /api/system/server-info") },
+    "/api/v1/system/core-status": { get: v1("Live core status — alias of GET /api/system/core-status") },
+    "/api/v1/activity": { get: v1("Audit trail — alias of GET /api/activity") },
+  };
+
   const spec = {
     openapi: "3.1.0",
     info: {
       title: "Sephiroth Panel — Public API",
-      version: "27.0.0",
+      version: "27.1.0",
       description:
         "REST API for managing users, inbounds and panel state. " +
         "Authenticate with a public-API token (`seph_…`) via the Authorize button — " +
-        "mint tokens in Settings → Public API. Every session-authenticated dashboard " +
-        "endpoint accepts the same token.",
+        "mint tokens in Settings → Public API. The stable public namespace is " +
+        "**/api/v1** (see the Public v1 tag): `/api/v1/ping` needs no token, every " +
+        "other /api/v1 route is a bearer-authed alias of the corresponding " +
+        "/api route. Interactive docs: /api-docs.",
       contact: { name: "Sephiroth Panel" },
     },
     servers: [{ url: origin, description: "This deployment" }],
@@ -58,6 +113,7 @@ export async function GET(req: Request) {
       { name: "Inbounds", description: "Inbound listeners (vless, vmess, trojan, shadowsocks, hysteria2, tuic, wireguard, amnezia-wg, dokodemo-door, socks, http, mixed, mtproto)" },
       { name: "System", description: "Core status, logs, restart" },
       { name: "Activity", description: "Audit trail" },
+      { name: "Public v1", description: "Stable versioned namespace — /api/v1 aliases (bearer seph_ token; ping is open)" },
       { name: "Subscription", description: "Public subscription endpoints (no auth)" },
     ],
     components: {
@@ -128,6 +184,7 @@ export async function GET(req: Request) {
     },
     security: [{ bearerAuth: [] }],
     paths: {
+      ...v1Paths,
       "/api/auth/login": {
         post: {
           tags: ["Auth"],
