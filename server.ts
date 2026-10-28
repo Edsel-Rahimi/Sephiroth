@@ -90,8 +90,12 @@ import {
   notifyPanelRestarted,
   notifyQuotaCapped,
   notifyTrafficReset,
+  notifyUserActivated,
+  notifyUserExpiringSoon,
   notifyUserExpired,
+  notifyUserRenewed,
 } from "./src/lib/bot/notify"; // Task 23-a — bot notifications
+import { runDailySalesDigest } from "./src/lib/digest-job"; // 26-a — daily sales digest
 import { runSslRenewalTick } from "./src/lib/acme"; // Task 23-f — daily ACME renewal watcher
 import * as apiSystemSsl from "./src/app/api/system/ssl/route";
 import * as apiSystemSslInstall from "./src/app/api/system/ssl-install-acme/route";
@@ -101,6 +105,9 @@ import * as apiUsers from "./src/app/api/users/route";
 import * as apiUsersIpUsage from "./src/app/api/users/ip-usage/route"; // Task 23-g — concurrent-IP usage
 import * as apiUsersResetDevices from "./src/app/api/users/[id]/reset-devices/route"; // Task 23-g — HWID reset
 import * as apiUsersBulk from "./src/app/api/users/bulk/route";
+import * as apiUsersBulkCreate from "./src/app/api/users/bulk-create/route"; // 26-b — one-click N users
+import * as apiUsersImport from "./src/app/api/users/import/route"; // 26-b — migration in
+import * as apiUsersExport from "./src/app/api/users/export/route"; // 26-b — migration out
 import * as apiUsersId from "./src/app/api/users/[id]/route";
 import * as apiRefProxy from "./src/app/ref/[panel]/[[...path]]/route";
 
@@ -186,12 +193,62 @@ async function runPeriodicUserMaintenance(): Promise<void> {
     const nowMs = now.getTime();
     let expiredCount = 0;
     let resetCount = 0;
+    let renewedCount = 0;
+    let activatedCount = 0;
 
     for (const user of users) {
-      // 1) expiry enforcement — idempotent: expired users get disabled once
+      const usedGb = Number(user.usedTrafficGb) || 0;
+
+      // 0) 26-a — on-hold activation: the subscription clock starts at the
+      //    FIRST observed traffic instead of the purchase moment.
+      if (user.onHold && user.enabled && user.startedAt === null && usedGb > 0) {
+        await db.clientUser.update({ where: { id: user.id }, data: { startedAt: now } });
+        activatedCount += 1;
+        console.log(`[cron] on-hold user "${user.username}" activated on first connect`);
+        void logActivity({
+          kind: "user.updated",
+          level: "info",
+          actor: "system",
+          message: `On-hold user "${user.username}" activated on first connection`,
+          meta: { userId: user.id, username: user.username, startedAt: now.toISOString() },
+        });
+        void notifyUserActivated(user.username, user.expiryDays ?? 0);
+        continue; // fresh window — nothing else to check this tick
+      }
+
+      // 1) expiry enforcement — idempotent: expired users get disabled once.
+      //    26-a: anchor is startedAt (on-hold) falling back to createdAt;
+      //    autoRenew users roll the window forward instead of being disabled.
       if (user.enabled && user.expiryDays !== null) {
-        const endsAt = new Date(user.createdAt).getTime() + user.expiryDays * 86_400_000;
+        const anchorMs = new Date(user.startedAt ?? user.createdAt).getTime();
+        const endsAt = anchorMs + user.expiryDays * 86_400_000;
         if (nowMs >= endsAt) {
+          if (user.autoRenew) {
+            // roll forward from the PREVIOUS window end (no time lost while offline)
+            const nextEndsAt = new Date(endsAt + user.expiryDays * 86_400_000);
+            const renewals = (Number(user.renewals) || 0) + 1;
+            await db.clientUser.update({
+              where: { id: user.id },
+              data: {
+                startedAt: nextEndsAt,
+                usedTrafficGb: 0,
+                lastResetAt: now,
+                expiryWarnedAt: null,
+                renewals,
+              },
+            });
+            renewedCount += 1;
+            console.log(`[cron] user "${user.username}" auto-renewed (#${renewals})`);
+            void logActivity({
+              kind: "user.updated",
+              level: "info",
+              actor: "system",
+              message: `Subscription "${user.username}" auto-renewed (window rolled to ${nextEndsAt.toISOString()})`,
+              meta: { userId: user.id, username: user.username, renewals },
+            });
+            void notifyUserRenewed(user.username, renewals);
+            continue;
+          }
           await db.clientUser.update({ where: { id: user.id }, data: { enabled: false } });
           expiredCount += 1;
           console.log(`[cron] user "${user.username}" expired — disabled`);
@@ -205,6 +262,19 @@ async function runPeriodicUserMaintenance(): Promise<void> {
           void notifyUserExpired(user.username); // Task 23-a — bot alert (deduped)
           continue;
         }
+
+        // 1c) 26-a — near-expiry heads-up: at most one ping per ~day while ≤3 days remain
+        const daysLeft = Math.ceil((endsAt - nowMs) / 86_400_000);
+        if (daysLeft >= 1 && daysLeft <= 3) {
+          const warnedMs = user.expiryWarnedAt ? new Date(user.expiryWarnedAt).getTime() : 0;
+          if (nowMs - warnedMs >= 20 * 3_600_000) {
+            await db.clientUser.update({
+              where: { id: user.id },
+              data: { expiryWarnedAt: now },
+            });
+            void notifyUserExpiringSoon(user.username, daysLeft);
+          }
+        }
       }
 
       // 1b) quota-cap WATCH (23-a) — alert admins when an enabled user is at
@@ -213,10 +283,10 @@ async function runPeriodicUserMaintenance(): Promise<void> {
       if (
         user.enabled &&
         user.trafficLimitGb !== null &&
-        (Number(user.usedTrafficGb) || 0) >= user.trafficLimitGb &&
+        usedGb >= user.trafficLimitGb &&
         user.trafficLimitGb > 0
       ) {
-        void notifyQuotaCapped(user.username, Number(user.usedTrafficGb) || 0, user.trafficLimitGb);
+        void notifyQuotaCapped(user.username, usedGb, user.trafficLimitGb);
       }
 
       // 2) traffic counter reset by period (daily=1d, weekly=7d,
@@ -257,8 +327,10 @@ async function runPeriodicUserMaintenance(): Promise<void> {
       }
     }
 
-    if (expiredCount || resetCount) {
-      console.log(`[cron] user maintenance: ${expiredCount} expired, ${resetCount} traffic reset(s)`);
+    if (expiredCount || resetCount || renewedCount || activatedCount) {
+      console.log(
+        `[cron] user maintenance: ${expiredCount} expired, ${renewedCount} auto-renewed, ${activatedCount} on-hold activated, ${resetCount} traffic reset(s)`
+      );
     }
   } catch (err) {
     console.error("[cron] user maintenance error:", err);
@@ -357,6 +429,9 @@ async function startServer() {
   mountRoute(app, "/api/tunnels", apiTunnels);
 
   mountRoute(app, "/api/users/bulk", apiUsersBulk);
+  mountRoute(app, "/api/users/bulk-create", apiUsersBulkCreate); // 26-b — BEFORE :id
+  mountRoute(app, "/api/users/import", apiUsersImport); // 26-b — BEFORE :id
+  mountRoute(app, "/api/users/export", apiUsersExport); // 26-b — BEFORE :id
   mountRoute(app, "/api/users/ip-usage", apiUsersIpUsage); // Task 23-g — BEFORE :id
   mountRoute(app, "/api/users/:id/reset-devices", apiUsersResetDevices); // Task 23-g
   mountRoute(app, "/api/users", apiUsers);
@@ -540,6 +615,7 @@ async function startServer() {
     void runPeriodicUserMaintenance();
     void runAutoBackup();
     void runSslRenewalTick(); // Task 23-f — day-rollover ACME renewal check
+    void runDailySalesDigest(); // 26-a — once-per-24h sales/orders digest
   }, 60_000);
   // first auto-backup chance shortly after boot (also primes security settings)
   setTimeout(() => {

@@ -50,6 +50,10 @@ export async function PATCH(req: Request, ctx: Ctx) {
         enabled: data.enabled,
         maxUsers: data.maxUsers,
         trafficQuotaGb: data.trafficQuotaGb,
+        // 26-c — white-label identity (sparse: only when sent)
+        ...(data.brandName !== undefined ? { brandName: data.brandName } : {}),
+        ...(data.brandLogo !== undefined ? { brandLogo: data.brandLogo } : {}),
+        ...(data.brandAccent !== undefined ? { brandAccent: data.brandAccent } : {}),
         ...(data.password ? { passwordHash: hashPassword(data.password) } : {}),
       },
       include: { users: { select: { trafficLimitGb: true, usedTrafficGb: true } } },

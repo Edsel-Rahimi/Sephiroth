@@ -12,6 +12,7 @@ export interface SubDict {
   passKind: string; // "Orbit Pass"
   langLabel: string;
   statusActive: string;
+  statusOnHold: string;
   statusExpired: string;
   statusCapped: string;
   statusDisabled: string;
@@ -63,6 +64,7 @@ const en: SubDict = {
   passKind: "Orbit Pass",
   langLabel: "Language",
   statusActive: "Active",
+  statusOnHold: "On hold",
   statusExpired: "Expired",
   statusCapped: "Depleted",
   statusDisabled: "Suspended",
@@ -107,6 +109,7 @@ const fa: SubDict = {
   passKind: "کارت مدار",
   langLabel: "زبان",
   statusActive: "فعال",
+  statusOnHold: "در انتظار",
   statusExpired: "منقضی",
   statusCapped: "اتمام‌حجم",
   statusDisabled: "تعلیق",
@@ -151,6 +154,7 @@ const ar: SubDict = {
   passKind: "بطاقة المدار",
   langLabel: "اللغة",
   statusActive: "نشط",
+  statusOnHold: "قيد الانتظار",
   statusExpired: "منتهي",
   statusCapped: "منضب",
   statusDisabled: "معلّق",
@@ -195,6 +199,7 @@ const zh: SubDict = {
   passKind: "轨道通行证",
   langLabel: "语言",
   statusActive: "正常",
+  statusOnHold: "待激活",
   statusExpired: "已过期",
   statusCapped: "已耗尽",
   statusDisabled: "已停用",
@@ -239,6 +244,7 @@ const tr: SubDict = {
   passKind: "Yörünge Kartı",
   langLabel: "Dil",
   statusActive: "Aktif",
+  statusOnHold: "Beklemede",
   statusExpired: "Süresi Doldu",
   statusCapped: "Tükendi",
   statusDisabled: "Askıda",
@@ -283,6 +289,7 @@ const ru: SubDict = {
   passKind: "Орбитальная карта",
   langLabel: "Язык",
   statusActive: "Активна",
+  statusOnHold: "Ожидание",
   statusExpired: "Истекла",
   statusCapped: "Исчерпана",
   statusDisabled: "Приостановлена",

@@ -97,6 +97,12 @@ export async function PATCH(
           ...(data.ipLimit !== undefined ? { ipLimit: data.ipLimit } : {}),
           ...(data.hwidLimit !== undefined ? { hwidLimit: data.hwidLimit } : {}),
           ...(data.resetPeriod !== undefined ? { resetPeriod: data.resetPeriod } : {}),
+          // 26-a — on-hold: re-arming the hold clears the anchor so the clock
+          // restarts at the next first-connect; disarming keeps the anchor.
+          ...(data.onHold !== undefined
+            ? { onHold: data.onHold, startedAt: data.onHold ? null : (existing.startedAt ?? null) }
+            : {}),
+          ...(data.autoRenew !== undefined ? { autoRenew: data.autoRenew } : {}),
         },
       });
 

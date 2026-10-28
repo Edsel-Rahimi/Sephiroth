@@ -65,6 +65,9 @@ interface ResellerForm {
   note: string;
   maxUsers: string; // "" = unlimited
   quotaGb: string; // "" = unlimited
+  brandName: string; // 26-c white-label ("" = Sephiroth branding)
+  brandLogo: string;
+  brandAccent: string;
   enabled: boolean;
 }
 
@@ -81,6 +84,9 @@ const EMPTY_RESELLER: ResellerForm = {
   note: "",
   maxUsers: "",
   quotaGb: "",
+  brandName: "",
+  brandLogo: "",
+  brandAccent: "",
   enabled: true,
 };
 
@@ -293,6 +299,9 @@ export function ResellersView() {
       note: r.note ?? "",
       maxUsers: r.maxUsers === null ? "" : String(r.maxUsers),
       quotaGb: r.trafficQuotaGb === null ? "" : String(r.trafficQuotaGb),
+      brandName: r.brandName ?? "",
+      brandLogo: r.brandLogo ?? "",
+      brandAccent: r.brandAccent ?? "",
       enabled: r.enabled,
     });
     setRErr({});
@@ -338,6 +347,9 @@ export function ResellersView() {
             enabled: rForm.enabled,
             maxUsers,
             trafficQuotaGb,
+            brandName: rForm.brandName.trim(),
+            brandLogo: rForm.brandLogo.trim(),
+            brandAccent: rForm.brandAccent.trim(),
             ...(password ? { password } : {}),
           }
         : {
@@ -347,6 +359,9 @@ export function ResellersView() {
             enabled: rForm.enabled,
             maxUsers,
             trafficQuotaGb,
+            brandName: rForm.brandName.trim(),
+            brandLogo: rForm.brandLogo.trim(),
+            brandAccent: rForm.brandAccent.trim(),
           };
       const res = await fetch(rEditing ? `/api/resellers/${rEditing.id}` : "/api/resellers", {
         method: rEditing ? "PATCH" : "POST",
@@ -1038,6 +1053,63 @@ export function ResellersView() {
               </div>
               <p className="text-[10px] leading-relaxed text-muted-foreground">{u.dQuotaHint}</p>
               <Tip>{u.tipQuota}</Tip>
+            </div>
+
+            {/* 26-c — white-label identity for this reseller's /sub pages */}
+            <div className="space-y-3 border-t border-white/5 pt-4">
+              <div>
+                <Label htmlFor="res-brand-name" className="text-xs text-muted-foreground">
+                  {u.brandNameLabel}
+                </Label>
+                <Input
+                  id="res-brand-name"
+                  value={rForm.brandName}
+                  onChange={(e) => setRForm((f) => ({ ...f, brandName: e.target.value }))}
+                  placeholder="Sephiroth"
+                  className="mt-1 h-10"
+                  maxLength={40}
+                />
+                <p className="mt-1 text-[10px] text-muted-foreground">{u.brandNameHint}</p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-[1fr_120px]">
+                <div>
+                  <Label htmlFor="res-brand-logo" className="text-xs text-muted-foreground">
+                    {u.brandLogoLabel}
+                  </Label>
+                  <Input
+                    id="res-brand-logo"
+                    value={rForm.brandLogo}
+                    onChange={(e) => setRForm((f) => ({ ...f, brandLogo: e.target.value }))}
+                    placeholder="https://…/logo.png"
+                    className="mt-1 h-10 font-mono text-xs"
+                    dir="ltr"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="res-brand-accent" className="text-xs text-muted-foreground">
+                    {u.brandAccentLabel}
+                  </Label>
+                  <div className="mt-1 flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={/^#[0-9a-fA-F]{6}$/.test(rForm.brandAccent) ? rForm.brandAccent : "#f59e0b"}
+                      onChange={(e) => setRForm((f) => ({ ...f, brandAccent: e.target.value }))}
+                      className="h-10 w-10 cursor-pointer rounded-lg border border-white/10 bg-transparent"
+                      aria-label={u.brandAccentLabel}
+                    />
+                    <Input
+                      id="res-brand-accent"
+                      value={rForm.brandAccent}
+                      onChange={(e) => setRForm((f) => ({ ...f, brandAccent: e.target.value }))}
+                      placeholder="#f59e0b"
+                      className="h-10 font-mono text-xs"
+                      dir="ltr"
+                    />
+                  </div>
+                  {rErr.brandAccent && <p className="text-[11px] text-chart-5">{rErr.brandAccent}</p>}
+                </div>
+              </div>
+              <p className="text-[10px] leading-relaxed text-muted-foreground">{u.brandHint}</p>
             </div>
 
             {/* enabled + actions */}

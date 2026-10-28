@@ -23,7 +23,7 @@ import { notifyUserCreated } from "@/lib/bot/notify"; // Task 23-a — bot alert
    GET  /api/users  → { users: UserDTO[] }
    POST /api/users  → { user: UserDTO } (201)
       body: { username, note?, enabled?, trafficLimitGb?, expiryDays?,
-              ipLimit?, hwidLimit?, inboundIds[] }
+              ipLimit?, hwidLimit?, onHold?, autoRenew?, inboundIds[] }
    Creates the ClientUser + one access per selected inbound and
    projects each access into the inbound's clientsJson (ownerId).
    ============================================================ */
@@ -125,6 +125,10 @@ export async function POST(req: Request) {
           resetPeriod: data.resetPeriod,
           usedTrafficGb: 0,
           resellerId,
+          onHold: data.onHold,
+          startedAt: null,
+          autoRenew: data.autoRenew,
+          renewals: 0,
         },
       });
 

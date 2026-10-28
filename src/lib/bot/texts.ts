@@ -87,6 +87,12 @@ export interface BotTexts {
   nRestart: string;
   nInboundCreated: string;
   nInboundDeleted: string;
+  /* notifications — wave 2 (26-a): login fail / near expiry / digest / on-hold + autorenew */
+  nLoginFailed: string;
+  nNearExpiry: string;
+  nDigest: string;
+  nUserActivated: string;
+  nUserRenewed: string;
 }
 
 const FA: BotTexts = {
@@ -155,6 +161,11 @@ const FA: BotTexts = {
   nRestart: "🚀 پنل دوباره بالا آمد — v{ver}",
   nInboundCreated: "📥 کانفیگ <b>{tag}</b> ساخته شد ({proto} :{port})",
   nInboundDeleted: "📤 کانفیگ <b>{tag}</b> حذف شد",
+  nLoginFailed: "🔐 تلاش ناموفق ورود برای <code>{user}</code> از {ip}",
+  nNearExpiry: "⏳ کاربر <code>{user}</code> تا {days} روز دیگر منقضی می‌شود",
+  nDigest: "📈 گزارش ۲۴ ساعت — {orders} سفارش موفق ({revenue} تومان)، {users} کاربر جدید",
+  nUserActivated: "▶️ کاربر در انتظار <code>{user}</code> با اولین اتصال فعال شد — {days} روز اعتبار",
+  nUserRenewed: "🔄 اشتراک <code>{user}</code> خودکار تمدید شد (مجموع {renewals} بار)",
 };
 
 const EN: BotTexts = {
@@ -223,6 +234,11 @@ const EN: BotTexts = {
   nRestart: "🚀 Panel restarted — v{ver}",
   nInboundCreated: "📥 Inbound <b>{tag}</b> created ({proto} :{port})",
   nInboundDeleted: "📤 Inbound <b>{tag}</b> deleted",
+  nLoginFailed: "🔐 Failed sign-in attempt for <code>{user}</code> from {ip}",
+  nNearExpiry: "⏳ User <code>{user}</code> expires in {days} day(s)",
+  nDigest: "📈 24h digest — {orders} completed order(s) ({revenue} Toman), {users} new user(s)",
+  nUserActivated: "▶️ On-hold user <code>{user}</code> activated on first connect — {days} day(s) granted",
+  nUserRenewed: "🔄 Subscription <code>{user}</code> auto-renewed ({renewals} total)",
 };
 
 const AR: BotTexts = {
@@ -291,6 +307,11 @@ const AR: BotTexts = {
   nRestart: "🚀 أعيد تشغيل اللوحة — v{ver}",
   nInboundCreated: "📥 أُنشئت نقطة الدخول <b>{tag}</b> ({proto} :{port})",
   nInboundDeleted: "📤 حُذفت نقطة الدخول <b>{tag}</b>",
+  nLoginFailed: "🔐 محاولة دخول فاشلة لـ <code>{user}</code> من {ip}",
+  nNearExpiry: "⏳ ينتهي المستخدم <code>{user}</code> بعد {days} يوم",
+  nDigest: "📈 ملخص ٢٤ ساعة — {orders} طلب مكتمل ({revenue} تومان)، {users} مستخدم جديد",
+  nUserActivated: "▶️ فعّل المستخدم المعلّق <code>{user}</code> عند أول اتصال — {days} يوم",
+  nUserRenewed: "🔄 جُدّد اشتراك <code>{user}</code> تلقائيًا ({renewals} مرة)",
 };
 
 const ZH: BotTexts = {
@@ -359,6 +380,11 @@ const ZH: BotTexts = {
   nRestart: "🚀 面板已重启 — v{ver}",
   nInboundCreated: "📥 入站 <b>{tag}</b> 已创建（{proto} :{port}）",
   nInboundDeleted: "📤 入站 <b>{tag}</b> 已删除",
+  nLoginFailed: "🔐 <code>{user}</code> 登录失败，来源 {ip}",
+  nNearExpiry: "⏳ 用户 <code>{user}</code> 将在 {days} 天后到期",
+  nDigest: "📈 24 小时简报 — {orders} 笔完成订单（{revenue} 托曼），{users} 个新用户",
+  nUserActivated: "▶️ 待激活用户 <code>{user}</code> 已在首次连接时激活 — {days} 天",
+  nUserRenewed: "🔄 订阅 <code>{user}</code> 已自动续期（共 {renewals} 次）",
 };
 
 const TR: BotTexts = {
@@ -427,6 +453,11 @@ const TR: BotTexts = {
   nRestart: "🚀 Panel yeniden başlatıldı — v{ver}",
   nInboundCreated: "📥 Inbound <b>{tag}</b> oluşturuldu ({proto} :{port})",
   nInboundDeleted: "📤 Inbound <b>{tag}</b> silindi",
+  nLoginFailed: "🔐 <code>{user}</code> için başarısız giriş denemesi — {ip}",
+  nNearExpiry: "⏳ Kullanıcı <code>{user}</code> {days} gün içinde sona eriyor",
+  nDigest: "📈 24 saatlik özet — {orders} tamamlanan sipariş ({revenue} Toman), {users} yeni kullanıcı",
+  nUserActivated: "▶️ Bekleyen kullanıcı <code>{user}</code> ilk bağlantıda etkinleşti — {days} gün",
+  nUserRenewed: "🔄 <code>{user}</code> aboneliği otomatik yenilendi (toplam {renewals})",
 };
 
 const RU: BotTexts = {
@@ -495,6 +526,11 @@ const RU: BotTexts = {
   nRestart: "🚀 Панель перезапущена — v{ver}",
   nInboundCreated: "📥 Inbound <b>{tag}</b> создан ({proto} :{port})",
   nInboundDeleted: "📤 Inbound <b>{tag}</b> удалён",
+  nLoginFailed: "🔐 Неудачная попытка входа для <code>{user}</code> с {ip}",
+  nNearExpiry: "⏳ Пользователь <code>{user}</code> истекает через {days} дн.",
+  nDigest: "📈 Сводка за 24 ч — {orders} завершённых заказов ({revenue} туманов), {users} новых пользователей",
+  nUserActivated: "▶️ Отложенный пользователь <code>{user}</code> активирован при первом подключении — {days} дн.",
+  nUserRenewed: "🔄 Подписка <code>{user}</code> автопродлена (всего {renewals})",
 };
 
 const TABLE: Record<BotLang, BotTexts> = { fa: FA, en: EN, ar: AR, zh: ZH, tr: TR, ru: RU };

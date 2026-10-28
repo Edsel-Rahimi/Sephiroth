@@ -69,6 +69,12 @@ model ClientUser {
   ipLimit        Int      @default(0) // 0 = unlimited
   // simulated usage (decorated / resettable)
   usedTrafficGb  Float    @default(0)
+  // 26-a — lifecycle: on-hold (clock starts at first connect) + auto-renew
+  onHold         Boolean  @default(false)
+  startedAt      DateTime? // first-connect anchor; null = clock not started
+  autoRenew      Boolean  @default(false)
+  renewals       Int      @default(0)
+  expiryWarnedAt DateTime? // last near-expiry notification
   // Phase 6 hook: owning reseller, null = admin-created
   resellerId     String?
   reseller       Reseller? @relation(fields: [resellerId], references: [id], onDelete: SetNull)
@@ -141,6 +147,10 @@ model Reseller {
   enabled        Boolean      @default(true)
   maxUsers       Int? // null = unlimited user quota
   trafficQuotaGb Float? // null = unlimited traffic allocation
+  // 26-c — white-label for this reseller's /sub pages
+  brandName      String?
+  brandLogo      String? // https or data URI
+  brandAccent    String? // hex color
   users          ClientUser[]
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt

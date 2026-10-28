@@ -143,6 +143,7 @@ interface TelegramSettingsDTO {
     userExpired: boolean;
     trafficAlert: boolean;
     loginAlert: boolean;
+    dailyDigest: boolean;
   };
   botMode: "console" | "sales";
   adminChatIds: string[];
@@ -428,7 +429,7 @@ export function SettingsView() {
     enabled: false,
     token: "",
     chatId: "",
-    notify: { userCreated: true, userExpired: true, trafficAlert: true, loginAlert: false },
+    notify: { userCreated: true, userExpired: true, trafficAlert: true, loginAlert: false, dailyDigest: false },
     botMode: "console",
     adminChatIds: "",
     botProxyUrl: "",
@@ -1867,6 +1868,13 @@ docker run -d --name mtproxy --restart=always -p ${mtpPort || "443"}:443 \\
                   checked={tgForm.notify.loginAlert}
                   onCheckedChange={(v) =>
                     setTgForm((p) => ({ ...p, notify: { ...p.notify, loginAlert: v } }))
+                  }
+                />
+                <SwitchRow
+                  label={u.tgNDigest}
+                  checked={tgForm.notify.dailyDigest}
+                  onCheckedChange={(v) =>
+                    setTgForm((p) => ({ ...p, notify: { ...p.notify, dailyDigest: v } }))
                   }
                 />
               </div>

@@ -543,6 +543,7 @@ export interface Dict {
     stExpired: string;
     stCapped: string;
     stDisabled: string;
+    stOnHold: string;
     expiryNever: string;
     forecastChip: string;
     forecastTip: string;
@@ -572,6 +573,28 @@ export interface Dict {
     fieldTraffic: string;
     fieldExpiry: string;
     fieldIp: string;
+    /** 26-b — bulk create + JSON import/export (migration) */
+    bulkCreate: string;
+    bulkDesc: string;
+    bulkPrefix: string;
+    bulkCount: string;
+    bulkCountErr: string;
+    bulkSubmit: string;
+    bulkDone: string;
+    importTitle: string;
+    importDesc: string;
+    importPick: string;
+    importMode: string;
+    importModeHint: string;
+    importRun: string;
+    importDone: string;
+    importBadJson: string;
+    exportUsers: string;
+    fieldReset: string;
+    resetNone: string;
+    resetDaily: string;
+    resetWeekly: string;
+    resetMonthly: string;
     phUsername: string;
     phNote: string;
     unlimitedTraffic: string;
@@ -606,6 +629,10 @@ export interface Dict {
     emptyDesc: string;
     /** Task 23-g — HWID device limit (sub portal) */
     fieldHwid: string;
+    fieldOnHold: string;
+    fieldOnHoldHint: string;
+    fieldAutoRenew: string;
+    fieldAutoRenewHint: string;
     hwidUnlimited: string;
     devicesCount: string;
     resetDevices: string;
@@ -679,6 +706,12 @@ export interface Dict {
     tipTab: string;
     tipTemplates: string;
     tipQuota: string;
+    /** 26-c — white-label fields (reseller sub pages) */
+    brandNameLabel: string;
+    brandNameHint: string;
+    brandLogoLabel: string;
+    brandAccentLabel: string;
+    brandHint: string;
   };
   subgroups: {
     badge: string;
@@ -793,6 +826,7 @@ export interface Dict {
     tgNExpired: string;
     tgNTraffic: string;
     tgNLogin: string;
+    tgNDigest: string;
     tgTest: string;
     tgTestDesc: string;
     tgErrNoToken: string;
@@ -2311,6 +2345,7 @@ export const dictionaries: Record<Lang, Dict> = {
       stExpired: "Expired",
       stCapped: "Capped",
       stDisabled: "Disabled",
+      stOnHold: "On hold",
       expiryNever: "Never expires",
       forecastChip: "≈{n}d to cap · {rate}/day",
       forecastTip: "Projection from your average daily usage since creation.",
@@ -2340,6 +2375,27 @@ export const dictionaries: Record<Lang, Dict> = {
       fieldTraffic: "Total traffic (GB)",
       fieldExpiry: "Expiry (days)",
       fieldIp: "IP limit",
+      bulkCreate: "Bulk create",
+      bulkDesc: "Spin up a whole fleet of users with one click — same limits, fresh keys.",
+      bulkPrefix: "Username prefix",
+      bulkCount: "How many",
+      bulkCountErr: "Count must be 1–100 and the prefix 2–24 chars",
+      bulkSubmit: "Create users",
+      bulkDone: "{n} user(s) created · {s} skipped",
+      importTitle: "Import users",
+      importDesc: "Paste a users JSON (a Sephiroth export or a compatible panel dump) or pick a file.",
+      importPick: "Choose JSON file",
+      importMode: "If the username already exists",
+      importModeHint: "Skipped — the existing user stays untouched",
+      importRun: "Import",
+      importDone: "{n} imported · {s} skipped",
+      importBadJson: "Could not parse the file as a users JSON",
+      exportUsers: "Export users",
+      fieldReset: "Reset period",
+      resetNone: "Never",
+      resetDaily: "Daily",
+      resetWeekly: "Weekly",
+      resetMonthly: "Monthly",
       phUsername: "e.g. ali_2024",
       phNote: "internal note",
       unlimitedTraffic: "Empty = unlimited traffic",
@@ -2373,6 +2429,10 @@ export const dictionaries: Record<Lang, Dict> = {
       empty: "No users yet",
       emptyDesc: "Create the first user and link it to inbounds — configs and keys are generated for you.",
       fieldHwid: "Device limit (HWID)",
+      fieldOnHold: "On hold (start on first connect)",
+      fieldOnHoldHint: "The expiry clock starts at the user's first connection, not now.",
+      fieldAutoRenew: "Auto-renew",
+      fieldAutoRenewHint: "On expiry the window rolls forward and traffic resets instead of disabling.",
       hwidUnlimited: "Empty = unlimited devices",
       devicesCount: "{n} device(s)",
       resetDevices: "Reset devices",
@@ -2443,6 +2503,11 @@ export const dictionaries: Record<Lang, Dict> = {
     tipTab: "Resellers are scoped operators: they log in like admins but only see the users they own. Quotas cap both user count and allocated traffic.",
     tipTemplates: "Sale templates are one-click presets in the user creator — name them by plan and keep limits consistent.",
     tipQuota: "User quota caps how many accounts a reseller can open; traffic quota caps the total GB they can allocate across those accounts.",
+      brandNameLabel: "Brand name",
+      brandNameHint: "Shown instead of “Sephiroth” on this reseller's subscription pages.",
+      brandLogoLabel: "Logo URL",
+      brandAccentLabel: "Accent color",
+      brandHint: "Leave empty to keep the default Sephiroth look.",
     },
     subgroups: {
       badge: 'PHASE 5',
@@ -2556,6 +2621,7 @@ export const dictionaries: Record<Lang, Dict> = {
       tgNExpired: "Expired or disabled users",
       tgNTraffic: "Traffic alerts",
       tgNLogin: "Panel logins",
+      tgNDigest: "Daily sales digest",
       tgTest: "Send test message",
       tgTestDesc: "Sends a real message through your bot.",
       tgErrNoToken: "Save a bot token first",
@@ -4087,6 +4153,7 @@ export const dictionaries: Record<Lang, Dict> = {
       stExpired: "منقضی شده",
       stCapped: "حجم تمام شده",
       stDisabled: "غیرفعال",
+      stOnHold: "در انتظار اولین اتصال",
       expiryNever: "بدون انقضا",
       forecastChip: "≈{n} روز تا سقف · {rate} در روز",
       forecastTip: "برآورد بر اساس میانگین مصرف روزانه از زمان ساخت حساب.",
@@ -4116,6 +4183,27 @@ export const dictionaries: Record<Lang, Dict> = {
       fieldTraffic: "کل حجم (گیگابایت)",
       fieldExpiry: "انقضا (روز)",
       fieldIp: "محدودیت آی‌پی",
+      bulkCreate: "ساخت گروهی",
+      bulkDesc: "با یک کلیک یک ناوگان کاربر بساز — محدودیت‌های یکسان، کلیدهای تازه.",
+      bulkPrefix: "پیشوند نام کاربری",
+      bulkCount: "چند نفر",
+      bulkCountErr: "تعداد باید ۱ تا ۱۰۰ و پیشوند ۲ تا ۲۴ نویسه باشد",
+      bulkSubmit: "ساخت کاربرها",
+      bulkDone: "{n} کاربر ساخته شد · {s} رد شد",
+      importTitle: "ورود کاربران",
+      importDesc: "JSON کاربرها را بچسبان (خروجی سپایروت یا پنل سازگار) یا فایل انتخاب کن.",
+      importPick: "انتخاب فایل JSON",
+      importMode: "اگر نام کاربری تکراری بود",
+      importModeHint: "رد می‌شود — کاربر فعلی دست‌نخورده می‌ماند",
+      importRun: "ورود",
+      importDone: "{n} وارد شد · {s} رد شد",
+      importBadJson: "فایل به‌عنوان JSON کاربرها قابل خواندن نبود",
+      exportUsers: "خروجی کاربران",
+      fieldReset: "دوره ریست",
+      resetNone: "هرگز",
+      resetDaily: "روزانه",
+      resetWeekly: "هفتگی",
+      resetMonthly: "ماهانه",
       phUsername: "مثلاً ali_2024",
       phNote: "یادداشت داخلی",
       unlimitedTraffic: "خالی = حجم نامحدود",
@@ -4149,6 +4237,10 @@ export const dictionaries: Record<Lang, Dict> = {
       empty: "هنوز کاربری نیست",
       emptyDesc: "اولین کاربر را بساز و به اینباندها وصل کن — کانفیگ‌ها و کلیدها خودکار ساخته می‌شوند.",
       fieldHwid: "سقف دستگاه (HWID)",
+      fieldOnHold: "در انتظار (شروع با اولین اتصال)",
+      fieldOnHoldHint: "زمان اشتراک از اولین اتصال کاربر شروع می‌شود، نه الان.",
+      fieldAutoRenew: "تمدید خودکار",
+      fieldAutoRenewHint: "در انقضا، پنجره تمدید و ترافیک صفر می‌شود؛ به‌جای غیرفعال‌شدن.",
       hwidUnlimited: "خالی = تعداد دستگاه نامحدود",
       devicesCount: "{n} دستگاه",
       resetDevices: "بازنشانی دستگاه‌ها",
@@ -4219,6 +4311,11 @@ export const dictionaries: Record<Lang, Dict> = {
     tipTab: "ریسلرها اپراتورهای محدودشده‌اند: مثل ادمین وارد می‌شوند اما فقط کاربران خودشان را می‌بینند. سهمیه‌ها هم تعداد کاربر و هم ترافیک تخصیصی را محدود می‌کنند.",
     tipTemplates: "قالب‌های فروش پیش‌فرض‌های یک‌کلیکی در سازنده کاربر هستند — آن‌ها را به نام پلن بسازید و محدودیت‌ها را یکدست نگه دارید.",
     tipQuota: "سهمیه کاربر تعداد اکانت‌هایی که ریسلر می‌تواند باز کند را محدود می‌کند؛ سهمیه ترافیک مجموع گیگابایت قابل تخصیص او را محدود می‌کند.",
+      brandNameLabel: "نام برند",
+      brandNameHint: "به‌جای «سپایروت» در صفحه‌های اشتراک این ریسلر نشان داده می‌شود.",
+      brandLogoLabel: "آدرس لوگو",
+      brandAccentLabel: "رنگ اصلی",
+      brandHint: "خالی بگذارید تا ظاهر پیش‌فرض سپایروت بماند.",
     },
     subgroups: {
       badge: 'فاز ۵',
@@ -4332,6 +4429,7 @@ export const dictionaries: Record<Lang, Dict> = {
       tgNExpired: "کاربران منقضی یا غیرفعال",
       tgNTraffic: "هشدارهای ترافیک",
       tgNLogin: "ورود به پنل",
+      tgNDigest: "گزارش روزانه فروش",
       tgTest: "ارسال پیام تست",
       tgTestDesc: "یک پیام واقعی از طریق ربات شما می‌فرستد.",
       tgErrNoToken: "اول توکن ربات را ذخیره کنید",
@@ -5859,6 +5957,7 @@ export const dictionaries: Record<Lang, Dict> = {
       stExpired: "منتهي",
       stCapped: "نفدت البيانات",
       stDisabled: "معطل",
+      stOnHold: "قيد الانتظار",
       expiryNever: "لا ينتهي",
       forecastChip: "≈{n} يوم حتى السقف · {rate}/يوم",
       forecastTip: "تقدير بناءً على متوسط الاستهلاك اليومي منذ إنشاء الحساب.",
@@ -5888,6 +5987,27 @@ export const dictionaries: Record<Lang, Dict> = {
       fieldTraffic: "إجمالي البيانات (غيغابايت)",
       fieldExpiry: "الانتهاء (أيام)",
       fieldIp: "حد IP",
+      bulkCreate: "إنشاء جماعي",
+      bulkDesc: "أنشئ مجموعة كاملة من المستخدمين بنقرة واحدة — حدود موحدة ومفاتيح جديدة.",
+      bulkPrefix: "بادئة اسم المستخدم",
+      bulkCount: "كم عدد",
+      bulkCountErr: "العدد يجب أن يكون ١–١٠٠ والبادئة ٢–٢٤ حرفًا",
+      bulkSubmit: "إنشاء المستخدمين",
+      bulkDone: "أُنشئ {n} مستخدم · تجاوز {s}",
+      importTitle: "استيراد المستخدمين",
+      importDesc: "الصق JSON للمستخدمين (تصدير Sephiroth أو لوحة متوافقة) أو اختر ملفًا.",
+      importPick: "اختر ملف JSON",
+      importMode: "إذا كان الاسم موجودًا مسبقًا",
+      importModeHint: "يُتجاهل — يبقى المستخدم الحالي كما هو",
+      importRun: "استيراد",
+      importDone: "استُورد {n} · تجاوز {s}",
+      importBadJson: "تعذّر قراءة الملف كـ JSON للمستخدمين",
+      exportUsers: "تصدير المستخدمين",
+      fieldReset: "دورة التصفير",
+      resetNone: "أبدًا",
+      resetDaily: "يومي",
+      resetWeekly: "أسبوعي",
+      resetMonthly: "شهري",
       phUsername: "مثال ali_2024",
       phNote: "ملاحظة داخلية",
       unlimitedTraffic: "فارغ = بيانات غير محدودة",
@@ -5921,6 +6041,10 @@ export const dictionaries: Record<Lang, Dict> = {
       empty: "لا يوجد مستخدمون بعد",
       emptyDesc: "أنشئ أول مستخدم واربطه بنقاط الدخول — تُبنى الإعدادات والمفاتيح تلقائياً.",
       fieldHwid: "حد الأجهزة (HWID)",
+      fieldOnHold: "قيد الانتظار (يبدأ بأول اتصال)",
+      fieldOnHoldHint: "يبدأ عدّاد الانتهاء عند أول اتصال للمستخدم، لا الآن.",
+      fieldAutoRenew: "تجديد تلقائي",
+      fieldAutoRenewHint: "عند الانتهاء تُمدّد النافذة ويُصفَّر حجم البيانات بدلاً من التعطيل.",
       hwidUnlimited: "فارغ = أجهزة غير محدودة",
       devicesCount: "{n} جهاز",
       resetDevices: "إعادة تعيين الأجهزة",
@@ -5991,6 +6115,11 @@ export const dictionaries: Record<Lang, Dict> = {
     tipTab: "الموزعون مشغّلون محدودو النطاق: يسجلون الدخول مثل المديرين لكن يرون مستخدميهم فقط، والحصص تحدد عدد المستخدمين والترافيك المخصص.",
     tipTemplates: "قوالب البيع إعدادات مسبقة بنقرة واحدة في منشئ المستخدمين — سمِّها باسم الخطة وحافظ على اتساق الحدود.",
     tipQuota: "حصة المستخدمين تحدد عدد الحسابات التي يمكن للموزع فتحها؛ حصة الترافيك تحدد إجمالي GB الذي يمكنه تخصيصها.",
+      brandNameLabel: "اسم العلامة",
+      brandNameHint: "يظهر بدلاً من «Sephiroth» في صفحات اشتراك هذا الموزع.",
+      brandLogoLabel: "رابط الشعار",
+      brandAccentLabel: "اللون الرئيسي",
+      brandHint: "اتركه فارغاً للحفاظ على مظهر Sephiroth الافتراضي.",
     },
     subgroups: {
       badge: 'المرحلة ٥',
@@ -6104,6 +6233,7 @@ export const dictionaries: Record<Lang, Dict> = {
       tgNExpired: "المستخدمون المنتهون أو المعطّلون",
       tgNTraffic: "تنبيهات الحركة",
       tgNLogin: "دخول اللوحة",
+      tgNDigest: "الملخص اليومي للمبيعات",
       tgTest: "أرسل رسالة اختبار",
       tgTestDesc: "يرسل رسالة حقيقية عبر بوتك.",
       tgErrNoToken: "احفظ رمز بوت أولًا",
@@ -7629,6 +7759,7 @@ export const dictionaries: Record<Lang, Dict> = {
       stExpired: "已过期",
       stCapped: "流量用尽",
       stDisabled: "已停用",
+      stOnHold: "待激活",
       expiryNever: "永不过期",
       forecastChip: "≈{n} 天后达上限 · {rate}/天",
       forecastTip: "根据创建以来的日均用量推算。",
@@ -7658,6 +7789,27 @@ export const dictionaries: Record<Lang, Dict> = {
       fieldTraffic: "总流量（GB）",
       fieldExpiry: "有效期（天）",
       fieldIp: "IP 限制",
+      bulkCreate: "批量创建",
+      bulkDesc: "一键创建一批用户——相同限制，全新密钥。",
+      bulkPrefix: "用户名前缀",
+      bulkCount: "数量",
+      bulkCountErr: "数量需为 1–100，前缀 2–24 个字符",
+      bulkSubmit: "创建用户",
+      bulkDone: "已创建 {n} 个用户 · 跳过 {s} 个",
+      importTitle: "导入用户",
+      importDesc: "粘贴用户 JSON（Sephiroth 导出或兼容面板的备份），或选择文件。",
+      importPick: "选择 JSON 文件",
+      importMode: "如果用户名已存在",
+      importModeHint: "跳过 —— 保留现有用户不动",
+      importRun: "导入",
+      importDone: "已导入 {n} · 跳过 {s}",
+      importBadJson: "无法把文件解析为用户 JSON",
+      exportUsers: "导出用户",
+      fieldReset: "重置周期",
+      resetNone: "从不",
+      resetDaily: "每天",
+      resetWeekly: "每周",
+      resetMonthly: "每月",
       phUsername: "例如 ali_2024",
       phNote: "内部备注",
       unlimitedTraffic: "留空 = 流量不限",
@@ -7691,6 +7843,10 @@ export const dictionaries: Record<Lang, Dict> = {
       empty: "暂无用户",
       emptyDesc: "创建第一个用户并关联入站——配置和密钥会自动生成。",
       fieldHwid: "设备数上限（HWID）",
+      fieldOnHold: "待激活（首次连接开始）",
+      fieldOnHoldHint: "到期时间从用户首次连接时开始计算，而不是现在。",
+      fieldAutoRenew: "自动续期",
+      fieldAutoRenewHint: "到期时窗口自动顺延并清零流量，而不是停用。",
       hwidUnlimited: "留空 = 不限设备",
       devicesCount: "{n} 台设备",
       resetDevices: "重置设备",
@@ -7761,6 +7917,11 @@ export const dictionaries: Record<Lang, Dict> = {
     tipTab: "分销商是作用域受限的操作员：像管理员一样登录，但只能看到自己的用户；配额同时限制用户数与可分配流量。",
     tipTemplates: "销售模板是用户创建器中的一键预设——按套餐命名并保持限额一致。",
     tipQuota: "用户配额限制分销商可开的账户数；流量配额限制其可分配的总 GB 数。",
+      brandNameLabel: "品牌名称",
+      brandNameHint: "在该分销商的订阅页面上代替「Sephiroth」显示。",
+      brandLogoLabel: "Logo 链接",
+      brandAccentLabel: "主题色",
+      brandHint: "留空则保持默认的 Sephiroth 外观。",
     },
     subgroups: {
       badge: '阶段 5',
@@ -7874,6 +8035,7 @@ export const dictionaries: Record<Lang, Dict> = {
       tgNExpired: "到期或被禁用的用户",
       tgNTraffic: "流量警报",
       tgNLogin: "面板登录",
+      tgNDigest: "每日销售简报",
       tgTest: "发送测试消息",
       tgTestDesc: "通过你的机器人发送一条真实消息。",
       tgErrNoToken: "请先保存机器人令牌",
@@ -9399,6 +9561,7 @@ export const dictionaries: Record<Lang, Dict> = {
       stExpired: "Süresi bitti",
       stCapped: "Kota doldu",
       stDisabled: "Devre dışı",
+      stOnHold: "Beklemede",
       expiryNever: "Süresiz",
       forecastChip: "≈{n} gün sonra dolacak · {rate}/gün",
       forecastTip: "Hesap açılışından beri ortalama günlük kullanıma dayalı tahmin.",
@@ -9428,6 +9591,27 @@ export const dictionaries: Record<Lang, Dict> = {
       fieldTraffic: "Toplam trafik (GB)",
       fieldExpiry: "Bitiş (gün)",
       fieldIp: "IP limiti",
+      bulkCreate: "Toplu oluştur",
+      bulkDesc: "Tek tıkla bir kullanıcı filosu kur — aynı limitler, yeni anahtarlar.",
+      bulkPrefix: "Kullanıcı adı öneki",
+      bulkCount: "Kaç adet",
+      bulkCountErr: "Adet 1–100 ve önek 2–24 karakter olmalı",
+      bulkSubmit: "Kullanıcı oluştur",
+      bulkDone: "{n} kullanıcı oluşturuldu · {s} atlandı",
+      importTitle: "Kullanıcı içe aktar",
+      importDesc: "Kullanıcı JSON'unu yapıştır (Sephiroth dışa aktarımı veya uyumlu panel dökümü) ya da dosya seç.",
+      importPick: "JSON dosyası seç",
+      importMode: "Kullanıcı adı zaten varsa",
+      importModeHint: "Atlanır — mevcut kullanıcı olduğu gibi kalır",
+      importRun: "İçe aktar",
+      importDone: "{n} içe aktarıldı · {s} atlandı",
+      importBadJson: "Dosya kullanıcı JSON'u olarak okunamadı",
+      exportUsers: "Kullanıcıları dışa aktar",
+      fieldReset: "Sıfırlama dönemi",
+      resetNone: "Asla",
+      resetDaily: "Günlük",
+      resetWeekly: "Haftalık",
+      resetMonthly: "Aylık",
       phUsername: "örn. ali_2024",
       phNote: "iç not",
       unlimitedTraffic: "Boş = sınırsız trafik",
@@ -9461,6 +9645,10 @@ export const dictionaries: Record<Lang, Dict> = {
       empty: "Henüz kullanıcı yok",
       emptyDesc: "İlk kullanıcıyı oluştur ve inboundlara bağla — configler ve anahtarlar otomatik üretilir.",
       fieldHwid: "Cihaz sınırı (HWID)",
+      fieldOnHold: "Beklemede (ilk bağlantıda başlar)",
+      fieldOnHoldHint: "Bitiş sayacı kullanıcının ilk bağlantısında başlar, şimdi değil.",
+      fieldAutoRenew: "Otomatik yenileme",
+      fieldAutoRenewHint: "Bitişte pencere ileri sarar ve trafik sıfırlanır, devre dışı bırakmak yerine.",
       hwidUnlimited: "Boş = sınırsız cihaz",
       devicesCount: "{n} cihaz",
       resetDevices: "Cihazları sıfırla",
@@ -9531,6 +9719,11 @@ export const dictionaries: Record<Lang, Dict> = {
     tipTab: "Bayiler kapsamı sınırlı operatörlerdir: admin gibi giriş yaparlar ama yalnızca kendi kullanıcılarını görürler; kotalar hem kullanıcı sayısını hem tahsis edilen trafiği sınırlar.",
     tipTemplates: "Satış şablonları kullanıcı oluşturucudaki tek tıkla ön ayarlardır — plana göre adlandırın ve limitleri tutarlı tutun.",
     tipQuota: "Kullanıcı kotası bir bayinin açabileceği hesap sayısını sınırlar; trafik kotası tahsis edebileceği toplam GB'yi sınırlar.",
+      brandNameLabel: "Marka adı",
+      brandNameHint: "Bu bayinin abonelik sayfalarında “Sephiroth” yerine gösterilir.",
+      brandLogoLabel: "Logo URL",
+      brandAccentLabel: "Vurgu rengi",
+      brandHint: "Boş bırakılırsa varsayılan Sephiroth görünümü korunur.",
     },
     subgroups: {
       badge: 'AŞAMA 5',
@@ -9644,6 +9837,7 @@ export const dictionaries: Record<Lang, Dict> = {
       tgNExpired: "Süresi biten veya devre dışı kullanıcılar",
       tgNTraffic: "Trafik uyarıları",
       tgNLogin: "Panel girişleri",
+      tgNDigest: "Günlük satış özeti",
       tgTest: "Test mesajı gönder",
       tgTestDesc: "Botunuz üzerinden gerçek bir mesaj gönderir.",
       tgErrNoToken: "Önce bir bot jetonu kaydedin",
@@ -11172,6 +11366,7 @@ export const dictionaries: Record<Lang, Dict> = {
       stExpired: "Истёк",
       stCapped: "Лимит данных",
       stDisabled: "Отключён",
+      stOnHold: "Ожидание",
       expiryNever: "Без срока",
       forecastChip: "≈{n} дн. до лимита · {rate}/день",
       forecastTip: "Прогноз по среднесуточному расходу с момента создания.",
@@ -11201,6 +11396,27 @@ export const dictionaries: Record<Lang, Dict> = {
       fieldTraffic: "Общий трафик (ГБ)",
       fieldExpiry: "Срок (дней)",
       fieldIp: "Лимит IP",
+      bulkCreate: "Массовое создание",
+      bulkDesc: "Создайте целый набор пользователей одним кликом — общие лимиты, свежие ключи.",
+      bulkPrefix: "Префикс имени",
+      bulkCount: "Сколько",
+      bulkCountErr: "Количество 1–100, префикс 2–24 символа",
+      bulkSubmit: "Создать пользователей",
+      bulkDone: "Создано {n} · пропущено {s}",
+      importTitle: "Импорт пользователей",
+      importDesc: "Вставьте JSON пользователей (экспорт Sephiroth или выгрузка совместимой панели) или выберите файл.",
+      importPick: "Выбрать файл JSON",
+      importMode: "Если имя уже существует",
+      importModeHint: "Пропустить — существующий пользователь не трогается",
+      importRun: "Импорт",
+      importDone: "Импортировано {n} · пропущено {s}",
+      importBadJson: "Не удалось разобрать файл как JSON пользователей",
+      exportUsers: "Экспорт пользователей",
+      fieldReset: "Период сброса",
+      resetNone: "Никогда",
+      resetDaily: "Ежедневно",
+      resetWeekly: "Еженедельно",
+      resetMonthly: "Ежемесячно",
       phUsername: "напр. ali_2024",
       phNote: "внутренняя заметка",
       unlimitedTraffic: "Пусто = безлимитный трафик",
@@ -11234,6 +11450,10 @@ export const dictionaries: Record<Lang, Dict> = {
       empty: "Пользователей пока нет",
       emptyDesc: "Создайте первого пользователя и привяжите к инбаундам — конфиги и ключи сгенерируются сами.",
       fieldHwid: "Лимит устройств (HWID)",
+      fieldOnHold: "Ожидание (старт с первого подключения)",
+      fieldOnHoldHint: "Отсчёт срока начнётся с первого подключения пользователя, а не сейчас.",
+      fieldAutoRenew: "Автопродление",
+      fieldAutoRenewHint: "При истечении окно продлевается и трафик сбрасывается вместо отключения.",
       hwidUnlimited: "Пусто = безлимит устройств",
       devicesCount: "Устройств: {n}",
       resetDevices: "Сбросить устройства",
@@ -11304,6 +11524,11 @@ export const dictionaries: Record<Lang, Dict> = {
     tipTab: "Реселлеры — операторы с ограниченной областью: входят как админы, но видят только своих пользователей; квоты ограничивают и число аккаунтов, и выделенный трафик.",
     tipTemplates: "Шаблоны продаж — пресеты в один клик в создании пользователя — называйте их по тарифу и держите лимиты единообразными.",
     tipQuota: "Квота пользователей ограничивает число аккаунтов реселлера; квота трафика — суммарные ГБ, которые он может выделить.",
+      brandNameLabel: "Название бренда",
+      brandNameHint: "Показывается вместо «Sephiroth» на страницах подписок этого реселлера.",
+      brandLogoLabel: "Ссылка на логотип",
+      brandAccentLabel: "Акцентный цвет",
+      brandHint: "Оставьте пустым, чтобы сохранить стандартный вид Sephiroth.",
     },
     subgroups: {
       badge: 'ФАЗА 5',
@@ -11417,6 +11642,7 @@ export const dictionaries: Record<Lang, Dict> = {
       tgNExpired: "Истёкших или отключённых пользователях",
       tgNTraffic: "Оповещениях о трафике",
       tgNLogin: "Входах в панель",
+      tgNDigest: "Ежедневная сводка продаж",
       tgTest: "Отправить тестовое сообщение",
       tgTestDesc: "Отправляет настоящее сообщение через вашего бота.",
       tgErrNoToken: "Сначала сохраните токен бота",

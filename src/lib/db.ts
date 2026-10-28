@@ -63,6 +63,16 @@ export interface ClientUser {
   hwidLimit: number | null;
   /** Task 23-g — registered sub-portal devices, JSON array of {id, ua, firstSeen, lastSeen}. */
   devices: string;
+  /** 26-a — on-hold: the expiry clock starts at the FIRST connection, not at purchase. */
+  onHold: boolean;
+  /** 26-a — first-connect timestamp; null = never connected (clock not started). */
+  startedAt: Date | null;
+  /** 26-a — roll the window forward automatically instead of disabling on expiry. */
+  autoRenew: boolean;
+  /** 26-a — how many times auto-renew has extended this subscription. */
+  renewals: number;
+  /** 26-a — last “expires soon” warning sent at (prevents daily spam across restarts). */
+  expiryWarnedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -104,6 +114,12 @@ export interface Reseller {
   enabled: boolean;
   maxUsers: number | null;
   trafficQuotaGb: number | null;
+  /** 26-c — white-label for the reseller's /sub pages (null = Sephiroth branding). */
+  brandName: string | null;
+  /** 26-c — logo URL (https or data URI) shown on their sub pages. */
+  brandLogo: string | null;
+  /** 26-c — accent hex color (e.g. "#f59e0b") for their sub pages. */
+  brandAccent: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -379,6 +395,18 @@ function loadStore(): StoreData {
 }
 
 const state: StoreData = loadStore();
+
+/* 26-a — backfill client users created before the on-hold/auto-renew wave
+   so every row always carries the full scalar set (defensive; the JSON
+   store tolerates missing keys but typed reads should not see undefined). */
+for (const u of state.clientUser as Array<Record<string, unknown>>) {
+  if (typeof u.onHold !== "boolean") u.onHold = false;
+  if (u.startedAt === undefined) u.startedAt = null;
+  if (typeof u.autoRenew !== "boolean") u.autoRenew = false;
+  if (typeof u.renewals !== "number") u.renewals = 0;
+  if (u.expiryWarnedAt === undefined) u.expiryWarnedAt = null;
+}
+
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
 function persistStore(): void {
@@ -473,6 +501,11 @@ const DEFAULTS: Record<TableName, () => Record<string, any>> = {
     tgId: null,
     hwidLimit: null,
     devices: "[]",
+    onHold: false,
+    startedAt: null,
+    autoRenew: false,
+    renewals: 0,
+    expiryWarnedAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   }),
@@ -499,6 +532,9 @@ const DEFAULTS: Record<TableName, () => Record<string, any>> = {
     enabled: true,
     maxUsers: null,
     trafficQuotaGb: null,
+    brandName: null,
+    brandLogo: null,
+    brandAccent: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   }),

@@ -41,6 +41,8 @@ export interface TelegramNotify {
   userExpired: boolean;
   trafficAlert: boolean;
   loginAlert: boolean;
+  /** 26-a — daily 24h sales/orders digest to admin chats. */
+  dailyDigest: boolean;
 }
 
 /** Languages the bot can speak (bot-facing texts live in lib/bot/texts.ts). */
@@ -92,6 +94,7 @@ const NOTIFY_DEFAULT: TelegramNotify = {
   userExpired: true,
   trafficAlert: true,
   loginAlert: false,
+  dailyDigest: false,
 };
 
 const K = {
@@ -352,6 +355,7 @@ export async function getTelegramSettings(): Promise<TelegramSettings> {
         userExpired: Boolean(p.userExpired),
         trafficAlert: Boolean(p.trafficAlert),
         loginAlert: Boolean(p.loginAlert),
+        dailyDigest: Boolean((p as { dailyDigest?: unknown }).dailyDigest),
       };
     } catch {
       /* keep defaults */

@@ -21,8 +21,13 @@ export type NotifyKind =
   | "user.deleted"
   | "user.updated"
   | "user.expired"
+  | "user.near-expiry"
   | "user.quota"
   | "user.traffic-reset"
+  | "user.activated"
+  | "user.renewed"
+  | "login.failed"
+  | "sales.digest"
   | "backup.done"
   | "panel.restart"
   | "inbound.created"
@@ -34,8 +39,13 @@ const MIN_INTERVAL_MS: Record<NotifyKind, number> = {
   "user.deleted": 5_000,
   "user.updated": 5_000,
   "user.expired": 30_000,
+  "user.near-expiry": 20 * 3_600_000, // at most one “expires soon” ping per user per ~day
   "user.quota": 30_000,
   "user.traffic-reset": 30_000,
+  "user.activated": 30_000,
+  "user.renewed": 30_000,
+  "login.failed": 10 * 60_000, // at most one failed-login alert per (user, ip) per 10 min
+  "sales.digest": 60_000,
   "backup.done": 60_000,
   "panel.restart": 0,
   "inbound.created": 5_000,
@@ -67,7 +77,12 @@ const TOGGLE_MAP: Partial<Record<NotifyKind, keyof TelegramNotify>> = {
   "user.updated": "userCreated",
   "user.traffic-reset": "trafficAlert",
   "user.expired": "userExpired",
+  "user.near-expiry": "userExpired",
   "user.quota": "userExpired",
+  "user.activated": "userExpired",
+  "user.renewed": "userExpired",
+  "login.failed": "loginAlert",
+  "sales.digest": "dailyDigest",
 };
 
 /**
@@ -191,6 +206,59 @@ export function notifyInboundDeleted(tag: string): Promise<boolean> {
   return lang().then((l) =>
     tgNotify("inbound.deleted", `${head(l)}\n${fmt(botTexts(l).nInboundDeleted, { tag })}`, {
       dedupeKey: tag,
+    })
+  );
+}
+
+/* ---------- wave 2 (26-a): login fail / near expiry / digest / on-hold / autorenew ---------- */
+
+/** Fired from the login route on bad credentials / bad TOTP (gated by loginAlert). */
+export function notifyLoginFailed(username: string, ip: string): Promise<boolean> {
+  return lang().then((l) =>
+    tgNotify("login.failed", `${head(l)}\n${fmt(botTexts(l).nLoginFailed, { user: username || "?", ip })}`, {
+      dedupeKey: `${username}@${ip}`,
+    })
+  );
+}
+
+/** Proactive “expires soon” ping — maintenance calls it with the whole-day remainder. */
+export function notifyUserExpiringSoon(username: string, daysLeft: number): Promise<boolean> {
+  return lang().then((l) =>
+    tgNotify("user.near-expiry", `${head(l)}\n${fmt(botTexts(l).nNearExpiry, { user: username, days: String(Math.max(1, daysLeft)) })}`, {
+      dedupeKey: username,
+    })
+  );
+}
+
+/** Daily 24h digest — completed orders, revenue and new users (gated by dailyDigest). */
+export function notifyDailyDigest(orders: number, revenueToman: number, newUsers: number): Promise<boolean> {
+  return lang().then((l) =>
+    tgNotify(
+      "sales.digest",
+      `${head(l)}\n${fmt(botTexts(l).nDigest, {
+        orders: String(orders),
+        revenue: revenueToman.toLocaleString("en-US"),
+        users: String(newUsers),
+      })}`,
+      { dedupeKey: "daily" }
+    )
+  );
+}
+
+/** On-hold user crossed their first connection — the clock started. */
+export function notifyUserActivated(username: string, expiryDays: number): Promise<boolean> {
+  return lang().then((l) =>
+    tgNotify("user.activated", `${head(l)}\n${fmt(botTexts(l).nUserActivated, { user: username, days: fmtDays(expiryDays) })}`, {
+      dedupeKey: username,
+    })
+  );
+}
+
+/** Auto-renew rolled the subscription window forward. */
+export function notifyUserRenewed(username: string, renewals: number): Promise<boolean> {
+  return lang().then((l) =>
+    tgNotify("user.renewed", `${head(l)}\n${fmt(botTexts(l).nUserRenewed, { user: username, renewals: String(renewals) })}`, {
+      dedupeKey: username,
     })
   );
 }

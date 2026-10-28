@@ -150,6 +150,8 @@ export interface SubPayload {
   status: UserStatus;
   usage: { usedGb: number; limitGb: number | null };
   expiry: { daysLeft: number | null; never: boolean; endsAtIso: string | null };
+  /** 26-c — reseller white-label (null = Sephiroth default branding). */
+  brand: { name: string; logo: string | null; accent: string | null } | null;
   members: SubMemberDTO[] | null;
   configs: SubConfigDTO[];
 }
@@ -234,13 +236,14 @@ function userStatusOf(u: ClientUser, now: Date): UserStatus {
     expiryDays: u.expiryDays,
     usedTrafficGb: u.usedTrafficGb,
     createdAt: u.createdAt,
+    startedAt: u.startedAt ?? null,
     now,
   });
 }
 
-function daysLeftOf(u: Pick<ClientUser, "expiryDays" | "createdAt">, now: Date): number | null {
+function daysLeftOf(u: Pick<ClientUser, "expiryDays" | "createdAt" | "startedAt">, now: Date): number | null {
   if (u.expiryDays === null) return null;
-  const end = new Date(u.createdAt).getTime() + u.expiryDays * 86_400_000;
+  const end = new Date(u.startedAt ?? u.createdAt).getTime() + u.expiryDays * 86_400_000;
   return Math.ceil((end - now.getTime()) / 86_400_000);
 }
 
@@ -255,6 +258,14 @@ export async function userSubPayload(
   for (const a of user.accesses) {
     configs.push(await configFromAccess(a, { username: user.username, status }, fallbackHost, publicHost));
   }
+  /* 26-c — reseller white-label: owner's brand replaces the panel identity */
+  let brand: SubPayload["brand"] = null;
+  if (user.resellerId) {
+    const owner = await db.reseller.findUnique({ where: { id: user.resellerId } });
+    if (owner?.enabled && owner.brandName) {
+      brand = { name: owner.brandName, logo: owner.brandLogo ?? null, accent: owner.brandAccent ?? null };
+    }
+  }
   return {
     kind: "user",
     token: user.subId,
@@ -264,6 +275,7 @@ export async function userSubPayload(
     locked: false,
     enabled: user.enabled,
     status,
+    brand,
     usage: { usedGb: round1(user.usedTrafficGb), limitGb: user.trafficLimitGb },
     expiry: {
       daysLeft: daysLeftOf(user, now),
@@ -271,7 +283,7 @@ export async function userSubPayload(
       endsAtIso:
         user.expiryDays === null
           ? null
-          : new Date(new Date(user.createdAt).getTime() + user.expiryDays * 86_400_000).toISOString(),
+          : new Date(new Date(user.startedAt ?? user.createdAt).getTime() + user.expiryDays * 86_400_000).toISOString(),
     },
     members: null,
     configs,
@@ -335,6 +347,7 @@ export async function groupSubPayload(
       never: group.members.some((m) => m.user.expiryDays === null) || group.members.length === 0,
       endsAtIso: null,
     },
+    brand: null,
     members,
     configs,
   };

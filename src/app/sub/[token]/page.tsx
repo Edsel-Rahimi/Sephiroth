@@ -41,7 +41,7 @@ import { cn } from "@/lib/utils";
 
 /* ---------- payload types (mirror lib/sub-groups) ---------- */
 
-type UserStatus = "active" | "expired" | "capped" | "disabled";
+type UserStatus = "active" | "expired" | "capped" | "disabled" | "onhold";
 
 interface SubConfig {
   id: string;
@@ -69,6 +69,8 @@ interface SubPayload {
   status: UserStatus;
   usage: { usedGb: number; limitGb: number | null };
   expiry: { daysLeft: number | null; never: boolean; endsAtIso: string | null };
+  /** 26-c — reseller white-label (null = Sephiroth default branding). */
+  brand: { name: string; logo: string | null; accent: string | null } | null;
   members: { username: string; status: UserStatus; usedGb: number; limitGb: number | null; daysLeft: number | null }[] | null;
   configs: SubConfig[];
 }
@@ -106,6 +108,7 @@ const STATUS_PILL: Record<UserStatus, string> = {
   expired: "ring-chart-5/40 bg-chart-5/10 text-chart-5",
   capped: "ring-chart-4/40 bg-chart-4/10 text-chart-4",
   disabled: "ring-border bg-muted/40 text-muted-foreground",
+  onhold: "ring-amber-400/40 bg-amber-400/10 text-amber-400",
 };
 
 function fmtGb(gb: number): string {
@@ -257,10 +260,15 @@ export default function SubPage() {
     if (token) void fetchPayload();
   }, [token, fetchPayload]);
 
-  /* branded page title — "Sephiroth · <profile>" (reacts to payload) */
+  /* branded page title — "Sephiroth · <profile>" (reacts to payload; 26-c white-label aware) */
   useEffect(() => {
-    document.title = payload?.name ? `Sephiroth · ${payload.name}` : "Sephiroth";
-  }, [payload?.name]);
+    const brand = payload?.brand?.name;
+    document.title = brand
+      ? `${brand} · ${payload?.name ?? ""}`.trim()
+      : payload?.name
+        ? `Sephiroth · ${payload.name}`
+        : "Sephiroth";
+  }, [payload?.name, payload?.brand?.name]);
 
   const unlock = async () => {
     setUnlocking(true);
@@ -321,7 +329,15 @@ export default function SubPage() {
   /* ---------- render ---------- */
 
   const statusLabel = (s: UserStatus) =>
-    s === "active" ? t.statusActive : s === "expired" ? t.statusExpired : s === "capped" ? t.statusCapped : t.statusDisabled;
+    s === "active"
+      ? t.statusActive
+      : s === "onhold"
+        ? t.statusOnHold
+        : s === "expired"
+          ? t.statusExpired
+          : s === "capped"
+            ? t.statusCapped
+            : t.statusDisabled;
 
   return (
     <div className="bg-cosmic relative flex min-h-screen flex-col overflow-hidden">
@@ -330,13 +346,48 @@ export default function SubPage() {
       {/* ---------- header ---------- */}
       <header className="relative z-10 mx-auto flex w-full max-w-3xl items-center justify-between gap-3 px-4 pt-6 md:px-6">
         <div className="flex items-center gap-3">
-          <BrandMark size={40} pulse />
-          <div className="leading-none">
-            <span className="text-silver block text-[13px] font-bold tracking-[0.24em]">SEPHIROTH</span>
-            <span className="mt-1 block text-[9px] uppercase tracking-[0.32em] text-muted-foreground/80">
-              {t.tagline}
-            </span>
-          </div>
+          {/* 26-c — white-label: the owning reseller's brand replaces the panel mark */}
+          {payload?.brand ? (
+            <>
+              {payload.brand.logo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={payload.brand.logo}
+                  alt={payload.brand.name}
+                  className="h-10 w-10 rounded-xl object-cover ring-1 ring-white/15"
+                />
+              ) : (
+                <span
+                  className="flex h-10 w-10 items-center justify-center rounded-xl text-lg font-black ring-1 ring-white/15"
+                  style={payload.brand.accent ? { backgroundColor: `${payload.brand.accent}22`, color: payload.brand.accent } : undefined}
+                  aria-hidden="true"
+                >
+                  {payload.brand.name.slice(0, 1).toUpperCase()}
+                </span>
+              )}
+              <div className="leading-none">
+                <span
+                  className="text-silver block text-[13px] font-bold tracking-[0.24em]"
+                  style={payload.brand.accent ? { color: payload.brand.accent } : undefined}
+                >
+                  {payload.brand.name}
+                </span>
+                <span className="mt-1 block text-[9px] uppercase tracking-[0.32em] text-muted-foreground/80">
+                  {t.tagline}
+                </span>
+              </div>
+            </>
+          ) : (
+            <>
+              <BrandMark size={40} pulse />
+              <div className="leading-none">
+                <span className="text-silver block text-[13px] font-bold tracking-[0.24em]">SEPHIROTH</span>
+                <span className="mt-1 block text-[9px] uppercase tracking-[0.32em] text-muted-foreground/80">
+                  {t.tagline}
+                </span>
+              </div>
+            </>
+          )}
         </div>
         <nav aria-label={t.langLabel} className="glass flex items-center gap-0.5 rounded-full p-1 ring-1 ring-white/10">
           <Languages className="mx-1.5 h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />

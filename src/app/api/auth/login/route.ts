@@ -17,6 +17,7 @@ import { db } from "@/lib/db";
 import { getSecuritySettings, getTotpSecret } from "@/lib/settings";
 import { verifyTotp } from "@/lib/totp";
 import { logActivity } from "@/lib/activity";
+import { notifyLoginFailed } from "@/lib/bot/notify"; // 26-a — admin alert (gated by loginAlert, deduped)
 
 export async function POST(req: Request) {
   await ensureSeed();
@@ -71,6 +72,7 @@ export async function POST(req: Request) {
       message: `Failed sign-in for "${username}" from ${ip}`,
       meta: { ip },
     });
+    void notifyLoginFailed(username, ip); // 26-a — telegram admin alert (deduped per user@ip)
     if (fail.locked) {
       return NextResponse.json(
         { error: "locked", retryAfter: fail.retryAfter },
@@ -101,6 +103,7 @@ export async function POST(req: Request) {
         message: `Invalid 2FA code for "${okUser}" from ${ip}`,
         meta: { ip, totp: true },
       });
+      void notifyLoginFailed(`${okUser} (2FA)`, ip); // 26-a — telegram admin alert
       return NextResponse.json({ error: "totp_invalid" }, { status: 401 });
     }
   }

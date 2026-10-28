@@ -19,6 +19,10 @@ export type ValidatedReseller = {
   enabled: boolean;
   maxUsers: number | null;
   trafficQuotaGb: number | null;
+  /** 26-c — white-label identity shown on the reseller's /sub pages. */
+  brandName: string | null;
+  brandLogo: string | null;
+  brandAccent: string | null;
 };
 
 export type ValidatedResellerPatch = {
@@ -26,6 +30,10 @@ export type ValidatedResellerPatch = {
   enabled?: boolean;
   maxUsers?: number | null;
   trafficQuotaGb?: number | null;
+  /** 26-c — white-label identity shown on the reseller's /sub pages. */
+  brandName?: string | null;
+  brandLogo?: string | null;
+  brandAccent?: string | null;
   password?: string; // absent = keep, empty string w/ clearPassword handled by caller
 };
 
@@ -60,6 +68,14 @@ export function validateReseller(
   const maxUsers = numOrNull(b.maxUsers, "maxUsers", errs, 0, 100000);
   const trafficQuotaGb = numOrNull(b.trafficQuotaGb, "trafficQuotaGb", errs, 0, 1000000);
 
+  /* 26-c — white-label fields (all optional) */
+  const brandName = typeof b.brandName === "string" ? b.brandName.trim().slice(0, 40) : "";
+  const brandLogo = typeof b.brandLogo === "string" ? b.brandLogo.trim().slice(0, 500) : "";
+  const brandAccentRaw = typeof b.brandAccent === "string" ? b.brandAccent.trim() : "";
+  if (brandAccentRaw && !/^#[0-9a-fA-F]{6}$/.test(brandAccentRaw)) {
+    errs.push({ field: "brandAccent", code: "format" });
+  }
+
   if (errs.length) return { ok: false, fields: errs };
 
   return {
@@ -71,6 +87,9 @@ export function validateReseller(
       enabled: b.enabled === undefined ? true : Boolean(b.enabled),
       maxUsers: maxUsers ?? null,
       trafficQuotaGb: trafficQuotaGb ?? null,
+      brandName: brandName || null,
+      brandLogo: brandLogo || null,
+      brandAccent: brandAccentRaw || null,
     },
   };
 }
@@ -96,6 +115,21 @@ export function validateResellerPatch(
     const v = numOrNull(b.trafficQuotaGb, "trafficQuotaGb", errs, 0, 1000000);
     if (v === undefined) return { ok: false, fields: errs };
     out.trafficQuotaGb = v;
+  }
+  /* 26-c — white-label fields */
+  if (b.brandName !== undefined) {
+    out.brandName = typeof b.brandName === "string" ? b.brandName.trim().slice(0, 40) || null : null;
+  }
+  if (b.brandLogo !== undefined) {
+    out.brandLogo = typeof b.brandLogo === "string" ? b.brandLogo.trim().slice(0, 500) || null : null;
+  }
+  if (b.brandAccent !== undefined) {
+    const v = typeof b.brandAccent === "string" ? b.brandAccent.trim() : "";
+    if (v && !/^#[0-9a-fA-F]{6}$/.test(v)) {
+      errs.push({ field: "brandAccent", code: "format" });
+    } else {
+      out.brandAccent = v || null;
+    }
   }
   if (b.password !== undefined && b.password !== "") {
     const pw = typeof b.password === "string" ? b.password : "";
@@ -208,6 +242,10 @@ export type ResellerDTO = {
   enabled: boolean;
   maxUsers: number | null;
   trafficQuotaGb: number | null;
+  /** 26-c — white-label identity for the reseller's /sub pages. */
+  brandName: string | null;
+  brandLogo: string | null;
+  brandAccent: string | null;
   usersCount: number;
   allocatedGb: number; // sum of per-user trafficLimitGb (null limits count as 0)
   usedGb: number; // sum of usedTrafficGb
@@ -225,6 +263,9 @@ export function toResellerDTO(
     enabled: row.enabled,
     maxUsers: row.maxUsers,
     trafficQuotaGb: row.trafficQuotaGb,
+    brandName: row.brandName ?? null,
+    brandLogo: row.brandLogo ?? null,
+    brandAccent: row.brandAccent ?? null,
     usersCount: row.users.length,
     allocatedGb:
       Math.round(
@@ -283,5 +324,8 @@ export function resellerCreateData(data: ValidatedReseller) {
     enabled: data.enabled,
     maxUsers: data.maxUsers,
     trafficQuotaGb: data.trafficQuotaGb,
+    brandName: data.brandName,
+    brandLogo: data.brandLogo,
+    brandAccent: data.brandAccent,
   };
 }

@@ -59,6 +59,10 @@ export interface UserWrite {
   ipLimit: number;
   hwidLimit: number | null;
   resetPeriod: string | null;
+  /** 26-a — expiry clock starts at first connect instead of creation. */
+  onHold: boolean;
+  /** 26-a — roll the window forward on expiry instead of disabling. */
+  autoRenew: boolean;
   inboundIds: string[];
 }
 
@@ -122,6 +126,8 @@ export function validateUser(
       ipLimit,
       hwidLimit: hwidLimit === null ? null : Math.round(hwidLimit),
       resetPeriod: resetPeriod === "invalid" ? null : resetPeriod,
+      onHold: b.onHold === true,
+      autoRenew: b.autoRenew === true,
       inboundIds,
     },
   };
@@ -147,6 +153,9 @@ export type UserPatch = Partial<{
   ipLimit: number;
   hwidLimit: number | null;
   resetPeriod: string | null;
+  /** 26-a — toggling onHold back ON clears the anchor so the clock restarts. */
+  onHold: boolean;
+  autoRenew: boolean;
   inboundIds: string[];
 }>;
 
@@ -198,6 +207,14 @@ export function validateUserPatch(
     if (v === "invalid") fields.push({ field: "resetPeriod", code: "format" });
     else out.resetPeriod = v;
   }
+  if ("onHold" in b) {
+    if (typeof b.onHold !== "boolean") fields.push({ field: "note", code: "format" });
+    else out.onHold = b.onHold;
+  }
+  if ("autoRenew" in b) {
+    if (typeof b.autoRenew !== "boolean") fields.push({ field: "note", code: "format" });
+    else out.autoRenew = b.autoRenew;
+  }
   if ("inboundIds" in b) {
     out.inboundIds = Array.isArray(b.inboundIds)
       ? b.inboundIds.filter((x): x is string => typeof x === "string")
@@ -210,7 +227,7 @@ export function validateUserPatch(
 
 /* ---------- status derivation ---------- */
 
-export type UserStatus = "active" | "expired" | "capped" | "disabled";
+export type UserStatus = "active" | "expired" | "capped" | "disabled" | "onhold";
 
 export function deriveStatus(u: {
   enabled: boolean;
@@ -218,12 +235,15 @@ export function deriveStatus(u: {
   expiryDays: number | null;
   usedTrafficGb: number;
   createdAt: Date | string;
+  /** 26-a — on-hold anchor; null + onHold ⇒ clock not started yet. */
+  startedAt?: Date | string | null;
   now?: Date;
 }): UserStatus {
   if (!u.enabled) return "disabled";
+  if (u.startedAt === null && u.startedAt !== undefined) return "onhold";
   const now = u.now ?? new Date();
   if (u.expiryDays !== null) {
-    const end = new Date(u.createdAt).getTime() + u.expiryDays * 86_400_000;
+    const end = new Date(u.startedAt ?? u.createdAt).getTime() + u.expiryDays * 86_400_000;
     if (now.getTime() >= end) return "expired";
   }
   if (u.trafficLimitGb !== null && u.usedTrafficGb >= u.trafficLimitGb) return "capped";
@@ -231,10 +251,19 @@ export function deriveStatus(u: {
 }
 
 /** Days remaining before expiry (null = never). Negative = past. */
-export function daysLeft(expiryDays: number | null, createdAt: Date | string, now?: Date): number | null {
+export function daysLeft(
+  expiryDays: number | null,
+  anchor: Date | string,
+  now?: Date
+): number | null {
   if (expiryDays === null) return null;
-  const end = new Date(createdAt).getTime() + expiryDays * 86_400_000;
+  const end = new Date(anchor).getTime() + expiryDays * 86_400_000;
   return Math.ceil((end - (now ?? new Date()).getTime()) / 86_400_000);
+}
+
+/** 26-a — the timestamp the expiry clock is measured from. */
+export function expiryAnchor(startedAt?: Date | string | null, createdAt?: Date | string): Date | string {
+  return startedAt ?? createdAt ?? new Date();
 }
 
 /* ---------- usage forecast (burn-rate) ---------- */
@@ -312,6 +341,14 @@ export interface UserDTO {
   devices: { id: string; ua: string; firstSeen: string; lastSeen: string }[];
   usedTrafficGb: number;
   resetPeriod: string | null;
+  /** 26-a — on-hold subscription (clock starts at first connect). */
+  onHold: boolean;
+  /** 26-a — first-connect timestamp (null = not started). */
+  startedAt: string | null;
+  /** 26-a — auto-renew the window instead of disabling on expiry. */
+  autoRenew: boolean;
+  /** 26-a — completed auto-renewals so far. */
+  renewals: number;
   status: UserStatus;
   resellerId: string | null;
   createdAt: string;

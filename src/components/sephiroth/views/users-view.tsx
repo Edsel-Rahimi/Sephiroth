@@ -1,17 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDownUp,
   CalendarClock,
   Check,
   CheckCircle2,
   Copy,
+  Download,
   ExternalLink,
   Eye,
   Fingerprint,
   Gauge,
   KeyRound,
+  Layers,
   Lightbulb,
   Link2,
   Power,
@@ -19,6 +21,7 @@ import {
   Search,
   Trash2,
   TrendingUp,
+  Upload,
   UserPlus,
   Users as UsersIcon,
   XCircle,
@@ -120,6 +123,7 @@ const STATUS_STYLE: Record<UserStatus, { dot: string; text: string; ring: string
   expired: { dot: "bg-chart-5", text: "text-chart-5", ring: "ring-chart-5/30 bg-chart-5/10" },
   capped: { dot: "bg-chart-4", text: "text-chart-4", ring: "ring-chart-4/30 bg-chart-4/10" },
   disabled: { dot: "bg-muted-foreground", text: "text-muted-foreground", ring: "ring-border bg-muted/40" },
+  onhold: { dot: "bg-amber-400", text: "text-amber-400", ring: "ring-amber-400/30 bg-amber-400/10" },
 };
 
 /* ---------- helpers ---------- */
@@ -229,6 +233,8 @@ interface UsrForm {
   expiryDays: string;
   ipLimit: string;
   hwidLimit: string;
+  onHold: boolean;
+  autoRenew: boolean;
   inboundIds: Set<string>;
 }
 
@@ -240,6 +246,8 @@ const EMPTY_FORM: UsrForm = {
   expiryDays: "",
   ipLimit: "0",
   hwidLimit: "",
+  onHold: false,
+  autoRenew: false,
   inboundIds: new Set<string>(),
 };
 
@@ -401,7 +409,9 @@ export function UsersView() {
         break;
       case "expiry": {
         const key = (x: UserDTO) =>
-          x.expiryDays === null ? Number.POSITIVE_INFINITY : daysLeft(x.expiryDays, x.createdAt) ?? 0;
+          x.expiryDays === null
+            ? Number.POSITIVE_INFINITY
+            : daysLeft(x.expiryDays, x.startedAt ?? x.createdAt) ?? 0;
         list.sort((a, b) => key(a) - key(b));
         break;
       }
@@ -434,6 +444,137 @@ export function UsersView() {
     required: u.errNoInbounds,
     unknown: u.errNoInbounds,
     range: u.errNameFormat,
+    bulk_count: u.bulkCountErr,
+  };
+
+  /* ---------- 26-b — bulk create / import / export state ---------- */
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkSaving, setBulkSaving] = useState(false);
+  const [bulkForm, setBulkForm] = useState({
+    prefix: "client",
+    count: "10",
+    trafficLimitGb: "",
+    expiryDays: "30",
+    ipLimit: "0",
+    resetPeriod: "none",
+    onHold: false,
+    autoRenew: false,
+    inboundIds: new Set<string>(),
+  });
+  const [importOpen, setImportOpen] = useState(false);
+  const [importBusy, setImportBusy] = useState(false);
+  const [importText, setImportText] = useState("");
+  const [importRename, setImportRename] = useState(false);
+  const importFileRef = useRef<HTMLInputElement>(null);
+
+  const bulkToggleInbound = (id: string) => {
+    setBulkForm((f) => {
+      const next = new Set(f.inboundIds);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return { ...f, inboundIds: next };
+    });
+  };
+
+  const runBulkCreate = async () => {
+    setBulkSaving(true);
+    try {
+      const res = await fetch("/api/users/bulk-create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prefix: bulkForm.prefix.trim(),
+          count: Number(bulkForm.count || "0"),
+          trafficLimitGb: bulkForm.trafficLimitGb === "" ? null : Number(bulkForm.trafficLimitGb),
+          expiryDays: bulkForm.expiryDays === "" ? null : Number(bulkForm.expiryDays),
+          ipLimit: Number(bulkForm.ipLimit || "0"),
+          resetPeriod: bulkForm.resetPeriod,
+          onHold: bulkForm.onHold,
+          autoRenew: bulkForm.autoRenew,
+          inboundIds: [...bulkForm.inboundIds],
+        }),
+      });
+      if (!res.ok) {
+        const j = (await res.json().catch(() => ({}))) as { error?: string };
+        const msg =
+          j.error === "quota_users"
+            ? t.resellers.quotaUsers
+            : j.error === "quota_traffic"
+              ? t.resellers.quotaTraffic
+              : j.error === "quota_unlimited"
+                ? t.resellers.quotaUnlimited
+                : u.bulkCountErr;
+        toast({ description: msg });
+        setBulkSaving(false);
+        return;
+      }
+      const j = (await res.json()) as { created: { username: string }[]; failed: unknown[] };
+      const fresh = await fetch("/api/users", { cache: "no-store" });
+      if (fresh.ok) {
+        const fj = (await fresh.json()) as { users: UserDTO[] };
+        setUsers(fj.users);
+      }
+      setBulkOpen(false);
+      toast({ description: lfmt(u.bulkDone, { n: j.created.length, s: String(j.failed.length) }) });
+    } catch {
+      toast({ description: u.bulkCountErr });
+    }
+    setBulkSaving(false);
+  };
+
+  const runExport = () => {
+    window.open("/api/users/export", "_blank");
+  };
+
+  const runImport = async () => {
+    setImportBusy(true);
+    try {
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(importText);
+      } catch {
+        toast({ description: u.importBadJson });
+        setImportBusy(false);
+        return;
+      }
+      const list = Array.isArray(parsed)
+        ? parsed
+        : Array.isArray((parsed as { users?: unknown[] })?.users)
+          ? (parsed as { users: unknown[] }).users
+          : null;
+      if (!list) {
+        toast({ description: u.importBadJson });
+        setImportBusy(false);
+        return;
+      }
+      const res = await fetch("/api/users/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ users: list, mode: importRename ? "rename" : "skip" }),
+      });
+      if (!res.ok) throw new Error("import");
+      const j = (await res.json()) as { created: string[]; skipped: string[] };
+      const fresh = await fetch("/api/users", { cache: "no-store" });
+      if (fresh.ok) {
+        const fj = (await fresh.json()) as { users: UserDTO[] };
+        setUsers(fj.users);
+      }
+      setImportOpen(false);
+      setImportText("");
+      toast({ description: lfmt(u.importDone, { n: j.created.length, s: j.skipped.length }) });
+    } catch {
+      toast({ description: u.importBadJson });
+    }
+    setImportBusy(false);
+  };
+
+  const onImportFile = async (file: File | undefined) => {
+    if (!file) return;
+    try {
+      setImportText(await file.text());
+    } catch {
+      toast({ description: u.importBadJson });
+    }
   };
 
   /* ---------- handlers ---------- */
@@ -456,6 +597,8 @@ export function UsersView() {
       expiryDays: user.expiryDays === null ? "" : String(user.expiryDays),
       ipLimit: String(user.ipLimit),
       hwidLimit: user.hwidLimit === null ? "" : String(user.hwidLimit),
+      onHold: user.onHold === true,
+      autoRenew: user.autoRenew === true,
       inboundIds: new Set(user.accesses.map((a) => a.inboundId)),
     });
     setFieldErr({});
@@ -490,6 +633,8 @@ export function UsersView() {
         expiryDays: form.expiryDays === "" ? null : Number(form.expiryDays),
         ipLimit: Number(form.ipLimit || "0"),
         hwidLimit: form.hwidLimit === "" ? null : Number(form.hwidLimit),
+        onHold: form.onHold,
+        autoRenew: form.autoRenew,
         inboundIds: [...form.inboundIds],
       };
       const res = await fetch(editing ? `/api/users/${editing.id}` : "/api/users", {
@@ -646,10 +791,43 @@ export function UsersView() {
             <h1 className="text-silver text-3xl font-bold tracking-tight md:text-4xl">{t.nav.users}</h1>
             <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{u.subtitle}</p>
           </div>
-          <Button onClick={openCreate} className="glow-cyan gap-2" aria-label={u.new}>
-            <UserPlus className="h-4 w-4" aria-hidden="true" />
-            {u.new}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* 26-b — migration + bulk tooling */}
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => setBulkOpen(true)}
+              aria-label={u.bulkCreate}
+              title={u.bulkCreate}
+            >
+              <Layers className="h-4 w-4" aria-hidden="true" />
+              <span className="hidden sm:inline">{u.bulkCreate}</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => setImportOpen(true)}
+              aria-label={u.importTitle}
+              title={u.importTitle}
+            >
+              <Upload className="h-4 w-4" aria-hidden="true" />
+              <span className="hidden sm:inline">{u.importTitle}</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={runExport}
+              aria-label={u.exportUsers}
+              title={u.exportUsers}
+            >
+              <Download className="h-4 w-4" aria-hidden="true" />
+              <span className="hidden sm:inline">{u.exportUsers}</span>
+            </Button>
+            <Button onClick={openCreate} className="glow-cyan gap-2" aria-label={u.new}>
+              <UserPlus className="h-4 w-4" aria-hidden="true" />
+              {u.new}
+            </Button>
+          </div>
         </div>
       </section>
 
@@ -821,7 +999,7 @@ export function UsersView() {
               {!loading &&
                 filtered.map((user) => {
                   const st = STATUS_STYLE[user.status];
-                  const left = daysLeft(user.expiryDays, user.createdAt);
+                  const left = daysLeft(user.expiryDays, user.startedAt ?? user.createdAt);
                   const pct =
                     user.trafficLimitGb !== null && user.trafficLimitGb > 0
                       ? Math.min(100, (user.usedTrafficGb / user.trafficLimitGb) * 100)
@@ -880,7 +1058,9 @@ export function UsersView() {
                               ? u.stExpired
                               : user.status === "capped"
                                 ? u.stCapped
-                                : u.stDisabled}
+                                : user.status === "onhold"
+                                  ? u.stOnHold
+                                  : u.stDisabled}
                         </span>
                       </td>
                       <td className="px-3 py-3">
@@ -1050,7 +1230,7 @@ export function UsersView() {
         {!loading &&
           filtered.map((user) => {
             const st = STATUS_STYLE[user.status];
-            const left = daysLeft(user.expiryDays, user.createdAt);
+            const left = daysLeft(user.expiryDays, user.startedAt ?? user.createdAt);
             const pct =
               user.trafficLimitGb !== null && user.trafficLimitGb > 0
                 ? Math.min(100, (user.usedTrafficGb / user.trafficLimitGb) * 100)
@@ -1105,7 +1285,9 @@ export function UsersView() {
                         ? u.stExpired
                         : user.status === "capped"
                           ? u.stCapped
-                          : u.stDisabled}
+                          : user.status === "onhold"
+                            ? u.stOnHold
+                            : u.stDisabled}
                   </span>
                   {user.accesses.slice(0, 3).map((a) => (
                     <ProtoBadge key={a.id} protocol={a.inbound.protocol} />
@@ -1331,6 +1513,38 @@ export function UsersView() {
                   </p>
                 </div>
               </div>
+
+              {/* 26-a — on-hold + auto-renew lifecycle switches */}
+              <div className="grid gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-3 sm:grid-cols-2">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <Label htmlFor="u-onhold" className="text-xs font-medium">
+                      {u.fieldOnHold}
+                    </Label>
+                    <p className="mt-0.5 text-[10px] leading-snug text-muted-foreground">{u.fieldOnHoldHint}</p>
+                  </div>
+                  <Switch
+                    id="u-onhold"
+                    checked={form.onHold}
+                    onCheckedChange={(v) => setForm((f) => ({ ...f, onHold: v }))}
+                    aria-label={u.fieldOnHold}
+                  />
+                </div>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <Label htmlFor="u-autorenew" className="text-xs font-medium">
+                      {u.fieldAutoRenew}
+                    </Label>
+                    <p className="mt-0.5 text-[10px] leading-snug text-muted-foreground">{u.fieldAutoRenewHint}</p>
+                  </div>
+                  <Switch
+                    id="u-autorenew"
+                    checked={form.autoRenew}
+                    onCheckedChange={(v) => setForm((f) => ({ ...f, autoRenew: v }))}
+                    aria-label={u.fieldAutoRenew}
+                  />
+                </div>
+              </div>
               <Tip>{u.tipLimits}</Tip>
             </div>
 
@@ -1412,6 +1626,209 @@ export function UsersView() {
                 {saving ? "…" : u.save}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 26-b — bulk create dialog */}
+      <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
+        <DialogContent className="glass-strong max-h-[90vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Layers className="h-4 w-4 text-primary" aria-hidden="true" /> {u.bulkCreate}
+            </DialogTitle>
+            <DialogDescription>{u.bulkDesc}</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="bulk-prefix">{u.bulkPrefix}</Label>
+                <Input
+                  id="bulk-prefix"
+                  value={bulkForm.prefix}
+                  onChange={(e) => setBulkForm((f) => ({ ...f, prefix: e.target.value }))}
+                  placeholder="client"
+                  dir="ltr"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="bulk-count">{u.bulkCount}</Label>
+                <Input
+                  id="bulk-count"
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={bulkForm.count}
+                  onChange={(e) => setBulkForm((f) => ({ ...f, count: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="bulk-traffic">{u.fieldTraffic}</Label>
+                <Input
+                  id="bulk-traffic"
+                  type="number"
+                  min="0"
+                  value={bulkForm.trafficLimitGb}
+                  onChange={(e) => setBulkForm((f) => ({ ...f, trafficLimitGb: e.target.value }))}
+                  placeholder="∞"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="bulk-expiry">{u.fieldExpiry}</Label>
+                <Input
+                  id="bulk-expiry"
+                  type="number"
+                  min="0"
+                  value={bulkForm.expiryDays}
+                  onChange={(e) => setBulkForm((f) => ({ ...f, expiryDays: e.target.value }))}
+                  placeholder="∞"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>{u.fieldReset}</Label>
+                <Select
+                  value={bulkForm.resetPeriod}
+                  onValueChange={(v) => setBulkForm((f) => ({ ...f, resetPeriod: v }))}
+                >
+                  <SelectTrigger aria-label={u.fieldReset}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{u.resetNone}</SelectItem>
+                    <SelectItem value="daily">{u.resetDaily}</SelectItem>
+                    <SelectItem value="weekly">{u.resetWeekly}</SelectItem>
+                    <SelectItem value="monthly">{u.resetMonthly}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="bulk-ip">{u.fieldIp}</Label>
+                <Input
+                  id="bulk-ip"
+                  type="number"
+                  min="0"
+                  value={bulkForm.ipLimit}
+                  onChange={(e) => setBulkForm((f) => ({ ...f, ipLimit: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="grid gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-3 sm:grid-cols-2">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <Label className="text-xs font-medium">{u.fieldOnHold}</Label>
+                  <p className="mt-0.5 text-[10px] leading-snug text-muted-foreground">{u.fieldOnHoldHint}</p>
+                </div>
+                <Switch
+                  checked={bulkForm.onHold}
+                  onCheckedChange={(v) => setBulkForm((f) => ({ ...f, onHold: v }))}
+                  aria-label={u.fieldOnHold}
+                />
+              </div>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <Label className="text-xs font-medium">{u.fieldAutoRenew}</Label>
+                  <p className="mt-0.5 text-[10px] leading-snug text-muted-foreground">{u.fieldAutoRenewHint}</p>
+                </div>
+                <Switch
+                  checked={bulkForm.autoRenew}
+                  onCheckedChange={(v) => setBulkForm((f) => ({ ...f, autoRenew: v }))}
+                  aria-label={u.fieldAutoRenew}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {u.secInbounds}
+              </p>
+              <div className="max-h-44 space-y-1.5 overflow-y-auto pr-1">
+                {(inbounds ?? []).map((inb) => (
+                  <label
+                    key={inb.id}
+                    className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-xs hover:bg-white/5"
+                  >
+                    <Checkbox
+                      checked={bulkForm.inboundIds.has(inb.id)}
+                      onCheckedChange={() => bulkToggleInbound(inb.id)}
+                      aria-label={inb.tag}
+                    />
+                    <span className="truncate font-medium" dir="ltr">{inb.tag}</span>
+                    <span className="ms-auto font-mono text-[10px] text-muted-foreground" dir="ltr">:{inb.port}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setBulkOpen(false)}>
+              {u.cancel}
+            </Button>
+            <Button
+              onClick={() => void runBulkCreate()}
+              disabled={bulkSaving || bulkForm.inboundIds.size === 0}
+              className="glow-cyan gap-2"
+            >
+              <Layers className="h-4 w-4" aria-hidden="true" />
+              {bulkSaving ? "…" : u.bulkSubmit}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 26-b — import dialog */}
+      <Dialog open={importOpen} onOpenChange={setImportOpen}>
+        <DialogContent className="glass-strong max-h-[90vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="h-4 w-4 text-primary" aria-hidden="true" /> {u.importTitle}
+            </DialogTitle>
+            <DialogDescription>{u.importDesc}</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <input
+              ref={importFileRef}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={(e) => void onImportFile(e.target.files?.[0])}
+            />
+            <Button variant="outline" className="w-full gap-2" onClick={() => importFileRef.current?.click()}>
+              <Upload className="h-4 w-4" aria-hidden="true" /> {u.importPick}
+            </Button>
+            <textarea
+              className="max-h-48 min-h-32 w-full resize-y rounded-xl border border-white/10 bg-background/60 p-3 font-mono text-[11px] outline-none ring-primary/40 focus:ring-2"
+              value={importText}
+              onChange={(e) => setImportText(e.target.value)}
+              placeholder='{ "users": [...] }'
+              dir="ltr"
+              aria-label={u.importTitle}
+            />
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-3">
+              <div className="min-w-0">
+                <p className="text-xs font-medium">{u.importMode}</p>
+                <p className="mt-0.5 text-[10px] text-muted-foreground">{u.importModeHint}</p>
+              </div>
+              <Switch checked={importRename} onCheckedChange={setImportRename} aria-label={u.importMode} />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setImportOpen(false)}>
+              {u.cancel}
+            </Button>
+            <Button
+              onClick={() => void runImport()}
+              disabled={importBusy || importText.trim() === ""}
+              className="glow-cyan gap-2"
+            >
+              <Upload className="h-4 w-4" aria-hidden="true" />
+              {importBusy ? "…" : u.importRun}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -1502,7 +1919,9 @@ export function UsersView() {
                         ? u.stExpired
                         : drawerUser.status === "capped"
                           ? u.stCapped
-                          : u.stDisabled}
+                          : drawerUser.status === "onhold"
+                            ? u.stOnHold
+                            : u.stDisabled}
                   </span>
                 </div>
               </SheetHeader>
@@ -1581,7 +2000,7 @@ export function UsersView() {
                           u.expiryNever
                         ) : (
                           (() => {
-                            const left = daysLeft(drawerUser.expiryDays, drawerUser.createdAt);
+                            const left = daysLeft(drawerUser.expiryDays, drawerUser.startedAt ?? drawerUser.createdAt);
                             return left !== null && left >= 0 ? lfmt(u.expiryLeft, { n: left }) : u.stExpired;
                           })()
                         )}
