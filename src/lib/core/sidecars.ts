@@ -21,9 +21,10 @@
  *                         from stream.upMbps/downMbps, trafficStats
  *                         {enabled, secret} — per-user counters, quic
  *                         documented defaults
- *              mtproto   → <tag>.toml   secret (the first enabled client's
- *                         key — mtg v2 `ee<hex>[domain]` form), bind-to
- *                         <listen>:<port>, log-level info
+ *              mtproto   → <tag>.toml   secret (converted to the mtg v2
+ *                         config form — see buildMtpSidecar; the panel key
+ *                         stays in the tg://-compatible `ee<hex>[domain]`
+ *                         form), bind-to <listen>:<port>, log-level info
  *   spawn    `hysteria server -c <yaml>` | `mtg run <toml>` with a log ring
  *            buffer per tag
  *   health   UDP port probe for hysteria (bind 0.0.0.0 → EADDRINUSE =
@@ -763,6 +764,42 @@ export class SidecarManager {
       );
       return null;
     }
+
+    /* Wire-secret forms (verified against mtg v2.2.8):
+     *   panel/client key  = `ee<hex32>[domain]` — what tg://proxy carries
+     *   mtg CONFIG secret = base64url(0xEE + 16 raw key bytes + domain)
+     * mtg v2 is FAKE-TLS-ONLY: the 0xdd plain byte is rejected outright
+     * ("incorrect first byte of secret"), and a bare-34-char ee secret is
+     * truncated. So: parse the hex form, resolve the fake-TLS domain
+     * (secret suffix first, then stream.mtpDomain) and always emit the
+     * base64url config form. The stored client key is never rewritten. */
+    const body = secret.replace(/^(dd|ee)/i, "");
+    const hex = /^[0-9a-f]{32}/i.test(body) ? body.slice(0, 32).toLowerCase() : "";
+    if (!hex) {
+      this.log(
+        row.tag,
+        "client key is not a parseable mtg secret (need ee/dd + 32 hex chars) — sidecar skipped"
+      );
+      return null;
+    }
+    const suffix = body.slice(hex.length).trim();
+    const st = parseLoose<Record<string, unknown>>(row.streamJson, {});
+    const domain =
+      (suffix.includes(".") && suffix.length > 3 ? suffix : "") ||
+      (typeof st.mtpDomain === "string" ? st.mtpDomain.trim() : "");
+    if (!domain) {
+      this.log(
+        row.tag,
+        "mtg v2 serves fake-TLS only — no fake-TLS domain in the secret suffix or stream.mtpDomain — sidecar skipped"
+      );
+      return null;
+    }
+    const configSecret = Buffer.concat([
+      Buffer.from([0xee]),
+      Buffer.from(hex, "hex"),
+      Buffer.from(domain, "utf8"),
+    ]).toString("base64url");
+
     if (clients.length > 1) {
       // mtg v2 serves ONE secret per listener — extra clients are decorative
       this.log(
@@ -780,7 +817,7 @@ export class SidecarManager {
       !host || host === "0.0.0.0" || host === "::" ? `0.0.0.0:${row.port}` : `${host}:${row.port}`;
 
     const toml = [
-      `secret = "${secret}"`,
+      `secret = "${configSecret}"`,
       `bind-to = "${bindTo}"`,
       `log-level = "info"`,
       "",
