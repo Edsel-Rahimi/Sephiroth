@@ -108,6 +108,8 @@ const K = {
   // hysteria2 sidecar engines (v2.5)
   sidecarHysteriaVersion: "set_sidecar_hysteria_version",
   sidecarHysteriaBin: "set_sidecar_hysteria_bin",
+  // amneziawg sidecar engine (Phase 27) — admin-pinned awg-quick path
+  sidecarAwgBin: "set_sidecar_awg_bin",
   // secondary sing-box core (Task 23-c, default ON)
   coreSingboxEnabled: "set_core_singbox_enabled",
   // concurrent-IP limit enforcement (Task 23-g, default OFF)
@@ -858,6 +860,8 @@ export interface ExpertSettings {
   certFile: string;
   keyFile: string;
   sessionMaxAge: number; // minutes
+  /** Absolute path to a pinned awg-quick; "" = resolve on PATH (Phase 27). */
+  sidecarAwgBin: string;
 }
 
 const EXPERT_DEFAULT: ExpertSettings = {
@@ -871,12 +875,14 @@ const EXPERT_DEFAULT: ExpertSettings = {
   certFile: "",
   keyFile: "",
   sessionMaxAge: 360,
+  sidecarAwgBin: "",
 };
 
 export async function getExpertSettings(): Promise<ExpertSettings> {
   const m = await readSettings([
     K.xrayLogLevel, K.xrayDnsServers, K.xrayDomainStrategy, K.xrayFreedomStrategy,
     K.xrayConnIdle, K.xrayBufferSize, K.xrayRawJson, K.certFile, K.keyFile, K.sessionMaxAge,
+    K.sidecarAwgBin,
   ]);
   const level = m.get(K.xrayLogLevel);
   const strat = m.get(K.xrayDomainStrategy);
@@ -892,6 +898,7 @@ export async function getExpertSettings(): Promise<ExpertSettings> {
     certFile: m.get(K.certFile) ?? "",
     keyFile: m.get(K.keyFile) ?? "",
     sessionMaxAge: toInt(m.get(K.sessionMaxAge), EXPERT_DEFAULT.sessionMaxAge, 5, 43200),
+    sidecarAwgBin: m.get(K.sidecarAwgBin) ?? "",
   };
 }
 
@@ -979,6 +986,14 @@ export async function validateExpertPatch(body: unknown): Promise<PatchResult<Ex
     }
     out.sessionMaxAge = n;
   }
+  if (b.sidecarAwgBin !== undefined) {
+    const v = String(b.sidecarAwgBin).trim();
+    if (v.length > 200) return { ok: false, fields: [{ field: "sidecarAwgBin", code: "range" }] };
+    if (v && !v.startsWith("/")) {
+      return { ok: false, fields: [{ field: "sidecarAwgBin", code: "format" }] };
+    }
+    out.sidecarAwgBin = v;
+  }
   return { ok: true, data: out };
 }
 
@@ -994,6 +1009,7 @@ export async function saveExpertSettings(e: ExpertSettings): Promise<void> {
     writeSetting(K.certFile, e.certFile),
     writeSetting(K.keyFile, e.keyFile),
     writeSetting(K.sessionMaxAge, String(e.sessionMaxAge)),
+    writeSetting(K.sidecarAwgBin, e.sidecarAwgBin),
   ]);
 }
 
