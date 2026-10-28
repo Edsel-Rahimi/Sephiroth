@@ -63,3 +63,6 @@ db/backups/
 db/update-status.json
 db/update-runner.sh
 db/update.log
+
+# pCloud backup staging (never commit)
+.pcloud-stage/
