@@ -129,20 +129,40 @@ export async function sendMessage(
   }, opts);
 }
 
+/**
+ * Photo source for sendPhoto: either an existing Telegram `file_id` (the
+ * original v2.7 path, unchanged) or a v2.8 in-memory buffer (multipart
+ * upload — used for QR-code delivery, Task 4-a).
+ */
+export type PhotoInput = string | { buffer: Uint8Array; filename?: string };
+
 export async function sendPhoto(
   token: string,
   chatId: string,
-  photoFileId: string,
+  photo: PhotoInput,
   caption?: string,
   keyboard?: InlineKeyboard,
   opts?: { proxyUrl?: string }
 ): Promise<any> {
-  return tgCall(token, "sendPhoto", {
-    chat_id: chatId,
-    photo: photoFileId,
-    ...(caption ? { caption, parse_mode: "HTML" } : {}),
-    ...(keyboard ? { reply_markup: keyboard } : {}),
-  }, opts);
+  if (typeof photo === "string") {
+    // existing fast path — Telegram file_id, plain JSON call
+    return tgCall(token, "sendPhoto", {
+      chat_id: chatId,
+      photo,
+      ...(caption ? { caption, parse_mode: "HTML" } : {}),
+      ...(keyboard ? { reply_markup: keyboard } : {}),
+    }, opts);
+  }
+  // v2.8 — multipart upload of an in-memory image (QR PNG)
+  const form = new FormData();
+  form.append("chat_id", chatId);
+  if (caption) {
+    form.append("caption", caption);
+    form.append("parse_mode", "HTML");
+  }
+  const bytes = photo.buffer instanceof Uint8Array ? photo.buffer : new Uint8Array(photo.buffer);
+  form.append("photo", new Blob([bytes as BlobPart], { type: "image/png" }), photo.filename || "photo.png");
+  return tgCallMultipart(token, "sendPhoto", form, opts);
 }
 
 export async function sendChatAction(

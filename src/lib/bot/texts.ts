@@ -93,6 +93,33 @@ export interface BotTexts {
   nDigest: string;
   nUserActivated: string;
   nUserRenewed: string;
+  /* v2.8 — wallet */
+  btnWallet: string;
+  walletView: string;
+  btnWalletPay: string;
+  walletInsufficient: string;
+  walletPaid: string;
+  walletCredited: string;
+  /* v2.8 — admin /credit */
+  creditHint: string;
+  creditDone: string;
+  /* v2.8 — admin /adduser */
+  addUserHint: string;
+  addUserNotFound: string;
+  uapTitle: string;
+  /* v2.8 — renew / top-up existing subscription */
+  btnRenew: string;
+  renTitle: string;
+  renEmpty: string;
+  renewed: string;
+  /* v2.8 — admin user tools (delete / apply-template / reset-devices) */
+  btnDelete: string;
+  deleteConfirm: string;
+  doneDelete: string;
+  btnApplyTpl: string;
+  doneApplyTpl: string;
+  btnResetDevices: string;
+  doneResetDevices: string;
 }
 
 const FA: BotTexts = {
@@ -128,7 +155,7 @@ const FA: BotTexts = {
   rejected: "❌ سفارش شما تأیید نشد. برای بررسی بیشتر با پشتیبانی تماس بگیرید.",
   backMenu: "بازگشت به منو",
   notAuthorized: "⛔ شما اجازهٔ استفاده از دستورهای مدیریتی را ندارید.",
-  help: "🤖 <b>دستورهای ربات سِفیراث</b>\n/status — وضعیت سامانه\n/users [تعداد] — پر مصرف‌ترین کاربران\n/inbounds — فهرست کانفیگ‌های ورودی\n/user &lt;نام&gt; — جست‌وجوی کاربر + کنترل‌ها\n/backup_now — ارسال فایل پشتیبان\n/start — منوی اصلی",
+  help: "🤖 <b>دستورهای ربات سِفیراث</b>\n/status — وضعیت سامانه\n/users [تعداد] — پر مصرف‌ترین کاربران\n/inbounds — فهرست کانفیگ‌های ورودی\n/user &lt;نام&gt; — جست‌وجوی کاربر + کنترل‌ها\n/adduser &lt;پلن&gt; — ساخت کاربر از روی پلن\n/credit &lt;کاربر&gt; &lt;مبلغ&gt; — تنظیم موجودی کیف پول\n/backup_now — ارسال فایل پشتیبان\n/start — منوی اصلی",
   stTitle: "🛰 <b>سِفیراث · وضعیت سامانه</b>",
   stCore: "• هسته: {core} ({status})",
   stInbounds: "• کانفیگ‌های فعال: {online}/{total}",
@@ -166,6 +193,28 @@ const FA: BotTexts = {
   nDigest: "📈 گزارش ۲۴ ساعت — {orders} سفارش موفق ({revenue} تومان)، {users} کاربر جدید",
   nUserActivated: "▶️ کاربر در انتظار <code>{user}</code> با اولین اتصال فعال شد — {days} روز اعتبار",
   nUserRenewed: "🔄 اشتراک <code>{user}</code> خودکار تمدید شد (مجموع {renewals} بار)",
+  btnWallet: "💰 کیف پول",
+  walletView: "💰 <b>کیف پول</b>\nموجودی: <b>{balance} تومان</b>\n\nبرای افزایش موجودی با پشتیبانی در تماس باشید؛ پس از تأیید ادمین، اعتبار به همین کیف اضافه می‌شود.",
+  btnWalletPay: "💰 پرداخت از کیف پول",
+  walletInsufficient: "موجودی کیف پول شما ({balance} تومان) برای این خرید کافی نیست. مبلغ لازم: {price} تومان.",
+  walletPaid: "✅ مبلغ {price} تومان از کیف پول کسر شد. موجودی جدید: {balance} تومان.",
+  walletCredited: "💰 کیف پول شما {amount} تومان تغییر کرد.\nموجودی جدید: <b>{balance} تومان</b>",
+  creditHint: "روش استفاده: <code>/credit &lt;کاربر&gt; &lt;مبلغ&gt;</code>\nمثال: <code>/credit ali 500000</code> — مبلغ منفی موجودی را کم می‌کند.",
+  creditDone: "✅ موجودی {user} از {old} به <b>{new}</b> تومان تغییر کرد.",
+  addUserHint: "روش استفاده: <code>/adduser &lt;نام پلن&gt;</code>\nپلن‌های موجود:\n{list}",
+  addUserNotFound: "پلنی با نام «{name}» پیدا نشد. نزدیک‌ترین‌ها:\n{suggestions}",
+  uapTitle: "📋 <b>اعمال پلن روی {user}</b>\nپلن موردنظر را انتخاب کنید:",
+  btnRenew: "🔄 تمدید",
+  renTitle: "🔄 <b>تمدید اشتراک {user}</b>\nپلن موردنظر برای تمدید را انتخاب کنید:",
+  renEmpty: "فعلاً پلنی برای تمدید موجود نیست.",
+  renewed: "🔄 <b>اشتراک شما تمدید شد!</b>\n\n• نام کاربری: <code>{user}</code>\n• پلن: {tpl}\n• حجم اضافه‌شده: {gb}\n• مدت اضافه‌شده: {days} روز\n\n🔗 لینک اشتراک (بدون تغییر):\n{sub}",
+  btnDelete: "🗑 حذف کاربر",
+  deleteConfirm: "⚠️ کاربر <b>{user}</b> برای همیشه حذف شود؟ همهٔ کانفیگ‌های او از inbound ها پاک می‌شود.",
+  doneDelete: "🗑 کاربر {user} حذف شد.",
+  btnApplyTpl: "📋 اعمال پلن",
+  doneApplyTpl: "📋 پلن {tpl} روی {user} اعمال شد ({gb}، {days} روز، {ip} دستگاه).",
+  btnResetDevices: "📵 ریست دستگاه‌ها",
+  doneResetDevices: "📵 دستگاه‌های {user} ریست شد — کلاینت‌ها باید دوباره ثبت نام کنند.",
 };
 
 const EN: BotTexts = {
@@ -201,7 +250,7 @@ const EN: BotTexts = {
   rejected: "❌ Your order was not approved. Please contact support for details.",
   backMenu: "Back to menu",
   notAuthorized: "⛔ You are not allowed to use admin commands.",
-  help: "🤖 <b>Sephiroth bot commands</b>\n/status — system telemetry\n/users [n] — top users by traffic\n/inbounds — inbound list\n/user &lt;name&gt; — find a user + controls\n/backup_now — receive a backup snapshot\n/start — main menu",
+  help: "🤖 <b>Sephiroth bot commands</b>\n/status — system telemetry\n/users [n] — top users by traffic\n/inbounds — inbound list\n/user &lt;name&gt; — find a user + controls\n/adduser &lt;template&gt; — create a user from a template\n/credit &lt;user&gt; &lt;amount&gt; — adjust wallet balance\n/backup_now — receive a backup snapshot\n/start — main menu",
   stTitle: "🛰 <b>Sephiroth · System Telemetry</b>",
   stCore: "• Core: {core} ({status})",
   stInbounds: "• Active inbounds: {online}/{total}",
@@ -239,6 +288,28 @@ const EN: BotTexts = {
   nDigest: "📈 24h digest — {orders} completed order(s) ({revenue} Toman), {users} new user(s)",
   nUserActivated: "▶️ On-hold user <code>{user}</code> activated on first connect — {days} day(s) granted",
   nUserRenewed: "🔄 Subscription <code>{user}</code> auto-renewed ({renewals} total)",
+  btnWallet: "💰 Wallet",
+  walletView: "💰 <b>Wallet</b>\nBalance: <b>{balance} Toman</b>\n\nTo top up, contact support — an admin credits your wallet after confirmation.",
+  btnWalletPay: "💰 Pay from wallet",
+  walletInsufficient: "Your wallet balance ({balance} Toman) is not enough for this purchase. Required: {price} Toman.",
+  walletPaid: "✅ {price} Toman was deducted from your wallet. New balance: {balance} Toman.",
+  walletCredited: "💰 Your wallet was adjusted by {amount} Toman.\nNew balance: <b>{balance} Toman</b>",
+  creditHint: "Usage: <code>/credit &lt;user&gt; &lt;amount&gt;</code>\nExample: <code>/credit ali 500000</code> — a negative amount deducts.",
+  creditDone: "✅ Balance of {user} changed from {old} to <b>{new}</b> Toman.",
+  addUserHint: "Usage: <code>/adduser &lt;template name&gt;</code>\nAvailable templates:\n{list}",
+  addUserNotFound: "No template named \"{name}\" was found. Nearest matches:\n{suggestions}",
+  uapTitle: "📋 <b>Apply template to {user}</b>\nPick a template:",
+  btnRenew: "🔄 Renew",
+  renTitle: "🔄 <b>Renew {user}</b>\nPick the plan to renew with:",
+  renEmpty: "No plans are available for renewal right now.",
+  renewed: "🔄 <b>Subscription renewed!</b>\n\n• Username: <code>{user}</code>\n• Plan: {tpl}\n• Traffic added: {gb}\n• Time added: {days} days\n\n🔗 Subscription link (unchanged):\n{sub}",
+  btnDelete: "🗑 Delete user",
+  deleteConfirm: "⚠️ Permanently delete user <b>{user}</b>? Their config is removed from every inbound.",
+  doneDelete: "🗑 User {user} deleted.",
+  btnApplyTpl: "📋 Apply template",
+  doneApplyTpl: "📋 Template {tpl} applied to {user} ({gb}, {days} days, {ip} devices).",
+  btnResetDevices: "📵 Reset devices",
+  doneResetDevices: "📵 Devices reset for {user} — clients must re-register.",
 };
 
 const AR: BotTexts = {
@@ -274,7 +345,7 @@ const AR: BotTexts = {
   rejected: "❌ لم يُعتمد طلبك. تواصل مع الدعم للتفاصيل.",
   backMenu: "العودة إلى القائمة",
   notAuthorized: "⛔ غير مسموح لك باستخدام أوامر المشرف.",
-  help: "🤖 <b>أوامر بوت سيفيروث</b>\n/status — قياسات النظام\n/users [عدد] — الأكثر استهلاكاً\n/inbounds — قائمة نقاط الدخول\n/user &lt;اسم&gt; — بحث عن مستخدم + تحكم\n/backup_now — استلام نسخة احتياطية\n/start — القائمة الرئيسية",
+  help: "🤖 <b>أوامر بوت سيفيروث</b>\n/status — قياسات النظام\n/users [عدد] — الأكثر استهلاكاً\n/inbounds — قائمة نقاط الدخول\n/user &lt;اسم&gt; — بحث عن مستخدم + تحكم\n/adduser &lt;باقة&gt; — إنشاء مستخدم من باقة\n/credit &lt;مستخدم&gt; &lt;مبلغ&gt; — تعديل رصيد المحفظة\n/backup_now — استلام نسخة احتياطية\n/start — القائمة الرئيسية",
   stTitle: "🛰 <b>سيفيروث · قياسات النظام</b>",
   stCore: "• النواة: {core} ({status})",
   stInbounds: "• نقاط الدخول النشطة: {online}/{total}",
@@ -312,6 +383,28 @@ const AR: BotTexts = {
   nDigest: "📈 ملخص ٢٤ ساعة — {orders} طلب مكتمل ({revenue} تومان)، {users} مستخدم جديد",
   nUserActivated: "▶️ فعّل المستخدم المعلّق <code>{user}</code> عند أول اتصال — {days} يوم",
   nUserRenewed: "🔄 جُدّد اشتراك <code>{user}</code> تلقائيًا ({renewals} مرة)",
+  btnWallet: "💰 المحفظة",
+  walletView: "💰 <b>المحفظة</b>\nالرصيد: <b>{balance} تومان</b>\n\nلشحن الرصيد تواصل مع الدعم — يضيف المشرف المبلغ بعد التأكيد.",
+  btnWalletPay: "💰 الدفع من المحفظة",
+  walletInsufficient: "رصيد محفظتك ({balance} تومان) لا يكفي لهذا الشراء. المطلوب: {price} تومان.",
+  walletPaid: "✅ خُصم {price} تومان من محفظتك. الرصيد الجديد: {balance} تومان.",
+  walletCredited: "💰 عُدّلت محفظتك بمقدار {amount} تومان.\nالرصيد الجديد: <b>{balance} تومان</b>",
+  creditHint: "الاستخدام: <code>/credit &lt;مستخدم&gt; &lt;مبلغ&gt;</code>\nمثال: <code>/credit ali 500000</code> — المبلغ السالب يخصم.",
+  creditDone: "✅ تغير رصيد {user} من {old} إلى <b>{new}</b> تومان.",
+  addUserHint: "الاستخدام: <code>/adduser &lt;اسم الباقة&gt;</code>\nالباقات المتاحة:\n{list}",
+  addUserNotFound: "لم تُوجد باقة باسم {name}. الأقرب:\n{suggestions}",
+  uapTitle: "📋 <b>تطبيق باقة على {user}</b>\nاختر الباقة:",
+  btnRenew: "🔄 تجديد",
+  renTitle: "🔄 <b>تجديد اشتراك {user}</b>\nاختر الباقة للتجديد:",
+  renEmpty: "لا توجد باقات للتجديد حالياً.",
+  renewed: "🔄 <b>جُدّد اشتراكك!</b>\n\n• المستخدم: <code>{user}</code>\n• الباقة: {tpl}\n• الحجم المضاف: {gb}\n• المدة المضافة: {days} يوم\n\n🔗 رابط الاشتراك (دون تغيير):\n{sub}",
+  btnDelete: "🗑 حذف المستخدم",
+  deleteConfirm: "⚠️ حذف المستخدم <b>{user}</b> نهائياً؟ سيُزال إعداده من كل نقاط الدخول.",
+  doneDelete: "🗑 حُذف المستخدم {user}.",
+  btnApplyTpl: "📋 تطبيق باقة",
+  doneApplyTpl: "📋 طُبّقت باقة {tpl} على {user} ({gb}، {days} يوم، {ip} أجهزة).",
+  btnResetDevices: "📵 تصفير الأجهزة",
+  doneResetDevices: "📵 صُفّرت أجهزة {user} — على العملاء إعادة التسجيل.",
 };
 
 const ZH: BotTexts = {
@@ -347,7 +440,7 @@ const ZH: BotTexts = {
   rejected: "❌ 您的订单未通过审核，详情请联系客服。",
   backMenu: "返回菜单",
   notAuthorized: "⛔ 您无权使用管理员命令。",
-  help: "🤖 <b>Sephiroth 机器人命令</b>\n/status — 系统遥测\n/users [n] — 流量排行\n/inbounds — 入站列表\n/user &lt;名称&gt; — 查找用户 + 控制\n/backup_now — 接收备份快照\n/start — 主菜单",
+  help: "🤖 <b>Sephiroth 机器人命令</b>\n/status — 系统遥测\n/users [n] — 流量排行\n/inbounds — 入站列表\n/user &lt;名称&gt; — 查找用户 + 控制\n/adduser &lt;套餐&gt; — 按套餐创建用户\n/credit &lt;用户&gt; &lt;金额&gt; — 调整钱包余额\n/backup_now — 接收备份快照\n/start — 主菜单",
   stTitle: "🛰 <b>Sephiroth · 系统遥测</b>",
   stCore: "• 核心：{core}（{status}）",
   stInbounds: "• 活跃入站：{online}/{total}",
@@ -385,6 +478,28 @@ const ZH: BotTexts = {
   nDigest: "📈 24 小时简报 — {orders} 笔完成订单（{revenue} 托曼），{users} 个新用户",
   nUserActivated: "▶️ 待激活用户 <code>{user}</code> 已在首次连接时激活 — {days} 天",
   nUserRenewed: "🔄 订阅 <code>{user}</code> 已自动续期（共 {renewals} 次）",
+  btnWallet: "💰 钱包",
+  walletView: "💰 <b>钱包</b>\n余额：<b>{balance} 托曼</b>\n\n如需充值请联系客服，管理员确认后为钱包加款。",
+  btnWalletPay: "💰 钱包支付",
+  walletInsufficient: "钱包余额（{balance} 托曼）不足以完成本次购买，需 {price} 托曼。",
+  walletPaid: "✅ 已从钱包扣除 {price} 托曼，新余额：{balance} 托曼。",
+  walletCredited: "💰 您的钱包已变动 {amount} 托曼。\n新余额：<b>{balance} 托曼</b>",
+  creditHint: "用法：<code>/credit &lt;用户&gt; &lt;金额&gt;</code>\n示例：<code>/credit ali 500000</code> — 负数为扣款。",
+  creditDone: "✅ {user} 的余额已从 {old} 变更为 <b>{new}</b> 托曼。",
+  addUserHint: "用法：<code>/adduser &lt;套餐名&gt;</code>\n可用套餐：\n{list}",
+  addUserNotFound: "未找到名为 {name} 的套餐。最接近的：\n{suggestions}",
+  uapTitle: "📋 <b>为 {user} 应用套餐</b>\n请选择套餐：",
+  btnRenew: "🔄 续费",
+  renTitle: "🔄 <b>续费 {user}</b>\n请选择用于续费的套餐：",
+  renEmpty: "当前没有可续费的套餐。",
+  renewed: "🔄 <b>订阅已续费！</b>\n\n• 用户名：<code>{user}</code>\n• 套餐：{tpl}\n• 增加流量：{gb}\n• 增加时长：{days} 天\n\n🔗 订阅链接（不变）：\n{sub}",
+  btnDelete: "🗑 删除用户",
+  deleteConfirm: "⚠️ 确认永久删除用户 <b>{user}</b>？其配置将从所有入站中移除。",
+  doneDelete: "🗑 用户 {user} 已删除。",
+  btnApplyTpl: "📋 应用套餐",
+  doneApplyTpl: "📋 已将套餐 {tpl} 应用到 {user}（{gb}，{days} 天，{ip} 台设备）。",
+  btnResetDevices: "📵 重置设备",
+  doneResetDevices: "📵 已重置 {user} 的设备 — 客户端需重新注册。",
 };
 
 const TR: BotTexts = {
@@ -420,7 +535,7 @@ const TR: BotTexts = {
   rejected: "❌ Siparişiniz onaylanmadı. Ayrıntı için desteğe başvurun.",
   backMenu: "Menüye dön",
   notAuthorized: "⛔ Yönetici komutlarını kullanma yetkiniz yok.",
-  help: "🤖 <b>Sephiroth bot komutları</b>\n/status — sistem telemetrisi\n/users [adet] — trafiğe göre ilk kullanıcılar\n/inbounds — inbound listesi\n/user &lt;ad&gt; — kullanıcı ara + denetim\n/backup_now — yedek anlık görüntüsü al\n/start — ana menü",
+  help: "🤖 <b>Sephiroth bot komutları</b>\n/status — sistem telemetrisi\n/users [adet] — trafiğe göre ilk kullanıcılar\n/inbounds — inbound listesi\n/user &lt;ad&gt; — kullanıcı ara + denetim\n/adduser &lt;paket&gt; — paketten kullanıcı oluştur\n/credit &lt;kullanıcı&gt; &lt;tutar&gt; — cüzdan bakiyesi ayarla\n/backup_now — yedek anlık görüntüsü al\n/start — ana menü",
   stTitle: "🛰 <b>Sephiroth · Sistem Telemetrisi</b>",
   stCore: "• Çekirdek: {core} ({status})",
   stInbounds: "• Aktif inbound: {online}/{total}",
@@ -458,6 +573,28 @@ const TR: BotTexts = {
   nDigest: "📈 24 saatlik özet — {orders} tamamlanan sipariş ({revenue} Toman), {users} yeni kullanıcı",
   nUserActivated: "▶️ Bekleyen kullanıcı <code>{user}</code> ilk bağlantıda etkinleşti — {days} gün",
   nUserRenewed: "🔄 <code>{user}</code> aboneliği otomatik yenilendi (toplam {renewals})",
+  btnWallet: "💰 Cüzdan",
+  walletView: "💰 <b>Cüzdan</b>\nBakiye: <b>{balance} Toman</b>\n\nBakiye yüklemek için desteğe yazın — onaydan sonra yönetici cüzdanınıza ekler.",
+  btnWalletPay: "💰 Cüzdandan öde",
+  walletInsufficient: "Cüzdan bakiyeniz ({balance} Toman) bu satın alma için yetersiz. Gerekli: {price} Toman.",
+  walletPaid: "✅ Cüzdandan {price} Toman düşüldü. Yeni bakiye: {balance} Toman.",
+  walletCredited: "💰 Cüzdanınıza {amount} Toman işlendi.\nYeni bakiye: <b>{balance} Toman</b>",
+  creditHint: "Kullanım: <code>/credit &lt;kullanıcı&gt; &lt;tutar&gt;</code>\nÖrnek: <code>/credit ali 500000</code> — negatif tutar düşer.",
+  creditDone: "✅ {user} bakiyesi {old} → <b>{new}</b> Toman olarak güncellendi.",
+  addUserHint: "Kullanım: <code>/adduser &lt;paket adı&gt;</code>\nMevcut paketler:\n{list}",
+  addUserNotFound: "{name} adında paket bulunamadı. En yakınlar:\n{suggestions}",
+  uapTitle: "📋 <b>{user} için paket uygula</b>\nPaket seçin:",
+  btnRenew: "🔄 Yenile",
+  renTitle: "🔄 <b>{user} aboneliğini yenile</b>\nYenilemek için paket seçin:",
+  renEmpty: "Şu anda yenileme için paket yok.",
+  renewed: "🔄 <b>Aboneliğiniz yenilendi!</b>\n\n• Kullanıcı: <code>{user}</code>\n• Paket: {tpl}\n• Eklenen trafik: {gb}\n• Eklenen süre: {days} gün\n\n🔗 Abonelik bağlantısı (değişmedi):\n{sub}",
+  btnDelete: "🗑 Kullanıcıyı sil",
+  deleteConfirm: "⚠️ <b>{user}</b> kalıcı olarak silinsin mi? Yapılandırması tüm inbound'lerden kaldırılır.",
+  doneDelete: "🗑 {user} silindi.",
+  btnApplyTpl: "📋 Paket uygula",
+  doneApplyTpl: "📋 {tpl} paketi {user} üzerine uygulandı ({gb}, {days} gün, {ip} cihaz).",
+  btnResetDevices: "📵 Cihazları sıfırla",
+  doneResetDevices: "📵 {user} cihazları sıfırlandı — istemciler yeniden kaydolmalı.",
 };
 
 const RU: BotTexts = {
@@ -493,7 +630,7 @@ const RU: BotTexts = {
   rejected: "❌ Ваш заказ не одобрен. Подробности в поддержке.",
   backMenu: "В меню",
   notAuthorized: "⛔ Вам недоступны команды администратора.",
-  help: "🤖 <b>Команды бота Sephiroth</b>\n/status — телеметрия системы\n/users [n] — пользователи по трафику\n/inbounds — список inbound\n/user &lt;имя&gt; — найти пользователя + управление\n/backup_now — получить резервную копию\n/start — главное меню",
+  help: "🤖 <b>Команды бота Sephiroth</b>\n/status — телеметрия системы\n/users [n] — пользователи по трафику\n/inbounds — список inbound\n/user &lt;имя&gt; — найти пользователя + управление\n/adduser &lt;тариф&gt; — создать пользователя из тарифа\n/credit &lt;пользователь&gt; &lt;сумма&gt; — настроить баланс кошелька\n/backup_now — получить резервную копию\n/start — главное меню",
   stTitle: "🛰 <b>Sephiroth · Телеметрия системы</b>",
   stCore: "• Ядро: {core} ({status})",
   stInbounds: "• Активных inbound: {online}/{total}",
@@ -531,6 +668,28 @@ const RU: BotTexts = {
   nDigest: "📈 Сводка за 24 ч — {orders} завершённых заказов ({revenue} туманов), {users} новых пользователей",
   nUserActivated: "▶️ Отложенный пользователь <code>{user}</code> активирован при первом подключении — {days} дн.",
   nUserRenewed: "🔄 Подписка <code>{user}</code> автопродлена (всего {renewals})",
+  btnWallet: "💰 Кошелёк",
+  walletView: "💰 <b>Кошелёк</b>\nБаланс: <b>{balance} томанов</b>\n\nДля пополнения напишите в поддержку — после подтверждения администратор зачислит средства.",
+  btnWalletPay: "💰 Оплатить с кошелька",
+  walletInsufficient: "Баланса кошелька ({balance} томанов) недостаточно для этой покупки. Требуется: {price} томанов.",
+  walletPaid: "✅ С кошелька списано {price} томанов. Новый баланс: {balance} томанов.",
+  walletCredited: "💰 Баланс вашего кошелька изменён на {amount} томанов.\nНовый баланс: <b>{balance} томанов</b>",
+  creditHint: "Использование: <code>/credit &lt;пользователь&gt; &lt;сумма&gt;</code>\nПример: <code>/credit ali 500000</code> — отрицательная сумма списывает.",
+  creditDone: "✅ Баланс {user} изменён с {old} на <b>{new}</b> томанов.",
+  addUserHint: "Использование: <code>/adduser &lt;название тарифа&gt;</code>\nДоступные тарифы:\n{list}",
+  addUserNotFound: "Тариф с именем {name} не найден. Ближайшие:\n{suggestions}",
+  uapTitle: "📋 <b>Применить тариф к {user}</b>\nВыберите тариф:",
+  btnRenew: "🔄 Продлить",
+  renTitle: "🔄 <b>Продление подписки {user}</b>\nВыберите тариф для продления:",
+  renEmpty: "Сейчас нет тарифов для продления.",
+  renewed: "🔄 <b>Подписка продлена!</b>\n\n• Пользователь: <code>{user}</code>\n• Тариф: {tpl}\n• Добавлено трафика: {gb}\n• Добавлено дней: {days}\n\n🔗 Ссылка подписки (не изменилась):\n{sub}",
+  btnDelete: "🗑 Удалить пользователя",
+  deleteConfirm: "⚠️ Удалить пользователя <b>{user}</b> навсегда? Его конфиг будет убран из всех inbound.",
+  doneDelete: "🗑 Пользователь {user} удалён.",
+  btnApplyTpl: "📋 Применить тариф",
+  doneApplyTpl: "📋 Тариф {tpl} применён к {user} ({gb}, {days} дн., {ip} устройств).",
+  btnResetDevices: "📵 Сбросить устройства",
+  doneResetDevices: "📵 Устройства {user} сброшены — клиентам нужно зарегистрироваться заново.",
 };
 
 const TABLE: Record<BotLang, BotTexts> = { fa: FA, en: EN, ar: AR, zh: ZH, tr: TR, ru: RU };

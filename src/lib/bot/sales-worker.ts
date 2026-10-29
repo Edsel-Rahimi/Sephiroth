@@ -1,4 +1,4 @@
-import { db, type ClientUser, type TgOrder, type TgUser } from "@/lib/db";
+import { db, type ClientUser, type SaleTemplate, type TgOrder, type TgUser } from "@/lib/db";
 import {
   appVersion,
   getBotOffset,
@@ -10,7 +10,7 @@ import {
   saveBotOffset,
 } from "@/lib/settings";
 import { logActivity } from "@/lib/activity";
-import { syncUserProjection } from "@/lib/user-sync";
+import { stripUserEverywhere, syncUserProjection } from "@/lib/user-sync";
 import { buildBackupPayload } from "@/app/api/settings/backup/route";
 import { coreStatusPayload } from "@/lib/core/registry";
 import { ProxyAgent, fetch as undiciFetch } from "undici";
@@ -428,7 +428,17 @@ async function handleUpdate(update: TgUpdate): Promise<void> {
 
 /* ---------- admin command grammar (23-a) ---------- */
 
-const ADMIN_COMMANDS = new Set(["/admin", "/help", "/status", "/users", "/inbounds", "/user", "/backup_now"]);
+const ADMIN_COMMANDS = new Set([
+  "/admin",
+  "/help",
+  "/status",
+  "/users",
+  "/inbounds",
+  "/user",
+  "/backup_now",
+  "/adduser", // v2.8 — create a user from a template
+  "/credit", // v2.8 — wallet balance adjustment
+]);
 
 function daysLeftFor(u: ClientUser): string {
   if (u.expiryDays === null || u.expiryDays === undefined) return "∞";
@@ -505,6 +515,14 @@ async function handleMessage(
       await sendBackupNow(ctx, chatId);
       return;
     }
+    if (firstToken === "/adduser") {
+      await adminAddUser(ctx, chatId, fromId, lang, text.slice(firstToken.length).trim());
+      return;
+    }
+    if (firstToken === "/credit") {
+      await adminCredit(ctx, chatId, lang, text.slice(firstToken.length).trim());
+      return;
+    }
   }
 
   if (text.startsWith("/start")) {
@@ -537,6 +555,7 @@ async function sendMenu(ctx: WorkerCtx, chatId: string, lang: BotLang): Promise<
     inline_keyboard: [
       [{ text: t.btnShop, callback_data: "shop" }],
       [{ text: t.btnSubs, callback_data: "subs" }, { text: t.btnTrial, callback_data: "trial" }],
+      [{ text: t.btnWallet, callback_data: "wallet" }], // v2.8 — wallet view
       [{ text: t.btnSupport, callback_data: "support" }],
     ],
   }, { proxyUrl: ctx.proxyUrl });
@@ -573,8 +592,25 @@ async function handleCallback(
     await adminUserAction(ctx, cb, chatId, action, userId);
     return;
   }
+  // v2.8 — admin user-card tools: delete (2-step) / apply-template / reset-devices
+  if (
+    data.startsWith("udel:") ||
+    data.startsWith("udy:") ||
+    data.startsWith("uap:") ||
+    data.startsWith("uapt:") ||
+    data.startsWith("ures:")
+  ) {
+    if (!isAdmin) {
+      const tgRowA = await db.tgUser.findUnique({ where: { tgId: fromId } });
+      const ta = botTexts(((tgRowA?.lang as BotLang) ?? ctx.botLang) as BotLang);
+      await answerCallbackQuery(ctx.token, cb.id, ta.notAuthorized, { proxyUrl: ctx.proxyUrl }).catch(() => {});
+      return;
+    }
+    await handleAdminUserTools(ctx, cb, chatId, data);
+    return;
+  }
   if (data.startsWith("noop:")) {
-    return; // label rows carry no action
+    return; // label rows + cancel buttons carry no action
   }
 
   const tgRow = await db.tgUser.findUnique({ where: { tgId: fromId } });
@@ -597,7 +633,7 @@ async function handleCallback(
     return;
   }
   if (data.startsWith("tpl:")) {
-    await sendTemplateDetail(ctx, chatId, lang, data.slice(4));
+    await sendTemplateDetail(ctx, chatId, lang, fromId, data.slice(4));
     return;
   }
   if (data.startsWith("free:")) {
@@ -605,9 +641,32 @@ async function handleCallback(
     return;
   }
   if (data.startsWith("pay:")) {
-    // pay:<orderId>:z|c
+    // pay:<templateId>:z|c|w
     const [, orderId, method] = data.split(":");
-    await startPayment(ctx, chatId, fromId, lang, orderId, method === "z" ? "zarinpal" : "card");
+    const m = method === "z" ? "zarinpal" : method === "w" ? "wallet" : "card";
+    await startPayment(ctx, chatId, fromId, lang, orderId, m);
+    return;
+  }
+  if (data === "wallet") {
+    await sendWalletView(ctx, chatId, fromId, lang);
+    return;
+  }
+  if (data.startsWith("ren:")) {
+    // ren:<subId> — renew picker (owner-only, checked inside)
+    await sendRenewPicker(ctx, cb, chatId, fromId, lang, data.slice(4));
+    return;
+  }
+  if (data.startsWith("rt:")) {
+    // rt:<subId>:<index> — payment-method picker for a renewal
+    const [, subId, idxStr] = data.split(":");
+    await sendRenewPaymentPicker(ctx, cb, chatId, fromId, lang, subId, Number(idxStr));
+    return;
+  }
+  if (data.startsWith("rtp:")) {
+    // rtp:<subId>:<index>:z|c|w — launch the renewal payment
+    const [, subId, idxStr, m] = data.split(":");
+    const method = m === "z" ? "zarinpal" : m === "w" ? "wallet" : "card";
+    await startRenewPayment(ctx, chatId, fromId, lang, subId, Number(idxStr), method);
     return;
   }
   if (data === "trial") {
@@ -674,6 +733,7 @@ async function sendTemplateDetail(
   ctx: WorkerCtx,
   chatId: string,
   lang: BotLang,
+  fromId: string,
   templateId: string
 ): Promise<void> {
   const t = botTexts(lang);
@@ -716,6 +776,12 @@ async function sendTemplateDetail(
     } else {
       rows.push([{ text: t.payCard, callback_data: `pay:${tpl.id}:c` }]);
     }
+    // v2.8 — wallet payment appears when the balance covers the price
+    const tgRowW = await db.tgUser.findUnique({ where: { tgId: fromId } });
+    const balance = Math.max(0, Math.floor(Number(tgRowW?.balanceToman ?? 0)));
+    if (balance >= tpl.priceToman) {
+      rows.push([{ text: t.btnWalletPay, callback_data: `pay:${tpl.id}:w` }]);
+    }
     rows.push([{ text: t.backMenu, callback_data: "menu" }]);
     keyboard = { inline_keyboard: rows };
   }
@@ -730,7 +796,7 @@ async function startPayment(
   fromId: string,
   lang: BotLang,
   templateId: string,
-  method: "zarinpal" | "card"
+  method: "zarinpal" | "card" | "wallet"
 ): Promise<void> {
   const t = botTexts(lang);
   const tpl = await db.saleTemplate.findUnique({ where: { id: templateId } });
@@ -739,6 +805,12 @@ async function startPayment(
     return;
   }
   const tgRow = await db.tgUser.findUnique({ where: { tgId: fromId } });
+
+  // v2.8 — wallet: synchronous deduct (see payWithWallet) + instant delivery
+  if (method === "wallet") {
+    await payWithWallet(ctx, chatId, fromId, lang, tpl, null);
+    return;
+  }
 
   if (method === "zarinpal") {
     if (!ctx.zarinpalMerchant) {
@@ -870,6 +942,282 @@ async function handleReceiptPhoto(
   }
 }
 
+/* ---------- wallet (v2.8) ---------- */
+
+/** 💰 wallet view — current balance + honest MVP top-up hint. */
+async function sendWalletView(ctx: WorkerCtx, chatId: string, fromId: string, lang: BotLang): Promise<void> {
+  const t = botTexts(lang);
+  const tgRow = await db.tgUser.findUnique({ where: { tgId: fromId } });
+  // balanceToman is OPTIONAL on TgUser (pre-v2.8 rows lack it) — always ?? 0
+  const balance = Math.max(0, Math.floor(Number(tgRow?.balanceToman ?? 0)));
+  await sendMessage(
+    ctx.token,
+    chatId,
+    fmt(t.walletView, { balance: fmtToman(balance) }),
+    menuBackKeyboard(t.backMenu),
+    { proxyUrl: ctx.proxyUrl }
+  );
+}
+
+/**
+ * v2.8 — wallet payment for BOTH shop purchases (renewTargetSubId = null)
+ * and subscription renewals.
+ *
+ * CRITICAL SECTION: the balance read below is the LAST await before the
+ * balance write. The JSON-store delegates (db.ts) mutate their in-memory
+ * state SYNCHRONOUSLY inside the async wrapper — no internal await before
+ * the write — so read → check → deduct → order-create runs inside ONE
+ * event-loop task with zero yield points. A double-tap re-enters only
+ * AFTER the new balance has landed and sees the deducted value: exactly
+ * the same no-yield discipline transitionOrder uses for its provisioning
+ * claim in orders.ts. A crash between deduct and order-create loses the
+ * order row (MVP: balance wins) but can never double-spend.
+ */
+async function payWithWallet(
+  ctx: WorkerCtx,
+  chatId: string,
+  fromId: string,
+  lang: BotLang,
+  tpl: SaleTemplate,
+  renewTargetSubId: string | null
+): Promise<void> {
+  const t = botTexts(lang);
+  const tgRow = await db.tgUser.findUnique({ where: { tgId: fromId } }); // READ — last await before the write
+  const balance = Math.max(0, Math.floor(Number(tgRow?.balanceToman ?? 0)));
+  if (balance < tpl.priceToman) {
+    await sendMessage(
+      ctx.token,
+      chatId,
+      fmt(t.walletInsufficient, { balance: fmtToman(balance), price: fmtToman(tpl.priceToman) }),
+      menuBackKeyboard(t.backMenu),
+      { proxyUrl: ctx.proxyUrl }
+    );
+    return;
+  }
+  // ---- critical section: NO await between the read above and this write ----
+  await db.tgUser.update({ where: { tgId: fromId }, data: { balanceToman: balance - tpl.priceToman } });
+  const order = await db.tgOrder.create({
+    data: {
+      tgId: fromId,
+      tgUsername: tgRow?.tgUsername ?? "",
+      templateId: tpl.id,
+      templateName: tpl.name,
+      amountToman: tpl.priceToman,
+      method: "wallet",
+      status: "awaiting_payment",
+      ...(renewTargetSubId ? { renewTargetSubId } : {}),
+    },
+  });
+  await logOrderEvent(order, "created", "wallet debit ok");
+  await sendMessage(
+    ctx.token,
+    chatId,
+    fmt(t.walletPaid, { price: fmtToman(tpl.priceToman), balance: fmtToman(balance - tpl.priceToman) }),
+    undefined,
+    { proxyUrl: ctx.proxyUrl }
+  ).catch(() => {});
+  await completeAndDeliver(ctx, order.id, "wallet");
+}
+
+/* ---------- renew / top-up an existing subscription (v2.8) ---------- */
+
+/**
+ * The renewal catalog: paid + botVisible + enabled templates, in the SAME
+ * deterministic order for BOTH the picker render and the tap handler, so
+ * the array index embedded in callback_data stays meaningful.
+ */
+async function paidRenewTemplates(ctx: WorkerCtx): Promise<SaleTemplate[]> {
+  const all = await shopTemplates(ctx);
+  return all.filter((tpl) => tpl.priceToman > 0);
+}
+
+/** Shared guard for every renew tap: ownership re-check + index bounds. */
+async function resolveRenewTarget(
+  ctx: WorkerCtx,
+  fromId: string,
+  subId: string,
+  index: number
+): Promise<{ user: ClientUser; tpl: SaleTemplate } | null> {
+  if (!Number.isInteger(index) || index < 0 || index > 99) return null;
+  const user = await db.clientUser.findFirst({ where: { subId } });
+  // SECURITY: the subscription MUST belong to the tapper
+  if (!user || user.tgId !== fromId) return null;
+  const templates = await paidRenewTemplates(ctx);
+  const tpl = templates[index];
+  if (!tpl) return null;
+  return { user, tpl };
+}
+
+async function sendRenewPicker(
+  ctx: WorkerCtx,
+  cb: TgCallback,
+  chatId: string,
+  fromId: string,
+  lang: BotLang,
+  subId: string
+): Promise<void> {
+  const t = botTexts(lang);
+  const user = await db.clientUser.findFirst({ where: { subId } });
+  if (!user || user.tgId !== fromId) {
+    await answerCallbackQuery(ctx.token, cb.id, t.notAuthorized, { proxyUrl: ctx.proxyUrl }).catch(() => {});
+    return;
+  }
+  const templates = await paidRenewTemplates(ctx);
+  if (templates.length === 0) {
+    await sendMessage(ctx.token, chatId, t.renEmpty, menuBackKeyboard(t.backMenu), { proxyUrl: ctx.proxyUrl });
+    return;
+  }
+  // index = position in paidRenewTemplates() — ≤ 2 digits, callback ≤ 23 bytes
+  const rows = templates.slice(0, 12).map((tpl, i) => ({
+    text: `${tpl.name} · ${fmtToman(tpl.priceToman)} T`,
+    callback_data: `rt:${subId}:${i}`,
+  }));
+  await sendMessage(ctx.token, chatId, fmt(t.renTitle, { user: user.username }), {
+    inline_keyboard: [...chunk(rows, 2), [{ text: t.backMenu, callback_data: "menu" }]],
+  }, { proxyUrl: ctx.proxyUrl });
+}
+
+async function sendRenewPaymentPicker(
+  ctx: WorkerCtx,
+  cb: TgCallback,
+  chatId: string,
+  fromId: string,
+  lang: BotLang,
+  subId: string,
+  index: number
+): Promise<void> {
+  const t = botTexts(lang);
+  const resolved = await resolveRenewTarget(ctx, fromId, subId, index);
+  if (!resolved) {
+    await answerCallbackQuery(ctx.token, cb.id, t.notAuthorized, { proxyUrl: ctx.proxyUrl }).catch(() => {});
+    return;
+  }
+  const tpl = resolved.tpl;
+  const rows: { text: string; callback_data: string }[][] = [];
+  const zarinReady = ctx.salesPayMode === "zarinpal" && Boolean(ctx.zarinpalMerchant);
+  if (zarinReady && ctx.cardNumber && ctx.cardHolder) {
+    rows.push([
+      { text: t.payZarin, callback_data: `rtp:${subId}:${index}:z` },
+      { text: t.payCard, callback_data: `rtp:${subId}:${index}:c` },
+    ]);
+  } else if (zarinReady) {
+    rows.push([{ text: t.payZarin, callback_data: `rtp:${subId}:${index}:z` }]);
+  } else {
+    rows.push([{ text: t.payCard, callback_data: `rtp:${subId}:${index}:c` }]);
+  }
+  const tgRow = await db.tgUser.findUnique({ where: { tgId: fromId } });
+  const balance = Math.max(0, Math.floor(Number(tgRow?.balanceToman ?? 0)));
+  if (balance >= tpl.priceToman) {
+    rows.push([{ text: t.btnWalletPay, callback_data: `rtp:${subId}:${index}:w` }]);
+  }
+  rows.push([{ text: t.backMenu, callback_data: "menu" }]);
+  await sendMessage(
+    ctx.token,
+    chatId,
+    fmt(t.payPicker, { name: tpl.name, price: `${fmtToman(tpl.priceToman)} Toman` }),
+    { inline_keyboard: rows },
+    { proxyUrl: ctx.proxyUrl }
+  );
+}
+
+async function startRenewPayment(
+  ctx: WorkerCtx,
+  chatId: string,
+  fromId: string,
+  lang: BotLang,
+  subId: string,
+  index: number,
+  method: "zarinpal" | "card" | "wallet"
+): Promise<void> {
+  const t = botTexts(lang);
+  const resolved = await resolveRenewTarget(ctx, fromId, subId, index);
+  if (!resolved) {
+    await sendMessage(ctx.token, chatId, t.notAuthorized, menuBackKeyboard(t.backMenu), { proxyUrl: ctx.proxyUrl });
+    return;
+  }
+  const tpl = resolved.tpl;
+
+  if (method === "wallet") {
+    await payWithWallet(ctx, chatId, fromId, lang, tpl, subId);
+    return;
+  }
+
+  const tgRow = await db.tgUser.findUnique({ where: { tgId: fromId } });
+  const orderData = {
+    tgId: fromId,
+    tgUsername: tgRow?.tgUsername ?? "",
+    templateId: tpl.id,
+    templateName: tpl.name,
+    amountToman: tpl.priceToman,
+    renewTargetSubId: subId,
+  };
+
+  if (method === "zarinpal") {
+    if (!ctx.zarinpalMerchant) {
+      await sendMessage(ctx.token, chatId, t.payUnavailable, menuBackKeyboard(t.backMenu), { proxyUrl: ctx.proxyUrl });
+      return;
+    }
+    const req = await zarinpalRequest(
+      ctx.zarinpalMerchant,
+      tpl.priceToman,
+      `Sephiroth · ${tpl.name}`,
+      ctx.publicHost || "https://t.me"
+    );
+    if (!req.ok || !req.authority) {
+      const reason = req.ok ? `response missing authority (code ${req.code})` : req.reason;
+      await logActivity({
+        kind: "user.created",
+        level: "warn",
+        actor: "telegram-bot",
+        message: `ZarinPal renew request failed for ${fromId} (${tpl.name}): ${reason}`,
+        meta: { templateId: tpl.id, renewTargetSubId: subId, amountToman: tpl.priceToman },
+      });
+      await sendMessage(ctx.token, chatId, t.payUnavailable, menuBackKeyboard(t.backMenu), { proxyUrl: ctx.proxyUrl });
+      return;
+    }
+    const order = await db.tgOrder.create({
+      data: { ...orderData, method, status: "awaiting_payment", authority: req.authority },
+    });
+    await logOrderEvent(order, "created", "zarinpal request ok (renew)");
+    await notifyAdminsNewOrder(ctx, order);
+    await sendMessage(
+      ctx.token,
+      chatId,
+      fmt(t.payZarinSent, { price: fmtToman(tpl.priceToman) }),
+      {
+        inline_keyboard: [
+          [{ text: t.payZarin, url: zarinpalStartPayUrl(req.authority) }],
+          [{ text: "🔄", callback_data: "checkpay" }],
+          [{ text: t.backMenu, callback_data: "menu" }],
+        ],
+      },
+      { proxyUrl: ctx.proxyUrl }
+    );
+    return;
+  }
+
+  // card-to-card (renew) — receipt photo flows through handleReceiptPhoto,
+  // which matches ANY pending_manual card order of this tgId
+  if (!ctx.cardNumber || !ctx.cardHolder) {
+    await sendMessage(ctx.token, chatId, t.payUnavailable, menuBackKeyboard(t.backMenu), { proxyUrl: ctx.proxyUrl });
+    return;
+  }
+  const order = await db.tgOrder.create({ data: { ...orderData, method, status: "pending_manual" } });
+  await logOrderEvent(order, "created", "awaiting receipt photo (renew)");
+  await notifyAdminsNewOrder(ctx, order);
+  await sendMessage(
+    ctx.token,
+    chatId,
+    `${fmt(t.payCardInfo, {
+      card: ctx.cardNumber,
+      holder: ctx.cardHolder,
+      price: fmtToman(tpl.priceToman),
+    })}\n\n${t.payCardSendReceipt}`,
+    menuBackKeyboard(t.backMenu),
+    { proxyUrl: ctx.proxyUrl }
+  );
+}
+
 /* ---------- completion / provisioning / delivery ---------- */
 
 /**
@@ -892,6 +1240,12 @@ async function completeAndDeliver(ctx: WorkerCtx, orderId: string, via: string):
 
 async function provisionAndDeliverClaimed(ctx: WorkerCtx, order: TgOrder): Promise<void> {
   const template = await db.saleTemplate.findUnique({ where: { id: order.templateId } });
+  // v2.8 — a renewal order EXTENDS the existing subscription instead of
+  // provisioning a new ClientUser
+  if (order.renewTargetSubId) {
+    await renewAndDeliverClaimed(ctx, order, template);
+    return;
+  }
   const user = await provisionOrderUser(order, template);
   const langRow = await db.tgUser.findUnique({ where: { tgId: order.tgId } });
   const lang = ((langRow?.lang as BotLang) ?? ctx.botLang) as BotLang;
@@ -919,11 +1273,156 @@ async function provisionAndDeliverClaimed(ctx: WorkerCtx, order: TgOrder): Promi
     { proxyUrl: ctx.proxyUrl }
   );
 
+  // v2.8 — QR photo of the sub link (best-effort, AFTER the text delivery
+  // so a QR failure can never break the delivery)
+  await deliverQrCode(ctx, order.tgId, sub);
+
   for (const adminId of ctx.adminChatIds) {
     await sendMessage(
       ctx.token,
       adminId,
       `✅ Order <code>${order.id.slice(-6)}</code> completed → user <code>${user.username}</code> (${order.templateName}, ${fmtToman(order.amountToman)} Toman, via ${order.method})`,
+      undefined,
+      { proxyUrl: ctx.proxyUrl }
+    ).catch(() => {});
+  }
+}
+
+/**
+ * v2.8 — QR PNG of the sub link via the qrcode package. Only fires when a
+ * publicHost is configured (a relative link is useless inside a QR) and is
+ * strictly best-effort: any failure is swallowed because the text message
+ * with the raw links was already delivered.
+ */
+async function deliverQrCode(ctx: WorkerCtx, chatId: string, sub: string): Promise<void> {
+  if (!ctx.publicHost) return;
+  try {
+    const mod = await import("qrcode");
+    const QRCode = ((mod as { default?: unknown }).default ?? mod) as {
+      toBuffer: (text: string, options?: Record<string, unknown>) => Promise<Buffer>;
+    };
+    const png = await QRCode.toBuffer(sub, { type: "png", width: 512, margin: 1 });
+    await sendPhoto(ctx.token, chatId, { buffer: png, filename: "sub-qr.png" }, sub, undefined, {
+      proxyUrl: ctx.proxyUrl,
+    });
+  } catch {
+    /* QR is decoration — never break the delivery */
+  }
+}
+
+/**
+ * v2.8 — completion path for renewal orders (order.renewTargetSubId set).
+ * Instead of creating a new ClientUser, the TARGET subscription is
+ * extended in place and the SAME sub link is re-delivered (subId never
+ * changes, so every client keeps pulling the same URL).
+ */
+async function renewAndDeliverClaimed(ctx: WorkerCtx, order: TgOrder, template: SaleTemplate | null): Promise<void> {
+  const targetSubId = order.renewTargetSubId ?? "";
+  const langRow = await db.tgUser.findUnique({ where: { tgId: order.tgId } });
+  const lang = ((langRow?.lang as BotLang) ?? ctx.botLang) as BotLang;
+  const t = botTexts(lang);
+
+  // re-verify ownership at completion time (the buyer must STILL own the target)
+  const user = await db.clientUser.findFirst({ where: { subId: targetSubId } });
+  if (!user || user.tgId !== order.tgId) {
+    // target deleted (or ownership mismatch) mid-payment — park the claim
+    // off "provisioning" so the self-heal loop stops retrying forever
+    await db.tgOrder.update({ where: { id: order.id }, data: { provisionedUserId: "orphaned" } });
+    await logActivity({
+      kind: "user.updated",
+      level: "warn",
+      actor: "telegram-bot",
+      message: `Renew order ${order.id.slice(-6)} could not be applied — target sub ${targetSubId} missing or ownership mismatch`,
+      meta: { orderId: order.id, tgId: order.tgId, renewTargetSubId: targetSubId },
+    });
+    await notifyAdmins(ctx, `⚠️ Renew order <code>${order.id.slice(-6)}</code> could not be applied — the target subscription is gone.`);
+    return;
+  }
+
+  const DAY = 86_400_000;
+  const now = Date.now();
+  const createdMs = new Date(user.createdAt).getTime();
+
+  // traffic: a template WITHOUT a traffic cap keeps the existing limit; a
+  // capped template ADDS onto whatever the user has (null counts as 0)
+  let nextTrafficGb = user.trafficLimitGb;
+  if (template?.trafficLimitGb != null) {
+    nextTrafficGb = (user.trafficLimitGb ?? 0) + template.trafficLimitGb;
+  }
+
+  // Renew extension math — expiryDays is stored as DAYS-FROM-CREATEDAT:
+  //   absolute expiry = createdAt + expiryDays × DAY
+  //   days-left shown = ceil((createdAt + expiryDays×DAY − now) / DAY)
+  // To extend from `now` while KEEPING the days-from-createdAt convention:
+  //   elapsedDays   = ceil((now − createdAt) / DAY)                    consumed time
+  //   remainingDays = ceil(max(0, oldAbsExpiry − now) / DAY)           unexpired stock
+  //   newExpiryDays = elapsedDays + remainingDays + template.expiryDays
+  // because the new absolute expiry becomes
+  //   createdAt + newExpiryDays×DAY
+  //     = now + remainingDays×DAY + template.expiryDays×DAY
+  //       + (elapsedDays×DAY − (now − createdAt))     ← bracket ≥ 0
+  // i.e. the user keeps their FULL remaining window plus the template
+  // window, with ≤ 1 day of ceil-rounding slack (never negative). An
+  // already-expired sub (remaining = 0) gets a fresh full window from now.
+  // A sub with expiryDays = null is ALREADY unlimited-time — ∞ + N days is
+  // still ∞, so expiryDays stays null and only traffic is topped up.
+  let nextExpiryDays: number | null;
+  if (user.expiryDays === null || user.expiryDays === undefined) {
+    nextExpiryDays = null; // stays unlimited
+  } else {
+    const elapsedDays = Math.max(0, Math.ceil((now - createdMs) / DAY));
+    const remainingMs = Math.max(0, createdMs + user.expiryDays * DAY - now);
+    const remainingDays = Math.ceil(remainingMs / DAY);
+    nextExpiryDays = elapsedDays + remainingDays + (template?.expiryDays ?? 0);
+  }
+
+  await db.clientUser.update({
+    where: { id: user.id },
+    data: {
+      trafficLimitGb: nextTrafficGb,
+      expiryDays: nextExpiryDays,
+      enabled: true,
+      expiryWarnedAt: null, // re-arm the near-expiry warner
+    },
+  });
+  await syncUserProjection(user.id, {
+    ipLimit: user.ipLimit,
+    trafficLimitGb: nextTrafficGb,
+    expiryDays: nextExpiryDays,
+    enabled: true,
+  });
+  // the claim resolves to the EXTENDED user — keeps isProvisioned() honest
+  await db.tgOrder.update({ where: { id: order.id }, data: { provisionedUserId: user.id } });
+  await logActivity({
+    kind: "user.updated",
+    level: "success",
+    actor: "telegram-bot",
+    message: `Telegram bot renewed subscription "${user.username}" (${order.templateName}, ${order.amountToman} Toman, ${order.method})`,
+    meta: { orderId: order.id, tgId: order.tgId, userId: user.id },
+  });
+
+  const subPath = `/sub/${user.subId}`;
+  const sub = ctx.publicHost ? `${ctx.publicHost}${subPath}` : subPath;
+  await sendMessage(
+    ctx.token,
+    order.tgId,
+    fmt(t.renewed, {
+      user: user.username,
+      tpl: order.templateName,
+      gb: fmtGb(template?.trafficLimitGb ?? null),
+      days: fmtDays(template?.expiryDays ?? null),
+      sub,
+    }),
+    ctx.publicHost ? { inline_keyboard: [[{ text: t.btnSubLink, url: sub }]] } : undefined,
+    { proxyUrl: ctx.proxyUrl }
+  );
+  await deliverQrCode(ctx, order.tgId, sub);
+
+  for (const adminId of ctx.adminChatIds) {
+    await sendMessage(
+      ctx.token,
+      adminId,
+      `🔄 Order <code>${order.id.slice(-6)}</code> renewed → <code>${user.username}</code> (${order.templateName}, ${fmtToman(order.amountToman)} Toman, via ${order.method})`,
       undefined,
       { proxyUrl: ctx.proxyUrl }
     ).catch(() => {});
@@ -1219,6 +1718,11 @@ async function sendUserCard(ctx: WorkerCtx, chatId: string, lang: BotLang, query
           : { text: t.btnEnable, callback_data: `useen:${user.id}` },
         { text: t.btnReset, callback_data: `usreset:${user.id}` },
       ],
+      [
+        { text: t.btnApplyTpl, callback_data: `uap:${user.id}` }, // v2.8
+        { text: t.btnResetDevices, callback_data: `ures:${user.id}` }, // v2.8
+      ],
+      [{ text: t.btnDelete, callback_data: `udel:${user.id}` }], // v2.8 — 2-step confirm
     ],
   };
   await sendMessage(ctx.token, chatId, text, keyboard, { proxyUrl: ctx.proxyUrl });
@@ -1280,6 +1784,266 @@ async function adminUserAction(
     const toast = fmt(t.doneReset, { user: user.username });
     await answerCallbackQuery(ctx.token, cb.id, toast, { proxyUrl: ctx.proxyUrl }).catch(() => {});
     await sendMessage(ctx.token, chatId, `♻️ ${toast}`, undefined, { proxyUrl: ctx.proxyUrl }).catch(() => {});
+    return;
+  }
+}
+
+/* ---------- admin v2.8: /adduser + /credit + user-card tools ---------- */
+
+/**
+ * v2.8 — /adduser <templateName>: create a ClientUser straight from a
+ * template. An order with method "admin" is created and pushed through
+ * the normal transitionOrder → completed path as the audit trail, so the
+ * /admin revenue counters keep counting honestly (spec decision). The
+ * delivered card (sub link + clash + singbox) lands in the admin chat
+ * because order.tgId is the invoking admin.
+ */
+async function adminAddUser(ctx: WorkerCtx, chatId: string, fromId: string, lang: BotLang, arg: string): Promise<void> {
+  const t = botTexts(lang);
+  const templates = await db.saleTemplate.findMany({ orderBy: { createdAt: "asc" } });
+  if (!arg) {
+    const list = templates
+      .map((x) => `• ${x.name} · ${x.priceToman > 0 ? `${fmtToman(x.priceToman)} T` : t.tplFree}`)
+      .join("\n");
+    await sendMessage(ctx.token, chatId, fmt(t.addUserHint, { list }), undefined, { proxyUrl: ctx.proxyUrl });
+    return;
+  }
+  // case-insensitive EXACT name match
+  const tpl = templates.find((x) => x.name.toLowerCase() === arg.toLowerCase());
+  if (!tpl) {
+    const q = arg.toLowerCase();
+    const near = templates.filter(
+      (x) => x.name.toLowerCase().includes(q) || q.includes(x.name.toLowerCase())
+    ).slice(0, 3);
+    const suggestions = (near.length > 0 ? near : templates.slice(0, 3))
+      .map((x) => `• ${x.name}`)
+      .join("\n");
+    await sendMessage(ctx.token, chatId, fmt(t.addUserNotFound, { name: arg, suggestions }), undefined, {
+      proxyUrl: ctx.proxyUrl,
+    });
+    return;
+  }
+  const tgRow = await db.tgUser.findUnique({ where: { tgId: fromId } });
+  const order = await db.tgOrder.create({
+    data: {
+      tgId: fromId,
+      tgUsername: tgRow?.tgUsername ?? "",
+      templateId: tpl.id,
+      templateName: tpl.name,
+      amountToman: tpl.priceToman,
+      method: "admin",
+      status: "awaiting_payment",
+    },
+  });
+  await logOrderEvent(order, "created", "admin /adduser");
+  await completeAndDeliver(ctx, order.id, "admin");
+}
+
+/**
+ * v2.8 — /credit <query> <amountToman>: adjust a tgUser's wallet balance.
+ * query = tg username (without @) | ClientUser username | tgId. Negative
+ * amounts deduct; the resulting total is clamped at ≥ 0. The target user
+ * is notified in DM (best-effort).
+ */
+async function adminCredit(ctx: WorkerCtx, chatId: string, lang: BotLang, arg: string): Promise<void> {
+  const t = botTexts(lang);
+  const m = arg.match(/^(\S+)\s+(-?\d+)$/);
+  if (!m) {
+    await sendMessage(ctx.token, chatId, t.creditHint, undefined, { proxyUrl: ctx.proxyUrl });
+    return;
+  }
+  const query = m[1].replace(/^@/, "");
+  const amount = parseInt(m[2], 10);
+
+  let tgRow: TgUser | null = null;
+  if (/^\d+$/.test(query)) {
+    tgRow = await db.tgUser.findUnique({ where: { tgId: query } });
+  }
+  if (!tgRow) {
+    const all = await db.tgUser.findMany();
+    const ql = query.toLowerCase();
+    tgRow = all.find((u) => {
+      const un = (u.tgUsername || "").toLowerCase();
+      return un === ql || un === `@${ql}`;
+    }) ?? null;
+  }
+  if (!tgRow) {
+    const cu = await db.clientUser.findFirst({ where: { username: query } });
+    if (cu?.tgId) tgRow = await db.tgUser.findUnique({ where: { tgId: cu.tgId } });
+  }
+  if (!tgRow) {
+    await sendMessage(ctx.token, chatId, t.userNotFound, undefined, { proxyUrl: ctx.proxyUrl });
+    return;
+  }
+
+  const oldBal = Math.max(0, Math.floor(Number(tgRow.balanceToman ?? 0)));
+  const newBal = Math.max(0, oldBal + amount); // clamp ≥ 0
+  await db.tgUser.update({ where: { tgId: tgRow.tgId }, data: { balanceToman: newBal } });
+  await logActivity({
+    kind: "user.updated",
+    level: "info",
+    actor: "telegram-bot",
+    message: `Telegram bot wallet credit for ${tgRow.tgUsername || tgRow.tgId}: ${oldBal} → ${newBal} Toman (${amount >= 0 ? "+" : ""}${amount})`,
+    meta: { tgId: tgRow.tgId, amountToman: amount },
+  });
+  // notify the target user (best-effort DM)
+  await sendMessage(
+    ctx.token,
+    tgRow.tgId,
+    fmt(t.walletCredited, { amount: `${amount >= 0 ? "+" : ""}${fmtToman(amount)}`, balance: fmtToman(newBal) }),
+    undefined,
+    { proxyUrl: ctx.proxyUrl }
+  ).catch(() => {});
+  await sendMessage(
+    ctx.token,
+    chatId,
+    fmt(t.creditDone, { user: tgRow.tgUsername || tgRow.tgId, old: fmtToman(oldBal), new: fmtToman(newBal) }),
+    undefined,
+    { proxyUrl: ctx.proxyUrl }
+  );
+}
+
+/**
+ * v2.8 — admin user-card tools behind the udel:/udy:/uap:/uapt:/ures:
+ * callbacks. handleCallback has ALREADY gated this on isAdmin.
+ */
+async function handleAdminUserTools(ctx: WorkerCtx, cb: TgCallback, chatId: string, data: string): Promise<void> {
+  const tgRow = await db.tgUser.findUnique({ where: { tgId: String(cb.from.id) } });
+  const lang = ((tgRow?.lang as BotLang) ?? ctx.botLang) as BotLang;
+  const t = botTexts(lang);
+  const messageId = cb.message?.message_id ?? 0;
+  const [cmd, arg1, arg2] = data.split(":");
+
+  if (cmd === "udel") {
+    const user = await db.clientUser.findUnique({ where: { id: arg1 } });
+    if (!user) {
+      await answerCallbackQuery(ctx.token, cb.id, t.userNotFound, { proxyUrl: ctx.proxyUrl }).catch(() => {});
+      return;
+    }
+    // 2-step confirm — the destructive action lives behind udy:<id>
+    await sendMessage(
+      ctx.token,
+      chatId,
+      fmt(t.deleteConfirm, { user: user.username }),
+      {
+        inline_keyboard: [
+          [{ text: "✅", callback_data: `udy:${user.id}` }],
+          [{ text: "❌", callback_data: "noop:" }],
+        ],
+      },
+      { proxyUrl: ctx.proxyUrl }
+    );
+    return;
+  }
+
+  if (cmd === "udy") {
+    const user = await db.clientUser.findUnique({ where: { id: arg1 } });
+    if (!user) {
+      await answerCallbackQuery(ctx.token, cb.id, t.userNotFound, { proxyUrl: ctx.proxyUrl }).catch(() => {});
+      return;
+    }
+    // mirror DELETE /api/users/:id exactly: strip every clientsJson
+    // projection → delete the row (the facade cascades userInboundAccess
+    // + subGroupMember) → audit (kind user.deleted) → admin alert
+    await stripUserEverywhere(user.id);
+    await db.clientUser.delete({ where: { id: user.id } });
+    await logActivity({
+      kind: "user.deleted",
+      level: "warn",
+      actor: "telegram-bot",
+      message: `User deleted (id ${user.id})`,
+      meta: { userId: user.id, username: user.username },
+    });
+    await notifyAdmins(ctx, fmt(t.nUserDeleted, { user: user.username }));
+    if (messageId) {
+      await editMessageText(
+        ctx.token,
+        chatId,
+        messageId,
+        fmt(t.doneDelete, { user: user.username }),
+        undefined,
+        { proxyUrl: ctx.proxyUrl }
+      ).catch(() => {});
+    }
+    return;
+  }
+
+  if (cmd === "uap") {
+    const user = await db.clientUser.findUnique({ where: { id: arg1 } });
+    if (!user) {
+      await answerCallbackQuery(ctx.token, cb.id, t.userNotFound, { proxyUrl: ctx.proxyUrl }).catch(() => {});
+      return;
+    }
+    const templates = await db.saleTemplate.findMany({ orderBy: { createdAt: "asc" } });
+    // index = position in this same ordering — ≤ 2 digits for MVP catalogs
+    const rows = templates.slice(0, 20).map((tpl, i) => [
+      {
+        text: `${tpl.name} · ${tpl.priceToman > 0 ? `${fmtToman(tpl.priceToman)} T` : t.tplFree}`,
+        callback_data: `uapt:${user.id}:${i}`,
+      },
+    ]);
+    await sendMessage(ctx.token, chatId, fmt(t.uapTitle, { user: user.username }), {
+      inline_keyboard: [...rows, [{ text: t.backMenu, callback_data: "menu" }]],
+    }, { proxyUrl: ctx.proxyUrl });
+    return;
+  }
+
+  if (cmd === "uapt") {
+    const user = await db.clientUser.findUnique({ where: { id: arg1 } });
+    const templates = await db.saleTemplate.findMany({ orderBy: { createdAt: "asc" } });
+    const tpl = templates[Number(arg2)];
+    if (!user || !tpl || !Number.isInteger(Number(arg2))) {
+      await answerCallbackQuery(ctx.token, cb.id, t.userNotFound, { proxyUrl: ctx.proxyUrl }).catch(() => {});
+      return;
+    }
+    // apply-template: OVERWRITE traffic/expiry/ip from the chosen template
+    await db.clientUser.update({
+      where: { id: user.id },
+      data: { trafficLimitGb: tpl.trafficLimitGb, expiryDays: tpl.expiryDays, ipLimit: tpl.ipLimit },
+    });
+    await syncUserProjection(user.id, {
+      ipLimit: tpl.ipLimit,
+      trafficLimitGb: tpl.trafficLimitGb,
+      expiryDays: tpl.expiryDays,
+      enabled: user.enabled,
+    });
+    await logActivity({
+      kind: "user.updated",
+      level: "info",
+      actor: "telegram-bot",
+      message: `Telegram bot applied template "${tpl.name}" to "${user.username}"`,
+      meta: { userId: user.id, username: user.username, templateId: tpl.id },
+    });
+    const toast = fmt(t.doneApplyTpl, {
+      user: user.username,
+      tpl: tpl.name,
+      gb: fmtGb(tpl.trafficLimitGb),
+      days: fmtDays(tpl.expiryDays),
+      ip: tpl.ipLimit === 0 ? "∞" : String(tpl.ipLimit),
+    });
+    await answerCallbackQuery(ctx.token, cb.id, toast, { proxyUrl: ctx.proxyUrl }).catch(() => {});
+    await sendMessage(ctx.token, chatId, toast, undefined, { proxyUrl: ctx.proxyUrl }).catch(() => {});
+    return;
+  }
+
+  if (cmd === "ures") {
+    const user = await db.clientUser.findUnique({ where: { id: arg1 } });
+    if (!user) {
+      await answerCallbackQuery(ctx.token, cb.id, t.userNotFound, { proxyUrl: ctx.proxyUrl }).catch(() => {});
+      return;
+    }
+    // mirror POST /api/users/:id/reset-devices: devices="[]", hwidLimit kept
+    await db.clientUser.update({ where: { id: user.id }, data: { devices: "[]" } });
+    await logActivity({
+      kind: "user.updated",
+      level: "info",
+      actor: "telegram-bot",
+      message: `Device registrations reset for "${user.username}"`,
+      meta: { userId: user.id, username: user.username, reason: "devices_reset" },
+    });
+    const toast = fmt(t.doneResetDevices, { user: user.username });
+    await answerCallbackQuery(ctx.token, cb.id, toast, { proxyUrl: ctx.proxyUrl }).catch(() => {});
+    await sendMessage(ctx.token, chatId, toast, undefined, { proxyUrl: ctx.proxyUrl }).catch(() => {});
     return;
   }
 }
@@ -1347,11 +2111,12 @@ async function sendMySubscriptions(ctx: WorkerCtx, chatId: string, fromId: strin
   });
   const keyboard: InlineKeyboard = {
     inline_keyboard: [
-      ...users.slice(0, 6).map((u) =>
+      ...users.slice(0, 6).map((u) => [
         ctx.publicHost
-          ? [{ text: `${t.btnSubLink} · ${u.username}`, url: `${ctx.publicHost}/sub/${u.subId}` }]
-          : [{ text: `${t.btnSubLink} · ${u.username}`, callback_data: `menu` }]
-      ),
+          ? { text: `${t.btnSubLink} · ${u.username}`, url: `${ctx.publicHost}/sub/${u.subId}` }
+          : { text: `${t.btnSubLink} · ${u.username}`, callback_data: `menu` },
+        { text: t.btnRenew, callback_data: `ren:${u.subId}` }, // v2.8 — renew / top-up
+      ]),
       [{ text: t.backMenu, callback_data: "menu" }],
     ],
   };

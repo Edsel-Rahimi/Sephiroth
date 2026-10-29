@@ -33,7 +33,8 @@ Legend: ✔ shipped · ◐ shipped with known limits · ☐ planned
 - ✔ CRUD with per-protocol dialogs, REALITY section (dest/SNI/flow xtls-rprx-vision/x25519)
 - ✔ Sniffing + stream settings (ws/grpc/tcp headers, xhttp)
 - ✔ Quick create (simple-panel mode)
-- ◐ Autopilot wizard — one-port auto-provisioning (Task 25-b)
+- ✔ Autopilot wizard — clone + multi fleet provisioning (Task 25-b)
+- ✔ **Autopilot Single-Port mode (v2.8)** — adds the complementary VLESS↔Trojan protocol to an existing TCP+TLS inbound on the SAME public port via Xray `fallbacks` (internal 127.0.0.1:44301+ loopback row, Host-override public link, idempotent replay → 200+warning, honest link:null when no public address resolves)
 - ✔ **REALITY Target Scanner (v2.7)** — TLS 1.3 / ALPN h2 / cert / RTT grading, preset + custom targets, ≤30 hosts, copy target
 - ✔ Doctor (health scan incl. realityIncomplete audit)
 - ✔ Traffic reset per inbound; clientsJson projection sync
@@ -85,7 +86,7 @@ Legend: ✔ shipped · ◐ shipped with known limits · ☐ planned
 ## 10. Resellers (`resellers`)
 - ✔ Reseller accounts (username, password, enabled, maxUsers, trafficQuotaGb)
 - ✔ White-label branding (brandName/brandLogo/brandAccent) on subs + panel headers
-- ✔ Payment panel (card-to-card / Zarinpal / USDT info cards)
+- ✔ Payment panel (card-to-card / Zarinpal / USDT info cards) — **v2.8: persisted via the settings API with masked secrets** (honest-secret PUT: a masked round-trip keeps the stored value; GET no longer leaks the raw card number)
 - ✔ Quota enforcement on user create/bulk-create
 
 ## 11. Activity (`activity`)
@@ -134,6 +135,11 @@ Legend: ✔ shipped · ◐ shipped with known limits · ☐ planned
 - ✔ Notifications ×15 kinds with per-kind dedupe + toggles
 - ✔ Daily sales digest (24h orders/revenue/new users)
 - ✔ Free-fulfillment rate-limit (one free order per user)
+- ✔ **v2.8 wallet** — per-user balance (`TgUser.balanceToman`), wallet as a shop payment method (synchronous critical-section deduct, no double-spend), admin `/credit <query> <amount>` (± , clamped ≥0) with DM notice
+- ✔ **v2.8 renew / top-up** — 🔄 on "my subscriptions": pick a paid template → on payment completion the SAME ClientUser is extended (expiry += remaining + template window, traffic += template cap; ownership re-verified; orphan guard)
+- ✔ **v2.8 admin ops** — `/adduser <template>` (audited as a completed order, method "admin"), 🗑 delete user (two-step confirm, mirrors panel DELETE data rules), 📋 apply-template quota edit, 📵 reset HWID devices
+- ✔ **v2.8 QR delivery** — qrcode PNG of the sub link after provisioning/renewal (best-effort, publicHost-gated; `sendPhoto` now accepts buffer input)
+- ✔ help ×6 updated (/adduser, /credit)
 - ◐ Known limit: bot must be configured with a real token to leave console mode
 ### Discord bot (**NEW v2.7**, gateway worker)
 - ✔ Gateway v10 on the runtime WebSocket (zero new deps): HELLO/IDENTIFY/RESUME, heartbeat, invalid-session recovery, 5s reconnect backoff
@@ -141,6 +147,9 @@ Legend: ✔ shipped · ◐ shipped with known limits · ☐ planned
 - ✔ Commands (prefix-configurable, default `!`): status, users, user <query>, inbounds, help — admin allow-list enforced
 - ✔ Event relay: every notify event (same dedupe windows as Telegram) → announce channel or admin DMs
 - ✔ Status API + test-send route + live settings card
+- ✔ **v2.8 slash commands** — global registration on every READY (appId derived from the token, idempotent PUT), INTERACTION_CREATE handling with embeds + `/user` query option
+- ✔ **v2.8 component buttons** — enable/disable/reset/delete (+ confirm flow) on user cards, admin-gated per interaction, ephemeral toasts + @original card refresh; status carries commandsRegistered / interactions / lastInteractionAt
+- ◐ Known limit: global slash commands may take up to ~1h to propagate after first registration
 - ◐ Known limit: needs a bot token + MESSAGE_CONTENT intent enabled in the Developer Portal
 ### Webhooks (**NEW v2.7**)
 - ✔ Outbound dispatcher: 11 event families, HTTPS-only, 3 attempts / 1.5s backoff / 6s timeout
@@ -168,6 +177,8 @@ Legend: ✔ shipped · ◐ shipped with known limits · ☐ planned
 - ✔ This checklist + worklog + release notes v2.5.0
 
 ## 20. Roadmap (planned — not started)
+
+> v2.8 note: wallet/renew/adduser/delete/QR (Telegram), single-port autopilot and Discord slash/buttons shipped from `docs/ROADMAP.md` phases 0–1 — see RELEASE-NOTES-v2.8.0.md. Items below remain planned.
 - ☐ Telegram sales: discount codes + multi-item carts
 - ☐ Discord slash-commands (interaction endpoints) + button components
 - ☐ Webhooks: per-event URL overrides + retry dead-letter queue viewer

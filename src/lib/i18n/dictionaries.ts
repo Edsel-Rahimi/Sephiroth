@@ -491,6 +491,18 @@ export interface Dict {
     autopilotErrPorts: string;
     autopilotErrValidation: string;
     autopilotErrGeneric: string;
+    /* Task 4-b — single-port (fallback) mode */
+    autopilotSingleMode: string;
+    autopilotSingleDesc: string;
+    autopilotSinglePickMain: string;
+    autopilotSingleNoMain: string;
+    autopilotSingleComplement: string;
+    autopilotSingleHint: string;
+    autopilotSingleBadge: string;
+    autopilotSinglePlanNote: string;
+    autopilotUsersSingle: string;
+    autopilotSingleMainUpdated: string;
+    autopilotErrMainInvalid: string;
   };
   panelLab: {
     all: string;
@@ -2366,6 +2378,17 @@ export const dictionaries: Record<Lang, Dict> = {
       autopilotErrPorts: "No free ports left for this plan",
       autopilotErrValidation: "Plan rejected — adjust the ports and retry",
       autopilotErrGeneric: "Autopilot failed — try again",
+      autopilotSingleMode: "Single port (fallback)",
+      autopilotSingleDesc: "Add the one complementary protocol next to an existing VLESS/Trojan on the SAME public port — via Xray fallbacks, no extra port",
+      autopilotSinglePickMain: "Choose the main TCP + TLS inbound",
+      autopilotSingleNoMain: "No eligible inbound yet — first create a VLESS or Trojan inbound on TCP + TLS, then come back.",
+      autopilotSingleComplement: "{proto} will be added behind it",
+      autopilotSingleHint: "One listener on a free internal port; the main inbound falls non-native traffic through to it — no extra public port needed.",
+      autopilotSingleBadge: "same port",
+      autopilotSinglePlanNote: "The public port of {tag} stays as-is; the fallback listener is auto-placed on the first free internal port (44301+) and activated through a fallback entry on the main inbound.",
+      autopilotUsersSingle: "Main inbound users are reused",
+      autopilotSingleMainUpdated: "now falls back to {proto}",
+      autopilotErrMainInvalid: "The main inbound must be VLESS or Trojan on TCP + TLS",
     },
     panelLab: {
       all: "All",
@@ -4247,6 +4270,17 @@ export const dictionaries: Record<Lang, Dict> = {
       autopilotErrPorts: "پورت آزادی برای این برنامه باقی نمانده",
       autopilotErrValidation: "برنامه رد شد — پورت‌ها را اصلاح و دوباره تلاش کنید",
       autopilotErrGeneric: "اتوپایلوت ناموفق بود — دوباره تلاش کنید",
+      autopilotSingleMode: "تک‌پورت (فال‌بک)",
+      autopilotSingleDesc: "پروتکل مکمل را کنار VLESS یا Trojan موجود روی همان پورت عمومی اضافه کنید — با فال‌بک Xray، بدون پورت اضافه",
+      autopilotSinglePickMain: "اینباند اصلی TCP + TLS را انتخاب کنید",
+      autopilotSingleNoMain: "هنوز اینباندي واجد شرط نیست — اول یک اینباند VLESS یا Trojan روی TCP + TLS بسازید، بعد برگردید.",
+      autopilotSingleComplement: "{proto} پشت آن اضافه می‌شود",
+      autopilotSingleHint: "یک شنونده روی یک پورت داخلی آزاد ساخته می‌شود و اینباند اصلی بقیه ترافیک را به آن می‌فرستد — بدون پورت عمومی اضافه.",
+      autopilotSingleBadge: "همان پورت",
+      autopilotSinglePlanNote: "پورت عمومی {tag} دست‌نخورده می‌ماند؛ شنونده فال‌بک خودکار روی اولین پورت داخلی آزاد (از ۴۴۳۰۱) قرار می‌گیرد و با یک فال‌بک روی اینباند اصلی فعال می‌شود.",
+      autopilotUsersSingle: "کاربران اینباند اصلی کپی می‌شوند",
+      autopilotSingleMainUpdated: "حالا به {proto} فال‌بک می‌شود",
+      autopilotErrMainInvalid: "اینباند اصلی باید VLESS یا Trojan روی TCP + TLS باشد",
     },
     panelLab: {
       all: "همه",
@@ -6124,6 +6158,17 @@ export const dictionaries: Record<Lang, Dict> = {
       autopilotErrPorts: "لا توجد منافذ حرة لهذه الخطة",
       autopilotErrValidation: "رُفضت الخطة — عدّل المنافذ وأعد المحاولة",
       autopilotErrGeneric: "فشل أوتوبايلوت — حاول مجدداً",
+      autopilotSingleMode: "منفذ واحد (فول باك)",
+      autopilotSingleDesc: "أضف البروتوكول المكمّل بجانب VLESS أو Trojan الموجود على نفس المنفذ العام — عبر فول باك Xray، بدون منفذ إضافي",
+      autopilotSinglePickMain: "اختر نقطة الدخول الرئيسية بـ TCP + TLS",
+      autopilotSingleNoMain: "لا توجد نقطة دخول مؤهلة بعد — أنشئ أولاً نقطة دخول VLESS أو Trojan على TCP + TLS ثم عد.",
+      autopilotSingleComplement: "سيُضاف {proto} خلفها",
+      autopilotSingleHint: "مستمع واحد على منفذ داخلي حر؛ تقوم نقطة الدخول الرئيسية بتمرير بقية الترافيك إليه — بدون منفذ عام إضافي.",
+      autopilotSingleBadge: "نفس المنفذ",
+      autopilotSinglePlanNote: "المنفذ العام لـ {tag} يبقى كما هو؛ يوضع مستمع الفول باك تلقائياً على أول منفذ داخلي حر (من 44301) ويفعَّل عبر إدخال فول باك على نقطة الدخول الرئيسية.",
+      autopilotUsersSingle: "يُعاد استخدام مستخدمي نقطة الدخول الرئيسية",
+      autopilotSingleMainUpdated: "يعمل الآن كفول باك إلى {proto}",
+      autopilotErrMainInvalid: "يجب أن تكون نقطة الدخول الرئيسية VLESS أو Trojan على TCP + TLS",
     },
     panelLab: {
       all: "الكل",
@@ -7999,6 +8044,17 @@ export const dictionaries: Record<Lang, Dict> = {
       autopilotErrPorts: "没有足够的空闲端口",
       autopilotErrValidation: "计划被拒绝 — 请调整端口后重试",
       autopilotErrGeneric: "自动驾驶失败 — 请重试",
+      autopilotSingleMode: "单端口（回落）",
+      autopilotSingleDesc: "在现有 VLESS/Trojan 旁边的同一公网端口上加入互补协议 — 通过 Xray 回落，无需额外端口",
+      autopilotSinglePickMain: "选择主 TCP + TLS 入站",
+      autopilotSingleNoMain: "还没有符合条件的入站 — 请先创建一个运行在 TCP + TLS 上的 VLESS 或 Trojan 入站，再回来。",
+      autopilotSingleComplement: "将在其后加入 {proto}",
+      autopilotSingleHint: "在空闲的内部端口上创建一个监听，主入站把其余流量回落到它 — 不需要额外的公网端口。",
+      autopilotSingleBadge: "同端口",
+      autopilotSinglePlanNote: "{tag} 的公网端口保持不变；回落监听自动落在第一个空闲的内部端口（44301 起），并通过主入站上的一条回落规则激活。",
+      autopilotUsersSingle: "复用主入站的用户",
+      autopilotSingleMainUpdated: "现在回落到 {proto}",
+      autopilotErrMainInvalid: "主入站必须是运行在 TCP + TLS 上的 VLESS 或 Trojan",
     },
     panelLab: {
       all: "全部",
@@ -9874,6 +9930,17 @@ export const dictionaries: Record<Lang, Dict> = {
       autopilotErrPorts: "Bu plan için boş port kalmadı",
       autopilotErrValidation: "Plan reddedildi — portları düzeltip yeniden deneyin",
       autopilotErrGeneric: "Otopilot başarısız — tekrar deneyin",
+      autopilotSingleMode: "Tek port (fallback)",
+      autopilotSingleDesc: "Mevcut VLESS/Trojan'ın YANINDA, aynı genel port üzerine tamamlayıcı protokolü ekler — Xray fallbacks ile, ek port gerekmez",
+      autopilotSinglePickMain: "Ana TCP + TLS girişini seçin",
+      autopilotSingleNoMain: "Henüz uygun bir giriş yok — önce TCP + TLS üzerinde bir VLESS veya Trojan girişi oluşturun, sonra geri gelin.",
+      autopilotSingleComplement: "{proto} arkasına eklenecek",
+      autopilotSingleHint: "Boş bir iç portta tek dinleyici oluşturulur; ana giriş kalan trafiği ona devreder — ek genel port gerekmez.",
+      autopilotSingleBadge: "aynı port",
+      autopilotSinglePlanNote: "{tag} genel portu değişmez; fallback dinleyicisi boş ilk iç porta (44301+) otomatik yerleşir ve ana girişteki bir fallback kaydıyla etkinleşir.",
+      autopilotUsersSingle: "Ana giriş kullanıcıları aynen kullanılır",
+      autopilotSingleMainUpdated: "artık {proto} ögesine fallback yapıyor",
+      autopilotErrMainInvalid: "Ana giriş; TCP + TLS üzerinde bir VLESS veya Trojan olmalı",
     },
     panelLab: {
       all: "Tümü",
@@ -11752,6 +11819,17 @@ export const dictionaries: Record<Lang, Dict> = {
       autopilotErrPorts: "Для плана не осталось свободных портов",
       autopilotErrValidation: "План отклонён — поправьте порты и повторите",
       autopilotErrGeneric: "Автопилот не сработал — попробуйте снова",
+      autopilotSingleMode: "Один порт (фолбэк)",
+      autopilotSingleDesc: "Добавьте единственный дополнительный протокол РЯДОМ с существующим VLESS/Trojan на ТОМ ЖЕ публичном порту — через фолбэки Xray, без лишнего порта",
+      autopilotSinglePickMain: "Выберите главный инбаунд TCP + TLS",
+      autopilotSingleNoMain: "Подходящего инбаунда пока нет — сначала создайте инбаунд VLESS или Trojan на TCP + TLS, затем вернитесь.",
+      autopilotSingleComplement: "{proto} будет добавлен следом",
+      autopilotSingleHint: "Один слушатель на свободном внутреннем порту; главный инбаунд отправляет остальной трафик на него — без лишнего публичного порта.",
+      autopilotSingleBadge: "тот же порт",
+      autopilotSinglePlanNote: "Публичный порт {tag} не меняется; фолбэк-слушатель автоматически занимает первый свободный внутренний порт (от 44301) и активируется записью фолбэка на главном инбаунде.",
+      autopilotUsersSingle: "Пользователи главного инбаунда переиспользуются",
+      autopilotSingleMainUpdated: "теперь уходит фолбэком в {proto}",
+      autopilotErrMainInvalid: "Главный инбаунд должен быть VLESS или Trojan на TCP + TLS",
     },
     panelLab: {
       all: "Все",

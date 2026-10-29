@@ -82,6 +82,8 @@ interface AutopilotLink {
 
 interface AutopilotResult {
   created: InboundDTO[];
+  /** Task 4-b — single-port mode also returns the mutated MAIN inbound */
+  main?: InboundDTO;
   links: AutopilotLink[];
   warnings: string[];
 }
@@ -307,10 +309,11 @@ export function InboundsAutopilot({
 
   /* wizard state */
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [mode, setMode] = useState<"clone" | "multi">("multi");
+  const [mode, setMode] = useState<"clone" | "multi" | "single">("multi");
   const [templateId, setTemplateId] = useState<string | null>(null);
   const [cloneProtos, setCloneProtos] = useState<string[]>([]);
   const [multiProtos, setMultiProtos] = useState<string[]>([...DEFAULT_PROTOS]);
+  const [singleMainId, setSingleMainId] = useState<string | null>(null);
   const [portStartRaw, setPortStartRaw] = useState("");
   const [tls, setTls] = useState(false);
   const [shareUsers, setShareUsers] = useState(false);
@@ -329,6 +332,7 @@ export function InboundsAutopilot({
     setTemplateId(null);
     setCloneProtos([]);
     setMultiProtos([...DEFAULT_PROTOS]);
+    setSingleMainId(null);
     setPortStartRaw("");
     setTls(false);
     setShareUsers(false);
@@ -369,11 +373,31 @@ export function InboundsAutopilot({
     [rows, templateId]
   );
 
-  /* canonical protocol order (drives plan rows + the request payload) */
-  const canonical = useMemo(
-    () => PROTOCOLS.filter((p) => (mode === "clone" ? cloneProtos : multiProtos).includes(p)),
-    [mode, cloneProtos, multiProtos]
+  /* Task 4-b — single-port mode: only inbounds that can HOST a fallback
+     (vless|trojan + tls + tcp — the server 400s on anything else, so the
+     picker stays honest) */
+  const singleCandidates = useMemo(
+    () =>
+      (rows ?? []).filter(
+        (r) =>
+          (r.protocol === "vless" || r.protocol === "trojan") &&
+          r.security === "tls" &&
+          r.transport === "tcp"
+      ),
+    [rows]
   );
+  const singleMain = useMemo(
+    () => singleCandidates.find((r) => r.id === singleMainId) ?? null,
+    [singleCandidates, singleMainId]
+  );
+  /* the complementary protocol is NOT a free choice — shown, never picked */
+  const complementProto = singleMain ? (singleMain.protocol === "vless" ? "trojan" : "vless") : null;
+
+  /* canonical protocol order (drives plan rows + the request payload) */
+  const canonical = useMemo(() => {
+    if (mode === "single") return complementProto ? [complementProto] : [];
+    return PROTOCOLS.filter((p) => (mode === "clone" ? cloneProtos : multiProtos).includes(p));
+  }, [mode, cloneProtos, multiProtos, complementProto]);
 
   const portStartNum = useMemo(() => {
     const n = Number(portStartRaw.trim());
@@ -394,6 +418,14 @@ export function InboundsAutopilot({
   /* live plan + validation — an emptied port field is an error, never a
      silent fallback (honest plan before one atomic POST) */
   const plan = useMemo(() => {
+    // single-port mode: the fallback rides the MAIN's public port — the
+    // internal listener port is allocated server-side (44301+) and is
+    // intentionally NOT an editable field
+    if (mode === "single") {
+      return singleMain && complementProto
+        ? [{ proto: complementProto, port: singleMain.port, err: null as "range" | "dup" | null }]
+        : [];
+    }
     const seen = new Set<number>();
     return canonical.map((proto) => {
       const raw = portOverrides[proto];
@@ -406,11 +438,16 @@ export function InboundsAutopilot({
       }
       return { proto, port: valid ? (v as number) : null, err };
     });
-  }, [canonical, portOverrides, defPorts]);
+  }, [mode, singleMain, complementProto, canonical, portOverrides, defPorts]);
 
   const planValid = plan.length > 0 && plan.every((r) => r.err === null);
   const plannedPorts = plan.filter((r) => r.port !== null).map((r) => r.port as number);
-  const canContinue = mode === "clone" ? !!templateId && cloneProtos.length > 0 : multiProtos.length > 0;
+  const canContinue =
+    mode === "clone"
+      ? !!templateId && cloneProtos.length > 0
+      : mode === "single"
+        ? !!singleMainId
+        : multiProtos.length > 0;
   const existingProtos = useMemo(() => new Set((rows ?? []).map((r) => r.protocol)), [rows]);
   const busy = phase === "launching";
 
@@ -434,6 +471,12 @@ export function InboundsAutopilot({
     if (code === "duplicate_port" || code === "no_free_ports") return s.autopilotErrPorts;
     if (code === "validation") return s.autopilotErrValidation;
     if (code === "no_protocols") return s.autopilotErrNoProto;
+    if (
+      code === "single_mode_main_invalid" ||
+      code === "main_not_found" ||
+      code === "main_stream_unparseable"
+    )
+      return s.autopilotErrMainInvalid;
     return s.autopilotErrGeneric;
   };
 
@@ -450,15 +493,21 @@ export function InboundsAutopilot({
     if (!planValid || busy || step !== 2) return;
     const protocols = canonical;
     const body =
-      mode === "clone"
-        ? { mode: "clone", templateId: templateId ?? undefined, protocols, portStart: portStartNum ?? undefined }
-        : {
-            mode: "multi",
-            protocols,
-            portStart: portStartNum ?? undefined,
-            shareUsers,
-            tls,
-          };
+      mode === "single"
+        ? {
+            mode: "single",
+            mainInboundId: singleMainId ?? undefined,
+            protocol: complementProto ?? undefined,
+          }
+        : mode === "clone"
+          ? { mode: "clone", templateId: templateId ?? undefined, protocols, portStart: portStartNum ?? undefined }
+          : {
+              mode: "multi",
+              protocols,
+              portStart: portStartNum ?? undefined,
+              shareUsers,
+              tls,
+            };
     setPhase("launching");
     setStep(3);
     setRowStates(Object.fromEntries(protocols.map((p) => [p, "spin" as RowState])));
@@ -471,17 +520,20 @@ export function InboundsAutopilot({
       });
       const data = (await res.json().catch(() => ({}))) as {
         created?: InboundDTO[];
+        main?: InboundDTO;
         links?: AutopilotLink[];
         warnings?: string[];
         error?: string;
       };
-      if (res.status === 201 && Array.isArray(data.created)) {
+      // 201 = built · 200 = idempotent replay (already_fallbacked) — both render
+      if ((res.status === 201 || res.status === 200) && Array.isArray(data.created)) {
         const created = data.created;
         const states: Record<string, RowState> = {};
         for (const p of protocols) states[p] = created.some((c) => c.protocol === p) ? "ok" : "fail";
         setRowStates(states);
         setResult({
           created,
+          main: data.main,
           links: Array.isArray(data.links) ? data.links : [],
           warnings: Array.isArray(data.warnings) ? data.warnings : [],
         });
@@ -546,11 +598,13 @@ export function InboundsAutopilot({
     icon: Icon,
     title,
     desc,
+    className,
   }: {
-    id: "clone" | "multi";
+    id: "clone" | "multi" | "single";
     icon: LucideIcon;
     title: string;
     desc: string;
+    className?: string;
   }) => {
     const on = mode === id;
     return (
@@ -563,7 +617,8 @@ export function InboundsAutopilot({
           "flex min-h-11 flex-col items-start gap-1.5 rounded-2xl border p-4 text-start transition-all outline-none focus-visible:ring-2 focus-visible:ring-ring",
           on
             ? "border-primary/40 bg-primary/[0.06] shadow-[0_0_26px_-10px_var(--primary)]"
-            : "border-white/10 bg-white/[0.03] hover:border-white/20"
+            : "border-white/10 bg-white/[0.03] hover:border-white/20",
+          className
         )}
       >
         <span className="flex w-full items-center gap-2.5">
@@ -595,7 +650,13 @@ export function InboundsAutopilot({
 
   const summaryText = lfmt(s.autopilotSummary, { n: plan.length });
   const usersText =
-    mode === "clone" ? s.autopilotUsersClone : shareUsers ? s.autopilotUsersShared : s.autopilotUsersFresh;
+    mode === "clone"
+      ? s.autopilotUsersClone
+      : mode === "single"
+        ? s.autopilotUsersSingle
+        : shareUsers
+          ? s.autopilotUsersShared
+          : s.autopilotUsersFresh;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -635,6 +696,13 @@ export function InboundsAutopilot({
                   icon={Rocket}
                   title={s.autopilotMultiMode}
                   desc={s.autopilotMultiDesc}
+                />
+                <ModeCard
+                  id="single"
+                  icon={RadioTower}
+                  title={s.autopilotSingleMode}
+                  desc={s.autopilotSingleDesc}
+                  className="sm:col-span-2"
                 />
               </div>
 
@@ -756,6 +824,84 @@ export function InboundsAutopilot({
                   </div>
                 </div>
               )}
+
+              {/* Task 4-b — single-port: main picker (only valid hosts) */}
+              {mode === "single" && (
+                <div className="space-y-2 rounded-2xl border border-white/10 bg-white/[0.02] p-3">
+                  <p className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground">
+                    <RadioTower className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+                    {s.autopilotSinglePickMain}
+                  </p>
+                  {rowsLoading ? (
+                    <p className="flex min-h-11 items-center gap-2 rounded-xl bg-black/20 px-3 text-[11px] text-muted-foreground" role="status">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                      {s.autopilotRowsLoading}
+                    </p>
+                  ) : singleCandidates.length === 0 ? (
+                    <p className="rounded-xl border border-dashed border-white/15 bg-black/20 px-3 py-3 text-[11px] leading-relaxed text-muted-foreground">
+                      {s.autopilotSingleNoMain}
+                    </p>
+                  ) : (
+                    <div
+                      role="radiogroup"
+                      aria-label={s.autopilotSinglePickMain}
+                      className="max-h-64 space-y-1.5 overflow-y-auto pe-1"
+                    >
+                      {singleCandidates.map((row) => {
+                        const on = row.id === singleMainId;
+                        return (
+                          <button
+                            key={row.id}
+                            type="button"
+                            role="radio"
+                            aria-checked={on}
+                            onClick={() => setSingleMainId(row.id)}
+                            className={cn(
+                              "flex min-h-11 w-full items-center gap-2.5 rounded-xl border px-3 py-2 text-start transition-all outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                              on
+                                ? "border-primary/40 bg-primary/[0.07] shadow-[0_0_20px_-8px_var(--primary)]"
+                                : "border-white/10 bg-white/[0.02] hover:border-white/20"
+                            )}
+                          >
+                            <span
+                              aria-hidden="true"
+                              className={cn(
+                                "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border",
+                                on ? "border-primary bg-primary/25" : "border-white/25"
+                              )}
+                            >
+                              {on && <span className="h-2 w-2 rounded-full bg-primary" />}
+                            </span>
+                            <ProtoChip proto={row.protocol} />
+                            <span
+                              dir="ltr"
+                              className="min-w-0 flex-1 truncate font-mono text-xs text-silver"
+                              title={row.tag}
+                            >
+                              {row.tag}
+                            </span>
+                            <span dir="ltr" className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground">
+                              :{row.port}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* the complementary protocol is shown, never chosen */}
+                  {singleMain && complementProto && (
+                    <div className="space-y-1.5 pt-1">
+                      <p className="flex flex-wrap items-center gap-2 rounded-xl border border-primary/25 bg-primary/[0.05] px-3 py-2 text-[11px] font-semibold text-primary">
+                        <CircleCheck className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                        <ProtoChip proto={complementProto} />
+                        {lfmt(s.autopilotSingleComplement, { proto: PROTO_LABEL[complementProto] ?? complementProto })}
+                      </p>
+                      <p className="text-[11px] leading-relaxed text-muted-foreground">{s.autopilotSingleHint}</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -787,29 +933,47 @@ export function InboundsAutopilot({
                       />
                       <ProtoChip proto={row.proto} />
                     </span>
-                    {/* port */}
+                    {/* port — single-port mode: the MAIN's public port (read-only); the
+                        internal loopback listener is allocated server-side (44301+) */}
                     <span className="block">
                       <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-muted-foreground sm:hidden">
                         {s.autopilotPortCol}
                       </span>
-                      <Input
-                        type="number"
-                        inputMode="numeric"
-                        min={1}
-                        max={65535}
-                        dir="ltr"
-                        value={portOverrides[row.proto] ?? String(defPorts[row.proto] ?? "")}
-                        onChange={(e) =>
-                          setPortOverrides((prev) => ({ ...prev, [row.proto]: e.target.value }))
-                        }
-                        aria-label={`${s.autopilotPortCol} · ${PROTO_LABEL[row.proto] ?? row.proto}`}
-                        aria-invalid={row.err !== null}
-                        className={cn(
-                          "h-10 rounded-lg border-white/10 bg-black/30 font-mono text-xs tabular-nums",
-                          row.err !== null &&
-                            "border-chart-5/60 text-chart-5 ring-1 ring-chart-5/40 focus-visible:ring-chart-5/40"
-                        )}
-                      />
+                      {mode === "single" ? (
+                        <span className="flex min-h-10 items-center gap-2">
+                          <code
+                            dir="ltr"
+                            className="rounded-lg border border-white/10 bg-black/30 px-2.5 py-2 font-mono text-xs tabular-nums text-foreground/90"
+                          >
+                            :{row.port ?? "—"}
+                          </code>
+                          <Badge
+                            variant="outline"
+                            className="border-[#f59e0b]/30 bg-[#f59e0b]/[0.06] font-mono text-[10px] font-bold text-[#f59e0b]"
+                          >
+                            {s.autopilotSingleBadge}
+                          </Badge>
+                        </span>
+                      ) : (
+                        <Input
+                          type="number"
+                          inputMode="numeric"
+                          min={1}
+                          max={65535}
+                          dir="ltr"
+                          value={portOverrides[row.proto] ?? String(defPorts[row.proto] ?? "")}
+                          onChange={(e) =>
+                            setPortOverrides((prev) => ({ ...prev, [row.proto]: e.target.value }))
+                          }
+                          aria-label={`${s.autopilotPortCol} · ${PROTO_LABEL[row.proto] ?? row.proto}`}
+                          aria-invalid={row.err !== null}
+                          className={cn(
+                            "h-10 rounded-lg border-white/10 bg-black/30 font-mono text-xs tabular-nums",
+                            row.err !== null &&
+                              "border-chart-5/60 text-chart-5 ring-1 ring-chart-5/40 focus-visible:ring-chart-5/40"
+                          )}
+                        />
+                      )}
                       {row.err !== null && (
                         <span className="mt-1 flex items-center gap-1 text-[10px] font-semibold text-chart-5">
                           <CircleAlert className="h-3 w-3 shrink-0" aria-hidden="true" />
@@ -876,21 +1040,23 @@ export function InboundsAutopilot({
                     </label>
                   </>
                 )}
-                <label className="flex min-h-11 flex-col justify-center gap-1 text-xs text-foreground">
-                  <span className="font-semibold">{s.autopilotPortStart}</span>
-                  <Input
-                    type="number"
-                    inputMode="numeric"
-                    min={1}
-                    max={65535}
-                    dir="ltr"
-                    value={portStartRaw}
-                    onChange={(e) => setPortStartRaw(e.target.value)}
-                    placeholder="30000"
-                    aria-label={s.autopilotPortStart}
-                    className="h-10 rounded-lg border-white/10 bg-black/30 font-mono text-xs tabular-nums"
-                  />
-                </label>
+                {mode !== "single" && (
+                  <label className="flex min-h-11 flex-col justify-center gap-1 text-xs text-foreground">
+                    <span className="font-semibold">{s.autopilotPortStart}</span>
+                    <Input
+                      type="number"
+                      inputMode="numeric"
+                      min={1}
+                      max={65535}
+                      dir="ltr"
+                      value={portStartRaw}
+                      onChange={(e) => setPortStartRaw(e.target.value)}
+                      placeholder="30000"
+                      aria-label={s.autopilotPortStart}
+                      className="h-10 rounded-lg border-white/10 bg-black/30 font-mono text-xs tabular-nums"
+                    />
+                  </label>
+                )}
               </div>
 
               {/* contiguous preview */}
@@ -919,8 +1085,16 @@ export function InboundsAutopilot({
                 </code>
               </div>
 
-              {/* honest duplicates warning */}
-              {plan.some((r) => existingProtos.has(r.proto)) && (
+              {/* Task 4-b — honest single-port mechanics note */}
+              {mode === "single" && singleMain && (
+                <p className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2.5 text-[11px] leading-relaxed text-muted-foreground">
+                  {lfmt(s.autopilotSinglePlanNote, { tag: singleMain.tag })}
+                </p>
+              )}
+
+              {/* honest duplicates warning (single-port fallbacks are exempt —
+                  a fallback is not a second copy of the protocol) */}
+              {mode !== "single" && plan.some((r) => existingProtos.has(r.proto)) && (
                 <div className="space-y-1.5" role="alert">
                   {plan
                     .filter((r) => existingProtos.has(r.proto))
@@ -1067,6 +1241,32 @@ export function InboundsAutopilot({
                       );
                     })}
                   </div>
+
+                  {/* Task 4-b — the MAIN inbound was mutated (fallback dest added) */}
+                  {mode === "single" && result.main && (
+                    <div className="flex min-h-11 flex-wrap items-center gap-2.5 rounded-xl border border-primary/25 bg-primary/[0.05] px-3 py-2">
+                      <CircleCheck className="h-4 w-4 shrink-0 text-chart-3" aria-hidden="true" />
+                      <ProtoChip proto={result.main.protocol} />
+                      <span
+                        dir="ltr"
+                        className="min-w-0 truncate font-mono text-xs font-semibold text-silver"
+                        title={result.main.tag}
+                      >
+                        {result.main.tag}
+                      </span>
+                      <span dir="ltr" className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground">
+                        :{result.main.port}
+                      </span>
+                      <span className="text-[11px] leading-snug text-muted-foreground">
+                        {complementProto
+                          ? lfmt(s.autopilotSingleMainUpdated, {
+                              tag: result.main.tag,
+                              proto: PROTO_LABEL[complementProto] ?? complementProto,
+                            })
+                          : ""}
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
 

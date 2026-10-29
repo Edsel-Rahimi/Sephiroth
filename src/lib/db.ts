@@ -236,6 +236,9 @@ export interface TgUser {
   /** "fa" | "en" — per-user interface language for the sales bot. */
   lang: string;
   banned: boolean;
+  /** v2.8 — wallet balance in Toman. OPTIONAL: rows created before v2.8 lack
+   *  it entirely — EVERY read must use `?? 0` (no migration needed). */
+  balanceToman?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -261,6 +264,10 @@ export interface TgOrder {
   receiptFileId: string;
   /** ClientUser created on completion ("provisioning" = claim in-flight). */
   provisionedUserId: string | null;
+  /** v2.8 — when set, completing this order EXTENDS the subscription with
+   *  this subId instead of creating a new ClientUser. OPTIONAL: rows created
+   *  before v2.8 lack it — reads use `?? null` (no migration needed). */
+  renewTargetSubId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
