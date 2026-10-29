@@ -273,8 +273,32 @@ export async function GET(req: Request) {
                   type: "object",
                   required: ["action", "ids"],
                   properties: {
-                    action: { type: "string", enum: ["enable", "disable", "delete", "reset-traffic"] },
+                    action: {
+                      type: "string",
+                      enum: [
+                        "enable",
+                        "disable",
+                        "delete",
+                        "resetTraffic",
+                        "renew",
+                        "holdOn",
+                        "holdOff",
+                        "autoRenewOn",
+                        "autoRenewOff",
+                        "resetDevices",
+                        "adjust",
+                      ],
+                    },
                     ids: { type: "array", items: { type: "string" } },
+                    adjust: {
+                      type: "object",
+                      description: "Sparse limit merge for action=adjust; omitted keys keep current values",
+                      properties: {
+                        expiryDays: { type: "number", nullable: true },
+                        trafficLimitGb: { type: "number", nullable: true },
+                        ipLimit: { type: "number" },
+                      },
+                    },
                   },
                 },
               },

@@ -1,13 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Activity,
+  AlarmClock,
   ArrowRightLeft,
   Bell,
   Check,
+  CheckCircle2,
   CircleUser,
+  Database,
   FlaskConical,
+  Gauge,
   GraduationCap,
   Globe,
   Heart,
@@ -15,14 +19,22 @@ import {
   LogOut,
   Network,
   Palette,
+  PenLine,
   RadioTower,
+  RefreshCw,
+  Rocket,
   Route,
   Search,
   Server,
   Settings,
+  ShieldAlert,
+  ShieldCheck,
   Store,
+  UserPlus,
+  UserX,
   Users,
   Boxes,
+  type LucideIcon,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -98,6 +110,72 @@ const NAV_ORDER: ViewId[] = [
 /* sections governed by Settings → Top-Bar Modules */
 const MODULE_VIEWS = new Set<ViewId>(["hosts", "nodes", "outbounds", "routing"]);
 
+/* ============================================================
+   26-b — Notification center (top-nav bell)
+   Pulls the latest persisted activity from GET /api/activity
+   (same source the Activity view uses; admin-only endpoint) and
+   renders the newest 8 entries. Unread tracking is purely local:
+   a "last seen" ISO stamp in localStorage — the dot pulses while
+   any fetched entry is newer than the stamp, and opening the
+   dropdown stamps "now".
+   ============================================================ */
+
+interface BellEntry {
+  id: string;
+  kind: string;
+  message: string;
+  createdAt: string;
+}
+
+const BELL_SEEN_KEY = "sephiroth-bell-seen";
+const BELL_FETCH_PAGE_SIZE = 10; // /api/activity clamps pageSize to ≥10
+const BELL_LIMIT = 8;
+
+/* local kind → icon switch (mirrors the Activity view's mapping style
+   without importing its internals; unknown kinds fall back to Bell) */
+function bellKindIcon(kind: string): LucideIcon {
+  switch (kind) {
+    case "auth.failed":
+      return ShieldAlert;
+    case "auth.success":
+    case "auth.login":
+      return ShieldCheck;
+    case "user.expired":
+      return AlarmClock;
+    case "user.quota":
+    case "user.limit":
+      return Gauge;
+    case "user.created":
+      return UserPlus;
+    case "user.deleted":
+      return UserX;
+    case "user.renewed":
+      return RefreshCw;
+    case "user.activated":
+      return CheckCircle2;
+    case "user.updated":
+      return PenLine;
+    case "backup.done":
+    case "backup.exported":
+    case "backup.restored":
+      return Database;
+    case "panel.restart":
+      return Rocket;
+    default:
+      if (kind.startsWith("inbound.")) return Server;
+      return Bell;
+  }
+}
+
+function readBellSeenMs(): number {
+  try {
+    const raw = window.localStorage.getItem(BELL_SEEN_KEY);
+    return raw ? Date.parse(raw) || 0 : 0;
+  } catch {
+    return 0; // storage blocked (private mode) — treat everything as unseen
+  }
+}
+
 /* module-level palette openers — lets dashboard quick-actions (mid-row)
    open the ⌘K command palette without adding a global store flag */
 const paletteOpeners = new Set<() => void>();
@@ -123,6 +201,51 @@ export function TopNav() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const t = useMemo(() => dictionaries[lang], [lang]);
+
+  /* 26-b — notification center state (latest activity + local unread dot) */
+  const [bellItems, setBellItems] = useState<BellEntry[]>([]);
+  const [bellUnread, setBellUnread] = useState(false);
+  const bellTimeFmt = useMemo(
+    () =>
+      new Intl.DateTimeFormat(lang, {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    [lang]
+  );
+
+  const refreshBell = useCallback(async () => {
+    if (role !== "admin") return; // /api/activity is admin-only — reseller keeps the stub state
+    try {
+      const res = await fetch(`/api/activity?page=1&pageSize=${BELL_FETCH_PAGE_SIZE}`, {
+        cache: "no-store",
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as { items?: BellEntry[] };
+      const items = (data.items ?? []).slice(0, BELL_LIMIT);
+      setBellItems(items);
+      const seenMs = readBellSeenMs();
+      setBellUnread(items.some((it) => Date.parse(it.createdAt) > seenMs));
+    } catch {
+      /* network hiccup — bell keeps whatever it last had */
+    }
+  }, [role]);
+
+  const markBellSeen = useCallback(() => {
+    try {
+      window.localStorage.setItem(BELL_SEEN_KEY, new Date().toISOString());
+    } catch {
+      /* storage blocked — the dot simply reappears next session */
+    }
+    setBellUnread(false);
+  }, []);
+
+  /* fetch on mount AND every time the dropdown opens */
+  useEffect(() => {
+    void refreshBell();
+  }, [refreshBell]);
 
   /* real signed-in identity (GET /api/profile, shared cache in dashboard/parts)
      — falls back to the translated "Commander" badge while loading / on failure */
@@ -311,23 +434,74 @@ export function TopNav() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* notifications */}
-          <DropdownMenu>
+          {/* notifications — live activity center (26-b) */}
+          <DropdownMenu
+            onOpenChange={(open) => {
+              if (open) {
+                void refreshBell();
+                markBellSeen();
+              }
+            }}
+          >
             <DropdownMenuTrigger
               aria-label={t.topbar.notifications}
               className="glass relative flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Bell className="h-4 w-4" />
-              <span className="absolute end-2 top-2 h-1.5 w-1.5 rounded-full bg-primary glow-cyan" />
+              {bellUnread && (
+                <span
+                  aria-hidden="true"
+                  className="absolute end-2 top-2 h-1.5 w-1.5 animate-pulse rounded-full bg-primary glow-cyan"
+                />
+              )}
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="glass-strong w-64">
+            <DropdownMenuContent align="end" className="glass-strong w-80">
               <DropdownMenuLabel className="text-xs text-muted-foreground">
                 {t.topbar.notifications}
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <div className="px-3 py-6 text-center text-xs text-muted-foreground">
-                {t.topbar.caughtUp}
-              </div>
+              {bellItems.length === 0 ? (
+                <div className="px-3 py-6 text-center text-xs text-muted-foreground">
+                  {t.topbar.caughtUp}
+                </div>
+              ) : (
+                <div className="max-h-80 overflow-y-auto">
+                  {bellItems.map((item) => {
+                    const Icon = bellKindIcon(item.kind);
+                    const at = Date.parse(item.createdAt);
+                    return (
+                      <div key={item.id} className="flex items-start gap-2.5 px-3 py-2">
+                        <span className="glass mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-primary">
+                          <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span
+                            dir="auto"
+                            className="block text-xs leading-snug text-foreground line-clamp-2"
+                          >
+                            {item.message}
+                          </span>
+                          <span className="mt-0.5 block font-mono text-[10px] text-muted-foreground">
+                            {Number.isNaN(at) ? item.kind : bellTimeFmt.format(at)}
+                          </span>
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {role === "admin" && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => setView("activity")}
+                    className="justify-center gap-2 text-xs text-primary"
+                  >
+                    <Activity className="h-3.5 w-3.5" aria-hidden="true" />
+                    {t.topbar.notifOpenActivity}
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
 

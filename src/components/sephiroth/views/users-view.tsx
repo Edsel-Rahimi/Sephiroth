@@ -17,9 +17,14 @@ import {
   Lightbulb,
   Link2,
   PauseCircle,
+  PlayCircle,
   Power,
   RefreshCw,
+  Repeat,
+  Repeat1,
   Search,
+  SlidersHorizontal,
+  Smartphone,
   Trash2,
   TrendingUp,
   Upload,
@@ -255,6 +260,20 @@ const EMPTY_FORM: UsrForm = {
 type Filter = "all" | UserStatus;
 type SortId = "newest" | "name" | "traffic" | "expiry";
 
+/* Task 1-c — bulk action ids understood by POST /api/users/bulk */
+type BulkAction =
+  | "enable"
+  | "disable"
+  | "delete"
+  | "resetTraffic"
+  | "renew"
+  | "holdOn"
+  | "holdOff"
+  | "autoRenewOn"
+  | "autoRenewOff"
+  | "resetDevices"
+  | "adjust";
+
 /* ---------- synthetic DTO to reuse the protocol-correct link builder ---------- */
 
 function accessShareLink(access: AccessDTO, user: UserDTO): string | null {
@@ -325,6 +344,9 @@ export function UsersView() {
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [bulkConfirm, setBulkConfirm] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
+  /* Task 1-c — bulk adjust dialog (sparse per-user limit merge) */
+  const [adjustOpen, setAdjustOpen] = useState(false);
+  const [adjustForm, setAdjustForm] = useState({ expiryDays: "", trafficLimitGb: "", ipLimit: "" });
 
   /* create / edit dialog */
   const [dlgOpen, setDlgOpen] = useState(false);
@@ -431,6 +453,32 @@ export function UsersView() {
   }, [users, q, filter, sort]);
 
   const allShownSelected = filtered.length > 0 && filtered.every((x) => sel.has(x.id));
+
+  /* Task 1-c — bulk adjust validation: empty = keep each user's current
+     value, otherwise non-negative integers within the PATCH field ranges
+     (expiryDays ≤ 3650, trafficLimitGb ≤ 1_000_000, ipLimit ≤ 1000) */
+  const adjustParsed = useMemo(() => {
+    const parseField = (raw: string, max: number) => {
+      const s = raw.trim();
+      if (s === "") return { empty: true, value: undefined as number | undefined, invalid: false };
+      if (!/^\d+$/.test(s)) return { empty: false, value: undefined as number | undefined, invalid: true };
+      const n = Number(s);
+      if (!Number.isSafeInteger(n) || n < 0 || n > max)
+        return { empty: false, value: undefined as number | undefined, invalid: true };
+      return { empty: false, value: n as number | undefined, invalid: false };
+    };
+    const expiry = parseField(adjustForm.expiryDays, 3650);
+    const traffic = parseField(adjustForm.trafficLimitGb, 1_000_000);
+    const ip = parseField(adjustForm.ipLimit, 1000);
+    return {
+      expiry,
+      traffic,
+      ip,
+      anyFilled: !expiry.empty || !traffic.empty || !ip.empty,
+      invalid: expiry.invalid || traffic.invalid || ip.invalid,
+    };
+  }, [adjustForm]);
+  const adjustDisabled = !adjustParsed.anyFilled || adjustParsed.invalid;
   const drawerUser = useMemo(
     () => (users ?? []).find((x) => x.id === drawerId) ?? null,
     [users, drawerId]
@@ -733,17 +781,18 @@ export function UsersView() {
     }
   };
 
-  const runBulk = async (action: "enable" | "disable" | "delete" | "resetTraffic") => {
+  const runBulk = async (action: BulkAction, extra?: Record<string, unknown>) => {
     setBulkBusy(true);
     try {
       const res = await fetch("/api/users/bulk", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, ids: [...sel] }),
+        body: JSON.stringify({ action, ids: [...sel], ...(extra ?? {}) }),
       });
       if (!res.ok) throw new Error("bulk");
       setSel(new Set());
       setBulkConfirm(false);
+      setAdjustOpen(false);
       await load();
       toast({
         description:
@@ -755,8 +804,21 @@ export function UsersView() {
       });
     } catch {
       setBulkConfirm(false);
+      toast({ description: t.inbounds.errGeneric });
     }
     setBulkBusy(false);
+  };
+
+  /* Task 1-c — bulk adjust submit: only the filled fields travel, every
+     user's other limits keep their current value (sparse merge API-side) */
+  const submitAdjust = () => {
+    if (adjustDisabled || bulkBusy) return;
+    const payload: Record<string, number> = {};
+    if (adjustParsed.expiry.value !== undefined) payload.expiryDays = adjustParsed.expiry.value;
+    if (adjustParsed.traffic.value !== undefined) payload.trafficLimitGb = adjustParsed.traffic.value;
+    if (adjustParsed.ip.value !== undefined) payload.ipLimit = adjustParsed.ip.value;
+    setAdjustOpen(false);
+    void runBulk("adjust", payload);
   };
 
   const copyText = async (text: string, label: string) => {
@@ -968,10 +1030,41 @@ export function UsersView() {
             <Button size="sm" variant="outline" disabled={bulkBusy} onClick={() => void runBulk("resetTraffic")} className="gap-1.5">
               <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" /> {u.bulkReset}
             </Button>
+            <Button size="sm" variant="outline" disabled={bulkBusy} onClick={() => void runBulk("renew")} className="gap-1.5">
+              <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" /> {u.bulkRenew}
+            </Button>
+            <Button size="sm" variant="outline" disabled={bulkBusy} onClick={() => void runBulk("holdOn")} className="gap-1.5">
+              <PauseCircle className="h-3.5 w-3.5" aria-hidden="true" /> {u.bulkHold}
+            </Button>
+            <Button size="sm" variant="outline" disabled={bulkBusy} onClick={() => void runBulk("holdOff")} className="gap-1.5">
+              <PlayCircle className="h-3.5 w-3.5" aria-hidden="true" /> {u.bulkUnhold}
+            </Button>
+            <Button size="sm" variant="outline" disabled={bulkBusy} onClick={() => void runBulk("autoRenewOn")} className="gap-1.5">
+              <Repeat className="h-3.5 w-3.5" aria-hidden="true" /> {u.bulkAutoOn}
+            </Button>
+            <Button size="sm" variant="outline" disabled={bulkBusy} onClick={() => void runBulk("autoRenewOff")} className="gap-1.5">
+              <Repeat1 className="h-3.5 w-3.5" aria-hidden="true" /> {u.bulkAutoOff}
+            </Button>
+            <Button size="sm" variant="outline" disabled={bulkBusy} onClick={() => void runBulk("resetDevices")} className="gap-1.5">
+              <Smartphone className="h-3.5 w-3.5" aria-hidden="true" /> {u.bulkDevices}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={bulkBusy}
+              onClick={() => {
+                setAdjustForm({ expiryDays: "", trafficLimitGb: "", ipLimit: "" });
+                setAdjustOpen(true);
+              }}
+              className="gap-1.5"
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden="true" /> {u.bulkAdjust}
+            </Button>
             <Button size="sm" variant="destructive" disabled={bulkBusy} onClick={() => setBulkConfirm(true)} className="gap-1.5">
               <Trash2 className="h-3.5 w-3.5" aria-hidden="true" /> {u.bulkDelete}
             </Button>
           </div>
+          <Tip className="w-full">{u.tipBulk}</Tip>
         </section>
       )}
 
@@ -1281,6 +1374,23 @@ export function UsersView() {
                 onClick={() => setDrawerId(user.id)}
               >
                 <div className="flex items-start justify-between gap-3">
+                  {/* Task 1-c — mobile selection shares the desktop `sel` set;
+                      the 44px label hit-area keeps the touch target big */}
+                  <label
+                    className="-m-1.5 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Checkbox
+                      checked={sel.has(user.id)}
+                      onCheckedChange={(v) => {
+                        const next = new Set(sel);
+                        if (v) next.add(user.id);
+                        else next.delete(user.id);
+                        setSel(next);
+                      }}
+                      aria-label={user.username}
+                    />
+                  </label>
                   <div className="flex min-w-0 items-center gap-2.5">
                     <span
                       className={cn(
@@ -1919,6 +2029,77 @@ export function UsersView() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Task 1-c — bulk adjust limits dialog (empty = keep current value) */}
+      <Dialog open={adjustOpen} onOpenChange={setAdjustOpen}>
+        <DialogContent className="glass-strong sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <SlidersHorizontal className="h-4 w-4 text-primary" aria-hidden="true" /> {u.bulkAdjustTitle}
+            </DialogTitle>
+            <DialogDescription>{u.bulkAdjustDesc}</DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="bulk-adj-expiry">{u.bulkAdjustExpiry}</Label>
+              <Input
+                id="bulk-adj-expiry"
+                type="number"
+                min="0"
+                max="3650"
+                step="1"
+                inputMode="numeric"
+                value={adjustForm.expiryDays}
+                onChange={(e) => setAdjustForm((f) => ({ ...f, expiryDays: e.target.value }))}
+                placeholder={u.bulkAdjustHint}
+                disabled={bulkBusy}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="bulk-adj-traffic">{u.bulkAdjustTraffic}</Label>
+              <Input
+                id="bulk-adj-traffic"
+                type="number"
+                min="0"
+                max="1000000"
+                step="1"
+                inputMode="numeric"
+                value={adjustForm.trafficLimitGb}
+                onChange={(e) => setAdjustForm((f) => ({ ...f, trafficLimitGb: e.target.value }))}
+                placeholder={u.bulkAdjustHint}
+                disabled={bulkBusy}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="bulk-adj-ip">{u.bulkAdjustIp}</Label>
+              <Input
+                id="bulk-adj-ip"
+                type="number"
+                min="0"
+                max="1000"
+                step="1"
+                inputMode="numeric"
+                value={adjustForm.ipLimit}
+                onChange={(e) => setAdjustForm((f) => ({ ...f, ipLimit: e.target.value }))}
+                placeholder={u.bulkAdjustHint}
+                disabled={bulkBusy}
+              />
+            </div>
+          </div>
+          <Tip>{u.bulkAdjustHint}</Tip>
+
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setAdjustOpen(false)}>
+              {u.cancel}
+            </Button>
+            <Button className="glow-cyan gap-2" disabled={bulkBusy || adjustDisabled} onClick={submitAdjust}>
+              <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
+              {bulkBusy ? "…" : u.bulkAdjust}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* user drawer */}
       <Sheet open={!!drawerUser} onOpenChange={(v) => !v && setDrawerId(null)}>

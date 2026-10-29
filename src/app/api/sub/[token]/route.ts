@@ -154,6 +154,19 @@ function sanitizeFilenamePart(raw: string): string {
   return clean || "sub";
 }
 
+/** 1-b — brand filename prefix: lowercase, non-alnum → "-" ("" ⇒ "sub"). */
+function slugifyBrandPart(raw: string): string {
+  const clean = raw.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  return clean || "sub";
+}
+
+/** 1-b — brand names are admin/reseller-supplied; escape before HTML interpolation. */
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) =>
+    c === "&" ? "&amp;" : c === "<" ? "&lt;" : c === ">" ? "&gt;" : c === '"' ? "&quot;" : "&#39;"
+  );
+}
+
 /* ---------- Task 23-g — HWID device gate ---------- */
 
 function langFromAcceptLanguage(header: string | null): Lang {
@@ -166,15 +179,24 @@ function langFromAcceptLanguage(header: string | null): Lang {
 }
 
 /** Branded 403 page shown to config clients when the device list is full. */
-function blockedHtmlPage(lang: Lang, devices: number, limit: number): string {
+function blockedHtmlPage(
+  lang: Lang,
+  devices: number,
+  limit: number,
+  brand?: { name: string; logo: string | null; accent: string | null } | null
+): string {
   const t = subDictionaries[lang];
+  /* 1-b — white-label: the payload brand replaces the SEPHIROTH mark
+     (name only — logo/accent never reach this bare-bones HTML). */
+  const brandName = brand?.name?.trim() || "Sephiroth";
+  const mark = escapeHtml(brandName.toUpperCase());
   const rtl = lang === "fa" || lang === "ar" ? ` dir="rtl"` : "";
   return `<!doctype html>
 <html lang="${lang}"${rtl}>
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>${t.blockedTitle} · Sephiroth</title>
+<title>${t.blockedTitle} · ${escapeHtml(brandName)}</title>
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -206,7 +228,7 @@ function blockedHtmlPage(lang: Lang, devices: number, limit: number): string {
 </head>
 <body>
   <main class="card">
-    <div class="mark">SEPHIROTH</div>
+    <div class="mark">${mark}</div>
     <div class="tag">${t.tagline}</div>
     <div class="glow" aria-hidden="true">
       <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M12 2v20"/><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
@@ -215,7 +237,7 @@ function blockedHtmlPage(lang: Lang, devices: number, limit: number): string {
     <p class="desc">${t.blockedDesc}</p>
     <p class="count">${sfmt(t.blockedCount, { n: devices, s: limit })}</p>
     <p class="contact">${t.blockedContact}</p>
-    <div class="foot">${t.poweredBy}</div>
+    <div class="foot">${brand?.name?.trim() ? escapeHtml(brandName) : t.poweredBy}</div>
   </main>
 </body>
 </html>`;
@@ -263,7 +285,7 @@ async function hwidGate(
       );
     }
     const lang = langFromAcceptLanguage(req.headers.get("accept-language"));
-    return new Response(blockedHtmlPage(lang, found.devices.length, limit), {
+    return new Response(blockedHtmlPage(lang, found.devices.length, limit, found.payload.brand), {
       status: 403,
       headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
     });
@@ -347,8 +369,12 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
       const pageBase = publicHost || (url.hostname !== "localhost" && url.hostname !== "127.0.0.1" ? url.host : "edge.sephiroth.network");
       const profileWebPageUrl = `${url.protocol}//${pageBase.replace(/\/$/, "")}/sub/${token}`;
 
+      /* 1-b — white-label: brand name drives profile-title + filename prefix
+         ("Sephiroth" keeps the exact pre-branding output when unbranded). */
+      const brandName = payload.brand?.name?.trim() || "Sephiroth";
+
       const subHeaders: Record<string, string> = {
-        "profile-title": `base64:${Buffer.from(`Sephiroth · ${payload.name}`).toString("base64")}`,
+        "profile-title": `base64:${Buffer.from(`${brandName} · ${payload.name}`).toString("base64")}`,
         "subscription-userinfo": `upload=0; download=${usedBytes}; total=${totalBytes}; expire=${expireUnix}`,
         "profile-update-interval": "6",
         "profile-web-page-url": profileWebPageUrl,
@@ -360,8 +386,9 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
 
       const token8 = token.slice(0, 8);
       const namePart = sanitizeFilenamePart(payload.name);
+      const brandPart = slugifyBrandPart(brandName);
       const disposition = (ext: string): Record<string, string> => ({
-        "content-disposition": `attachment; filename="sephiroth-${namePart}-${token8}.${ext}"`,
+        "content-disposition": `attachment; filename="${brandPart}-${namePart}-${token8}.${ext}"`,
       });
 
       if (format === "clash" || format === "meta") {

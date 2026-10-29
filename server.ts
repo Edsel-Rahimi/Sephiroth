@@ -86,6 +86,7 @@ import * as apiSystemUpdateInfo from "./src/app/api/system/update-info/route";
 import * as apiSystemUpdateStatus from "./src/app/api/system/update-status/route";
 import * as apiTelegramBotAction from "./src/app/api/telegram/bot-action/route";
 import * as apiTelegramBotStatus from "./src/app/api/telegram/bot-status/route";
+import * as apiTelegramDigestTest from "./src/app/api/telegram/digest-test/route"; // Task 1-a — force-run the daily sales digest
 import { salesWorkerBoot, salesWorkerShutdown } from "./src/lib/bot/sales-worker"; // Task 23-c — Sephiroth Sales Bot worker
 import {
   notifyPanelRestarted,
@@ -475,6 +476,7 @@ async function startServer() {
 
   mountRoute(app, "/api/telegram/bot-action", apiTelegramBotAction);
   mountRoute(app, "/api/telegram/bot-status", apiTelegramBotStatus); // Task 23-c
+  mountRoute(app, "/api/telegram/digest-test", apiTelegramDigestTest); // Task 1-a
   mountRoute(app, "/api/tunnels", apiTunnels);
 
   mountRoute(app, "/api/users/bulk", apiUsersBulk);

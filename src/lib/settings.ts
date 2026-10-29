@@ -143,6 +143,10 @@ const K = {
   pageSize: "set_page_size",
   publicHost: "set_public_host",
   subSupportUrl: "set_sub_support_url",
+  // Task 1-b — panel-level subscription brand (fallback when no reseller brand)
+  subBrandName: "set_sub_brand_name",
+  subBrandLogo: "set_sub_brand_logo",
+  subBrandAccent: "set_sub_brand_accent",
   // expert
   xrayLogLevel: "set_xray_log_level",
   xrayDnsServers: "set_xray_dns_servers",
@@ -782,6 +786,10 @@ export interface GeneralSettings {
   publicHost: string;
   /** Optional support/portal URL surfaced via the `support-url` sub header. */
   subSupportUrl: string;
+  /** Task 1-b — panel-level sub branding, fallback when no reseller brand ("" = Sephiroth default). */
+  subBrandName: string;
+  subBrandLogo: string;
+  subBrandAccent: string;
 }
 
 const GENERAL_DEFAULT: GeneralSettings = {
@@ -789,15 +797,24 @@ const GENERAL_DEFAULT: GeneralSettings = {
   pageSize: 25,
   publicHost: "",
   subSupportUrl: "",
+  subBrandName: "",
+  subBrandLogo: "",
+  subBrandAccent: "",
 };
 
 export async function getGeneralSettings(): Promise<GeneralSettings> {
-  const m = await readSettings([K.datepicker, K.pageSize, K.publicHost, K.subSupportUrl]);
+  const m = await readSettings([
+    K.datepicker, K.pageSize, K.publicHost, K.subSupportUrl,
+    K.subBrandName, K.subBrandLogo, K.subBrandAccent,
+  ]);
   return {
     datepicker: m.get(K.datepicker) === "jalalian" ? "jalalian" : "gregorian",
     pageSize: toInt(m.get(K.pageSize), GENERAL_DEFAULT.pageSize, 10, 100),
     publicHost: m.get(K.publicHost) ?? GENERAL_DEFAULT.publicHost,
     subSupportUrl: m.get(K.subSupportUrl) ?? GENERAL_DEFAULT.subSupportUrl,
+    subBrandName: m.get(K.subBrandName) ?? GENERAL_DEFAULT.subBrandName,
+    subBrandLogo: m.get(K.subBrandLogo) ?? GENERAL_DEFAULT.subBrandLogo,
+    subBrandAccent: m.get(K.subBrandAccent) ?? GENERAL_DEFAULT.subBrandAccent,
   };
 }
 
@@ -833,6 +850,29 @@ export async function validateGeneralPatch(body: unknown): Promise<PatchResult<G
     }
     out.subSupportUrl = v;
   }
+  /* Task 1-b — panel-level subscription branding (mirror of the reseller
+     brand rules: name ≤40, logo = http(s) URL ≤500, accent = #rrggbb or ""). */
+  if (b.subBrandName !== undefined) {
+    const v = String(b.subBrandName).trim();
+    if (v.length > 40) {
+      return { ok: false, fields: [{ field: "subBrandName", code: "format" }] };
+    }
+    out.subBrandName = v;
+  }
+  if (b.subBrandLogo !== undefined) {
+    const v = String(b.subBrandLogo).trim();
+    if (v.length > 500 || (v !== "" && !/^https?:\/\/.+/.test(v))) {
+      return { ok: false, fields: [{ field: "subBrandLogo", code: "format" }] };
+    }
+    out.subBrandLogo = v;
+  }
+  if (b.subBrandAccent !== undefined) {
+    const v = String(b.subBrandAccent).trim();
+    if (v !== "" && !/^#[0-9a-fA-F]{6}$/.test(v)) {
+      return { ok: false, fields: [{ field: "subBrandAccent", code: "format" }] };
+    }
+    out.subBrandAccent = v;
+  }
   return { ok: true, data: out };
 }
 
@@ -841,6 +881,9 @@ export async function saveGeneralSettings(g: GeneralSettings): Promise<void> {
   await writeSetting(K.pageSize, String(g.pageSize));
   await writeSetting(K.publicHost, g.publicHost);
   await writeSetting(K.subSupportUrl, g.subSupportUrl);
+  await writeSetting(K.subBrandName, g.subBrandName);
+  await writeSetting(K.subBrandLogo, g.subBrandLogo);
+  await writeSetting(K.subBrandAccent, g.subBrandAccent);
 }
 
 /* ---------- expert / xray config ---------- */

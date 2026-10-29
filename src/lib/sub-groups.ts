@@ -4,6 +4,7 @@ import { hashPassword } from "@/lib/auth";
 import { deriveStatus, type UserStatus } from "@/lib/user-types";
 import { buildShareMaterial } from "@/lib/share-links";
 import { makeWgKeypair } from "@/lib/users";
+import { getGeneralSettings } from "@/lib/settings";
 
 /* ============================================================
    Sephiroth · Phase 5 — Subscription groups (server helpers)
@@ -265,14 +266,12 @@ export async function userSubPayload(
   for (const a of user.accesses) {
     configs.push(await configFromAccess(a, { username: user.username, status }, fallbackHost, publicHost));
   }
-  /* 26-c — reseller white-label: owner's brand replaces the panel identity */
-  let brand: SubPayload["brand"] = null;
-  if (user.resellerId) {
-    const owner = await db.reseller.findUnique({ where: { id: user.resellerId } });
-    if (owner?.enabled && owner.brandName) {
-      brand = { name: owner.brandName, logo: owner.brandLogo ?? null, accent: owner.brandAccent ?? null };
-    }
-  }
+  /* 26-c / 1-b — reseller white-label wins; panel brand is the fallback.
+     Rule: disabled reseller or empty brandName ⇒ no reseller brand. */
+  let brand = brandOfReseller(
+    user.resellerId ? await db.reseller.findUnique({ where: { id: user.resellerId } }) : null
+  );
+  if (!brand) brand = await getPanelBrand();
   return {
     kind: "user",
     token: user.subId,
@@ -336,6 +335,9 @@ export async function groupSubPayload(
   const anyUnlimited = group.members.some((m) => m.user.trafficLimitGb === null);
   const summed = group.members.reduce((acc, m) => acc + (m.user.trafficLimitGb ?? 0), 0);
 
+  /* 1-b — group brand: all branded members must belong to ONE enabled
+     reseller, otherwise (or when the member set is empty) fall back to the
+     panel-level brand. */
   return {
     kind: "group",
     token: group.token,
@@ -354,7 +356,7 @@ export async function groupSubPayload(
       never: group.members.some((m) => m.user.expiryDays === null) || group.members.length === 0,
       endsAtIso: null,
     },
-    brand: null,
+    brand: await resolveGroupBrand(group.members.map((m) => m.user.resellerId)),
     members,
     configs,
   };
@@ -362,5 +364,88 @@ export async function groupSubPayload(
 
 function round1(n: number): number {
   return Math.round(n * 10) / 10;
+}
+
+/* ============================================================
+   Task 1-b — white-label brand resolution
+   Order everywhere: enabled reseller with a brandName wins, the
+   panel-level general settings are the fallback. A disabled
+   reseller or an empty brandName never yields a brand.
+   ============================================================ */
+
+/**
+ * Panel-level fallback brand from the general settings. Empty
+ * subBrandName ⇒ null (Sephiroth default branding).
+ */
+export async function getPanelBrand(): Promise<SubPayload["brand"]> {
+  const g = await getGeneralSettings();
+  const name = g.subBrandName.trim();
+  if (!name) return null;
+  return {
+    name,
+    logo: g.subBrandLogo.trim() || null,
+    accent: g.subBrandAccent.trim() || null,
+  };
+}
+
+/** Reseller row → brand, honouring enabled + brandName gating. */
+function brandOfReseller(
+  owner: {
+    enabled: boolean;
+    brandName: string | null;
+    brandLogo: string | null;
+    brandAccent: string | null;
+  } | null
+): SubPayload["brand"] {
+  if (owner?.enabled && owner.brandName) {
+    return { name: owner.brandName, logo: owner.brandLogo ?? null, accent: owner.brandAccent ?? null };
+  }
+  return null;
+}
+
+/**
+ * Group brand — collect the members' resellers; when EVERY resellerId
+ * present points at the SAME enabled reseller with a brandName, that
+ * brand wins; mixed / disabled / unnamed / empty member set ⇒ panel brand.
+ */
+export async function resolveGroupBrand(
+  resellerIds: (string | null | undefined)[]
+): Promise<SubPayload["brand"]> {
+  const ids = [...new Set(resellerIds.filter((x): x is string => typeof x === "string" && x.length > 0))];
+  if (ids.length === 1) {
+    const owner = await db.reseller.findUnique({ where: { id: ids[0] } });
+    const brand = brandOfReseller(owner);
+    if (brand) return brand;
+  }
+  return getPanelBrand();
+}
+
+/**
+ * Layout metadata helper — resolves the brand NAME (and only the name,
+ * never logo/accent or any other reseller internals) for a public sub
+ * token. Unknown / disabled token ⇒ null (caller falls back to Sephiroth).
+ */
+export async function resolveBrandNameForToken(token: string): Promise<string | null> {
+  const user = await db.clientUser.findUnique({
+    where: { subId: token },
+    select: { resellerId: true },
+  });
+  if (user) {
+    if (user.resellerId) {
+      const owner = await db.reseller.findUnique({ where: { id: user.resellerId } });
+      const brand = brandOfReseller(owner);
+      if (brand) return brand.name;
+    }
+    return (await getPanelBrand())?.name ?? null;
+  }
+  const group = await db.subGroup.findUnique({
+    where: { token },
+    select: {
+      enabled: true,
+      members: { select: { user: { select: { resellerId: true } } } },
+    },
+  });
+  if (!group || !group.enabled) return null;
+  return (await resolveGroupBrand(group.members.map((m) => m.user.resellerId)))?.name ?? null;
 }
 

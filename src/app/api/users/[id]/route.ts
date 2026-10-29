@@ -5,7 +5,11 @@ import { emailFor, flowFor, genAccessFields, toUserDTO } from "@/lib/users";
 import { parseClients, validateUserPatch } from "@/lib/user-types";
 import { stripUserEverywhere, syncUserProjection } from "@/lib/user-sync";
 import { logActivity } from "@/lib/activity";
-import { notifyUserDeleted, notifyUserRenewed } from "@/lib/bot/notify"; // Task 23-a + 26-a
+import {
+  notifyUserDeleted,
+  notifyUserRenewed,
+  notifyUserUpdated, // Task 26-b — PATCH now pings the admin chat too
+} from "@/lib/bot/notify";
 
 /* ============================================================
    Sephiroth · Phase 4 — Users item API
@@ -181,6 +185,7 @@ export async function PATCH(
         : `User "${updated.username}" updated`,
       meta: { userId: id, username: updated.username, ...(renewing ? { renew: true, renewals: updated.renewals } : {}) },
     });
+    void notifyUserUpdated(updated.username); // 26-b — fire-and-forget Telegram alert
     if (renewing) void notifyUserRenewed(updated.username, Number(updated.renewals) || 0);
     return NextResponse.json({ user: toUserDTO(updated) });
   } catch (err) {

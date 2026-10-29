@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Bot, CircleAlert, Loader2, Send } from "lucide-react";
+import { BarChart3, Bot, CircleAlert, Loader2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -79,6 +79,7 @@ export function TelegramBotSettings() {
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [digestTesting, setDigestTesting] = useState(false);
   const [tokenConfigured, setTokenConfigured] = useState(false);
 
   const [mode, setMode] = useState<"console" | "notify" | "sales">("notify");
@@ -216,6 +217,26 @@ export function TelegramBotSettings() {
       toast({ variant: "destructive", description: d.settings.tgErrNetwork });
     }
     setTesting(false);
+  };
+
+  /* 26-b — force-run the daily sales digest (bypasses toggle + 23h gate) */
+  const sendTestDigest = async () => {
+    setDigestTesting(true);
+    try {
+      const res = await fetch("/api/telegram/digest-test", { method: "POST" });
+      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; reason?: string };
+      if (res.ok && data.ok) {
+        toast({ description: d.settings.tgDigestTestDone });
+      } else {
+        toast({
+          variant: "destructive",
+          description: d.settings.tgErrTelegram.replace("{detail}", data.reason ?? "error"),
+        });
+      }
+    } catch {
+      toast({ variant: "destructive", description: d.settings.tgErrNetwork });
+    }
+    setDigestTesting(false);
   };
 
   /* ---------- worker pill ---------- */
@@ -410,6 +431,19 @@ export function TelegramBotSettings() {
             <Send className="h-4 w-4" aria-hidden="true" />
           )}
           {d.settings.tgTest}
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => void sendTestDigest()}
+          disabled={digestTesting}
+          className="gap-2 rounded-full border-border bg-white/4 hover:bg-white/8"
+        >
+          {digestTesting ? (
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+          ) : (
+            <BarChart3 className="h-4 w-4" aria-hidden="true" />
+          )}
+          {d.settings.tgDigestTest}
         </Button>
         {botStatus && botStatus.handledUpdates > 0 && (
           <span className="text-[11px] text-muted-foreground">

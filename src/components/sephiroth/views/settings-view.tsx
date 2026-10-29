@@ -157,6 +157,10 @@ interface GeneralSettingsDTO {
   datepicker: "gregorian" | "jalalian";
   pageSize: number;
   publicHost?: string;
+  /* Task 1-b — panel-level subscription branding (fallback when no reseller brand) */
+  subBrandName?: string;
+  subBrandLogo?: string;
+  subBrandAccent?: string;
 }
 
 interface ExpertSettingsDTO {
@@ -253,6 +257,9 @@ interface ApiTokenDTO {
 interface GeneralForm {
   datepicker: "gregorian" | "jalalian";
   pageSize: string;
+  subBrandName: string;
+  subBrandLogo: string;
+  subBrandAccent: string;
 }
 
 interface ExpertForm {
@@ -461,8 +468,12 @@ export function SettingsView() {
   const [generalForm, setGeneralForm] = useState<GeneralForm>({
     datepicker: "gregorian",
     pageSize: "25",
+    subBrandName: "",
+    subBrandLogo: "",
+    subBrandAccent: "",
   });
   const [generalErr, setGeneralErr] = useState<string | null>(null);
+  const [brandErr, setBrandErr] = useState<string | null>(null);
   const [savingGeneral, setSavingGeneral] = useState(false);
 
   const [expertForm, setExpertForm] = useState<ExpertForm>({
@@ -579,6 +590,9 @@ export function SettingsView() {
       setGeneralForm({
         datepicker: d.general.datepicker,
         pageSize: String(d.general.pageSize),
+        subBrandName: d.general.subBrandName ?? "",
+        subBrandLogo: d.general.subBrandLogo ?? "",
+        subBrandAccent: d.general.subBrandAccent ?? "",
       });
       setSec(d.security);
       setAbKeepDraft(String(d.security.autoBackupKeep));
@@ -1005,6 +1019,7 @@ docker run -d --name mtproxy --restart=always -p ${mtpPort || "443"}:443 \\
       return;
     }
     setGeneralErr(null);
+    setBrandErr(null);
     setSavingGeneral(true);
     try {
       const res = await fetch("/api/settings", {
@@ -1014,10 +1029,32 @@ docker run -d --name mtproxy --restart=always -p ${mtpPort || "443"}:443 \\
           section: "general",
           datepicker: generalForm.datepicker,
           pageSize,
+          subBrandName: generalForm.subBrandName.trim(),
+          subBrandLogo: generalForm.subBrandLogo.trim(),
+          subBrandAccent: generalForm.subBrandAccent.trim(),
         }),
       });
       if (!res.ok) {
         if (res.status === 400) {
+          /* validateGeneralPatch field errors → inline text under the field */
+          try {
+            const e = (await res.json()) as { fields?: { field: string; code: string }[] };
+            const f = e.fields?.find(
+              (x) => x.field === "subBrandName" || x.field === "subBrandLogo" || x.field === "subBrandAccent"
+            );
+            if (f) {
+              const label =
+                f.field === "subBrandLogo"
+                  ? u.subBrandLogo
+                  : f.field === "subBrandAccent"
+                    ? u.subBrandAccent
+                    : u.subBrandName;
+              setBrandErr(`${label} · ${f.code}`);
+              return;
+            }
+          } catch {
+            /* fall through to the generic message */
+          }
           setGeneralErr(u.pageSizeDesc);
           return;
         }
@@ -1027,6 +1064,9 @@ docker run -d --name mtproxy --restart=always -p ${mtpPort || "443"}:443 \\
       setGeneralForm({
         datepicker: d.general.datepicker,
         pageSize: String(d.general.pageSize),
+        subBrandName: d.general.subBrandName ?? "",
+        subBrandLogo: d.general.subBrandLogo ?? "",
+        subBrandAccent: d.general.subBrandAccent ?? "",
       });
       toast({ description: u.generalSaved });
     } catch {
@@ -1852,6 +1892,93 @@ docker run -d --name mtproxy --restart=always -p ${mtpPort || "443"}:443 \\
                   )}
                   {t.subgroups.save}
                 </Button>
+              </div>
+            </SectionCard>
+
+            {/* Task 1-b — subscription branding (fallback when no reseller brand) */}
+            <SectionCard icon={Sparkles} title={u.subBrandTitle} desc={u.subBrandDesc}>
+              <div className="grid gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="gen-brand-name">{u.subBrandName}</Label>
+                  <Input
+                    id="gen-brand-name"
+                    value={generalForm.subBrandName}
+                    maxLength={40}
+                    onChange={(e) =>
+                      setGeneralForm((p) => ({ ...p, subBrandName: e.target.value }))
+                    }
+                    placeholder={u.subBrandNamePh}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="gen-brand-logo">{u.subBrandLogo}</Label>
+                  <Input
+                    id="gen-brand-logo"
+                    dir="ltr"
+                    className="font-mono"
+                    value={generalForm.subBrandLogo}
+                    maxLength={500}
+                    onChange={(e) =>
+                      setGeneralForm((p) => ({ ...p, subBrandLogo: e.target.value }))
+                    }
+                    placeholder={u.subBrandLogoPh}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="gen-brand-accent">{u.subBrandAccent}</Label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      id="gen-brand-accent"
+                      type="color"
+                      aria-label={u.subBrandAccent}
+                      className="h-9 w-12 shrink-0 cursor-pointer rounded-lg border border-border bg-transparent p-1"
+                      value={
+                        /^#[0-9a-fA-F]{6}$/.test(generalForm.subBrandAccent)
+                          ? generalForm.subBrandAccent
+                          : "#22d8ee"
+                      }
+                      onChange={(e) =>
+                        setGeneralForm((p) => ({ ...p, subBrandAccent: e.target.value }))
+                      }
+                    />
+                    <Input
+                      dir="ltr"
+                      className="flex-1 font-mono"
+                      value={generalForm.subBrandAccent}
+                      maxLength={7}
+                      onChange={(e) =>
+                        setGeneralForm((p) => ({ ...p, subBrandAccent: e.target.value }))
+                      }
+                      placeholder="#22d8ee"
+                    />
+                  </div>
+                </div>
+                {brandErr && (
+                  <p role="alert" className="text-xs text-chart-5">
+                    {brandErr}
+                  </p>
+                )}
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setGeneralForm((p) => ({ ...p, subBrandName: "", subBrandLogo: "", subBrandAccent: "" }))
+                    }
+                    className="h-8 gap-1.5 border-white/10 bg-white/[0.03] text-[11px] text-muted-foreground hover:text-foreground"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                    {u.subBrandReset}
+                  </Button>
+                  <Button onClick={() => void saveGeneral()} disabled={savingGeneral} className="gap-2">
+                    {savingGeneral ? (
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Check className="h-4 w-4" aria-hidden="true" />
+                    )}
+                    {t.subgroups.save}
+                  </Button>
+                </div>
               </div>
             </SectionCard>
 

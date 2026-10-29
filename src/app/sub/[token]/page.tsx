@@ -339,8 +339,17 @@ export default function SubPage() {
             ? t.statusCapped
             : t.statusDisabled;
 
+  /* 1-b — brand accent (when present) tints the avatar / pass-card through
+     --brand-accent; unset ⇒ pixel-identical default appearance. */
+  const brandAccentStyle = payload?.brand?.accent
+    ? ({ "--brand-accent": payload.brand.accent } as React.CSSProperties)
+    : undefined;
+
   return (
-    <div className="bg-cosmic relative flex min-h-screen flex-col overflow-hidden">
+    <div
+      className="bg-cosmic relative flex min-h-screen flex-col overflow-hidden"
+      style={brandAccentStyle}
+    >
       <Starfield />
 
       {/* ---------- header ---------- */}
@@ -359,7 +368,11 @@ export default function SubPage() {
               ) : (
                 <span
                   className="flex h-10 w-10 items-center justify-center rounded-xl text-lg font-black ring-1 ring-white/15"
-                  style={payload.brand.accent ? { backgroundColor: `${payload.brand.accent}22`, color: payload.brand.accent } : undefined}
+                  style={{
+                    // 1-b — accent via --brand-accent; unset ⇒ inherit (old no-accent look)
+                    backgroundColor: "color-mix(in srgb, var(--brand-accent, transparent) 13%, transparent)",
+                    color: "var(--brand-accent, currentColor)",
+                  }}
                   aria-hidden="true"
                 >
                   {payload.brand.name.slice(0, 1).toUpperCase()}
@@ -368,7 +381,7 @@ export default function SubPage() {
               <div className="leading-none">
                 <span
                   className="text-silver block text-[13px] font-bold tracking-[0.24em]"
-                  style={payload.brand.accent ? { color: payload.brand.accent } : undefined}
+                  style={{ color: "var(--brand-accent, currentColor)" }}
                 >
                   {payload.brand.name}
                 </span>
@@ -448,7 +461,12 @@ export default function SubPage() {
         {phase === "ready" && payload && (
           <div className="fade-up space-y-6">
             {/* ============ orbit pass card ============ */}
-            <section className="pass-card rounded-2xl p-5 md:p-7" aria-label={t.passKind}>
+            {/* 1-b — accent ring: var falls back to the .pass-card border color */}
+            <section
+              className="pass-card rounded-2xl p-5 md:p-7"
+              aria-label={t.passKind}
+              style={{ borderColor: "var(--brand-accent, rgba(148, 184, 205, 0.18))" }}
+            >
               <div className="pass-shine" aria-hidden="true" />
               <div className="relative">
                 {/* top row */}
@@ -753,14 +771,24 @@ export default function SubPage() {
       </main>
 
       {/* ---------- footer ---------- */}
+      {/* 1-b — white-label: the brand replaces "Powered by …" and the
+          crafted-by line disappears; unbranded keeps the exact default. */}
       <footer className="relative z-10 mt-auto pb-6 pt-2 text-center">
-        <p className="flex items-center justify-center gap-1.5 text-[10px] tracking-wide text-muted-foreground/60">
-          <Orbit className="h-3 w-3" aria-hidden="true" />
-          {t.poweredBy}
-        </p>
-        <p className="mt-1 text-[9px] uppercase tracking-[0.24em] text-muted-foreground/40">
-          Crafted by EPODONIOS
-        </p>
+        {payload?.brand ? (
+          <p className="flex items-center justify-center gap-1.5 text-[10px] tracking-wide text-muted-foreground/60">
+            {payload.brand.name}
+          </p>
+        ) : (
+          <>
+            <p className="flex items-center justify-center gap-1.5 text-[10px] tracking-wide text-muted-foreground/60">
+              <Orbit className="h-3 w-3" aria-hidden="true" />
+              {t.poweredBy}
+            </p>
+            <p className="mt-1 text-[9px] uppercase tracking-[0.24em] text-muted-foreground/40">
+              Crafted by EPODONIOS
+            </p>
+          </>
+        )}
       </footer>
     </div>
   );
