@@ -1,0 +1,990 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>سپیروت از صفر تا صد — راهنمای خودمونی برای تازه‌کارها</title>
+<style>
+@font-face { font-family: "Vazirmatn"; src: url("../public/fonts/Vazirmatn-Regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Vazirmatn"; src: url("../public/fonts/Vazirmatn-Medium.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Vazirmatn"; src: url("../public/fonts/Vazirmatn-SemiBold.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Vazirmatn"; src: url("../public/fonts/Vazirmatn-Bold.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+
+@page { size: 720px 1020px; margin: 0; }
+:root {
+  --bg: #060b0f; --bg2: #0a1218;
+  --card: rgba(255,255,255,0.035); --line: rgba(255,255,255,0.09);
+  --text: #e7edf2; --muted: #9fb0bd;
+  --cyan: #22d8ee; --amber: #fbbf24; --red: #fb5f6b; --green: #34d399;
+}
+html, body {
+  margin: 0; padding: 0; width: 720px;
+  background: var(--bg); color: var(--text);
+  font-family: 'Vazirmatn', 'Tahoma', sans-serif;
+  font-size: 13.5px; line-height: 2.05;
+}
+@media screen {
+  html { height: auto; display: flex; justify-content: center; background: #14181c; }
+  body { margin: 20px auto; box-shadow: 0 20px 80px rgba(0,0,0,.6); }
+}
+* { box-sizing: border-box; }
+
+.page {
+  width: 720px; height: 1020px; position: relative; overflow: hidden;
+  break-after: page; padding: 44px 54px 58px 54px;
+  background: radial-gradient(520px 380px at 12% -6%, rgba(34,216,238,0.075), transparent 60%), var(--bg);
+}
+.page.last { break-after: auto; }
+.pfoot {
+  position: absolute; bottom: 0; right: 0; left: 0; height: 46px;
+  padding: 0 54px; border-top: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: space-between;
+  color: var(--muted); font-size: 9.5px; letter-spacing: 1.5px;
+  background: rgba(6,11,15,0.85);
+}
+.pfoot .pg { color: var(--cyan); font-weight: 700; letter-spacing: 3px; }
+.pfoot b { color: var(--text); font-weight: 600; }
+
+.kicker { display: inline-block; color: var(--cyan); font-size: 10px; font-weight: 700; letter-spacing: 4px; margin-bottom: 6px; }
+h2 { font-size: 22px; font-weight: 700; margin: 0 0 4px; color: var(--text); }
+h2 .n { color: var(--cyan); font-size: 13px; vertical-align: 4px; letter-spacing: 2px; margin-left: 8px; }
+h3 { font-size: 15px; font-weight: 600; color: var(--text); margin: 14px 0 4px; }
+.rule { height: 2px; background: linear-gradient(-90deg, var(--cyan), transparent 70%); border: 0; margin: 8px 0 12px; }
+p { margin: 0 0 10px; color: var(--muted); }
+p b, li b { color: var(--text); font-weight: 600; }
+li { color: var(--muted); margin-bottom: 5px; }
+ul, ol { margin: 0 0 10px; padding-right: 20px; }
+
+code, .mono {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  direction: ltr; unicode-bidi: embed;
+  background: rgba(34,216,238,0.08); color: var(--cyan);
+  border: 1px solid rgba(34,216,238,0.2);
+  border-radius: 6px; padding: 0 6px; font-size: 11px;
+}
+.kbd {
+  display: inline-block; direction: ltr; unicode-bidi: embed;
+  border: 1px solid rgba(34,216,238,0.45); border-bottom-width: 2.5px;
+  background: rgba(34,216,238,0.09); color: var(--cyan);
+  border-radius: 7px; padding: 0 9px; font-size: 11px; font-weight: 700;
+  margin: 0 2px; white-space: nowrap;
+}
+pre {
+  direction: ltr; text-align: left;
+  background: #0a141b; border: 1px solid var(--line);
+  border-radius: 12px; padding: 12px 14px;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 10.5px; line-height: 1.7; color: #b8e9f2;
+  overflow: hidden; white-space: pre-wrap; break-inside: avoid; margin: 0 0 12px;
+}
+pre .c { color: #5b7280; } pre .k { color: var(--cyan); } pre .ok { color: var(--green); }
+
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 0 12px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 0 0 12px; }
+.card {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 14px; padding: 11px 14px; break-inside: avoid;
+}
+.card .t { color: var(--cyan); font-size: 10.5px; font-weight: 700; letter-spacing: 2px; margin-bottom: 4px; }
+.card .v { color: var(--text); font-size: 12.5px; font-weight: 600; }
+.card .s { color: var(--muted); font-size: 11px; line-height: 1.9; }
+
+.qa {
+  border: 1px solid rgba(34,216,238,0.32); border-radius: 14px;
+  background: linear-gradient(180deg, rgba(34,216,238,0.07), rgba(34,216,238,0.03));
+  border-radius: 14px; padding: 10px 16px; margin: 0 0 12px;
+}
+.qa .h { color: var(--cyan); font-weight: 700; font-size: 12.5px; margin-bottom: 2px; }
+.qa p { margin: 0; font-size: 11.8px; }
+.analogy {
+  border: 1px dashed rgba(251,191,36,0.5); border-radius: 14px;
+  background: rgba(251,191,36,0.05); padding: 10px 16px; margin: 0 0 12px;
+}
+.analogy .h { color: var(--amber); font-weight: 700; font-size: 12.5px; margin-bottom: 2px; }
+.analogy p { margin: 0; font-size: 11.8px; }
+.warnbox {
+  border: 1px solid rgba(251,95,107,0.4); border-radius: 14px;
+  background: rgba(251,95,107,0.06); padding: 10px 16px; margin: 0 0 12px;
+}
+.warnbox .h { color: var(--red); font-weight: 700; font-size: 12.5px; margin-bottom: 2px; }
+.warnbox p { margin: 0; font-size: 11.8px; }
+.okbox {
+  border: 1px solid rgba(52,211,153,0.4); border-radius: 14px;
+  background: rgba(52,211,153,0.06); padding: 10px 16px; margin: 0 0 12px;
+}
+.okbox .h { color: var(--green); font-weight: 700; font-size: 12.5px; margin-bottom: 2px; }
+.okbox p { margin: 0; font-size: 11.8px; }
+
+table { width: 100%; border-collapse: collapse; margin: 0 0 12px; break-inside: avoid; }
+th { color: var(--cyan); font-size: 10.5px; font-weight: 700; text-align: right; padding: 6px 9px; border-bottom: 1px solid rgba(34,216,238,0.25); }
+td { color: var(--muted); font-size: 11.5px; padding: 5.5px 9px; border-bottom: 1px solid var(--line); vertical-align: top; line-height: 1.8; }
+td .mono, td code { font-size: 10.5px; }
+th:first-child, td:first-child { color: var(--text); font-weight: 600; }
+
+.chip { display: inline-block; border: 1px solid rgba(34,216,238,0.35); border-radius: 999px; background: rgba(34,216,238,0.06); color: var(--cyan); font-size: 10px; font-weight: 600; padding: 1px 10px; margin: 0 0 4px 6px; }
+.chip.dim { border-color: rgba(255,255,255,0.14); color: var(--muted); background: rgba(255,255,255,0.03); }
+.chip.ok { border-color: rgba(52,211,153,0.4); color: var(--green); background: rgba(52,211,153,0.06); }
+.chip.am { border-color: rgba(251,191,36,0.4); color: var(--amber); background: rgba(251,191,36,0.06); }
+
+figure { margin: 10px 0 6px; break-inside: avoid; }
+figure .shot { border: 1px solid rgba(34,216,238,0.22); border-radius: 12px; overflow: hidden; background: #0a1218; box-shadow: 0 10px 34px rgba(0,0,0,0.45); }
+figure img { display: block; width: 100%; max-width: 100%; height: auto; }
+figcaption { margin-top: 6px; font-size: 10.8px; color: var(--muted); display: flex; gap: 8px; align-items: baseline; }
+figcaption .step { flex: 0 0 auto; color: var(--cyan); font-weight: 700; font-size: 9.5px; border: 1px solid rgba(34,216,238,0.35); border-radius: 999px; padding: 0 10px; background: rgba(34,216,238,0.06); }
+
+.path {
+  display: inline-block; direction: rtl;
+  color: var(--text); font-size: 11px; font-weight: 600;
+  background: rgba(255,255,255,0.05); border: 1px solid var(--line);
+  border-radius: 999px; padding: 2px 12px; margin-bottom: 10px;
+}
+.path .sep { color: var(--cyan); font-weight: 700; }
+
+.bigstep { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 10px; }
+.bigstep .num {
+  flex: 0 0 30px; height: 30px; border-radius: 10px; margin-top: 4px;
+  border: 1px solid rgba(34,216,238,0.45); background: rgba(34,216,238,0.08);
+  color: var(--cyan); font-weight: 700; font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+}
+.bigstep .tx { flex: 1; color: var(--muted); font-size: 12.3px; line-height: 1.95; }
+.bigstep .tx b { color: var(--text); }
+
+.sechead { margin-bottom: 2px; }
+.small { font-size: 10.8px; color: var(--muted); }
+.center { text-align: center; }
+.mt6 { margin-top: 6px; } .mt10 { margin-top: 10px; } .mt14 { margin-top: 14px; }
+.gcheck { color: var(--green); font-weight: 700; }
+.badge-end {
+  display: inline-block; margin-top: 4px;
+  border: 1px solid rgba(34,216,238,0.35); border-radius: 999px;
+  color: var(--cyan); background: rgba(34,216,238,0.06);
+  padding: 3px 18px; font-size: 10.5px; letter-spacing: 3px; font-weight: 700;
+}
+
+/* cover */
+.toc { margin-top: 4px; }
+.toc .row { display: flex; align-items: center; gap: 12px; padding: 4px 2px; border-bottom: 1px dashed rgba(255,255,255,0.10); }
+.toc .num { flex: 0 0 34px; height: 22px; border-radius: 9px; border: 1px solid rgba(34,216,238,0.4); background: rgba(34,216,238,0.07); color: var(--cyan); font-weight: 700; font-size: 11px; display: flex; align-items: center; justify-content: center; }
+.toc .tt { color: var(--text); font-weight: 600; font-size: 12.5px; }
+.toc .dots { flex: 1; border-bottom: 1px dotted rgba(255,255,255,0.16); margin: 0 6px; height: 1px; }
+.toc .pn { color: var(--cyan); font-weight: 700; font-size: 12px; }
+.cover {
+  width: 720px; height: 1020px; break-after: page; overflow: hidden; position: relative;
+  padding: 52px 54px 58px; display: flex; flex-direction: column; align-items: center; text-align: center;
+  background:
+    radial-gradient(560px 420px at 78% 10%, rgba(34,216,238,0.14), transparent 62%),
+    radial-gradient(500px 420px at 14% 86%, rgba(34,216,238,0.07), transparent 60%),
+    var(--bg);
+}
+.cover .ring { position: absolute; border-radius: 50%; border: 1px solid rgba(34,216,238,0.16); }
+.cover .r1 { width: 470px; height: 470px; top: 30px; left: 40px; }
+.cover .r2 { width: 300px; height: 300px; bottom: 30px; right: 40px; border-color: rgba(34,216,238,0.10); }
+.cover .logo {
+  width: 88px; height: 88px; border-radius: 24px;
+  border: 1.5px solid rgba(34,216,238,0.45); background: rgba(34,216,238,0.06);
+  box-shadow: 0 0 60px rgba(34,216,238,0.28);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 40px; font-weight: 700; color: var(--cyan);
+  font-family: 'JetBrains Mono','Courier New',monospace;
+}
+.cover .kick { margin-top: 18px; color: var(--muted); font-size: 11px; letter-spacing: 6px; }
+.cover h1 { font-size: 38px; font-weight: 700; margin: 8px 0 2px; color: var(--text); }
+.cover h1 b { color: var(--cyan); }
+.cover .ver { font-size: 13px; color: var(--cyan); letter-spacing: 3px; border: 1px solid rgba(34,216,238,0.35); border-radius: 999px; padding: 4px 22px; margin: 10px 0 4px; background: rgba(34,216,238,0.06); }
+.cover p.lead { max-width: 570px; color: var(--muted); font-size: 13px; margin: 12px 0 0; line-height: 2.1; }
+.cover .mini { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; justify-content: center; max-width: 600px; }
+.cover .mini span { border: 1px solid var(--line); background: rgba(255,255,255,0.04); border-radius: 999px; color: var(--muted); font-size: 10.5px; padding: 3px 14px; }
+.cover .foot { position: absolute; bottom: 40px; left: 0; right: 0; color: var(--muted); font-size: 10.5px; letter-spacing: 2px; }
+.cover .foot b { color: var(--text); letter-spacing: 4px; }
+</style>
+</head>
+<body>
+
+<!-- ═════════ COVER ═════════ -->
+<div class="cover">
+  <div class="ring r1"></div><div class="ring r2"></div>
+  <div class="logo">S</div>
+  <div class="kick">SEPHIROTH · ZERO TO HERO</div>
+  <h1>سپیروت از <b>صفر تا صد</b></h1>
+  <div class="ver">راهنمای خودمونی · v2.6.0</div>
+  <p class="lead">این کتاب برای توئه که تا حالا با پنل مدیریت VPN کار نکردی، از کلمه‌هایی مثل «اینباند» و «اشتراک» نمی‌ترسی ولی معناشون رو هم نمی‌دونی، و می‌خوای از صفرِ صفر یاد بگیری همه‌ی دکمه‌ها و فیچرهای پنل Sephiroth چیکار می‌کنن. بدون اصطلاحات سنگین، بدون فرضِ قبلی — مثل اینکه یه دوست باحال داره برایت توضیح می‌ده.</p>
+  <div class="mini">
+    <span>هر دکمه، هر فیلد، هر گزینه</span>
+    <span>مثال و تشبیه‌های ساده</span>
+    <span>قدم‌به‌قدم با اسکرین‌شات واقعی</span>
+    <span>فارسی خودمونی</span>
+  </div>
+  <div class="foot"><b>EPODONIOS</b> · SEPHIROTH PANEL · 2026</div>
+</div>
+
+<!-- ═════════ TOC ═════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">فهرست</span>
+    <h2>تو این کتاب چی پیدا می‌کنی؟</h2>
+    <hr class="rule">
+  </div>
+  <div class="grid2" style="gap:22px">
+    <div class="toc">
+    <div class="row"><div class="num">۰۱</div><div class="tt">قبل از شروع — این پنل اصلاً چیه؟</div><div class="dots"></div><div class="pn">۳</div></div>
+    <div class="row"><div class="num">۰۲</div><div class="tt">واژه‌نامه خودمونی (۶ تا کلمه که باید بدونی)</div><div class="dots"></div><div class="pn">۴</div></div>
+    <div class="row"><div class="num">۰۳</div><div class="tt">ورود به پنل — و اگه رمزت یادت رفت؟</div><div class="dots"></div><div class="pn">۵</div></div>
+    <div class="row"><div class="num">۰۴</div><div class="tt">داشبورد — اتاق فرمان تو</div><div class="dots"></div><div class="pn">۶</div></div>
+    <div class="row"><div class="num">۰۵</div><div class="tt">نوار بالا: تم‌ها، زبان‌ها، زنگوله و Ctrl+K</div><div class="dots"></div><div class="pn">۷</div></div>
+    <div class="row"><div class="num">۰۶</div><div class="tt">کانفیگ‌ها (اینباندها) — تور سریع</div><div class="dots"></div><div class="pn">۸</div></div>
+    <div class="row"><div class="num">۰۷</div><div class="tt">ساخت سریع: اولین کانفیگت در ۳۰ ثانیه</div><div class="dots"></div><div class="pn">۹</div></div>
+    <div class="row"><div class="num">۰۸</div><div class="tt">کدوم پروتکل برای کی؟ (به زبان آدمیزاد)</div><div class="dots"></div><div class="pn">۱۰</div></div>
+    <div class="row"><div class="num">۰۹</div><div class="tt">فورج قدم‌به‌قدم — هر فیلد یعنی چی</div><div class="dots"></div><div class="pn">۱۱</div></div>
+    <div class="row"><div class="num">۱۰</div><div class="tt">دو دکمه‌ی جادویی: تشخیص IP و پورت آزاد</div><div class="dots"></div><div class="pn">۱۲</div></div>
+    <div class="row"><div class="num">۱۱</div><div class="tt">بعد از ساخت: کارت کانفیگ و لینک‌ها</div><div class="dots"></div><div class="pn">۱۳</div></div>
+    <div class="row"><div class="num">۱۲</div><div class="tt">اتوپایلوت — چند کانفیگ با یک کلیک</div><div class="dots"></div><div class="pn">۱۴</div></div>
+    <div class="row"><div class="num">۱۳</div><div class="tt">امنزیاWG خودمونی</div><div class="dots"></div><div class="pn">۱۵</div></div>
+  </div>
+    <div class="toc">
+    <div class="row"><div class="num">۱۴</div><div class="tt">ساختن کاربر — هر فیلدش رو با هم می‌ریم</div><div class="dots"></div><div class="pn">۱۶</div></div>
+    <div class="row"><div class="num">۱۵</div><div class="tt">جدول کاربرها — چیپ‌ها یعنی چی</div><div class="dots"></div><div class="pn">۱۷</div></div>
+    <div class="row"><div class="num">۱۶</div><div class="tt">کشوی کاربر: لینک، تمدید، دستگاه‌ها</div><div class="dots"></div><div class="pn">۱۸</div></div>
+    <div class="row"><div class="num">۱۷</div><div class="tt">عملیات گروهی — ۱۱ دکمه برای کارهای دسته‌جمعی</div><div class="dots"></div><div class="pn">۱۹</div></div>
+    <div class="row"><div class="num">۱۸</div><div class="tt">«در انتظار» و «تمدید خودکار» — با قصه‌ی مشتری</div><div class="dots"></div><div class="pn">۲۰</div></div>
+    <div class="row"><div class="num">۱۹</div><div class="tt">صفحه‌ی اشتراک (/sub) — کاربرت چی می‌بینه؟</div><div class="dots"></div><div class="pn">۲۱</div></div>
+    <div class="row"><div class="num">۲۰</div><div class="tt">گروه‌های ساب + نماینده‌ها و قالب‌های فروش</div><div class="dots"></div><div class="pn">۲۲</div></div>
+    <div class="row"><div class="num">۲۱</div><div class="tt">هاست‌ها، نودها، خروجی‌ها و روتینگ — خلاصه‌ی مفید</div><div class="dots"></div><div class="pn">۲۳</div></div>
+    <div class="row"><div class="num">۲۲</div><div class="tt">فعالیت‌ها و زنگوله — دوربین مداربسته‌ت</div><div class="dots"></div><div class="pn">۲۴</div></div>
+    <div class="row"><div class="num">۲۳</div><div class="tt">ربات تلگرام — دستیار فروش و نگهبان</div><div class="dots"></div><div class="pn">۲۵</div></div>
+    <div class="row"><div class="num">۲۴</div><div class="tt">تنظیمات — همه‌چیز در دو تب</div><div class="dots"></div><div class="pn">۲۶</div></div>
+    <div class="row"><div class="num">۲۵</div><div class="tt">پروفایل، دکتر پیکربندی و API (برای کنجکاوها)</div><div class="dots"></div><div class="pn">۲۷</div></div>
+    <div class="row"><div class="num">۲۶</div><div class="tt">مشکلات رایج + چک‌لیست روز اول</div><div class="dots"></div><div class="pn">۲۸</div></div>
+  </div>
+  </div>
+  <div class="okbox mt6">
+    <div class="h">✓ چطور بخونم؟</div>
+    <p>به ترتیب بخون؛ اگه عجله داری فصل‌های ۱ تا ۵ و ۱۴ تا ۱۹ کارت رو می‌ندازن. دکمه‌ها تو قاب آبی (<span class="kbd">مثل این</span>) نشون داده شدن.</p>
+  </div>
+  <div class="pfoot"><span><b>سپیروت از صفر تا صد</b> · v2.6.0</span><span class="pg">۰۲</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═════════ 01 ═════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">فصل ۰۱</span>
+    <h2><span class="n">۰۱</span>قبل از شروع — این پنل اصلاً چیه؟</h2>
+    <hr class="rule">
+  </div>
+  <p>بذار از ته ماجرا شروع کنیم. تو یه <b>سرور</b> داری (یه کامپیوتر روشن که یه جایی تو دنیا به اینترنت وصله). این سرور می‌تونه برای مردم <b>اینترنت آزاد</b> بفروشه: مردم با یه اپ تو گوشی‌شون وصل می‌شن به سرورت و ترافیک‌شون از اونجا رد می‌شه. به این کل ماجرا می‌گن VPN یا به قول خودمون «کافی‌شاپِ اینترنت».</p>
+  <div class="analogy">
+    <div class="h">☕ یه تشبیه ساده</div>
+    <p>سرور تو = یه دکه‌ی فروش. کانفیگ = راهِ ورود به دکه (در + کلید). کاربر = مشتری‌ای که یه کارت عضویت داره. اشتراک = همون کارت عضویت که روی گوشی مشتری هست و می‌گه چقدر اعتبار داره. و <b>پنل Sephiroth</b> = خودِ تو، پشت پیشخوان: اون‌جا کارت صادر می‌کنی، درهای جدید باز می‌کنی و می‌بینی کی مصرف کرده و کی باید تمدید کنه.</p>
+  </div>
+  <p>پس پنل یه <b>سایت مدیریته</b> که روی همون سرورت بالا میاد. با مرورگر بازش می‌کنی، یه رمز می‌زنی، و همه‌چیز رو با کلیک مدیریت می‌کنی — بدون حتی یک خط کد. چیزی که این پنل رو خاص می‌کنه:</p>
+  <div class="grid2">
+    <div class="card"><div class="t">ساده‌ای که حرفه‌ای هم هست</div><div class="s">از «ساخت سریع با یک کلیک» تا تنظیمات ریزِ REALITY و AmneziaWG — تازه‌کار راحت شروع می‌کنه، حرفه‌ای هم به سقف نمی‌خوره.</div></div>
+    <div class="card"><div class="t">فارسی و ۵ زبان دیگه</div><div class="s">کل پنل فارسیِ درست‌وحسابی با چیدمان راست‌به‌چپه — انگلیسی، عربی، چینی، ترکی و روسی هم داره.</div></div>
+    <div class="card"><div class="t">زنده مثل مانیتور بیمارستان</div><div class="s">CPU، رم، ترافیک و اتصال‌ها لحظه‌ای آپدیت می‌شن؛ لازم نیست صفحه رو رفرش کنی.</div></div>
+    <div class="card"><div class="t">همه‌چیز در یک پورت</div><div class="s">پنل، لینک‌های اشتراک و API همه از یک آدرس سرو می‌شن — نه دیتابیس جانبی می‌خواد نه نرم‌افزار اضافه.</div></div>
+  </div>
+  <div class="qa">
+    <div class="h">؟ آیا باید لینوکس بلد باشم؟</div>
+    <p>برای کار روزمره با پنل: نه، اصلاً. فقط برای «نصب اولیه روی سرور» از یه خط دستور استفاده می‌کنی که توی فصل آخر عیناً کپی می‌کنی — دیگه تمام کارها از داخل همین مرورگره.</p>
+  </div>
+  <div class="qa">
+    <div class="h">؟ اگه فقط بخوام امتحانش کنم چی؟</div>
+    <p>پنل یه حالت <b>شبیه‌ساز</b> داره (پیش‌فرض): بدون هیچ نصب اضافه‌ای، همه‌ی صفحه‌ها رو با داده‌های نمایشی نشون می‌ده — پس می‌تونی خیالت راحت همه‌جا رو بزنی و بگردی، هیچی خراب نمی‌شه.</p>
+  </div>
+  <div class="pfoot"><span><b>سپیروت از صفر تا صد</b> · v2.6.0</span><span class="pg">۰۳</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═════════ 02 ═════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">فصل ۰۲</span>
+    <h2><span class="n">۰۲</span>واژه‌نامه خودمونی</h2>
+    <hr class="rule">
+  </div>
+  <p>قبل از اینکه بریم تو، ۶ تا کلمه رو با هم درست کنیم — همین ۶ تا کافیه که ۹۰٪ پنل رو بفهمی:</p>
+  <table>
+    <tr><th style="width:130px">کلمه</th><th>یعنی چی؟ (خودمونی)</th></tr>
+    <tr><td>اینباند <span class="small">(Inbound / کانفیگ)</span></td><td>یکی از «درهای» سرورت. هر در یه پورت داره (مثل شماره واحد ساختمون) و یه روش ورود مشخص (پروتکل). مردم از همین درها وصل می‌شن. تو پنل اسمش «کانفیگ‌ها»ست.</td></tr>
+    <tr><td>پروتکل <span class="small">(Protocol)</span></td><td>«لهجه‌ی» اون در. VLESS، VMess، Trojan، Shadowsocks، Hysteria2 و… هرکدوم لهجه‌ای متفاوتن؛ بعضی‌هاشون بهتر قایم می‌شن، بعضی‌ها سریع‌ترن. فصل ۰۸ می‌گه کی کدوم.</td></tr>
+    <tr><td>کاربر <span class="small">(Client User)</span></td><td>یه کارت عضویت واقعی: اسم داره، سقف گیگ داره، تاریخ انقضا داره و می‌تونه به چندین کانفیگ وصل بشه. هر بار که بخوای به کسی سرویس بدی، یه کاربر می‌سازی.</td></tr>
+    <tr><td>لینک اشتراک <span class="small">(Subscription Link)</span></td><td>یه لینک شخصی برای هر کاربر (<span class="mono">/sub/xxxx</span>). مشتری این لینک رو می‌ذاره توی اپ گوشیش و اپ خودش همه‌چیز رو می‌کشه و آپدیت می‌کنه — دیگه لازم نیست کانفیگ‌ها رو یکی‌یکی کپی کنه.</td></tr>
+    <tr><td>ترافیک <span class="small">(Traffic)</span></td><td>حجم مصرفی، با گیگابایت حساب می‌شه. هر کاربر یه سقف داره؛ رسیدن به سقف = «تمام‌حجم» تا تمدید یا ریست بشه.</td></tr>
+    <tr><td>هسته <span class="small">(Core / Xray)</span></td><td>موتور واقعی که پشت صحنه کار می‌کنه و ترافیک رو جابه‌جا می‌کنه. پنل دستیارشه: کانفیگ‌ها رو بهش می‌ده و اون اجراشون می‌کنه. حالت شبیه‌ساز یعنی موتور نمایشی برای تمرین.</td></tr>
+  </table>
+  <p>چند تا اصطلاح دیگه که جلوتر کم‌کم می‌بینی‌شون:</p>
+  <div class="grid2">
+    <div class="card"><div class="t">TLS و REALITY</div><div class="s">راه‌های استتار ترافیک — TLS مثل رفتن با لباس رسمی به مهمانیه؛ REALITY هم می‌ره و کارتِ شناسایی یه سایت واقعی دیگه رو نشون می‌ده تا هیچ‌کس نفهمه داری چی‌کار می‌کنی.</div></div>
+    <div class="card"><div class="t">نود (Node)</div><div class="s">یه سرور دوم که از دستورات پنل اطاعت می‌کنه — انگار شعبه‌ی دوم دکه‌ات.</div></div>
+    <div class="card"><div class="t">ریسلر (Reseller)</div><div class="s">فروشنده‌ی زیرمجموعه‌ات: با یوزر خودش وارد پنل می‌شه ولی فقط کاربرهای خودش رو می‌بینه و تا سقفی که تو تعیین کردی می‌تونه بفروشه.</div></div>
+    <div class="card"><div class="t">HWID</div><div class="s">اثر انگشتِ دستگاه. با «سقف دستگاه» مشخص می‌کنی هر اشتراک روی چند گوشی/کامپیوتر هم‌زمان کار کنه.</div></div>
+  </div>
+  <div class="qa">
+    <div class="h">؟ این چرا اینقدر ساده‌ست؟</div>
+    <p>چون لازم نیست بیشتر بدونی! هر مفهوم پیچیده‌تر (مثل REALITY یا روتینگ) سر جاش، توی همون فصل، همون‌جا که لازمش داری توضیح داده می‌شه.</p>
+  </div>
+  <div class="pfoot"><span><b>سپیروت از صفر تا صد</b> · v2.6.0</span><span class="pg">۰۴</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═════════ 03 ═════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">فصل ۰۳</span>
+    <h2><span class="n">۰۳</span>ورود به پنل — و اگه رمزت یادت رفت؟</h2>
+    <hr class="rule">
+  </div>
+  <p>آدرس پنل معمولاً شبیه <span class="mono">http://IP-سرور:پورت</span> است که موقع نصب داده شده. بازش کن:</p>
+  <figure>
+    <div class="shot"><img src="shot-login.png" alt="صفحه ورود فارسی" style="width:44%; display:block; margin:0 auto;"></div>
+    <figcaption><span class="step">شکل ۱</span><span>صفحه‌ی ورود — اسم کاربری، رمز، چشمک برای نمایش رمز و «۳۰ روز مرا به خاطر بسپار».</span></figcaption>
+  </figure>
+  <div class="bigstep"><div class="num">۱</div><div class="tx"><b>نام کاربری و رمز</b> رو بزن (موقع نصب ساخته شده؛ در پیش‌نمایش دکمه‌ی <span class="kbd">پرکردن خودکار</span> هست).</div></div>
+  <div class="bigstep"><div class="num">۲</div><div class="tx">اگه با کامپیوتر شخصی خودتی، تیکِ <b>«۳۰ روز مرا به خاطر بسپار»</b> رو نگه دار تا هر بار رمز نزنی.</div></div>
+  <div class="bigstep"><div class="num">۳</div><div class="tx"><span class="kbd">ورود</span> بزن. تمام — رسیدی تو اتاق فرمان.</div></div>
+  <div class="warnbox">
+    <div class="h">⚠ پنج بار اشتباه = قفل موقت</div>
+    <p>۵ بار رمز اشتباه = قفل شدن آی‌پی برای چند دقیقه با شمارش معکوس. عصبانی نشو — این نگهبانِ ضد هکرهاست. چند دقیقه صبر کن و دوباره تلاش کن.</p>
+  </div>
+  <h3>اگه 2FA فعال باشه</h3>
+  <p>بعد از رمز یه کادر ۶ رقمی می‌پرسه: کد جاری اپ احرازکننده (Google Authenticator و مشابه) رو بزن و وارد شو — این کد هر ۳۰ ثانیه عوض می‌شه، طبیعیه.</p>
+  <h3>اگه رمزت یادت رفت</h3>
+  <p>روی <span class="kbd">فراموش کردی؟</span> بزن. حالت بازیابی باز می‌شه و ازت <b>کلید بازیابی</b> می‌خواد — یه رشته‌ی شبیه <span class="mono">SEPH-XXXX-XXXX-XXXX</span> که موقع نصب یا توی «پروفایل» یه بار نشونت داده شده. کلید + رمز جدید بده و دوباره وارد شو. پس همین امروز این کلید رو یه جای امن (دفترچه یا پسوردمنیجر) ذخیره کن، واقعاً مهمه.</p>
+  <div class="okbox">
+    <div class="h">✓ توصیه‌ی روز اول</div>
+    <p>همین اولین ورود، برو «پروفایل → امنیت» و رمز پیش‌فرض رو عوض کن و کلید بازیابی رو جایی امن نگه دار. دو دقیقه کار داره و خیالت برای همیشه راحته.</p>
+  </div>
+  <div class="pfoot"><span><b>سپیروت از صفر تا صد</b> · v2.6.0</span><span class="pg">۰۵</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═════════ 04 ═════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">فصل ۰۴</span>
+    <h2><span class="n">۰۴</span>داشبورد — اتاق فرمان تو</h2>
+    <hr class="rule">
+  </div>
+  <p>بعد از ورود، اولین چیزی که می‌بینی داشبورده. ممکنه اولش شلوغ به نظر بیاد — نگران نباش، بذار با هم هر تیکه رو بخونیم. قاعده‌ی کلی: داشبورد <b>فقط نشون می‌ده</b>، اکثرش دکمه‌ی خراب‌کننده نداره؛ پس با خیال راحت نگاهش کن.</p>
+  <div class="grid2">
+    <div class="card"><div class="t">ردیف اول — سلام و آمار حیاتی</div><div class="s"><b>کارایی:</b> چهار تا نوار (پردازنده، حافظه، دیسک، شبکه) — مثل تب جعبه‌ابزار تسک‌منیجر گوشی. اگه نزدیک ۱۰۰٪ شدن یعنی سرور داره نفس تنگ می‌کشه. <b>کل کاربران / همین حالا / ترافیک ۳۰ روز:</b> چند کارت عضویت داری، چند نفرشون همین لحظه وصله و این ماه چقدر جابه‌جا شده.</div></div>
+    <div class="card"><div class="t">چارت «فرکانس ترافیک»</div><div class="s">خط رنگی = مصرف سرور در طول زمان؛ <span class="kbd">30D</span> <span class="kbd">7D</span> <span class="kbd">24H</span> زوم‌اند. حباب «اوج» پرترافیک‌ترین لحظه‌ست.</div></div>
+    <div class="card"><div class="t">خلاصه و هشدارها</div><div class="s">«نودهای آنلاین» یعنی چند تا از درهات فعاله. «هشدارهای فعال» دوتا چیز مهم رو گوش‌زد می‌کنه: کاربرهایی که دارن به سقف حجمشون می‌رسن و کاربرهایی که دارن منقضی می‌شن — همین‌جاست که می‌فهمی کی باید زنگ بزنی و بگی «تمدید کن رفیق».</div></div>
+    <div class="card"><div class="t">رادار تمدید و هدف ماهانه</div><div class="s">«رادار تمدید» سه نفرِ نزدیک به انقضا رو با روزهای باقی‌مونده نشون می‌ده (<span class="kbd">بازبینی کن</span> می‌برتت سراغ‌شون). «هدف ماهانه» گِیج فروشه.</div></div>
+  </div>
+  <h3>کارت «سلام، فرمانده» — میان‌برهای کارهای روزانه</h3>
+  <ul>
+    <li><span class="kbd">کاربر جدید</span> → می‌برتت به ساختن کاربر (فصل ۱۴).</li>
+    <li><span class="kbd">کانفیگ جدید</span> → می‌برتت به ساختن کانفیگ (فصل ۹).</li>
+    <li><span class="kbd">بکاپ فوری</span> → دانلود فایلِ <b>کل داده‌های پنلت</b>. هر هفته بزنش و جای امن نگه دار — نجات‌دهنده‌ی روز مبادا.</li>
+    <li><span class="kbd">ربات تلگرام</span> → می‌برتت به تنظیمات ربات (فصل ۲۳).</li>
+  </ul>
+  <h3>«فعالیت زنده» — استریم لحظه‌ای</h3>
+  <p>پایین داشبورد یه فید زنده هست: «فلانی متصل شد»، «ورود مدیر از …»، «هسته بازنشانی شد» و… فیلتر <span class="kbd">هشدارها</span> فقط موارد مهم رو نگه می‌داره — فصل ۲۲ کامل‌ترش می‌گه.</p>
+  <div class="qa">
+    <div class="h">؟ اعداد شبیه‌ساز واقعی‌ان؟</div>
+    <p>اگه هنوز روی درایور «شبیه‌ساز» باشی، ترافیک و اتصال‌ها نمایشی‌ان (برای تمرین و آشنایی). وقتی روی سرور واقعی درایور «Xray واقعی» رو فعال کنی (فصل ۲۴)، همه‌ی اعداد واقعی می‌شن. جایی هم که واقعی/نمایشی بودن مهم باشه، خود پنل با چیپ «شبیه‌ساز» بالای صفحه یادت می‌ندازه.</p>
+  </div>
+  <div class="pfoot"><span><b>سپیروت از صفر تا صد</b> · v2.6.0</span><span class="pg">۰۶</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═════════ 05 ═════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">فصل ۰۵</span>
+    <h2><span class="n">۰۵</span>نوار بالا: تم‌ها، زبان‌ها، زنگوله و <span class="mono">Ctrl+K</span></h2>
+    <hr class="rule">
+  </div>
+  <p>قبل از رفتن جلوتر، همون نوار همیشه‌بالای صفحه رو بشناس — چون تمام کارهات از همین‌جا شروع می‌شه (از راست به چپ تو حالت فارسی):</p>
+  <ul>
+    <li><b>لوگوی Sephiroth:</b> هر جا گم شدی، روی این بزن تا برگرادی داشبورد.</li>
+    <li><b>جستجو یا پرش سریع</b> <span class="kbd">Ctrl+K</span>: محبوب‌ترین دکمه‌ی کل پنل. بزنش و اسم هر صفحه‌ای رو تایپ کن — مثلاً «کاربران» — و اینتر. مثل تله‌پورت عمل می‌کنه؛ حتی روی موبایل با دکمه‌ی ذره‌بین.</li>
+    <li><b>قلب (حمایت از Sephiroth):</b> صفحه‌ی حمایت — آدرس کیف پول تتر، لینک رایمیت و ستاره‌ی گیت‌هاب. اگه پنل به دردت خورد، یه ستاره بده؛ سازنده خوشحال می‌شه :)</li>
+    <li><b>Theme Engine:</b> ۶ تا تم رنگی (کازمیک سایان، بنفش، کریمسون، ماتریکس، طلایی OLED و…) — هر کدوم رو خواستی بزن؛ فقط شکل و ظاهره، هیچ چیز دیگه‌ای عوض نمی‌شه.</li>
+    <li><b>زبان:</b> منوی ۶ زبانه — فارسی، انگلیسی، عربی، چینی، ترکی، روسی. عربی و فارسی خودکار راست‌به‌چپ می‌شن.</li>
+    <li><b>زنگوله (اعلان‌ها):</b> آخرین رویدادهای پنل رو نشون می‌ده (فصل ۲۲).</li>
+    <li><b>آواتار/پروفایل:</b> نام نمایشی، «تنظیمات حساب» و <b>خروج</b> از این منو.</li>
+  </ul>
+  <h3>ردیف دوم — ناوبری مداری</h3>
+  <p>زیر نوار بالا، یه ردیف دکمه‌ی گرد هست: <span class="chip dim">داشبورد</span><span class="chip dim">کانفیگ‌ها</span><span class="chip dim">نودها</span><span class="chip dim">کاربران</span><span class="chip dim">گروه‌های ساب</span><span class="chip dim">نماینده‌ها</span><span class="chip dim">فعالیت‌ها</span><span class="chip dim">راهنما</span><span class="chip dim">تنظیمات</span><span class="chip dim">آزمایشگاه</span> — این‌ها صفحات اصلی‌ان و ترتیب فصل‌های این کتاب هم دقیقاً همینه. توی «تنظیمات» می‌تونی بعضی از این دکمه‌ها (مثل نودها) رو خاموش کنی تا نوارت خلوت‌تر بشه.</p>
+  <div class="qa">
+    <div class="h">؟ «راهنما» همون این کتابه؟</div>
+    <p>جالبه: داخل خود پنل هم یه «کتابچه میدانی» هست (دکمه‌ی راهنما) که برای هر صفحه، جدول «فیلد = یعنی چی = چی وارد کنم» و قدم‌به‌قدم داره — به ۶ زبان. این کتاب، نسخه‌ی مفصل‌تر و خودمونی‌ترِ همون درس‌هاست؛ دوتاش رو همزمان می‌تونی داشته باشی.</p>
+  </div>
+  <div class="pfoot"><span><b>سپیروت از صفر تا صد</b> · v2.6.0</span><span class="pg">۰۷</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═════════ 06 ═════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">فصل ۰۶</span>
+    <h2><span class="n">۰۶</span>کانفیگ‌ها (اینباندها) — تور سریع</h2>
+    <hr class="rule">
+  </div>
+  <p>روی <span class="kbd">کانفیگ‌ها</span> بزن. این صفحه «انبار درهای سرورت» است. بالای صفحه چهار دکمه اصلی می‌بینی:</p>
+  <div class="grid2">
+    <div class="card"><div class="t"><span class="kbd">صحت‌سنج کانفیگ</span></div><div class="s">دکتر پیکربندی — یه معاینه‌ی کامل از کل تنظیماتت می‌گیره و مشکلات رو با راه‌حل نشون می‌ده (فصل ۲۵).</div></div>
+    <div class="card"><div class="t"><span class="kbd">ساخت سریع</span></div><div class="s">برای عجله‌ای‌ها: پروتکل رو انتخاب کن، «همین حالا بساز» — بقیه‌ش با پنل. (فصل ۷)</div></div>
+    <div class="card"><div class="t"><span class="kbd">اتوپایلوت</span></div><div class="s">ناوگان‌ساز: چندین کانفیگ با هم، خودکار. (فصل ۱۲)</div></div>
+    <div class="card"><div class="t"><span class="kbd">کانفیگ جدید</span></div><div class="s">فورج کامل — همه‌ی تنظیمات ریز و درشت دست خودت. (فصل ۹)</div></div>
+  </div>
+  <p>زیرش یه نوار آمار (چند کانفیگ داری / چند تا آنلاین / چند کاربر وصله / کل ترافیک) و یه ردیف ابزار می‌بینی: <b>جستجوی تگ</b> (اسم کانفیگ‌ها رو بگرد)، فیلترهای <span class="chip dim">همه</span><span class="chip dim">آنلاین</span><span class="chip dim">تعمیرات</span><span class="chip dim">غیرفعال</span> و دکمه‌ی عوض‌کردن نمای <b>کارت‌ها ↔ جدول</b>. هر کدوم رو راحت‌تری، همون — تفاوتی تو عملکرد ندارن.</p>
+  <h3>کارت هر کانفیگ چه چیزهایی داره؟</h3>
+  <ul>
+    <li><b>نشان پروتکل</b> (مثلاً VLESS) + <b>نقطه‌ی وضعیت</b>: سبز = آنلاین و آماده، زرد = تعمیرات، خاکستری = خاموش.</li>
+    <li><b>اسم (تگ)</b> و <b>شماره پورت</b> درشت — همون «شماره واحد» که تو فصل ۲ گفتم.</li>
+    <li><b>نوار ترافیک</b> با نمودار کوچک و مقدار گیگ.</li>
+    <li>دکمه‌های <span class="kbd">کپی لینک اتصال</span> و منوی سه‌نقطه (ویرایش/کلون/حذف) + آیکن چشم برای دیدن جزئیات.</li>
+  </ul>
+  <div class="qa">
+    <div class="h">؟ من هنوز هیچ کانفیگی ندارم — این صفحه خالیه!</div>
+    <p>عالیه، یعنی از صفر شروع می‌کنیم. برو فصل ۷ و اولین کانفیگت رو با «ساخت سریع» بساز؛ یا اگه حوصله داری، فصل ۹ رو بخون و با فورج مثل یه حرفه‌ای بسازش.</p>
+  </div>
+  <div class="pfoot"><span><b>سپیروت از صفر تا صد</b> · v2.6.0</span><span class="pg">۰۸</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═════════ 07 ═════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">فصل ۰۷</span>
+    <h2><span class="n">۰۷</span>ساخت سریع: اولین کانفیگت در ۳۰ ثانیه</h2>
+    <hr class="rule">
+  </div>
+  <p><span class="path">کانفیگ‌ها <span class="sep">←</span> ساخت سریع</span></p>
+  <div class="bigstep"><div class="num">۱</div><div class="tx">دکمه‌ی <span class="kbd">ساخت سریع</span> رو بزن. یه پنجره‌ی کوچک باز می‌شه که فقط ازت <b>پروتکل</b> می‌خواد (مثلاً VLESS).</div></div>
+  <div class="bigstep"><div class="num">۲</div><div class="tx">پروتکل رو انتخاب کن. زیرش یه خلاصه‌ی «این تنظیمات ساخته می‌شود» می‌بینی: اسم (تگ)، پورت آزادی که خودش پیدا کرده و کلیدهایی که خودش ساخته. یعنی پنل همه‌ی کارهای فنی رو به عهده گرفته.</div></div>
+  <div class="bigstep"><div class="num">۳</div><div class="tx"><span class="kbd">همین حالا بساز</span> بزن. چند ثانیه بعد کارت کانفیگت تو انبار ظاهر می‌شه و پیام «کانفیگ سریع ساخته شد» می‌بینی.</div></div>
+  <div class="analogy">
+    <div class="h">☕ یه تشبیه</div>
+    <p>ساخت سریع مثل سفارش «یه چای، هر چی سریع‌تر» تو کافه‌ست. فورج (فصل بعد) مثل اینه که خودت بری پشت بار و قند و چای و لیمو رو خودت انتخاب کنی.</p>
+  </div>
+  <div class="okbox">
+    <div class="h">✓ بعدش چی؟</div>
+    <p>کانفیگ ساختی ولی هنوز هیچ مشتری‌ای نداره. دو تا قدم مونده: (۱) یه <b>کاربر</b> بساز و بذارش روی این کانفیگ (فصل ۱۴)، (۲) <b>لینک اشتراک</b>ش رو بده به مشتری (فصل ۱۶ و ۱۹). تمام — همینقدر ساده.</p>
+  </div>
+  <div class="qa">
+    <div class="h">؟ چرا ساخت سریع کانفیگ «ضد فیلترینگ» نمی‌سازه؟</div>
+    <p>ساخت سریع تنظیمات معمولی می‌سازه که برای شروع و تست عالیه. برای استتار جدی (TLS/REALITY) از فورج استفاده کن — نگران پیچیدگی‌ش نباش، فصل ۹ همه‌ی فیلدهاش رو برات ترجمه می‌کنه.</p>
+  </div>
+  <div class="pfoot"><span><b>سپیروت از صفر تا صد</b> · v2.6.0</span><span class="pg">۰۹</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═════════ 08 ═════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">فصل ۰۸</span>
+    <h2><span class="n">۰۸</span>کدوم پروتکل برای کی؟ (به زبان آدمیزاد)</h2>
+    <hr class="rule">
+  </div>
+  <p>پروتکل = روش ورود به سرورت. جدول پایین رو نگه‌دار؛ جایی که تو فورج باید انتخاب کنی، برمی‌گردی به همین جدول:</p>
+  <table>
+    <tr><th style="width:110px">پروتکل</th><th>به زبان ساده</th><th style="width:170px">برای کی؟</th></tr>
+    <tr><td>VLESS</td><td>جدید، سبک و سریع؛ مخصوصاً وقتی با REALITY ترکیب بشه تقریباً قابل‌شناسایی نیست.</td><td>پیش‌فرض پیشنهادی امروز</td></tr>
+    <tr><td>VMess</td><td>کلاسیک و سازگار با همه‌جا؛ مخصوصاً پشت CDN.</td><td>سازگاری قدم اول</td></tr>
+    <tr><td>Trojan</td><td>خودشو ترافیک عادی HTTPS جا می‌زنه.</td><td>شبکه‌های حساس</td></tr>
+    <tr><td>Shadowsocks</td><td>ساده و سریع؛ نسخه‌ی ۲۰۲۲ش رمزنگاری جدیدتریه.</td><td>سادگی و سرعت</td></tr>
+    <tr><td>Hysteria2</td><td>روی موج UDP/QUIC سوار می‌شه — تو اینترنت لگ‌دار معجزه می‌کنه.</td><td>شبکه‌ی پرلگ و شلوغ</td></tr>
+    <tr><td>TUIC</td><td>خواهرِ Hysteria2 روی QUIC؛ کنترل ازدحام BBR.</td><td>همان شرایط Hysteria2</td></tr>
+    <tr><td>WireGuard</td><td>تونل رسمی، سریع و سبک؛ ولی امضاش شناخته‌شده‌ست.</td><td>دستگاه‌ها و سرور به سرور</td></tr>
+    <tr><td>AmneziaWG</td><td>همون WireGuard با لباس مبدل — ضد شناسایی (فصل ۱۳).</td><td>جایی که WireGuard بلاک شده</td></tr>
+    <tr><td>Mixed</td><td>یک پورت، هم HTTP هم SOCKS قبول می‌کنه.</td><td>ابزار و اتصال‌های محلی</td></tr>
+    <tr><td>MTProto</td><td>پروکسی بومی خودِ تلگرام (سایدکار mtg).</td><td>فقط داخل تلگرام</td></tr>
+    <tr><td>SOCKS5 / HTTP</td><td>پروکسی ساده برای خودت و اپ‌هات.</td><td>کارهای داخلی و تست</td></tr>
+    <tr><td>Dokodemo-door</td><td>«درِ شفاف» — ترافیک رو به مقصدی دیگه می‌فرسته.</td><td>سناریوهای پیشرفته</td></tr>
+  </table>
+  <div class="analogy">
+    <div class="h">☕ اگه گیج شدی</div>
+    <p>برای ۸۰٪ آدم‌ها: <b>VLESS + REALITY روی پورت ۴۴۳</b> بهترین انتخابه، و یه <b>Hysteria2</b> هم کنارش برای وقت‌هایی که اینترنت کُنده. همین دو تا بسازه، بقیه رو بعداً وقتی لازم شد یاد می‌گیری.</p>
+  </div>
+  <div class="qa">
+    <div class="h">؟ ترنسپورت چیه که کنارش می‌بینم؟</div>
+    <p>ترنسپورت = «وسیله‌ی نقلیه‌ی» پروتکله: TCP (ساده)، WebSocket (سوار قطار وب — از CDN رد می‌شه)، gRPC، HTTPUpgrade و XHTTP و mKCP. اگه نمی‌دونی چی بذاری، همون TCP یا WebSocket بذار و خیالت راحت.</p>
+  </div>
+  <div class="pfoot"><span><b>سپیروت از صفر تا صد</b> · v2.6.0</span><span class="pg">۱۰</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═════════ 09 ═════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">فصل ۰۹</span>
+    <h2><span class="n">۰۹</span>فورج قدم‌به‌قدم — هر فیلد یعنی چی</h2>
+    <hr class="rule">
+  </div>
+  <p><span class="path">کانفیگ‌ها <span class="sep">←</span> کانفیگ جدید</span> — فورج یه فرم بزرگه با یه سایدبار کنارش که <b>لینک اشتراک رو زنده</b> موقع تایپ می‌سازه. بریم فیلد به فیلد:</p>
+  <table>
+    <tr><th style="width:130px">فیلد</th><th>یعنی چی / چی بذارم؟</th></tr>
+    <tr><td>پروتکل</td><td>از جدول فصل ۸ انتخاب کن. زیر همین فیلد توضیح هر پروتکل هم نوشته شده.</td></tr>
+    <tr><td>تگ (Tag)</td><td>اسم مستعار کانفیگ. یه اسم بامزه و واضح بذار: <span class="mono">vless-main-443</span>. این اسم تو لینک‌ها و گزارش‌ها دیده می‌شه.</td></tr>
+    <tr><td>پورت</td><td>شماره درِ ورودی. برای VLESS+REALITY بذار ۴۴۳؛ غیر از اون پورت آزاد بذار (دکمه‌ی جادویی فصل ۱۰ خودش پیدا می‌کنه).</td></tr>
+    <tr><td>گوش‌دادن (Listen)</td><td>روی کدوم آی‌پی سرور گوش بده. اگه نمی‌دونی، دست نزن — پیش‌فرض خوبه.</td></tr>
+    <tr><td>ترنسپورت</td><td>فصل ۸ گفتیم: TCP یا WebSocket معمولاً کافیه. برای WebSocket مسیر (path) و هاست هم می‌خواد که خودش پیش‌نهاد می‌ده.</td></tr>
+    <tr><td>امنیت (Security)</td><td><b>none</b> = بدون استتار (فقط تست). <b>TLS</b> = گواهی معتبر لازم داره (فصل ۲۴). <b>REALITY</b> = گواهی نمی‌خواد و خودش جعل هویت می‌کنه — برای دامنه‌ی واقعی، dest و shortIds رو خودش می‌سازه، تو فقط دست نزن!</td></tr>
+    <tr><td>فلو (Flow)</td><td>فقط برای VLESS: گزینه‌ی <span class="mono">xtls-rprx-vision</span> با REALITY جفت طلایی می‌سازه — اگه REALITY داری روشنش کن.</td></tr>
+    <tr><td>Fallbacks</td><td>«اگه کسی اشتباه زد ببرش اون‌جا» — برای پیشرفته‌ها؛ ترکیب چند پروتکل روی یک پورت. تازه‌کار: رد شو.</td></tr>
+    <tr><td>Sniffing / Mux</td><td>اسنیف = پنل نگاه می‌کنه ترافیک چیه (برای روتینگ بهتر). Mux = چند اتصال توی یک لوله. پیش‌فرض بذار بمونه.</td></tr>
+  </table>
+  <div class="okbox">
+    <div class="h">✓ قانون طلایی فورج</div>
+    <p>هر فیلدی که معناش رو نمی‌دونی، به پیش‌فرضش دست نزن. پنل طوری طراحی شده که پیش‌فرض‌هاش سالم باشن؛ تو فقط ۳ تصمیم مهم می‌گیری: پروتکل، پورت و نوع امنیت.</p>
+  </div>
+  <div class="qa">
+    <div class="h">؟ لینکِ کنار فرم که هی عوض می‌شه چیه؟</div>
+    <p>اون پیش‌نمایش زنده‌ی «لینک اشتراک/اتصال» همینه که کاربرت آخرش می‌گیره. هر تغییری تو فرم بدهی، لینک همون لحظه آپدیت می‌شه — یعنی همیشه قبل از ذخیره می‌بینی خروجی چی از آب درمیاد.</p>
+  </div>
+  <div class="pfoot"><span><b>سپیروت از صفر تا صد</b> · v2.6.0</span><span class="pg">۱۱</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═════════ 10 ═════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">فصل ۱۰</span>
+    <h2><span class="n">۱۰</span>دو دکمه‌ی جادویی: تشخیص IP و پورت آزاد</h2>
+    <hr class="rule">
+  </div>
+  <p>دو تا دردسر کلاسیک تازه‌کارها: «لینک کار نمی‌کنه چون IP توش اشتباهه» و «خطای پورت اشغال». فورج برای هر دوش دکمه داره:</p>
+  <div class="grid2">
+    <div class="card"><div class="t">✛ تشخیص خودکار IP — کنار فیلد «گوش‌دادن»</div><div class="s">روزش بزنی، منویی باز می‌شه با: <b>IP عمومی سرورت</b> (خودش از اینترنت می‌پرسه)، IPهای داخلی و <span class="mono">0.0.0.0</span>. آی‌پی عمومی رو انتخاب کن — و مهم‌تر: با همین انتخاب، <b>لینکِ کنار فرم هم به آی‌پی واقعی سوییچ می‌کنه</b> تا هیچ‌وقت IP اشتباه به دست مشتری نرسه.</div></div>
+    <div class="card"><div class="t">✦ چوب‌دان پورت آزاد — کنار فیلد «پورت»</div><div class="s">یه لمس: اولین پورتِ خالی سرور رو پیشنهاد می‌ده (۴۴۳ و ۸۴۴۳ و پورت‌های عمومی معروف، بعد پورت‌های بالا). دیگه نه «پورت اشغال» می‌بینی نه دو تا کانفیگ سر هم سوار می‌شن.</div></div>
+  </div>
+  <div class="analogy">
+    <div class="h">☕ چرا 0.0.0.0 خطرناکه تو لینک؟</div>
+    <p><span class="mono">0.0.0.0</span> یعنی «روی همه‌ی آی‌پی‌ها گوش بده» — برای گوش دادن خوبه، ولی تو لینک مشتری یعنی هیچ! اپ مشتری به «هیچ‌جا» وصل می‌شه و می‌گه «اتصال برقرار نشد». قانون: گوش‌دادن = داخلی؛ لینک مشتری = آی‌پی/دامنه‌ی واقعی. این دو تا رو پنل برات جدا نگه می‌داره.</p>
+  </div>
+  <div class="qa">
+    <div class="h">؟ پشت CDN هستم (مثل کلودفلر)، چی کار کنم؟</div>
+    <p>گوش‌دادن رو <span class="mono">0.0.0.0</span> بذار، پروتکل رو WebSocket بذار، و تو لینک مشتری آی‌پی/نام دامنه‌ی CDN باشه — نه آی‌پی واقعی سرورت. همین تنظیم ساده کل ماجراهاست؛ خود لینک رو از سایدبار کپی کن که همیشه درست پر بشه.</p>
+  </div>
+  <div class="pfoot"><span><b>سپیروت از صفر تا صد</b> · v2.6.0</span><span class="pg">۱۲</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═════════ 11 ═════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">فصل ۱۱</span>
+    <h2><span class="n">۱۱</span>بعد از ساخت: کارت کانفیگ و لینک‌ها</h2>
+    <hr class="rule">
+  </div>
+  <p>کانفیگت ساخته شد و تو انبار نشسته. حالا این کارها رو باهاش می‌تونی بکنی:</p>
+  <ul>
+    <li><span class="kbd">کپی لینک اتصال</span> — لینک خام این کانفیگ (برای فرستادن مستقیم به یکی).</li>
+    <li><b>آیکن چشم / کلیک روی کارت</b> — جزئیات: تنظیمات کامل، کلاینت‌های سوارشده و آمار.</li>
+    <li><b>منوی سه‌نقطه</b> — ویرایش (همون فورج، ولی پرشده)، <b>کلون</b> (یه کپی یکسان با پورت جدید — راه سریع برای ساخت مشابه)، و حذف (با تایید).</li>
+    <li><b>اضافه‌کردن کلاینت</b> — می‌تونی مستقیماً روی خود کانفیگ هم کلید بسازی (UUID/رمز)؛ ولی راه استاندارد و تمیز همون ساختن «کاربر» از صفحه‌ی کاربرانه که فصل ۱۴ می‌گیم — چون اونجا سقف حجم و انقضا هم کنترل می‌شه.</li>
+  </ul>
+  <div class="qa">
+    <div class="h">؟ «کلاینت» با «کاربر» چه فرقی داره؟</div>
+    <p>«کلاینت» فقط یه جفت‌کلید روی یک کانفیگ خاصه — مثل یه کلید اضافه برای یک در. «کاربر» ولی موجودیت کامله: هویت + سقف‌ها + دستگاه‌ها + می‌تونه همزمان روی چند کانفیگ سوار باشه. برای فروش، همیشه کاربر بساز؛ کلاینتِ مستقیم فقط برای آزمایش.</p>
+  </div>
+  <div class="analogy">
+    <div class="h">☕ وضعیت‌های کارت کانفیگ</div>
+    <p><span class="chip ok">آنلاین</span> در باز و آماده‌ست · <span class="chip am">تعمیرات</span> موقتی از دسترس خارج شده (خودت خاموشش کردی) · <span class="chip dim">غیرفعال</span> خاموش. خاموش/روشن‌کردن از منوی سه‌نقطه‌ست — برای «مکث» بدون حذف خیلی به کار میاد.</p>
+  </div>
+  <div class="okbox">
+    <div class="h">✓ نکته‌ی حرفه‌ای کوچک</div>
+    <p>اسم‌گذاری (تگ) رو جدی بگیر: <span class="mono">vless-443-main</span> و <span class="mono">hy2-fast</span> وقتی ۲۰ تا کانفیگ داری، نجاتت می‌دهن. الگو بذار: پروتکل-پورت-کاربرد.</p>
+  </div>
+  <div class="pfoot"><span><b>سپیروت از صفر تا صد</b> · v2.6.0</span><span class="pg">۱۳</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═════════ 12 ═════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">فصل ۱۲</span>
+    <h2><span class="n">۱۲</span>اتوپایلوت — چند کانفیگ با یک کلیک</h2>
+    <hr class="rule">
+  </div>
+  <p><span class="path">کانفیگ‌ها <span class="sep">←</span> اتوپایلوت</span> — می‌خوای یک‌جا یه دسته کانفیگ آماده‌ی کار بسازی؟ سه قدم:</p>
+  <div class="bigstep"><div class="num">۱</div><div class="tx"><b>منبع:</b> یا «هم‌ساز با اینباند موجود» (یه کانفیگ موجود رو انتخاب می‌کنی و پنل از روی اون کپی‌های جدید می‌سازه — با همون تنظیمات و حتی کاربرهاش)، یا «انتخاب چند پروتکل» (خودت تیک پروتکل‌ها رو می‌زنی).</div></div>
+  <div class="bigstep"><div class="num">۲</div><div class="tx"><b>برنامه‌ی ساخت:</b> یه جدول می‌بینی: هر پروتکل با کدوم پورت (عددها قابل ویرایشن)، با کدوم موتور اجرا می‌شه و چه کاربری براش ساخته بشه. «پورت شروع» و «تخصیص پیوسته» هم اینجاست — یعنی پورت‌ها پشت سر هم بچینن (مثلاً ۱۰۰۱۳، ۱۰۰۱۴، ۱۰۰۱۵).</div></div>
+  <div class="bigstep"><div class="num">۳</div><div class="tx"><b>ساخت ناوگان:</b> بزن و منتظر بمون؛ هر ردیف تیک می‌خوره. آخرش گزارش میاد با <b>لینک اشتراک هر کانفیگ</b>، دکمه‌ی «کپی همه لینک‌ها» و برای امنزیاWG «لینک دوم» (فایل تنظیمات).</div></div>
+  <figure>
+    <div class="shot"><img src="shot-autopilot-fa.png" alt="اتوپایلوت — برنامه ساخت" style="width:62%; display:block; margin:0 auto;"></div>
+    <figcaption><span class="step">شکل ۲</span><span>قدم ۲ اتوپایلوت: پورت‌های خودکار، موتور هر پروتکل و هشدار «از قبل موجود است».</span></figcaption>
+  </figure>
+  <div class="qa">
+    <div class="h">؟ هشدار «از قبل موجود است — نسخه‌ی دوم ساخته می‌شود» بد است؟</div>
+    <p>نه، فقط شفافه: یعنی همین پروتکل رو از قبل داری و با این کار یه دونه‌ی دیگر هم ساخته می‌شه. اگه نمی‌خوای، از تیکش بردار؛ اگه می‌خوای (مثلاً برای پورت دیگه) ادامه بده.</p>
+  </div>
+  <div class="qa">
+    <div class="h">؟ اگه وسط کار یکی‌شون خطا بده چی؟</div>
+    <p>ناوگان‌سازی «اتمیک» است: اگه یکی از پروتکل‌ها شکست بخورده باشه، چیزهایی که ساخته شده جمع می‌شه (رول‌بک) تا نیمه‌کاره نمونه‌های خراب جا نمونه. دوباره امتحان کن.</p>
+  </div>
+  <div class="pfoot"><span><b>سپیروت از صفر تا صد</b> · v2.6.0</span><span class="pg">۱۴</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═════════ 13 ═════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">فصل ۱۳</span>
+    <h2><span class="n">۱۳</span>امنزیاWG خودمونی</h2>
+    <hr class="rule">
+  </div>
+  <p><b>WireGuard</b> یه تونل خیلی سریع و دوست‌داشتنیه، ولی یه ضعف داره: امضاش معروفه و راحت قابل شناسایی. <b>AmneziaWG</b> همون WireGuardه با یه ترفند: کنار بسته‌های واقعی، مشتی «بسته‌ی الکی» هم قاطی‌شون می‌کنه و اعداد دست‌دادنش رو عوض می‌کنه — برای ناظرِ شبکه، دیگر شبیه WireGuardِ معمولی نیست.</p>
+  <div class="analogy">
+    <div class="h">☕ تشبیه</div>
+    <p>WireGuard مثل ماشینه که همه صداشو می‌شناسن. AmneziaWG همون ماشینه با اگزوز تغییر یافته و رنگ عوض‌شده — موتور و فرمان همونه، ولی شناسایش سخت.</p>
+  </div>
+  <h3>تو پنل چطوری ازش استفاده می‌کنی؟</h3>
+  <ul>
+    <li>تو فورج پروتکل <span class="mono">AmneziaWG</span> رو انتخاب کن. اعداد گیم‌داری (Jc، Jmin/Jmax، S1/S2، H1–H4) اگر دست نزنی خودش مقادیر استاندارد و امن می‌ذاره — دست نزن مگه اینکه دقیقاً بدونی چی‌کار می‌کنی.</li>
+    <li>به مشتری دوتا چیز می‌رسه: <b>فایل <span class="mono">.conf</span></b> (که می‌برنش تو اپ Amnezia و تمام — کلید اختصاصی خودشه، کلید سرور هرگز نمی‌ره بیرون) و <b>لینک <span class="mono">wireguard://</span></b> که اپ‌هایی مثل v2rayN و NekoBox و Hiddify مستقیم می‌خونن.</li>
+    <li>موقع ساخت کاربر/اشتراک هم همین‌ها خودکار همراه لینک‌های دیگه میاد — کاری نداری.</li>
+  </ul>
+  <div class="qa">
+    <div class="h">؟ روی سرور من AmneziaWG نصب نیست — خراب شد؟</div>
+    <p>نه! پنل <b>همیشه</b> فایل‌های تنظیمات سرور و کلاینت رو کامل می‌نویسه و نگه می‌داره. فقط اجراش به دست خود سروره: وقتی <span class="mono">awg-quick</span> یا <span class="mono">amneziawg-go</span> نصب بشه، همون فایل‌ها بدون هیچ تغییری زنده می‌شن. پنل هم دقیقاً می‌گه چی کمه و کجا نصبش کنی.</p>
+  </div>
+  <div class="pfoot"><span><b>سپیروت از صفر تا صد</b> · v2.6.0</span><span class="pg">۱۵</span><span>EPODONIOS</span></div>
+</div>
+<!-- ═════════ 14 ═════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">فصل ۱۴</span>
+    <h2><span class="n">۱۴</span>ساختن کاربر — هر فیلدش رو با هم می‌ریم</h2>
+    <hr class="rule">
+  </div>
+  <p><span class="path">کاربران <span class="sep">←</span> کاربر جدید</span> — این مهم‌ترین فرمی‌ه که تو کل پنل باز می‌کنی؛ هر مشتری جدیدت با همین فرم ساخته می‌شه:</p>
+  <figure>
+    <div class="shot"><img src="shot-user-dialog-fa.png" alt="دیالوگ کاربر جدید" style="width:34%; display:block; margin:0 auto;"></div>
+    <figcaption><span class="step">شکل ۳</span><span>دیالوگ «کاربر جدید» با قالب فروش، سقف‌ها و دو سوییچ در انتظار/تمدید خودکار.</span></figcaption>
+  </figure>
+  <table>
+    <tr><th style="width:150px">فیلد</th><th>یعنی چی / چی بذارم؟</th></tr>
+    <tr><td>نام کاربری</td><td>هویت مشتریت. حروف انگلیسی/عدد/خط‌تیره؛ مثلاً <span class="mono">ali_2026</span>. (یادداشت فارسی هم می‌تونی جدا اضافه کنی تا گم نشه.)</td></tr>
+    <tr><td>کل حجم (گیگ)</td><td>سقف ترافیک. خالی = نامحدود. برای بسته‌ی معمولی ۵۰ تا ۲۰۰ گیگ.</td></tr>
+    <tr><td>انقضا (روز)</td><td>چند روز اعتبار داره؟ ۳۰ روز = پلن ماهانه. خالی = هیچ‌وقت منقضی نمی‌شه.</td></tr>
+    <tr><td>محدودیت آی‌پی</td><td>چند آی‌پی همزمان؟ ۰ = بی‌سقف؛ ضداشتراک‌گذاری: ۱ یا ۲.</td></tr>
+    <tr><td>سقف دستگاه (HWID)</td><td>چند گوشی/لپ‌تاپ؟ خالی = بی‌سقف؛ ۲ یعنی گوشی + لپ‌تاپ. اجراش در صفحه‌ی اشتراک مشتری انجام می‌شه.</td></tr>
+    <tr><td>دوره ریست</td><td>سقف حجم هر روز/هفته/ماه صفر بشه؟ برای پلن‌های دوره‌ای عالیه.</td></tr>
+    <tr><td>در انتظار</td><td>ساعت از اولین وصل مشتری شروع می‌شه نه از الان (فصل ۱۸).</td></tr>
+    <tr><td>تمدید خودکار</td><td>تا انقضا بره، خودکار پنجره‌ی جدید باز می‌شه و ادامه می‌ده (فصل ۱۸).</td></tr>
+    <tr><td>اینباندها</td><td>مشتری به کدوم درها دسترسی داشته باشه؟ <span class="kbd">انتخاب همه آنلاین‌ها</span> یا تیک دستی.</td></tr>
+    <tr><td>قالب‌های فروش (چیپ‌ها)</td><td>اگه از نماینده‌ها قالب ساخته باشی (مثلاً «Starter 50G»)، اینجا یه کلیکه و بقیه‌ی فیلدها رو پر می‌کنه.</td></tr>
+  </table>
+  <div class="okbox">
+    <div class="h">✓ دستور پخت یه کاربر خوب</div>
+    <p>اسم واضح + قالب فروش (یا ۵۰ گیگ/۳۰ روز) + آی‌پی = ۲ + انتخاب همه‌ی آنلاین‌ها + (اگه خرید قطعی نشده) تیک «در انتظار» → <span class="kbd">ذخیره کاربر</span>. تمام!</p>
+  </div>
+  <div class="pfoot"><span><b>سپیروت از صفر تا صد</b> · v2.6.0</span><span class="pg">۱۶</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═════════ 15 ═════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">فصل ۱۵</span>
+    <h2><span class="n">۱۵</span>جدول کاربرها — چیپ‌ها یعنی چی</h2>
+    <hr class="rule">
+  </div>
+  <p>صفحه‌ی «کاربران» مثل یه اکسل زنده‌ست. ستون‌ها: <b>کاربر / وضعیت / کانفیگ‌ها / ترافیک / انقضا / محدودیت آی‌پی / عملیات</b>. چند تا چیپ که باید معناشون رو بدونی:</p>
+  <table>
+    <tr><th style="width:170px">چیپ/ستون</th><th>معنی خودمونی</th></tr>
+    <tr><td><span class="chip ok">فعال</span></td><td>حساب سالمه و داره استفاده می‌شه.</td></tr>
+    <tr><td><span class="chip am">در انتظار اولین اتصال</span></td><td>ساخته شده ولی هنوز وصل نشده؛ ساعت هنوز شروع نشده (فصل ۱۸).</td></tr>
+    <tr><td><span class="chip am">منقضی شده</span></td><td>زمانش تموم شده — یا تمدید کن یا خودش خاموشه.</td></tr>
+    <tr><td><span class="chip am">حجم تمام شده</span></td><td>سقف گیگ پریده؛ صبر دوره‌ی ریست یا تمدید.</td></tr>
+    <tr><td><span class="chip dim">غیرفعال</span></td><td>خودت خاموشش کردی (مثلاً تا تسویه حساب).</td></tr>
+    <tr><td>چیپ «≈۴ روز تا سقف · ۳.۲ گیگ/روز»</td><td>پیش‌بینی هوشمند: با این سرعت مصرف، ۴ روز دیگه سقفش پر می‌شه. زرد زیر ۷ روز، قرمز زیر ۳ روز — وقت تمدید بفروشی!</td></tr>
+    <tr><td>ستون انقضا</td><td>«۱۴ روز باقی‌مانده» یا «منقضی ۳ روز پیش» یا «بدون انقضا».</td></tr>
+    <tr><td>ستون آی‌پی (با آیکن چشم)</td><td>هاور/کلیک کن: چند آی‌پی واقعاً فعال داره؛ اگه از سقفش گذشته قرمز می‌شه.</td></tr>
+    <tr><td>ستون HWID</td><td>چند دستگاه ثبت کرده (اگه سقف دستگاه گذاشته باشی).</td></tr>
+  </table>
+  <p>بالاتر هم جستجو + فیلترهای وضعیت (<span class="chip dim">همه</span><span class="chip dim">فعال</span><span class="chip dim">منقضی</span><span class="chip dim">سقف‌خورده</span><span class="chip dim">در انتظار</span><span class="chip dim">غیرفعال</span>) و مرتب‌سازی (جدیدترین/نام/ترافیک/انقضا) هست — برای پیدا کردن مشتری‌ها تو لیست طولانی.</p>
+  <div class="qa">
+    <div class="h">؟ تیک‌های اول جدول چیه؟</div>
+    <p>برای کارهای گروهی! هر چند تا کاربر که تیک بزنی، یه نوار عملیات پایین باز می‌شه با ۱۱ دکمه — فصل ۱۷ فقط درباره‌ی همونه.</p>
+  </div>
+  <div class="pfoot"><span><b>سپیروت از صفر تا صد</b> · v2.6.0</span><span class="pg">۱۷</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═════════ 16 ═════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">فصل ۱۶</span>
+    <h2><span class="n">۱۶</span>کشوی کاربر: لینک، تمدید، دستگاه‌ها</h2>
+    <hr class="rule">
+  </div>
+  <p>روی هر ردیف از جدول کاربرها کلیک کنی، یه کشو (پنل کناری) باز می‌شه — پنل رفاقتیِ هر مشتری. بخش‌هاش:</p>
+  <div class="grid2">
+    <div class="card"><div class="t">اشتراک</div><div class="s"><span class="kbd">کپی لینک اشتراک</span> (همون <span class="mono">/sub/xxxx</span> که به مشتری می‌دی) و <span class="kbd">باز کردن صفحه پاس</span> که خود صفحه رو تو تب جدید باز می‌کنه. برای هر کانفیگِ متصل هم لینک و کلید جداگانه کپی‌پذیره.</div></div>
+    <div class="card"><div class="t">مصرف</div><div class="s">«۳۲ از ۱۰۰ گیگ» با نوار پیشرفت. دکمه‌ی <span class="kbd">تمدید اکنون</span> = دادن یه پنجره‌ی کامل از همین لحظه + صفر شدن مصرف (همون کاری که تمدید خودکار خودکار می‌کنه، ولی دستی). چند بار تمدید شده رو هم کنارش می‌بینی.</div></div>
+    <div class="card"><div class="t">دستگاه‌های ثبت‌شده</div><div class="s">لیست دستگاه‌هایی که با این اشتراک اومدن (نوع مرورگر/سیستم + آخرین بار). <span class="kbd">بازنشانی دستگاه‌ها</span> همه رو فراموش می‌کنه — وقتی مشتری گوشی عوض کرد، اینو بزن تا جای دستگاه جدید باز شه.</div></div>
+    <div class="card"><div class="t">منطقه‌ی خطر</div><div class="s">حذف کاربر — با تایید و اخطار «برگشت‌پذیر نیست». قبل از حذف، دو بار فکر کن؛ بهتره به‌جای حذف، غیرفعالش کنی تا سابقه بمونه.</div></div>
+  </div>
+  <div class="qa">
+    <div class="h">؟ مشتری می‌گه «دستگاه جدید وصل نمی‌شه»</div>
+    <p>یعنی سقف دستگاهش پُره. برو تو کشوش → «بازنشانی دستگاه‌ها» → ازش بخواه با دستگاه جدید دوباره لینک رو باز کنه. حل شد.</p>
+  </div>
+  <div class="qa">
+    <div class="h">؟ «تمدید اکنون» با «صفر کردن ترافیک» چه فرقی داره؟</div>
+    <p>«صفر کردن ترافیک» فقط مصرف رو پاک می‌کنه (تاریخ انقضا همون می‌مونه). «تمدید اکنون» یه پنجره‌ی کامل جدید از الان باز می‌کنه (مثلاً ۳۰ روز دیگه) و مصرف رو هم صفر می‌کنه — درست مثل فروش یه دوره‌ی نو.</p>
+  </div>
+  <div class="pfoot"><span><b>سپیروت از صفر تا صد</b> · v2.6.0</span><span class="pg">۱۸</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═════════ 17 ═════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">فصل ۱۷</span>
+    <h2><span class="n">۱۷</span>عملیات گروهی — ۱۱ دکمه برای کارهای دسته‌جمعی</h2>
+    <hr class="rule">
+  </div>
+  <p>چند نفر رو تیک بزن — نوار پایین جدول با ۱۱ اکشن باز می‌شه. کی به درد چه کاری می‌خوره:</p>
+  <figure>
+    <div class="shot"><img src="shot-users-bulk-fa.png" alt="نوار عملیات گروهی" style="width:62%; display:block; margin:0 auto;"></div>
+    <figcaption><span class="step">شکل ۴</span><span>دو کاربر انتخاب شده؛ نوار ۱۱ دکمه‌ای عملیات گروهی بالای جدول باز است.</span></figcaption>
+  </figure>
+  <table>
+    <tr><th style="width:160px">دکمه</th><th>کی استفاده کنم؟</th></tr>
+    <tr><td>فعال کردن / غیرفعال کردن</td><td>بعد از تسویه همه رو روشن کن؛ یا تا اعلام قطعی سرور، همه رو خاموش.</td></tr>
+    <tr><td>صفر کردن ترافیک</td><td>ریست دوره‌ای دستی برای یه گروه خاص.</td></tr>
+    <tr><td>تمدید</td><td>پایان پلن مشترک (مثلاً کل مشتری‌های ماهانه‌ی اول ماه) — یه پنجره‌ی کامل از الان به همه.</td></tr>
+    <tr><td>در انتظار بماند / خارج از انتظار</td><td>می‌خوای شمارش یه گروه تا اولین وصل‌شدنشون مکث کنه یا از الان شروع شه.</td></tr>
+    <tr><td>تمدید خودکار روشن / خاموش</td><td>سوییچ «اشتراک غلتان» رو گروهی روشن/خاموش کن.</td></tr>
+    <tr><td>ریست دستگاه‌ها</td><td>مثلاً بعد از تعویض عمومی گوشی‌ها یا ری‌ست اشتراک کلاسی.</td></tr>
+    <tr><td>تنظیم محدودیت‌ها</td><td>یه دیالوگ با «روزهای اعتبار / سقف ترافیک / سقف آی‌پی» — هر فیلد رو خالی بذاری، همون مقدار قبلی هر نفر حفظ می‌شه؛ فقط چیزی رو پر کن که می‌خوای عوض شه. ۰ = نامحدود.</td></tr>
+    <tr><td>حذف</td><td>با دیالوگ تایید. مراقب باش!</td></tr>
+  </table>
+  <div class="qa">
+    <div class="h">؟ «ساخت گروهی» همینه؟</div>
+    <p>نه، «ساخت گروهی» دکمه‌ی جداست (بالا کنار «کاربر جدید»): اسم پیشوند + تعداد (تا ۱۰۰) می‌دی، مثلاً <span class="mono">school_</span> و ۴۰ تا، و ۴۰ کاربر هم‌تنظیم می‌سازه. برای فروش عمده و باشگاه‌ها فوق‌العاده‌ست. ورود/خروج JSON هم کنارشه (خروجی بگیر، کپی کن، جای دیگه بریز).</p>
+  </div>
+  <div class="pfoot"><span><b>سپیروت از صفر تا صد</b> · v2.6.0</span><span class="pg">۱۹</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═════════ 18 ═════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">فصل ۱۸</span>
+    <h2><span class="n">۱۸</span>«در انتظار» و «تمدید خودکار» — با قصه‌ی مشتری</h2>
+    <hr class="rule">
+  </div>
+  <p>اینا دو تا فیچر فروش‌پسندِ پنل‌ان و ارزششون با یه قصه معلوم می‌شه:</p>
+  <div class="analogy">
+    <div class="h">☕ قصه‌ی علی</div>
+    <p>علی ازت اشتراک ۳۰ روزه خرید، امروز سه‌شنبه‌ست، ولی علی تا جمعه سرش شلوغه و اصلاً وصل نمی‌شه. اگه «در انتظار» رو نزده باشی، سه روز از ۳۰ روزش الکی سوزیده. با تیک «در انتظار (شروع با اولین اتصال)»، ساعتِ علی از <b>اولین وصل‌شدنش</b> شروع می‌شه — نه از لحظه‌ی خرید. تو جدول هم می‌بینی‌ش: <span class="chip am">در انتظار اولین اتصال</span>. لحظه‌ای که علی وصل شه، چیپ می‌شه «فعال» و حتی می‌تونی اعلان «فعال شد» رو تو تلگرام بگیری.</p>
+  </div>
+  <div class="analogy">
+    <div class="h">☕ قصه‌ی سارا</div>
+    <p>سارا مشتری ثابته و هر ماه ادامه می‌ده، ولی همیشه یادش می‌ره تمدید کنه. قبلاً: سر ۳۰ روز، حسابش می‌خوابید و سارا عصبانی. الان: روی حساب سارا «تمدید خودکار» رو روشن کردی — تا انقضا برسه، خود پنل یه پنجره‌ی کامل تازه باز می‌کنه، مصرف رو صفر می‌کنه و شمارنده‌ی «تمدید‌ها» یکی زیاد می‌شه. اشتراک سارا مثل اشتراک موبایلش غلت می‌خوره و تو فقط آخر ماه پول رو حساب می‌کنی.</p>
+  </div>
+  <h3>نکته‌های ریز</h3>
+  <ul>
+    <li>اگه کسی رو دوباره بذاری روی «در انتظار»، ساعتش دوباره تا اولین وصل متوقف می‌شه — برای «تعطیلات مشتری» هم به درد می‌خوره.</li>
+    <li>«تمدید خودکار» فقط وقتی کار می‌کنه که حساب واقعاً شروع شده باشه (لنگر داشته باشه) — پس با «در انتظار» هم قشنگ جفت می‌شه.</li>
+    <li>هردو رو گروهی هم می‌تونی بزنی (فصل ۱۷) و تو دیالوگ ساخت کاربر هم سوییچ‌شون کنار هم هستند (فصل ۱۴).</li>
+  </ul>
+  <div class="qa">
+    <div class="h">؟ از کجا بفهمم کی «در انتظار» فعال شده؟</div>
+    <p>تو کشوی کاربر، جای «شروع از فلان تاریخ» می‌نویسه «در انتظار اولین اتصال»؛ بعد از اولین وصل، همون‌جا تاریخ شروع واقعی ثبت می‌شه. در «فعالیت‌ها» هم رویدادش ثبت می‌شه.</p>
+  </div>
+  <div class="pfoot"><span><b>سپیروت از صفر تا صد</b> · v2.6.0</span><span class="pg">۲۰</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═════════ 19 ═════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">فصل ۱۹</span>
+    <h2><span class="n">۱۹</span>صفحه‌ی اشتراک (/sub) — کاربرت چی می‌بینه؟</h2>
+    <hr class="rule">
+  </div>
+  <p>هر کاربر یه لینک شخصی داره: <span class="mono">https://آدرس-پنل/sub/کد-یکانه</span>. مشتری این لینک رو تو مرورگر باز کنه، یه «کارت مداری» خوشگل می‌بینه:</p>
+  <ul>
+    <li><b>نوار مصرف و روزهای باقی‌مانده</b> — مشتری خودش می‌بینه چقدر مونده؛ دیگه بهت پیام نمی‌ده «چقدر مونده به من؟».</li>
+    <li><b>لینک اشتراک + QR</b> — با هر اپ کلاینتی اسکن یا کپی می‌کنه.</li>
+    <li><b>اتصال یک‌کلیکی</b> — دکمه‌های مستقیم برای اپ‌های معروف (Hiddify، V2Box، Streisand و…)؛ لمس کن، اپ باز می‌شه و همه‌چیز خودکار ایمپورت می‌شه.</li>
+    <li><b>لیست کانفیگ‌ها</b> — هر کانفیگ با دکمه‌ی کپی. برای کانفیگ‌های امنزیاWG همون‌جا متن فایل <span class="mono">.conf</span> رو می‌ده.</li>
+    <li><b>زبان خودش</b> — صفحه برای مشتری به ۶ زبانه؛ مستقل از زبان پنل ادمین.</li>
+    <li>اگه حسابش منقضی/تمام‌حجم/در انتظار باشه، <b>نشان وضعیت</b> بالای کارت می‌بینه؛ «در انتظار» با توضیح «زمان از اولین اتصال شروع می‌شود».</li>
+    <li>اگه سقف دستگاه پر شده باشه، صفحه‌ی مخصوص «سقف دستگاه‌ها پر شد» می‌بینه با شمارنده — و می‌فهمه باید بهت پیام بده.</li>
+  </ul>
+  <div class="qa">
+    <div class="h">؟ اپ مشتری خودش چطور لینک رو می‌خونه؟</div>
+    <p>اپ‌ها خودشون می‌فهمن چی بخوان: Clash/Mihomo خروجی Clash می‌گیره، sing-box/Hiddify خروجی sing-box، بقیه Base64 — بدون هیچ تنظیمی از طرف تو یا مشتری. فرمت‌های خاص (<span class="mono">?format=raw / clash / singbox</span>) هم برای دست‌کاری دستی هست.</p>
+  </div>
+  <div class="analogy">
+    <div class="h">☕ پیشنهاد</div>
+    <p>یه بار خودت لینک یکی از کاربرهای آزمایشی رو باز کن و از چشم مشتری ببینش — این بهترین راه فهمیدن اینه که طرف مقابل دقیقاً چی تجربه می‌کنه.</p>
+  </div>
+  <div class="pfoot"><span><b>سپیروت از صفر تا صد</b> · v2.6.0</span><span class="pg">۲۱</span><span>EPODONIOS</span></div>
+</div>
+<!-- ═════════ 20 ═════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">فصل ۲۰</span>
+    <h2><span class="n">۲۰</span>گروه‌های ساب + نماینده‌ها و قالب‌های فروش</h2>
+    <hr class="rule">
+  </div>
+  <h3>گروه‌های ساب — چند نفر، یک لینک</h3>
+  <p>یه «گروه ساب» یه لینک عمومیه که کانفیگ‌های چند کاربر رو یک‌جا نشون می‌ده — مثلاً برای یه خونواده، یه کلاس، یا یه دفتر کار. در <span class="path">گروه‌های ساب <span class="sep">←</span> گروه جدید</span>: اسم بده، اعضا رو از لیست تیک بزن، (اختیاری) رمز بذار و ذخیره کن. <span class="kbd">کپی لینک عمومی</span> همون لینک <span class="mono">/sub/توکن</span> است که پخشش کنی بین اعضا. اعضا رو هر وقت خواستی عوض کن — <b>لینک هیچ‌وقت عوض نمی‌شه</b>. رمز داره یا نه، تو ستون «محافظت» دیده می‌شه؛ دکمه‌ی «پیش‌نمایش» هم صفحه رو از چشم عضو نشون می‌ده.</p>
+  <h3>نماینده‌ها (ریسلر) — فروشنده‌ی زیر دستت</h3>
+  <p>در <span class="path">نماینده‌ها <span class="sep">←</span> ریسلر جدید</span>: یوزر/پس‌ورد مستقل بده، <b>سهمیه کاربر</b> (چند نفر بفروشه) و سقف ترافیک تعیین کن. ریسلر با اکانت خودش وارد می‌شه ولی فقط صفحه‌ی «کاربران» رو می‌بینه — و فقط کاربرهای خودش رو. از سهمیه رد شه، خود API جلوش رو می‌گیره. حذفش هم کاربرهاش رو نمی‌کشه؛ فقط به تو برمی‌گردن.</p>
+  <div class="grid2">
+    <div class="card"><div class="t">برند هر ریسلر (وایت‌لیبل)</div><div class="s">توی همین دیالوگ: <b>نام برند</b>، <b>آدرس لوگو</b> و <b>رنگ تأکیدی</b> بده — صفحه‌ی اشتراکِ مشتری‌های اون ریسلر با برند خودش بالا میاد، انگار پنل مال خودشه! خالی بذاری، برند پنل تو اعمال می‌شه.</div></div>
+    <div class="card"><div class="t">قالب‌های فروش</div><div class="s">تب دوم: بسته‌های آماده («پلن برنزی ۵۰ گیگ / ۳۰ روز») که تو دیالوگ ساخت کاربر، چیپِ یک‌کلیکی می‌شن. برای ریسلرها که نباید عدد سر هم کنن، عالیه.</div></div>
+  </div>
+  <div class="qa">
+    <div class="h">؟ پنل برند خودم رو هم می‌تونم عوض کنم؟</div>
+    <p>بله — تنظیمات → «برند صفحهٔ اشتراک»: نام، لوگو، رنگ. همه‌ی کاربرایی که برند اختصاصی ندارن با همین برند می‌بینن. یعنی حتی بدون ریسلر، می‌تونی پنل رو با اسم تجاری خودت بفروشی.</p>
+  </div>
+  <div class="pfoot"><span><b>سپیروت از صفر تا صد</b> · v2.6.0</span><span class="pg">۲۲</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═════════ 21 ═════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">فصل ۲۱</span>
+    <h2><span class="n">۲۱</span>هاست‌ها، نودها، خروجی‌ها و روتینگ — خلاصه‌ی مفید</h2>
+    <hr class="rule">
+  </div>
+  <p>چهار صفحه‌ای که تازه‌کارها معمولاً شش ماه اول بهشون نیاز ندارن — ولی وقتی نیاز بشه، با همین خلاصه راه می‌افتی:</p>
+  <div class="grid2">
+    <div class="card"><div class="t">هاست‌ها — آرایشگر لینک‌ها</div><div class="s">می‌خوای لینک مشتری‌ها به‌جای IP خام، اسم دامنه‌ی قشنگ یا SNI خاصی نشون بده؟ هاست بساز: برای یه کانفیگ، آدرس/پورت/SNI/مسیر رو بازنویسی می‌کنه — بدون دست زدن به خود کانفیگ. تو همون صفحه پیش‌نمایش لینک هم داره. (تنظیمات ظاهریِ لینکه، نه فنی.)</div></div>
+    <div class="card"><div class="t">نودها — سرور شعبه</div><div class="s">یه سرور دیگه هم داری؟ روش پنل رو با حالت «نود» بالا بیار، بعد اینجا «افزودن نود» بزن، آدرس و رمز نودش رو بده و «اعمال کانفیگ» کن — کانفیگ‌های پنل تو روی اون سرور هم کپی می‌شن. «پینگ»، «به‌روزرسانی» و «ترافیک» هر نود رو هم همین‌جا می‌بینی.</div></div>
+    <div class="card"><div class="t">خروجی‌ها — از کجا بریم بیرون؟</div><div class="s">دوتا خروجی پیش‌فرض هست که نباید پاک‌شون کنی: <b>direct</b> (مستقیم به اینترنت) و <b>blocked</b> (دور انداختن). خروجی سفارشی یعنی «از تونل دیگه‌ای رد شو» (زنجیره). برای هر خروجی دکمه‌ی «تست» هم هست که زنده بودنش رو چک می‌کنه.</div></div>
+    <div class="card"><div class="t">روتینگ — قاضی ترافیک</div><div class="s">قاعده‌ها از بالا به پایین خونده می‌شن و اولین قاعده‌ای که بخوره، برنده‌ست. به هر قاعده می‌گی «از این‌جا (دامنه/آی‌پی/پورت) به اون‌جا (خروجی)». پریست‌های آماده هم داره: <span class="chip dim">بلاک تبلیغات</span><span class="chip dim">ایران → مستقیم</span><span class="chip dim">بلاک QUIC</span><span class="chip dim">تلگرام → پروکسی</span> — یک کلیک اضافه می‌شن. عجله نکن؛ روتینگ برای اکثر شروع‌کننده‌ها «همون پیش‌فرض» کافیه.</div></div>
+  </div>
+  <div class="qa">
+    <div class="h">؟ اصلاً کی باید سراغ این‌ها بره؟</div>
+    <p>هاست: وقتی دامنه خریدی و لینک‌ها رو قشنگ می‌خوای. نود: وقتی سرور دوم گرفتی. خروجی/روتینگ: وقتی سناریوی خاص (مثل رد شدن از کپچای هوش مصنوعی با وارپ) خواستی. بقیه‌ی دوران: بی‌خیال، بی‌ضرر هم هست.</p>
+  </div>
+  <div class="pfoot"><span><b>سپیروت از صفر تا صد</b> · v2.6.0</span><span class="pg">۲۳</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═════════ 22 ═════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">فصل ۲۲</span>
+    <h2><span class="n">۲۲</span>فعالیت‌ها و زنگوله — دوربین مداربسته‌ت</h2>
+    <hr class="rule">
+  </div>
+  <p>دو جا رویدادها رو می‌بینی: <b>زنگوله‌ی نوار بالا</b> (سریع و روی‌هم‌رفته) و <b>صفحه‌ی فعالیت‌ها</b> (کامل و با تاریخچه).</p>
+  <h3>زنگوله‌ی نوار بالا</h3>
+  <p>بزنش: ۸ رویداد آخر با آیکن و زمان («۲ دقیقه پیش»). تا وقتی رویداد جدیدی باشه که ندیدی، یه نقطه‌ی چشمک‌زن داره؛ بازش کنی یعنی همه خوانده شد. پایینش هم <span class="kbd">باز کردن گزارش فعالیت‌ها</span> هست که می‌برتت به صفحه‌ی کامل.</p>
+  <h3>صفحه‌ی فعالیت‌ها</h3>
+  <ul>
+    <li><b>جریان زنده</b> بالای صفحه — مثل فید داشبورد، با دکمه‌ی توقف/ادامه (وقتی می‌خوای چیزی رو آرام بخونی مفیده).</li>
+    <li><b>تاریخچه</b> پایین — ۵۰۰ رویداد آخر با جستجو (پیام/کنشگر/نوع)، فیلتر سطح (<span class="chip dim">اطلاع</span><span class="chip dim">موفق</span><span class="chip dim">هشدار</span><span class="chip dim">خطا</span>) و فیلتر نوع (ورود/کانفیگ/کاربر/اشتراک/نماینده/سیستم).</li>
+    <li><span class="kbd">خروجی</span> = دانلود JSON تاریخچه (برای حساب‌وکتاب یا بررسی حادثه).</li>
+    <li><span class="kbd">پاک‌کردن تاریخچه</span> — اول خروجی بگیر بعد پاک کن؛ راه برگشتی نیست.</li>
+  </ul>
+  <div class="qa">
+    <div class="h">؟ چه چیزهایی اینجا ثبت می‌شه؟</div>
+    <p>ورودهای موفق و ناموفق ادمین (با IP)، ساختن/ویرایش/حذف کاربر و کانفیگ، تمدیدها، تغییرات تنظیمات، بکاپ‌ها، ری‌استارت پنل و… اگه یه روز «کی این کارو کرد؟» برات سوال شد، جوابش اینجاست.</p>
+  </div>
+  <div class="qa">
+    <div class="h">؟ «ورود ناموفق از فلان IP» دیدم — نگران شم؟</div>
+    <p>هکرها همیشه دنبال پنل‌ان. پنل خودش بعد از ۵ تلاش اشتباه آی‌پی‌شون رو قفل می‌کنه. اگه مکرر شد: رمزت رو قوی‌تر کن، 2FA رو فعال کن (فصل ۲۴) و اگه عجیب بود، از فعالیت‌ها IP رو نگاه کن. اعلان «ورود ناموفق» رو هم می‌تونی تو تلگرام روشن کنی تا همون لحظه خبرت شه.</p>
+  </div>
+  <div class="pfoot"><span><b>سپیروت از صفر تا صد</b> · v2.6.0</span><span class="pg">۲۴</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═════════ 23 ═════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">فصل ۲۳</span>
+    <h2><span class="n">۲۳</span>ربات تلگرام — دستیار فروش و نگهبان</h2>
+    <hr class="rule">
+  </div>
+  <p><span class="path">تنظیمات <span class="sep">←</span> ربات تلگرام</span> — ربات سه نقش داره و با «حالت ربات» بین‌شون سوییچ می‌کنی:</p>
+  <div class="grid2">
+    <div class="card"><div class="t">۱) اعلان‌ها — نگهبان</div><div class="s">توکن ربات رو از @BotFather بگیر، «آیدی چت ادمین» رو بذار و «فعال‌سازی اعلان‌ها» رو بزن. بعد با سوییچ‌های «برای این‌ها خبرم کن» انتخاب کن چه خبرهایی برسه: کاربران تازه، رخدادهای چرخه‌ی کاربر (انقضا/فعال‌شدن/تمدید)، هشدارهای ترافیک، ورودهای ناموفق، گزارش روزانه فروش. دکمه‌ی <span class="kbd">ارسال پیام تست</span> هم همین حالا یه پیام می‌فرسته تا مطمئن شی وصله.</div></div>
+    <div class="card"><div class="t">۲) گزارش روزانه — حساب‌وکتاب</div><div class="s">هر روز یه خلاصه می‌فرسته: چند سفارش تکمیل شده، چقدر درآمد (تومان)، چند کاربر جدید. برای تست بدون انتظار، <span class="kbd">ارسال آزمایشی گزارش روزانه</span> رو بزن — همون گزارش همین حالا میاد.</div></div>
+    <div class="card"><div class="t">۳) فروشگاه — ویترین</div><div class="s">در حالت «فروشگاه»، مشتری تو خود تلگرام: زبانش رو انتخاب می‌کنه، پلن‌ها رو می‌بینه (از قالب‌های فروش با قیمت)، پرداخت می‌کنه با <b>زرین‌پال</b> یا <b>کارت‌به‌کارت</b> (عکس رسید می‌فرسته، تو تو چت تایید می‌کنی) — و لینک اشتراکش خودکار ساخته و تحویل می‌شه. یعنی واسطه‌ی دستی بین پرداخت و ساخت حساب صفر می‌شه.</div></div>
+    <div class="card"><div class="t">تنظیمات فنی کوچیک</div><div class="s">زبان ربات، قالب‌های فروش فعال، روش پرداخت، شناسه‌های گفتگوی مدیر (چند نفر می‌تونن ادمین ربات باشن)، و اگر سرورت دسترسی به تلگرام نداره، «پروکسی HTTPS» یا «Bot API پایه» رو ست کن. پیل وضعیت ورکر (در حال اجرا/متوقف) هم همیشه جواب می‌ده.</div></div>
+  </div>
+  <div class="okbox">
+    <div class="h">✓ راه‌اندازی سریع ۵ دقیقه‌ای</div>
+    <p>@BotFather → <span class="mono">/newbot</span> → توکن رو کپی کن → بذار تو تنظیمات → آیدی چتت رو بذار (با @userinfobot یا getmyid پیدا می‌شه) → «فعال‌سازی اعلان‌ها» → «ارسال پیام تست». اگر پیام رسید، تمام!</p>
+  </div>
+  <div class="pfoot"><span><b>سپیروت از صفر تا صد</b> · v2.6.0</span><span class="pg">۲۵</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═════════ 24 ═════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">فصل ۲۴</span>
+    <h2><span class="n">۲۴</span>تنظیمات — همه‌چیز در دو تب</h2>
+    <hr class="rule">
+  </div>
+  <p><span class="path">تنظیمات</span> سه تب داره: <b>عمومی</b>، <b>API عمومی</b> و <b>حرفه‌ای</b>. اکثر آدم‌ها ۹۰٪ عمرشون تو تب عمومیه:</p>
+  <h3>تب عمومی</h3>
+  <ul>
+    <li><b>زبان و جهت:</b> ۶ زبان؛ عربی/فارسی خودکار راست‌چین.</li>
+    <li><b>ظاهر:</b> ستاره‌های پس‌زمینه، شدت درخشش، کاهش حرکت — سلیقه‌ای و بی‌خطر.</li>
+    <li><b>ماژول‌های نوار بالا:</b> اگر نود/خروجی/روتینگ/هاست نمی‌خوای، خاموششون کن تا نوار خلوت شه.</li>
+    <li><b>ترجیحات پنل:</b> تقویم میلادی/شمسی و تعداد ردیف هر صفحه.</li>
+    <li><b>برند صفحهٔ اشتراک:</b> وایت‌لیبل پنل (فصل ۲۰ گفتیم).</li>
+    <li><b>ربات تلگرام + حالت ربات:</b> کل فصل ۲۳ اینجاست.</li>
+    <li><b>خروجی گرفتن / بازگردانی:</b> <span class="kbd">دانلود بکاپ</span> کل دیتا رو می‌ده؛ «بازگردانی» فایل بکاپ رو برمی‌گردونه — برای بازگردانی باید تایپ کنی <span class="mono">RESTORE</span> تا اشتباهی کاری نشه.</li>
+  </ul>
+  <h3>تب حرفه‌ای — فقط چیزهایی که می‌شناسی بزن</h3>
+  <ul>
+    <li><b>هسته / Xray:</b> انتخاب درایور — «شبیه‌ساز» (پیش‌فرض تمرین) یا «هسته‌ی واقعی Xray» (پروداکشن). دکمه‌های نصب/شروع/توقف/ری‌استارت، پین نسخه و لاگ زنده. سوییچ «اجرا بهای سقف آی‌پی» هم اینجاست (فقط هشدار یا قطع واقعی).</li>
+    <li><b>گواهی‌های SSL:</b> نصب acme.sh و صدور/تمدید گواهی Let's Encrypt برای دامنه‌ات، بدون خروج از پنل. گواهی‌ها بعدش تو فورج انتخابی می‌شن.</li>
+    <li><b>تنظیمات Xray و قالب خام JSON:</b> برای حرفه‌ای‌ها؛ اگر نمی‌دونی چیه، دست نزن (همون قانون طلایی).</li>
+    <li><b>ورود دومرحله‌ای (TOTP):</b> فعال کن — QR رو با اپ احرازکننده بخون، کد بده، تمام. از این به بعد ورود = رمز + کد. غیرفعال‌کردنش هم کد می‌خواد (برای امنیت خودت).</li>
+    <li><b>بکاپ زمان‌بندی‌شده:</b> بکاپ خودکار روزانه با تعداد نسخه نگه‌داری — روشنش کن، روز مبادا نمی‌خوای.</li>
+    <li><b>به‌روزرسانی، نشست‌ها، MTProto:</b> آپدیت با یک دکمه؛ طول عمر نشست ورود؛ ابزار تلگرامی فصل‌های قبل.</li>
+  </ul>
+  <div class="qa">
+    <div class="h">؟ شبکه‌ام اعداد واقعی نمی‌خواد، شبیه‌ساز کافیه؟</div>
+    <p>برای ساختن و مدیریت کاربر/کانفیگ، بله. فقط یادت باشه ترافیکِ نمایشی واقعی نیست؛ روزی که سرور واقعی داری، همین کارت هسته رو بزن روی «هسته‌ی واقعی Xray» و دکمه‌ی نصب/شروع.</p>
+  </div>
+  <div class="pfoot"><span><b>سپیروت از صفر تا صد</b> · v2.6.0</span><span class="pg">۲۶</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═════════ 25 ═════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">فصل ۲۵</span>
+    <h2><span class="n">۲۵</span>پروفایل، دکتر پیکربندی و API (برای کنجکاوها)</h2>
+    <hr class="rule">
+  </div>
+  <h3>پروفایل — کابین خودت</h3>
+  <p><span class="path">آواتار <span class="sep">←</span> پروفایل</span>: نام نمایشی رو عوض کن؛ رمزت رو از بخش امنیت عوض کن (رمز فعلی + رمز جدید)؛ <b>کلید بازیابی</b> رو بچرخون اگر گم شده (فقط یک بار نشون داده می‌شه — همون لحظه کپی کن!)؛ و «خروج از همه‌جا به‌جز همین‌جا» رو وقتی بزن که فکر می‌کنی جایی رمزت لو رفته — بقیه‌ی نشست‌ها بیرون می‌فتن.</p>
+  <h3>دکتر پیکربندی — معاینه‌ی رایگان</h3>
+  <p><span class="path">کانفیگ‌ها <span class="sep">←</span> صحت‌سنج کانفیگ</span>: یه اسکن ۱۶ نقطه‌ای با نمره‌ی از ۱۰۰ و گرید (A تا D). هر یافته سه بخش داره: مشکل چیه، چرا بده، و چه جوری درستش کنی. مثلاً «پروکسی بدون رمز بازه»، «TLS بدون گواهی»، «این کاربر منقضی شده ولی هنوز فعاله». هفته‌ای یه بار بزن — مثل چک‌آپ دندونه.</p>
+  <h3>API عمومی — برای وقتی ربات/برنامه داری</h3>
+  <p>اگه برنامه‌نویس هستی یا یه ربات جدا داری، می‌تونی بدون مرورگر با پنل حرف بزنی:</p>
+  <ul>
+    <li><b>توکن بساز:</b> تنظیمات → API عمومی → ساخت توکن — یه رشته‌ی <span class="mono">seph_…</span> می‌گیری که <b>فقط همون یک بار</b> نشون داده می‌شه؛ همون لحظه کپی کن.</li>
+    <li><b>مسیرهای آماده:</b> <span class="mono">/api/v1/users</span> و <span class="mono">/api/v1/inbounds</span> و… — ساخت/ویرایش/حذف، عملیات گروهی و همه‌چیز.</li>
+    <li><b>مستندات تعاملی:</b> صفحه‌ی <span class="mono">/api-docs</span> رو باز کن — همون Swagger UI معروف؛ دکمه‌ی Authorize رو با توکنت بزن و مستقیم تو مرورگر تست کن.</li>
+    <li>اگه هیچ‌کدوم از این حرف‌ها برات آشنا نیست — هیچ مشکلی نیست، کامل ازش رد شو؛ برای استفاده‌ی عادی صفر درصد لازمه.</li>
+  </ul>
+  <div class="qa">
+    <div class="h">؟ نمره‌ی دکتر من ۸۲ شد، آی فاجعه‌ست؟</div>
+    <p>نه! هر «خطر» ۱۲ نمره کم می‌کنه، «هشدار» ۵ تا و «یادداشت» ۱ تا. نمره‌های ۸۰+ با یه‌دو مورد قابل حل عادی‌ان — برو سراغ فهرست یافته‌ها و یکی‌یکی درستش کن؛ خودش برای هر مورد دکمه‌ی راه‌حل داره.</p>
+  </div>
+  <div class="pfoot"><span><b>سپیروت از صفر تا صد</b> · v2.6.0</span><span class="pg">۲۷</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═════════ 26 ═════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">فصل ۲۶</span>
+    <h2><span class="n">۲۶</span>مشکلات رایج + چک‌لیست روز اول</h2>
+    <hr class="rule">
+  </div>
+  <table>
+    <tr><th style="width:200px">مشکل خودمونی</th><th>حلش</th></tr>
+    <tr><td>«اتصال برقرار نشد» تو اپ مشتری</td><td>۱) لینک رو دوباره کپی کن (شاید قدیمی/ناقصه). ۲) لینک نباید <span class="mono">0.0.0.0</span> یا IP داخلی داشته باشه (فصل ۱۰). ۳) وضعیت کانفیگ «آنلاین» باشه. ۴) سقف آی‌پی/دستگاه پر نباشه.</td></tr>
+    <tr><td>پورت اشغال است</td><td>دکمه‌ی چوب‌دان ✦ تو فورج — پورت آزاد بعدی رو می‌ده.</td></tr>
+    <tr><td>رمز ادمین یادم رفت</td><td>صفحه‌ی ورود → «فراموش کردی؟» → کلید بازیابی؛ یا روی سرور: <span class="mono">sephiroth</span> → گزینه‌ی ۸.</td></tr>
+    <tr><td>مشتری گوشی عوض کرده</td><td>کشوی کاربر → بازنشانی دستگاه‌ها.</td></tr>
+    <tr><td>مشتری حجمش تموم شده ولی پول داده</td><td>کشو → «تمدید اکنون» یا «صفر کردن ترافیک» (فصل ۱۶).</td></tr>
+    <tr><td>می‌خوام همه پلن‌هاشون از اول ماه تازه شه</td><td>تیک گروهی → «تمدید» (فصل ۱۷).</td></tr>
+    <tr><td>بکاپ رو چطور برگردونم؟</td><td>تنظیمات → بازگردانی → فایل JSON + تایپ <span class="mono">RESTORE</span>.</td></tr>
+    <tr><td>امنزیاWG وصل نمی‌شه روی سرور</td><td>باینری awg نصب نیست؛ فایل‌ها آماده‌ان، نصب awg-quick که شد همون‌ها بالا میان (فصل ۱۳).</td></tr>
+    <tr><td>گزارش روزانه فروش نمیاد</td><td>تنظیمات → ربات → توکن و آیدی چت درست؟ سوییچ گزارش روشن؟ دکمه‌ی «ارسال آزمایشی گزارش روزانه» رو بزن.</td></tr>
+    <tr><td>پنل انگلیسی شد!</td><td>نوار بالا → زبان → فارسی. تمام.</td></tr>
+  </table>
+  <div class="okbox mt6">
+    <div class="h">✓ چک‌لیست روز اول (۱۵ دقیقه)</div>
+    <p>۱) رمز ادمین رو عوض کن (پروفایل). ۲) کلید بازیابی رو امن ذخیره کن. ۳) 2FA رو فعال کن. ۴) زبان فارسی. ۵) یه کانفیگ با «ساخت سریع». ۶) یه کاربر آزمایشی بساز و لینکش رو باز کن. ۷) «بکاپ فوری» بگیر. ۸) ربات تلگرام + پیام تست. ۹) یه بار دکتر پیکربندی. ۱۰) تمام — رسماً پنل‌دار شدی 🚀</p>
+  </div>
+  <div class="center mt14">
+    <span class="badge-end">SEPHIROTH · ZERO TO HERO · v2.6.0</span>
+    <p class="mt10" style="max-width:540px; margin-inline:auto">این کتاب همیشه با نسخه‌ی پنل به‌روز می‌شه: <span class="mono">/sephiroth-beginner-guide-fa.pdf</span>. کاتالوگ رسمی ۶ زبانه، کتابچه‌ی درون‌پنلی (راهنما) و مستندات API هم همیشه در دسترس‌ان. موفق باشی، فرمانده!</p>
+    <p class="small mt6" style="letter-spacing:2px">ساخته‌شده با ♥ توسط EPODONIOS · github.com/Edsel-Rahimi/Sephiroth</p>
+  </div>
+  <div class="pfoot"><span><b>سپیروت از صفر تا صد</b> · v2.6.0</span><span class="pg">۲۸</span><span>EPODONIOS</span></div>
+</div>
+</body>
+</html>

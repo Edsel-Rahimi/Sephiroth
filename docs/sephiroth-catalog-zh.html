@@ -2,7 +2,7 @@
 <html lang="zh-CN" dir="ltr">
 <head>
 <meta charset="UTF-8">
-<title>Sephiroth 完全手册 — Sephiroth 面板目录 v2.5.0</title>
+<title>Sephiroth 完全手册 — Sephiroth 面板目录 v2.6.0</title>
 <style>
 @font-face { font-family: "Vazirmatn"; src: url("../public/fonts/Vazirmatn-Regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }
 @font-face { font-family: "Vazirmatn"; src: url("../public/fonts/Vazirmatn-Medium.woff2") format("woff2"); font-weight: 500; font-display: swap; }
@@ -261,9 +261,9 @@ figcaption .step {
   <div class="logo">S</div>
   <div class="kick">SEPHIROTH · XRAY CONTROL PANEL</div>
   <h1><b>Sephiroth</b> 完全手册</h1>
-  <div class="ver">CATALOG · v2.5.0</div>
-  <div class="date">伊朗历 1405 年 8 月 6 日 — 2026 年 10 月</div>
-  <p class="lead">新一代 Xray 管理面板的官方图解手册：从配置锻造 Forge 与配置医生，到真实 Xray 内核、两步验证、代理分销体系与完整安装套件 — 全书均配面板实机截图。</p>
+  <div class="ver">CATALOG · v2.6.0</div>
+  <div class="date">伊朗历 1405 年 8 月 7 日 — 2026 年 10 月 29 日</div>
+  <p class="lead">新一代 Xray 管理面板的官方图解手册：从配置锻造 Forge、自动驾驶与 AmneziaWG，到用户生命周期、通知引擎、白标、公共 API 与完整安装套件 — 全书均配面板实机截图。</p>
   <div class="herofig"><img src="shot-dashboard.png" alt="Sephiroth 仪表盘"></div>
   <div class="foot"><b>EPODONIOS</b> · SEPHIROTH PANEL · 2026</div>
 </div>
@@ -278,28 +278,29 @@ figcaption .step {
   <div class="toc">
     <div class="row"><div class="num">01</div><div class="tt">简介 — Sephiroth 是什么？</div><div class="dots"></div><div class="pn">3</div></div>
     <div class="row"><div class="num">02</div><div class="tt">面板架构</div><div class="dots"></div><div class="pn">4</div></div>
-    <div class="row"><div class="num">03</div><div class="tt">协议与传输层</div><div class="dots"></div><div class="pn">5</div></div>
-    <div class="row"><div class="num">04</div><div class="tt">用 Forge 创建入站</div><div class="dots"></div><div class="pn">6</div></div>
-    <div class="row"><div class="num">05</div><div class="tt">用户与订阅</div><div class="dots"></div><div class="pn">8</div></div>
-    <div class="row"><div class="num">06</div><div class="tt">配置医生（Config Doctor）</div><div class="dots"></div><div class="pn">10</div></div>
-    <div class="row"><div class="num">07</div><div class="tt">真实 Xray 内核</div><div class="dots"></div><div class="pn">11</div></div>
-    <div class="row"><div class="num">08</div><div class="tt">安全性</div><div class="dots"></div><div class="pn">12</div></div>
-    <div class="row"><div class="num">09</div><div class="tt">Telegram</div><div class="dots"></div><div class="pn">13</div></div>
-    <div class="row"><div class="num">10</div><div class="tt">商业 — 代理与支付渠道</div><div class="dots"></div><div class="pn">14</div></div>
-    <div class="row"><div class="num">11</div><div class="tt">部署 — 安装、CLI、Docker</div><div class="dots"></div><div class="pn">15</div></div>
-    <div class="row"><div class="num">12</div><div class="tt">6 种语言的面板</div><div class="dots"></div><div class="pn">17</div></div>
-    <div class="row"><div class="num">13</div><div class="tt">故障排除 · 常见问题</div><div class="dots"></div><div class="pn">19</div></div>
-    <div class="row"><div class="num">14</div><div class="tt">路线图 · 结语</div><div class="dots"></div><div class="pn">20</div></div>
+    <div class="row"><div class="num">03</div><div class="tt">协议与 AmneziaWG</div><div class="dots"></div><div class="pn">5</div></div>
+    <div class="row"><div class="num">04</div><div class="tt">Forge 与自动驾驶</div><div class="dots"></div><div class="pn">7</div></div>
+    <div class="row"><div class="num">05</div><div class="tt">用户与生命周期</div><div class="dots"></div><div class="pn">10</div></div>
+    <div class="row"><div class="num">05</div><div class="tt">品牌化订阅门户</div><div class="dots"></div><div class="pn">12</div></div>
+    <div class="row"><div class="num">06</div><div class="tt">配置医生（Config Doctor）</div><div class="dots"></div><div class="pn">13</div></div>
+    <div class="row"><div class="num">07</div><div class="tt">真实 Xray 内核</div><div class="dots"></div><div class="pn">14</div></div>
+    <div class="row"><div class="num">08</div><div class="tt">安全、告警与白标</div><div class="dots"></div><div class="pn">15</div></div>
+    <div class="row"><div class="num">09</div><div class="tt">Telegram — 告警与商店</div><div class="dots"></div><div class="pn">17</div></div>
+    <div class="row"><div class="num">10</div><div class="tt">商业化与公共 API</div><div class="dots"></div><div class="pn">18</div></div>
+    <div class="row"><div class="num">11</div><div class="tt">部署 — 安装、CLI、Docker</div><div class="dots"></div><div class="pn">20</div></div>
+    <div class="row"><div class="num">12</div><div class="tt">6 种语言 · 移动端</div><div class="dots"></div><div class="pn">22</div></div>
+    <div class="row"><div class="num">13</div><div class="tt">故障排除 · 常见问题</div><div class="dots"></div><div class="pn">24</div></div>
+    <div class="row"><div class="num">14</div><div class="tt">路线图 · 结语</div><div class="dots"></div><div class="pn">25</div></div>
   </div>
-  <div class="callout mt14">
+  <div class="callout">
     <div class="h"><span class="ico">◈</span> 关于本手册</div>
-    <p>本手册所有图片均为面板实机截图（v2.5.0 版本；无明暗双模式 — “黑曜石 + 玻璃青”设计语言在全部 6 款主题中保持一致）。文中不含任何密码、服务器地址或隐私信息。</p>
+    <p>本手册所有图片均为面板实机截图（v2.6.0 版本；无明暗双模式 — “黑曜石 + 玻璃青”设计语言在全部 6 款主题中保持一致）。文中不含任何密码、服务器地址或隐私信息。</p>
   </div>
-  <div class="grid2 mt6">
-    <div class="card"><div class="t">FORMAT</div><div class="v">竖版 PDF 720×1020</div><div class="s">20 页 · 11 张面板实机截图 · 完整中文文本（LTR 版式）</div></div>
-    <div class="card"><div class="t">AUDIENCE</div><div class="s" style="margin-top:2px">服务器管理员、配置卖家、自托管爱好者，以及任何想要一款完整波斯语 Xray 面板的人。</div></div>
+  <div class="grid2">
+    <div class="card"><div class="t">FORMAT</div><div class="v">竖版 PDF 720×1020</div><div class="s">25 页 · 14 张面板实机截图 · 完整中文文本（LTR 版式）</div></div>
+    <div class="card"><div class="t">AUDIENCE</div><div class="s" style="margin-top:2px">服务器管理员、配置卖家、自托管爱好者，以及任何想要一款完整波斯语 Xray 面板的人。想从零开始请另见《Sephiroth 零基础指南》（通俗波斯语）。</div></div>
   </div>
-  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">02</span><span>EPODONIOS</span></div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.6.0</span><span class="pg">02</span><span>EPODONIOS</span></div>
 </div>
 
 <!-- ═══════════════ p3 · 01 intro ═══════════════ -->
@@ -321,7 +322,7 @@ figcaption .step {
     <div class="shot"><img src="shot-login.png" alt="登录页" style="width:86%; display:block; margin:0 auto;"></div>
     <figcaption><span class="step">图 1</span><span>“轨道终端”登录页 — 密码登录、TOTP 两步验证、恢复密钥与防暴力破解锁定。</span></figcaption>
   </figure>
-  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">03</span><span>EPODONIOS</span></div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.6.0</span><span class="pg">03</span><span>EPODONIOS</span></div>
 </div>
 
 <!-- ═══════════════ p4 · 02 architecture ═══════════════ -->
@@ -358,7 +359,7 @@ figcaption .step {
     <div class="h"><span class="ico">◈</span> 为什么是单进程？</div>
     <p>一个端口、一个进程、一个数据文件 — 只要有 Node 的环境就能跑：从 512 MB 内存的小 VPS 到免费主机 308 MB 的容器。</p>
   </div>
-  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">04</span><span>EPODONIOS</span></div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.6.0</span><span class="pg">04</span><span>EPODONIOS</span></div>
 </div>
 
 <!-- ═══════════════ p5 · 03 protocols ═══════════════ -->
@@ -368,29 +369,60 @@ figcaption .step {
     <h2><span class="n">03</span>协议与传输层</h2>
     <hr class="rule">
   </div>
-  <p>Sephiroth 锻造厂将 <b>9 种入站协议</b>与 <b>5 种传输方式</b>、<b>3 层安全机制</b>自由组合；订阅链接、二维码与内核输出都由同一组合自动生成。</p>
+  <p>Sephiroth 锻造厂将 <b>13 种入站协议</b>与 <b>6 种传输方式</b>、<b>3 层安全机制</b>自由组合；订阅链接、二维码、<span class="mono">.conf</span> 文件与内核输出都由同一组合自动生成。</p>
   <table>
     <tr><th style="width:118px">协议</th><th>特性与用途</th></tr>
     <tr><td>VLESS</td><td>现代轻量；支持 <span class="mono">xtls-rprx-vision</span> flow — 与 REALITY 是黄金搭档</td></tr>
     <tr><td>VMess</td><td>经典通用；适合 CDN 与 WebSocket</td></tr>
     <tr><td>Trojan</td><td>伪装成普通 HTTPS 流量</td></tr>
-    <tr><td>Shadowsocks</td><td>简单快速；使用知名加密算法</td></tr>
-    <tr><td>Hysteria2</td><td>基于 QUIC/UDP，适合高带宽或高丢包网络</td></tr>
-    <tr><td>WireGuard</td><td>官方隧道，含私钥/公钥与可调 MTU</td></tr>
+    <tr><td>Shadowsocks</td><td>简单快速；知名加密算法 + <span class="mono">2022-blake3</span>（SS2022）加密，含密钥长度校验</td></tr>
+    <tr><td>Hysteria2</td><td>基于 QUIC/UDP，适合高带宽或高丢包网络 — 独立 sidecar</td></tr>
+    <tr><td>TUIC</td><td>QUIC 隧道 + BBR 拥塞控制 — sing-box 引擎</td></tr>
+    <tr><td>WireGuard</td><td>官方隧道，含私钥/公钥与可调 MTU — sidecar</td></tr>
+    <tr><td>AmneziaWG</td><td class="rcyan">抗审查 WireGuard，带混淆参数 — 见下一页</td></tr>
+    <tr><td>Mixed</td><td>HTTP+SOCKS 合并端口，sing-box 引擎 — 自动驾驶首选</td></tr>
+    <tr><td>MTProto</td><td>原生 Telegram 代理，<span class="mono">mtg</span> sidecar（自动 secret）</td></tr>
     <tr><td>SOCKS5 / HTTP</td><td>本地代理，可选鉴权 — 包括“Telegram 代理”（第 09 节）</td></tr>
     <tr><td>Dokodemo-door</td><td>透明端口，用于流量转发（也充当内核的隐藏 API 门）</td></tr>
   </table>
   <div class="grid2">
-    <div class="card"><div class="t">TRANSPORTS</div><div class="s" style="margin-top:2px"><span class="chip dim">TCP + header</span><span class="chip dim">WebSocket</span><span class="chip dim">gRPC</span><span class="chip dim">HTTPUpgrade</span><span class="chip dim">XHTTP</span><br>每项传输均可配置 path/host/serviceName 与 early-data。</div></div>
+    <div class="card"><div class="t">TRANSPORTS</div><div class="s" style="margin-top:2px"><span class="chip dim">TCP + header</span><span class="chip dim">WebSocket</span><span class="chip dim">gRPC</span><span class="chip dim">HTTPUpgrade</span><span class="chip dim">XHTTP</span><span class="chip dim">mKCP</span><br>每项传输均可配置 path/host/serviceName、early-data 与 mKCP 头类型（srtp/utp/wechat-video/dtls/wireguard/dns）。</div></div>
     <div class="card"><div class="t">SECURITY</div><div class="s" style="margin-top:2px"><span class="chip dim">none</span><span class="chip ok">TLS 1.0–1.3</span><span class="chip ok">REALITY</span><br>ALPN、9 种 fingerprint（chrome/firefox/safari/…）、uTLS；REALITY 支持 dest、serverNames、shortIds 与内置密钥对。</div></div>
   </div>
   <h3>Fallbacks 与“单端口组合”预设</h3>
-  <p>每个 TLS 入站都可以配置 <b>fallback</b>（dest/alpn/path）— 这正是<b>单端口组合预设</b>的基础：多个协议共享<b>一个公共端口</b>（例如 443），面板本身挂在 <span class="mono">/panel</span> 路径。对只提供一个端口的主机来说，这一个预设就能解决全部问题。</p>
+  <p>每个 TLS 入站都可以配置 <b>fallback</b>（dest/alpn/path）— 这正是<b>单端口组合预设</b>的基础：多个协议共享<b>一个公共端口</b>（例如 443），面板本身挂在 <span class="mono">/panel</span> 路径 — 单端口主机的完整解决方案。</p>
   <div class="callout ok">
     <div class="h"><span class="ico">✓</span> 内核配置自动生成</div>
     <p>你在 Forge 中搭建的一切，都会由内核驱动（第 07 节）转换为真实 Xray 配置 — streamSettings、REALITY、sniffing（http/tls/quic/fakerd）、mux 与 fallback，全程无需手工改 JSON。</p>
   </div>
-  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">05</span><span>EPODONIOS</span></div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.6.0</span><span class="pg">05</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p6 · 03 amneziawg ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 03 — AMNEZIAWG · OBFUSCATED WIREGUARD</span>
+    <h2><span class="n">03</span>AmneziaWG — 抗审查的 WireGuard</h2>
+    <hr class="rule">
+  </div>
+  <p><b>AmneziaWG</b> 就是 WireGuard 加上一项超能力：手工构造的数据包与自定义握手“戏法”会把 WireGuard 的固定签名对 DPI 模糊化。Sephiroth 以 <b>sidecar</b>（内核旁的独立进程）方式运行它：你在 Forge 中选择 <span class="mono">amnezia-wg</span> 协议，面板生成服务端密钥对与每个客户端的公钥，混淆参数取默认值或手动填写，并交付开箱即用的服务端与客户端 <span class="mono">.conf</span> 文件。</p>
+  <table>
+    <tr><th style="width:90px">参数</th><th>含义</th><th style="width:110px">默认值</th></tr>
+    <tr><td class="mono">Jc</td><td>每次握手前发送的 junk 包数量（对 DPI 的“佯攻”）</td><td class="mono">4</td></tr>
+    <tr><td class="mono">Jmin / Jmax</td><td>junk 包大小的随机区间</td><td class="mono">40 / 70</td></tr>
+    <tr><td class="mono">S1 / S2</td><td>携带无意义内容的 init/response 包数量</td><td class="mono">15 / 60</td></tr>
+    <tr><td class="mono">H1–H4</td><td>自定义握手“戏法”（取代 WireGuard 的著名签名）</td><td class="mono">自动</td></tr>
+    <tr><td class="mono">MTU</td><td>最大传输单元；默认 1420，便于顺畅穿过隧道</td><td class="mono">1420</td></tr>
+  </table>
+  <div class="grid2">
+    <div class="card"><div class="t">交付到客户端 — 两条路径</div><div class="s"><b>1）<span class="mono">.conf</span> 文件</b>：可直接导入 Amnezia 系应用（每位用户独立私钥，不暴露服务端密钥）— 从订阅门户与订阅对话框复制/下载。<b>2）<span class="mono">wireguard://</span> 链接</b>：带 <span class="mono">jc/jmin/jmax/s1/s2/h1-h4</span> 参数 — v2rayN、NekoBox 与 Hiddify 可直接解析（自动驾驶与 Forge 中的“第二链接”）。</div></div>
+    <div class="card"><div class="t">服务端一侧会发生什么？</div><div class="s">面板把兼容 <span class="mono">awg-quick</span> 的配置写入 <span class="mono">db/core/sidecars/{tag}.conf</span>（地址 <span class="mono">172.16.0.1/24</span>，每个活跃客户端一个 <span class="mono">[Peer]</span> 与专属 <span class="mono">AllowedIPs</span>），并在二进制可用时自行启动它。二进制的查找顺序：管理员固定路径 ← <span class="mono">awg-quick</span> ← <span class="mono">amneziawg-go</span>。</div></div>
+  </div>
+  <div class="callout ok">
+    <div class="h"><span class="ico">✓</span> 没有二进制也不会损失什么</div>
+    <p>在未安装 <span class="mono">awg</span> 的服务器上，面板照常工作并完整写好服务端与客户端 <span class="mono">.conf</span>；安装 <span class="mono">awg-quick</span>（或在设置 API 中设定 <span class="mono">sidecarAwgBin</span>）后，同一配置无需任何改动即可上线 — 如果两个 WG/AWG 入站复用同一私钥，配置医生也会如实告警。</p>
+  </div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.6.0</span><span class="pg">06</span><span>EPODONIOS</span></div>
 </div>
 
 <!-- ═══════════════ p6 · 04 forge (1) ═══════════════ -->
@@ -414,7 +446,7 @@ figcaption .step {
   </figure>
   <h3>快速创建（Quick Create）</h3>
   <p>懒得填长表单？直接在“快速创建”网格中点击一个现成预设：<span class="chip dim">VLESS + REALITY :443</span><span class="chip dim">VMess + WS + TLS</span><span class="chip dim">本地 SOCKS5</span><span class="chip dim">单端口组合</span>等 — 显示配置摘要，确认即完成。</p>
-  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">06</span><span>EPODONIOS</span></div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.6.0</span><span class="pg">06</span><span>EPODONIOS</span></div>
 </div>
 
 <!-- ═══════════════ p7 · 04 forge (2) ═══════════════ -->
@@ -437,7 +469,36 @@ figcaption .step {
     <div class="h">⚠ 专业提示</div>
     <p>如果你在 CDN 或反向代理之后，把“监听”保持为 <span class="mono">0.0.0.0</span> 或内网 IP 即可，客户端链接中只会出现公网 IP/域名 — Forge 会把这两个概念分开。</p>
   </div>
-  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">07</span><span>EPODONIOS</span></div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.6.0</span><span class="pg">07</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p9 · 04 autopilot ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 04 — THE FORGE · AUTOPILOT</span>
+    <h2><span class="n">04</span>自动驾驶 — 一键搭起整支配置舰队</h2>
+    <hr class="rule">
+  </div>
+  <p>与其逐个创建入站，<b>自动驾驶</b>向导三步就能搭起一支多协议舰队 — 自动分配端口、继承模板、输出订阅链接。“自动驾驶”按钮就在配置视图“新建配置”旁边。</p>
+  <ol class="steps">
+    <li><b>来源：</b>“对齐现有入站”（完整克隆模板的传输/安全/用户）或“选择多个协议”（全新入站 + 全新密钥）。</li>
+    <li><b>构建计划：</b>协议表格，端口可编辑，含运行引擎与用户列；TLS 开关、“起始端口”与“连续分配”也在这里。</li>
+    <li><b>构建：</b>一次原子 POST；行内就地打勾，最后给出带每个入站订阅链接的报告。</li>
+  </ol>
+  <figure>
+    <div class="shot"><img src="shot-autopilot-fa.png" alt="自动驾驶 — 构建计划" style="width:64%; display:block; margin:0 auto;"></div>
+    <figcaption><span class="step">图 4</span><span>自动驾驶第 2 步：自动端口、每个协议的引擎（Xray / sing-box / sidecar），以及“已存在”的如实提示。</span></figcaption>
+  </figure>
+  <div class="grid3">
+    <div class="card"><div class="t">PORT ALLOCATOR</div><div class="s">先分配首选公共端口（<span class="mono">443、8443、2053、2083、2087</span>），再依次取连续端口；被占用与重复的端口自动跳过。</div></div>
+    <div class="card"><div class="t">ENGINE MAP</div><div class="s">VLESS/VMess/Trojan/SS ← Xray 内核流 · Hysteria2/TUIC/Mixed ← sing-box 引擎 · MTProto ← mtg sidecar · WireGuard/AWG ← WireGuard sidecar。</div></div>
+    <div class="card"><div class="t">USERS</div><div class="s">多协议模式：每个入站配“一名新用户”，或全体共用“一个身份”；克隆模式则复制模板用户。</div></div>
+  </div>
+  <div class="callout">
+    <div class="h"><span class="ico">◈</span> 原子化、可回滚</div>
+    <p>若某个协议在构建中途失败，已完成的部分会被回收、端口保持空闲；报告中的订阅链接与“第二链接”（AmneziaWG 的 <span class="mono">.conf</span> 文件）每行都可一键复制。</p>
+  </div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.6.0</span><span class="pg">09</span><span>EPODONIOS</span></div>
 </div>
 
 <!-- ═══════════════ p8 · 05 users (1) ═══════════════ -->
@@ -451,18 +512,50 @@ figcaption .step {
   <ul>
     <li><b>用量预测徽章：</b>“≈4 天到顶 · 3.2 GB/天” — 燃烧率由累计用量除以账户存活天数得出（无需历史表）；低于 7 天变琥珀色，低于 3 天变红。</li>
     <li><b>重置周期：</b>周/月配额由内置 cron 自动重置，过期用户同时被停用。</li>
-    <li><b>批量创建（Bulk）：</b>一次创建多个用户，批量启用/停用与删除只需一次确认。</li>
+    <li><b>等待中（On-Hold）与自动续期：</b>订阅时钟不再从创建那一刻起算，而是从用户<b>首次连接</b>开始；开启自动续期后，到期时订阅窗口自动续新 — 详见“生命周期”一页。</li>
+    <li><b>设备上限（HWID）与 IP 上限：</b>每份订阅的设备数在订阅门户执行；同时启用的 IP 上限（可选，fail2ban 风格）会自动切断超额用户。</li>
     <li><b>绑定入站：</b>每个用户可同时挂载到多个入站；每条绑定的密钥（UUID/密码/flow）都在同一处管理。</li>
   </ul>
   <figure>
-    <div class="shot"><img src="shot-users.png" alt="用户表格"></div>
+    <div class="shot"><img src="shot-users.png" alt="用户表格" style="width:78%; display:block; margin:0 auto;"></div>
     <figcaption><span class="step">图 4</span><span>用户表格：用量条、配额/到期，以及“≈N 天到顶”预测徽章。</span></figcaption>
   </figure>
   <div class="callout">
-    <div class="h"><span class="ico">◈</span> 透明的 IP-Limit</div>
-    <p>IP 限制（<span class="mono">0 = ∞</span>）会写入每个客户端的链接与内核输出，并可在筛选器中搜索；fail2ban 式的自动切断强执行尚在路线图中 — 本手册如实声明。</p>
+    <div class="h"><span class="ico">◈</span> 真实限额执行</div>
+    <p>Core 卡片中的“执行 IP 上限”开关，会以 10 分钟为窗口自动停用超限用户（关闭 = 仅告警）；HWID 设备上限则在订阅门户执行 — 第 13 台设备会看到“设备数已达上限”页面，管理员用“重置设备”即可解除。</p>
   </div>
-  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">08</span><span>EPODONIOS</span></div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.6.0</span><span class="pg">08</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p11 · 05 lifecycle & bulk ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 05 — USERS · LIFECYCLE &amp; BULK</span>
+    <h2><span class="n">05</span>用户生命周期 — 等待中、自动续期与批量操作</h2>
+    <hr class="rule">
+  </div>
+  <p>Sephiroth 像经营真实销售那样管理订阅的生命周期：账户可以<b>在首次连接前不计时</b>，到期时<b>自行续新</b>而非断开，几十个用户也能一键管理。</p>
+  <div class="grid2">
+    <div class="card"><div class="t">等待中（ON-HOLD）</div><div class="s">打开“等待中（以首次连接开始）”开关后，账户会以 <span class="chip am">等待首次连接</span> 状态创建：看不到任何倒计时，到期日锁定在用户的<b>首次真实连接</b>（首次订阅或首个流量）上。重新切回“等待中”也会清除锚点，下次连接时重新起算。</div></div>
+    <div class="card"><div class="t">自动续期（AUTO-RENEW）</div><div class="s">打开“自动续期”后，到期那一刻面板内置 cron 会<b>从同一点开启一个完整的新窗口</b>、清零用量、把“续期次数”加一 — 订阅不停用、继续存活 — 无需管理员介入的“滚动订阅”模式。</div></div>
+  </div>
+  <h3>批量操作 — 对任意数量的用户执行 11 种动作</h3>
+  <table style="margin-bottom:8px">
+    <tr><th style="width:150px">动作</th><th>效果</th><th style="width:150px">动作</th><th>效果</th></tr>
+    <tr><td>启用 / 停用</td><td>账户状态</td><td>续期</td><td>从现在起全新窗口 + 用量清零</td></tr>
+    <tr><td>流量清零</td><td>用量 ← 0</td><td>保持等待 / 移出等待</td><td>首次连接起算锚点</td></tr>
+    <tr><td>自动续期 开/关</td><td>滚动订阅开关</td><td>重置设备</td><td>清除 HWID 注册记录</td></tr>
+    <tr><td>设置限额</td><td>天数/流量/IP — 留空即不改动</td><td>删除</td><td>带确认对话框</td></tr>
+  </table>
+  <ul>
+    <li><b>批量创建：</b>用户名前缀 + 数量（至多 100），沿用相同限额；<b>用户导入/导出</b>同样支持 JSON。</li>
+    <li><b>设备（HWID）：</b>每个用户的抽屉里列出已注册设备（UA + 最近活跃）与“重置设备”按钮 — 第 13 台设备在门户会被“设备数已达上限”页面拦下。</li>
+  </ul>
+  <div class="callout ok">
+    <div class="h"><span class="ico">✓</span> 一切都有通知</div>
+    <p>等待账户激活（首次连接）、自动续期、临近到期与登录失败 — 全都是通知引擎的事件（第 08 节）：顶栏铃铛 + 管理员 Telegram。</p>
+  </div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.6.0</span><span class="pg">11</span><span>EPODONIOS</span></div>
 </div>
 
 <!-- ═══════════════ p9 · 05 users (2) ═══════════════ -->
@@ -472,9 +565,9 @@ figcaption .step {
     <h2><span class="n">05</span>品牌化订阅门户</h2>
     <hr class="rule">
   </div>
-  <p>每个用户都有专属订阅链接：<span class="mono">/sub/&lt;subId&gt;</span>。订阅页面是一张品牌化“轨道通行证” — 用量条、剩余天数，以及向常用客户端的一键导入。订阅组还能把多个用户收纳到<b>一个带密码的加密链接</b>之后。</p>
+  <p>每个用户都有专属订阅链接：<span class="mono">/sub/&lt;subId&gt;</span>。订阅页面是一张品牌化“轨道通行证” — 用量条、剩余天数，以及向常用客户端的一键导入。订阅组还能把多个用户收纳到<b>一个带密码的加密链接</b>之后。页面品牌（名称/Logo/强调色）自动取自面板设置与每个代理的资料 — 完整白标，连页脚签名位置也不例外。</p>
   <figure>
-    <div class="shot"><img src="shot-sub-portal.png" alt="订阅门户" style="width:80%; display:block; margin:0 auto;"></div>
+    <div class="shot"><img src="shot-sub-portal.png" alt="订阅门户" style="width:72%; display:block; margin:0 auto;"></div>
     <figcaption><span class="step">图 5</span><span>用户订阅门户（ORBIT PASS）：配额 61/200 GB，剩余 14 天，一键导入 — Sephiroth 品牌与 EPODONIOS 签名。</span></figcaption>
   </figure>
   <h3>订阅输出格式</h3>
@@ -490,7 +583,7 @@ figcaption .step {
     <div class="h"><span class="ico">✓</span> 自动识别 User-Agent</div>
     <p>客户端应用会自报家门：Clash/Mihomo/Verge/Stash 获得 <span class="mono">YAML</span> 输出，sing-box/Hiddify/V2Box 获得 <span class="mono">sing-box</span> 输出，其余为 Base64 — 用户无需任何配置。</p>
   </div>
-  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">09</span><span>EPODONIOS</span></div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.6.0</span><span class="pg">09</span><span>EPODONIOS</span></div>
 </div>
 
 <!-- ═══════════════ p10 · 06 config doctor ═══════════════ -->
@@ -512,7 +605,7 @@ figcaption .step {
     <div class="shot"><img src="shot-doctor.png" alt="配置医生"></div>
     <figcaption><span class="step">图 6</span><span>配置医生在真实面板上的运行结果：得分 82（B 级），真实发现 — 特权端口 443、无证书的 TLS 以及已过期用户。</span></figcaption>
   </figure>
-  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">10</span><span>EPODONIOS</span></div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.6.0</span><span class="pg">10</span><span>EPODONIOS</span></div>
 </div>
 
 <!-- ═══════════════ p11 · 07 real xray core ═══════════════ -->
@@ -539,7 +632,7 @@ figcaption .step {
     <li><b>从面板数据生成：</b>配置直接由面板中的入站/用户生成；隐藏的统计 API 门监听在 <span class="mono">127.0.0.1</span>。</li>
     <li><b>变更即重载：</b>入站/用户的每次变更约 1.5 秒后生效；只有配置哈希发生变化时内核才会重启。</li>
   </ul>
-  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">11</span><span>EPODONIOS</span></div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.6.0</span><span class="pg">11</span><span>EPODONIOS</span></div>
 </div>
 
 <!-- ═══════════════ p12 · 08 security ═══════════════ -->
@@ -561,7 +654,42 @@ figcaption .step {
     <div class="shot"><img src="shot-security-cluster.png" alt="安全与系统卡片" style="width:74%; display:block; margin:0 auto;"></div>
     <figcaption><span class="step">图 8</span><span>设置中的安全/系统卡片簇（波斯语 RTL 界面）：软件更新、两步验证、定时备份与 MTProto 工具。</span></figcaption>
   </figure>
-  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">12</span><span>EPODONIOS</span></div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.6.0</span><span class="pg">12</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p16 · 08 alerts & white-label ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 08 — ALERTS · NOTIFICATIONS &amp; WHITE-LABEL</span>
+    <h2><span class="n">08</span>告警通知与白标</h2>
+    <hr class="rule">
+  </div>
+  <p>Sephiroth 的通知引擎把面板的重要事件 — 经智能去重之后 — 送往两个目的地：<b>顶栏铃铛</b>（面板内）与<b>管理员 Telegram 机器人</b>。每类事件在设置中都有独立开关，用不上的直接关掉。</p>
+  <table>
+    <tr><th style="width:200px">事件</th><th>何时触发？</th></tr>
+    <tr><td>新建 / 删除 / 编辑用户</td><td>每次创建、删除与修改用户（名称、限额…）</td></tr>
+    <tr><td>到期与临近到期</td><td>账户到期 + 最后几天的提醒（每用户每天至多提醒一次）</td></tr>
+    <tr><td>流量触顶与周期重置</td><td>配额用尽与每周/每月重置</td></tr>
+    <tr><td>激活（等待中）</td><td>“等待中”用户的首次连接 — 订阅时钟就此锁定</td></tr>
+    <tr><td>自动续期</td><td>到期时窗口滚动 + 用量清零</td></tr>
+    <tr><td>登录失败</td><td>每次带 IP 的失败尝试 — 每 10 分钟内每“用户+IP”至多一条通知</td></tr>
+    <tr><td>每日销售日报</td><td>每日 cron：已完成订单、收入（图曼）与新用户 — 两次间隔至少 23 小时</td></tr>
+    <tr><td>系统</td><td>备份完成、面板重启、入站创建/删除</td></tr>
+  </table>
+  <div class="grid2">
+    <div class="card"><div class="t">顶栏铃铛</div><div class="s">最近 8 条事件，带图标与相对时间；未读时有脉冲圆点；“打开活动报告”链接可查看 500 条完整历史。“已读”状态保存在本地 — 打开面板即视为全部已读。</div></div>
+    <div class="card"><div class="t">Telegram 送达</div><div class="s">设置中的独立开关（新用户、用户周期、流量、登录失败、每日日报）+ “发送测试消息”与“发送测试日报”，无需等待 cron、立即可见效果。</div></div>
+  </div>
+  <h3>白标 — 你的面板，你的品牌</h3>
+  <div class="grid2">
+    <div class="card"><div class="t">面板品牌</div><div class="s">设置 → 通用 → “订阅页面品牌”：品牌名称、Logo 地址、强调色 + “移除品牌”。没有专属品牌的用户，其订阅页面都以这套身份渲染 — 连页脚签名位置也不例外。</div></div>
+    <div class="card"><div class="t">代理品牌</div><div class="s">每个代理的对话框中：专属品牌名称、Logo 与强调色。该代理的用户在订阅门户看到他的品牌；未设置则应用面板品牌 — 层级完整，无需额外配置。</div></div>
+  </div>
+  <div class="callout ok">
+    <div class="h"><span class="ico">✓</span> 如实说明</div>
+    <p>通知只有在机器人已启用、模式不是“控制台”、token 与管理员聊天 ID 均已填写时才会发送 — 各测试按钮会第一时间帮你确认这些。</p>
+  </div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.6.0</span><span class="pg">16</span><span>EPODONIOS</span></div>
 </div>
 
 <!-- ═══════════════ p13 · 09 telegram ═══════════════ -->
@@ -578,13 +706,19 @@ figcaption .step {
   <p>面向更敌意的网络，内置“MTProto 代理”工具会生成真实密钥：输入主机、端口与 <span class="mono">dd</span>（域名伪装）或 <span class="mono">plain</span> 模式，即可拿到密钥 + <span class="mono">tg://proxy</span> 与 <span class="mono">t.me/proxy</span> 链接 + 二维码；同一卡片内还附有运行 <span class="mono">mtg v2</span>（Docker）的现成命令。</p>
   <div class="callout warn">
     <div class="h">⚠ 技术坦诚 — 你需要知道的事</div>
-    <p>1）Telegram 中的 SOCKS5 <b>没有伪装</b>，对 DPI 可见；严苛网络请使用 MTProto。2）Xray 自 v24.10 起已移除 MTProto 入站 — 因此 Sephiroth 不做不实宣传，而是提供密钥生成工具 + 独立 daemon 命令。3）Telegram 销售机器人目前处于调研阶段，已列入路线图（第 14 节）作为下一步。</p>
+    <p>1）Telegram 中的 SOCKS5 <b>没有伪装</b>，对 DPI 可见；严苛网络请使用 MTProto。2）Xray 自 v24.10 起已移除 MTProto 入站 — 因此 Sephiroth 不做不实宣传，而是提供独立 <span class="mono">mtg</span> sidecar（第 03 节）与密钥生成工具。</p>
   </div>
+  <h3>3）Telegram 商店 — 机器人模式</h3>
+  <p>Sephiroth 机器人有三种模式：<b>控制台</b>、<b>通知</b>与<b>商店</b> — 在 Telegram 内完成完整销售：用户选择语言、浏览销售模板，用 <b>ZarinPal</b> 支付或发送<b>卡到卡</b>凭条照片；管理员在聊天中批准后，订单即刻完成开通，<span class="mono">/sub/</span> 订阅链接自动送达。</p>
   <div class="grid2">
-    <div class="card"><div class="t">Forge 内</div><div class="s"><span class="mono">t.me/socks</span> 链接 · <span class="mono">tg://</span> 链接 · 二维码 · 复制按钮 · 关于伪装的坦诚说明 — 全部无需离开对话框。</div></div>
-    <div class="card"><div class="t">设置内</div><div class="s">以 dd/plain 模式生成 MTProto 密钥、现成链接、mtg v2 运行命令，以及对限制的技术说明。</div></div>
+    <div class="card"><div class="t">机器人支付网关</div><div class="s">ZarinPal v4 自动发起/验证 · 卡到卡凭条照片审批 · 按模板定价（<span class="mono">priceToman</span>）· 六种语言的机器人文案。</div></div>
+    <div class="card"><div class="t">机器人通知</div><div class="s">新订单与面板重启发给管理员 · 已完成订单发给客户 · worker 状态徽标与最近一次轮询。</div></div>
   </div>
-  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">13</span><span>EPODONIOS</span></div>
+  <figure>
+    <div class="shot"><img src="shot-notify-fa.png" alt="Telegram 机器人通知设置" style="width:40%; display:block; margin:0 auto;"></div>
+    <figcaption><span class="step">图 10</span><span>机器人通知设置 + 「机器人模式」卡片：控制台 / 通知 / 商店、销售模板、支付方式与 worker 状态徽标。</span></figcaption>
+  </figure>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.6.0</span><span class="pg">13</span><span>EPODONIOS</span></div>
 </div>
 
 <!-- ═══════════════ p14 · 10 business ═══════════════ -->
@@ -600,6 +734,7 @@ figcaption .step {
     <li><b>独立认证的第二角色：</b>代理使用自己的账号登录，导航中只看到“用户”。</li>
     <li><b>硬配额：</b>用户数上限与分配流量上限 — 超额会在 API 层面（而不仅是界面）以 <span class="mono">403</span> 拒绝。</li>
     <li><b>范围受限列表：</b>代理只能看到自己的用户；即便篡改请求，访问他人用户也只会得到 <span class="mono">404</span>（完全不暴露其存在）。</li>
+    <li><b>每个代理的品牌（白标）：</b>代理对话框中的专属品牌名称、Logo 地址与强调色 — 该代理用户的订阅页面以其品牌渲染（未设置则应用面板品牌）。</li>
     <li><b>管理员监督条：</b>对每个代理，可见其用户数/配额与已用流量/总配额。</li>
   </ul>
   <h3>销售套餐模板（Sale Templates）</h3>
@@ -615,7 +750,35 @@ figcaption .step {
     <div class="h"><span class="ico">◈</span> 用量预测 = 销售管理</div>
     <p>“≈N 天到顶”徽章对代理同样有意义：在订阅者配额耗尽之前，就知道哪些账号明天需要续费 — 赶在断服之前备好发票。</p>
   </div>
-  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">14</span><span>EPODONIOS</span></div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.6.0</span><span class="pg">14</span><span>EPODONIOS</span></div>
+</div>
+
+<!-- ═══════════════ p19 · 10 public api ═══════════════ -->
+<div class="page">
+  <div class="sechead">
+    <span class="kicker">SECTION 10 — BUSINESS · PUBLIC API</span>
+    <h2><span class="n">10</span>公共 API — Marzban 式的自动化</h2>
+    <hr class="rule">
+  </div>
+  <p>整个面板都可以从外部编程：稳定的 <span class="mono">/api/v1</span> 命名空间配 <span class="mono">seph_…</span> bearer 令牌，正式的 <b>OpenAPI 3.1</b> 规范在 <span class="mono">/api/openapi.json</span>，<b>交互式 Swagger UI</b> 在 <span class="mono">/api-docs</span> — 点下 Authorize 填入令牌，就能在同一页面直接测试。</p>
+  <figure>
+    <div class="shot"><img src="shot-api-docs.png" alt="/api-docs 的 Swagger UI" style="width:82%; display:block; margin:0 auto;"></div>
+    <figcaption><span class="step">图 11</span><span>独立的 <span class="mono">/api-docs</span> 页面：OAS 3.1、Auth/Users/System/Public v1 分组，以及 seph_ 令牌登录。</span></figcaption>
+  </figure>
+  <table>
+    <tr><th style="width:250px">分组</th><th>路径</th></tr>
+    <tr><td>Ping（无需令牌）</td><td class="mono">GET /api/v1/ping</td></tr>
+    <tr><td>用户</td><td><span class="mono">/api/v1/users</span> CRUD + <span class="mono">bulk</span>（11 种动作）+ <span class="mono">bulk-create</span> + <span class="mono">import/export</span> + <span class="mono">ip-usage</span> + <span class="mono">reset-devices</span></td></tr>
+    <tr><td>入站</td><td><span class="mono">/api/v1/inbounds</span> 面向 13 种协议的 CRUD + <span class="mono">autopilot</span>（clone/multi）</td></tr>
+    <tr><td>系统</td><td><span class="mono">/api/v1/system/server-info · core-status</span></td></tr>
+    <tr><td>活动</td><td><span class="mono">/api/v1/activity</span></td></tr>
+  </table>
+  <div class="grid3">
+    <div class="card"><div class="t">TOKENS</div><div class="s">在 设置 → 公共 API 中创建令牌；密钥仅显示一次（只保存 sha256 哈希），“最近使用”记录 IP 与时间，支持吊销与启停。</div></div>
+    <div class="card"><div class="t">BEARER 全局可用</div><div class="s">除 <span class="mono">/api/v1</span> 外，仪表盘的每条 REST 路由也接受 <span class="mono">Authorization: Bearer seph_…</span> 头（与会话 Cookie 并行）。</div></div>
+    <div class="card"><div class="t">ERRORS</div><div class="s">语义化状态码：401 无令牌、423 订阅“设备数已达上限”、403 代理配额 — 为脚本与监控准备就绪。</div></div>
+  </div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.6.0</span><span class="pg">19</span><span>EPODONIOS</span></div>
 </div>
 
 <!-- ═══════════════ p15 · 11 deployment (1) ═══════════════ -->
@@ -630,7 +793,7 @@ figcaption .step {
 <span class="k">bash &lt;(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh)</span>
 
 <span class="c"># 安装固定版本</span>
-<span class="k">bash &lt;(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh)</span> v2.5.0
+<span class="k">bash &lt;(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh)</span> v2.6.0
 
 <span class="c"># 免交互安装（CI/脚本）— 输出：/etc/sephiroth/install-result.env</span>
 <span class="ok">SEPH_NONINTERACTIVE=1</span> bash install.sh</pre>
@@ -654,7 +817,7 @@ figcaption .step {
                          <span class="k">14.</span> Uninstall
 <span class="c"># 或直接执行：</span> sephiroth start|stop|restart|status|logs|backup|update …</pre>
   <p>修改密码/端口由 maint 模块完成（scrypt 哈希，与面板自身格式一致）；备份/恢复与面板内置备份格式相同；“检查更新”会将当前版本与公开仓库的 package.json 对比。</p>
-  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">15</span><span>EPODONIOS</span></div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.6.0</span><span class="pg">15</span><span>EPODONIOS</span></div>
 </div>
 
 <!-- ═══════════════ p16 · 11 deployment (2) ═══════════════ -->
@@ -672,14 +835,14 @@ figcaption .step {
 <span class="c"># docker-compose.yml</span>
 <span class="k">services:</span>
   sephiroth:
-    image: ghcr.io/edsel-rahimi/sephiroth:latest   <span class="c"># 或固定版本：:v2.5.0</span>
+    image: ghcr.io/edsel-rahimi/sephiroth:latest   <span class="c"># 或固定版本：:v2.6.0</span>
     ports: [ "<span class="ok">${SEPH_PORT:-3000}</span>:3000" ]
     environment:
       SEPHIROTH_ADMIN_USER: <span class="ok">${SEPHIROTH_ADMIN_USER:-admin}</span>
       SEPHIROTH_ADMIN_PASS: <span class="ok">${SEPHIROTH_ADMIN_PASS:-sephiroth}</span>  <span class="c"># 首次登录后请立即修改！</span>
       SEPH_COOKIE_SECURE: auto
     volumes: [ sephiroth_data:/app/db ]</pre>
-  <p>标签由 GitHub Actions 自动构建并推送到 GHCR：<span class="mono">latest</span> 对应 main 分支，语义化版本标签（<span class="mono">v2.5.0</span>）— 生产环境建议固定版本。环境变量中的用户名/密码仅在<b>空数据首次启动</b>时注入；之后请只在面板内或通过 CLI 修改。</p>
+  <p>标签由 GitHub Actions 自动构建并推送到 GHCR：<span class="mono">latest</span> 对应 main 分支，语义化版本标签（<span class="mono">v2.6.0</span>）— 生产环境建议固定版本。环境变量中的用户名/密码仅在<b>空数据首次启动</b>时注入；之后请只在面板内或通过 CLI 修改。</p>
   <div class="grid2">
     <div class="card"><div class="t">更新（脚本安装）</div><div class="s">重新执行 install.sh 即安全更新：数据库、env 与密码保持不变，服务自动重启。面板内也有更新按钮（第 08 节）。non-git 模式：下载压缩包 + 替换 <span class="mono">server.cjs</span>。</div></div>
     <div class="card"><div class="t">完全卸载</div><div class="s"><span class="mono">sephiroth uninstall</span> 需两次确认：清除服务与文件；是否删除数据（db）会另行单独询问。</div></div>
@@ -688,7 +851,7 @@ figcaption .step {
     <div class="h">⚠ 安装后检查清单</div>
     <p>1）修改默认密码（个人资料 → 安全）。2）将恢复密钥存放在安全之处。3）开启 2FA。4）手动做一次备份，演练一遍恢复流程。5）生产环境请在“内核”卡片启用真实 Xray 驱动。</p>
   </div>
-  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">16</span><span>EPODONIOS</span></div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.6.0</span><span class="pg">16</span><span>EPODONIOS</span></div>
 </div>
 
 <!-- ═══════════════ p17 · 12 languages ═══════════════ -->
@@ -716,7 +879,7 @@ figcaption .step {
     <div class="h"><span class="ico">◈</span> 真正的 RTL，不只是右对齐</div>
     <p>页面方向通过 Radix DirectionProvider 从根节点注入；对话框、下拉菜单、工具提示乃至 Toast 都会镜像。技术数字（端口、版本、链接）保留在 <span class="mono">dir=ltr</span> 块中，保持可读性。</p>
   </div>
-  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">17</span><span>EPODONIOS</span></div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.6.0</span><span class="pg">17</span><span>EPODONIOS</span></div>
 </div>
 
 <!-- ═══════════════ p18 · 12 mobile ═══════════════ -->
@@ -741,7 +904,7 @@ figcaption .step {
     <div class="card"><div class="t">MOBILE-FIRST TOUCHES</div><div class="s">全局搜索与 <span class="mono">Ctrl+K</span> 命令面板在移动端同样可用；视图切换通过顶部导航与仪表盘快捷操作按钮完成。</div></div>
     <div class="card"><div class="t">QA AUTOMATICO</div><div class="s">一个布局审计器（溢出、重叠、文字截断）会在 EN/FA 与 1280px/390px 下扫描全部视图 — 本手册同样通过了这项审计。</div></div>
   </div>
-  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">18</span><span>EPODONIOS</span></div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.6.0</span><span class="pg">18</span><span>EPODONIOS</span></div>
 </div>
 
 <!-- ═══════════════ p19 · 13 FAQ ═══════════════ -->
@@ -761,12 +924,14 @@ figcaption .step {
     <tr><td>如何启用 HTTPS？</td><td>在前端加一个带 TLS 的反向代理（Nginx/Caddy）；安全 Cookie 支持 <span class="mono">auto</span> 模式，会依据 <span class="mono">x-forwarded-proto</span> 自动变为 Secure。</td></tr>
     <tr><td>我只有一个端口（免费主机）</td><td>使用“单端口组合”预设（第 03 节）：多个协议通过 fallback 共用一个端口 + 面板挂在 <span class="mono">/panel</span>。</td></tr>
     <tr><td>变更后面板仍在运行旧代码</td><td>属正常现象 — 面板内更新会等到“重启”才切换，以免中断在线会话；请点击重启按钮。</td></tr>
+    <tr><td>AmneziaWG 入站起不来</td><td>服务器上没有 <span class="mono">awg</span> 二进制。面板始终会写好服务端与客户端 <span class="mono">.conf</span>；安装 <span class="mono">awg-quick</span> 或通过 <span class="mono">sidecarAwgBin</span> 指定二进制路径，同一配置即可原样启动。</td></tr>
+    <tr><td>没有收到每日销售日报</td><td>在 设置 → Telegram 机器人 中打开“每日销售日报”并填入 token 与管理员聊天 ID；“发送测试日报”按钮无需等待 cron，可立即发送。</td></tr>
   </table>
   <div class="callout ok">
     <div class="h"><span class="ico">✓</span> 快速排障工具箱</div>
     <p><span class="mono">sephiroth logs</span> 查看服务日志 · <span class="mono">sephiroth status</span> 查看状态 · “内核 / Xray”卡片中有内核实时日志 · 配置医生报告用于清理配置 · “活动”动态可追溯谁做了什么。</p>
   </div>
-  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">19</span><span>EPODONIOS</span></div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.6.0</span><span class="pg">19</span><span>EPODONIOS</span></div>
 </div>
 
 <!-- ═══════════════ p20 · 14 roadmap + finale ═══════════════ -->
@@ -776,23 +941,23 @@ figcaption .step {
     <h2><span class="n">14</span>路线图 · 结语</h2>
     <hr class="rule">
   </div>
-  <h3>截至 v2.5.0 已交付</h3>
-  <p><span class="gcheck">✓</span> 支持 REALITY 与实时预览的 Forge &nbsp;·&nbsp; <span class="gcheck">✓</span> 16 项配置医生检查 &nbsp;·&nbsp; <span class="gcheck">✓</span> 真实 Xray 驱动 &nbsp;·&nbsp; <span class="gcheck">✓</span> 2FA（TOTP） &nbsp;·&nbsp; <span class="gcheck">✓</span> 定时备份 &nbsp;·&nbsp; <span class="gcheck">✓</span> 面板内更新 &nbsp;·&nbsp; <span class="gcheck">✓</span> Telegram SOCKS5 套件 + MTProto 工具 &nbsp;·&nbsp; <span class="gcheck">✓</span> 5 种订阅格式 + 品牌化门户 &nbsp;·&nbsp; <span class="gcheck">✓</span> 代理分销/销售模板/支付渠道 &nbsp;·&nbsp; <span class="gcheck">✓</span> 6 款主题 · 6 种语言（RTL） &nbsp;·&nbsp; <span class="gcheck">✓</span> 安装套件（install.sh + CLI + Docker + GHCR） &nbsp;·&nbsp; <span class="gcheck">✓</span> 自动检测 IP/空闲端口</p>
+  <h3>截至 v2.6.0 已交付</h3>
+  <p><span class="gcheck">✓</span> 支持 REALITY 与实时预览的 Forge &nbsp;·&nbsp; <span class="gcheck">✓</span> 16 项配置医生检查 &nbsp;·&nbsp; <span class="gcheck">✓</span> 真实 Xray 驱动 + sing-box &nbsp;·&nbsp; <span class="gcheck">✓</span> 2FA（TOTP） &nbsp;·&nbsp; <span class="gcheck">✓</span> 定时备份 &nbsp;·&nbsp; <span class="gcheck">✓</span> 面板内更新 &nbsp;·&nbsp; <span class="gcheck">✓</span> Telegram 商店（ZarinPal / 卡到卡） &nbsp;·&nbsp; <span class="gcheck">✓</span> 多节点舰队 &nbsp;·&nbsp; <span class="gcheck">✓</span> 面板内 ACME 签发 &nbsp;·&nbsp; <span class="gcheck">✓</span> 自动驾驶 &nbsp;·&nbsp; <span class="gcheck">✓</span> AmneziaWG（sidecar） &nbsp;·&nbsp; <span class="gcheck">✓</span> 等待中 + 自动续期 &nbsp;·&nbsp; <span class="gcheck">✓</span> 通知引擎 + 铃铛 &nbsp;·&nbsp; <span class="gcheck">✓</span> 面板/代理白标 &nbsp;·&nbsp; <span class="gcheck">✓</span> 11 种批量操作 &nbsp;·&nbsp; <span class="gcheck">✓</span> 公共 API <span class="mono">/api/v1</span> + Swagger &nbsp;·&nbsp; <span class="gcheck">✓</span> 5 种订阅格式 + 品牌化门户 &nbsp;·&nbsp; <span class="gcheck">✓</span> 6 款主题 · 6 种语言（RTL） &nbsp;·&nbsp; <span class="gcheck">✓</span> 安装套件 &nbsp;·&nbsp; <span class="gcheck">✓</span> 自动检测 IP/空闲端口</p>
   <h3>即将推出</h3>
   <ul>
-    <li><b>Telegram 销售机器人</b> — 在 Telegram 内自动销售与续费（调研已完成；等待最终决策）。</li>
-    <li><b>多节点</b> — 在多台服务器之间同步入站。</li>
-    <li><b>ACME 证书</b> — 在面板内自动签发/续期 Let's Encrypt。</li>
-    <li><b>IP-Limit 强制执行</b> — 在真实入站上实现 fail2ban 式自动切断。</li>
+    <li><b>群组品牌</b> — 为每个订阅组提供专属品牌（在面板与代理之外）。</li>
+    <li><b>舰队调度器 v2</b> — 跨服务器定期自动同步入站。</li>
+    <li><b>事件 Webhook</b> — 把面板事件推送到任意自定义 URL。</li>
+    <li><b>远程节点的 IP 上限执行</b> — 把 IP 守卫扩展到整支舰队。</li>
   </ul>
   <hr class="rule mt14">
   <div class="center mt10">
-    <span class="badge-end">SEPHIROTH · v2.5.0</span>
+    <span class="badge-end">SEPHIROTH · v2.6.0</span>
     <p class="mt10" style="max-width:540px; margin-inline:auto">Sephiroth 是一个<b>基于 MIT 许可证的开源项目</b> — 欢迎 fork、修改并用于你自己的项目。如果它对你有帮助，请通过面板内的“支持 Sephiroth”按钮或 GitHub Star 为我们加油。</p>
-    <p class="small" style="max-width:540px; margin-inline:auto"><b>免责声明：</b>本面板仅供个人与学习用途发布；任何不当使用的责任由用户自行承担。本手册所有截图均取自真实的 v2.5.0 版本，不含任何隐私信息。</p>
+    <p class="small" style="max-width:540px; margin-inline:auto"><b>免责声明：</b>本面板仅供个人与学习用途发布；任何不当使用的责任由用户自行承担。本手册所有截图均取自真实的 v2.6.0 版本，不含任何隐私信息。</p>
     <p class="mt6" style="letter-spacing:2px; color:var(--muted); font-size:10.5px">由 <b style="color:var(--text)">EPODONIOS</b> 倾注 ♥ 打造 · github.com/Edsel-Rahimi/Sephiroth</p>
   </div>
-  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.5.0</span><span class="pg">20</span><span>EPODONIOS</span></div>
+  <div class="pfoot"><span><b>Sephiroth 完全手册</b> · v2.6.0</span><span class="pg">20</span><span>EPODONIOS</span></div>
 </div>
 
 </body>
