@@ -100,6 +100,9 @@ import * as apiSystemUpdateStatus from "./src/app/api/system/update-status/route
 import * as apiTelegramBotAction from "./src/app/api/telegram/bot-action/route";
 import * as apiTelegramBotStatus from "./src/app/api/telegram/bot-status/route";
 import * as apiTelegramDigestTest from "./src/app/api/telegram/digest-test/route"; // Task 1-a — force-run the daily sales digest
+import * as apiTelegramBroadcast from "./src/app/api/telegram/broadcast/route"; // task 2-e — broadcast queue (enqueue + status)
+import * as apiTelegramBroadcastCancel from "./src/app/api/telegram/broadcast/cancel/route"; // task 2-e — broadcast cancel
+import * as apiTelegramAbuse from "./src/app/api/telegram/abuse/route"; // task 2-e — anti-abuse (force channel + bans)
 import { salesWorkerBoot, salesWorkerShutdown } from "./src/lib/bot/sales-worker"; // Task 23-c — Sephiroth Sales Bot worker
 import { discordWorkerBoot, discordWorkerShutdown } from "./src/lib/bot/discord-worker"; // v2.7 — Discord gateway worker
 import {
@@ -506,6 +509,9 @@ async function startServer() {
   mountRoute(app, "/api/telegram/bot-action", apiTelegramBotAction);
   mountRoute(app, "/api/telegram/bot-status", apiTelegramBotStatus); // Task 23-c
   mountRoute(app, "/api/telegram/digest-test", apiTelegramDigestTest); // Task 1-a
+  mountRoute(app, "/api/telegram/broadcast/cancel", apiTelegramBroadcastCancel); // task 2-e — BEFORE /api/telegram/broadcast (literal paths)
+  mountRoute(app, "/api/telegram/broadcast", apiTelegramBroadcast); // task 2-e
+  mountRoute(app, "/api/telegram/abuse", apiTelegramAbuse); // task 2-e
   mountRoute(app, "/api/tunnels", apiTunnels);
 
   mountRoute(app, "/api/users/bulk", apiUsersBulk);

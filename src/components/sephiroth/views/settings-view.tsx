@@ -86,6 +86,8 @@ import { DiscordBotSettings } from "@/components/sephiroth/views/discord-bot-set
 import { WebhooksCard } from "@/components/sephiroth/views/webhooks-card"; // v2.7 — outbound webhooks card
 import { DiscountCodesCard } from "@/components/sephiroth/views/discount-codes-card"; // Task 2-d — discount codes card
 import { ReferralCard } from "@/components/sephiroth/views/referral-card"; // Task 2-d — referral settings + stats card
+import { BroadcastCard } from "@/components/sephiroth/views/broadcast-card"; // Task 2-e — broadcast queue card
+import { AbuseCard } from "@/components/sephiroth/views/abuse-card"; // Task 2-e — anti-abuse card
 import { UpdatesCard } from "@/components/sephiroth/views/updates-card"; // Task 3-c — release channel + update check card
 import { SslCard } from "@/components/sephiroth/views/ssl-card"; // Task 23-f — SSL/ACME card
 
@@ -2087,6 +2089,12 @@ docker run -d --name mtproxy --restart=always -p ${mtpPort || "443"}:443 \\
 
             {/* Task 2-d — referral program settings + top referrers */}
             <ReferralCard />
+
+            {/* Task 2-e — broadcast queue (enqueue + live progress + history) */}
+            <BroadcastCard />
+
+            {/* Task 2-e — anti-abuse (force channel + bans) */}
+            <AbuseCard />
 
             {/* Task 3-c — release channel (stable/beta) + GitHub update check */}
             <UpdatesCard />

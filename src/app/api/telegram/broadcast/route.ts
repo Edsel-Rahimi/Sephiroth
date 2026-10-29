@@ -79,16 +79,17 @@ export async function POST(req: Request) {
       );
     }
 
+    // single-flight FIRST: queue-state guard (a running job must answer 409
+    // even if the bot was un-configured between enqueue and now)
+    const running = await db.broadcastJob.findFirst({ where: { status: "running" } });
+    if (running) {
+      return NextResponse.json({ error: "job_running", job: jobView(running) }, { status: 409 });
+    }
+
     // honesty gate — the SAME enabled/token checks the notify engine applies
     const [tg, token] = await Promise.all([getTelegramSettings(), getTelegramToken()]);
     if (!tg.enabled || !token) {
       return NextResponse.json({ error: "bot_not_configured" }, { status: 400 });
-    }
-
-    // single-flight: exactly one broadcast may run at a time
-    const running = await db.broadcastJob.findFirst({ where: { status: "running" } });
-    if (running) {
-      return NextResponse.json({ error: "job_running", job: jobView(running) }, { status: 409 });
     }
 
     // audience snapshot: every bot user not banned (tgUser has no per-user
@@ -120,7 +121,7 @@ export async function POST(req: Request) {
       meta: { section: "broadcast", jobId: job.id, total: targets.length, parseMode },
     });
     return NextResponse.json(
-      { job: jobView(job), ...(await broadcastState()) },
+      { ...(await broadcastState()), job: jobView(job) },
       { status: 201 }
     );
   } catch (err) {
