@@ -679,7 +679,7 @@ const DEFAULTS: Record<TableName, () => Record<string, any>> = {
     id: cuid(),
     mode: "tcp-relay",
     entryNode: "IR-Tehran-Gateway",
-    entryAddress: "185.143.233.10",
+    entryAddress: "203.0.113.10",
     entryPort: 2083,
     exitNode: "DE-Frankfurt-Core",
     exitAddress: "de1.sephiroth.edge",
