@@ -41,6 +41,7 @@ import {
   Wand2,
   Waves,
   Wifi,
+  X,
   Zap,
   type LucideIcon,
 } from "lucide-react";
@@ -94,7 +95,7 @@ import { genMtpSecret, MTP_DEFAULT_DOMAIN } from "@/lib/mtp-secret";
 import QRCode from "react-qr-code";
 import type { DoctorFinding, DoctorReport } from "@/lib/doctor-types";
 import { InboundsAutopilot } from "@/components/sephiroth/views/inbounds-autopilot";
-import { RealityScannerDialog } from "@/components/sephiroth/views/reality-scanner-dialog"; // v2.7 — REALITY target scanner
+import { RealityScannerDialog, type RealityDestPick } from "@/components/sephiroth/views/reality-scanner-dialog"; // v2.7 — REALITY target scanner + task 2-c prefill
 import { FEATURE } from "@/lib/i18n/feature-strings"; // v2.7 — scanner title
 import { Progress } from "@/components/ui/progress";
 
@@ -1049,6 +1050,8 @@ export function InboundsView() {
   const [autoOpen, setAutoOpen] = useState(false);
   /* v2.7 — REALITY target scanner dialog */
   const [scanOpen, setScanOpen] = useState(false);
+  /* v2.7 task 2-c — scanner → forge REALITY prefill (null = manual forge use) */
+  const [realityPrefill, setRealityPrefill] = useState<{ dest: string; serverNames: string } | null>(null);
   const [quickProto, setQuickProto] = useState<string>("vless");
   const [quickDraft, setQuickDraft] = useState({
     tag: "",
@@ -1207,19 +1210,23 @@ export function InboundsView() {
 
   /* ---------- mutations ---------- */
 
-  const openCreate = () => {
+  const openCreate = (realityPick?: RealityDestPick) => {
     const used = new Set((rows ?? []).map((r) => r.port));
     let port = 10000;
     while (used.has(port)) port++;
+    /* task 2-c — honour the scanner's port hint (443) when it's still free */
+    const portStr =
+      realityPick?.port && !used.has(Number(realityPick.port)) ? realityPick.port : String(port);
+    const pair = realityPick ? genRealityPair() : null;
     setEditing(null);
-    setTab("general");
+    setTab(realityPick ? "security" : "general");
     setForm({
       tag: "",
       protocol: "vless",
-      port: String(port),
+      port: portStr,
       listen: "",
       transport: "tcp",
-      security: "none",
+      security: realityPick ? "reality" : "none",
       status: "online",
       note: "",
       trafficLimitGb: "",
@@ -1239,8 +1246,17 @@ export function InboundsView() {
       sniffing: { enabled: false, destOverride: ["http", "tls"], routeOnly: false },
       mux: false,
       fallbacks: [],
-      stream: {},
+      stream: realityPick
+        ? {
+            dest: realityPick.dest,
+            serverNames: realityPick.serverNames,
+            privateKey: pair!.priv,
+            publicKey: pair!.pub,
+            shortIds: pair!.shortIds,
+          }
+        : {},
     });
+    setRealityPrefill(realityPick ? { dest: realityPick.dest, serverNames: realityPick.serverNames } : null);
     setFieldErr({});
     setDupEmails(new Set());
     setTopErr(null);
@@ -1458,6 +1474,7 @@ export function InboundsView() {
     setEditing(row);
     setTab("general");
     setForm(dtoToForm(row));
+    setRealityPrefill(null); // task 2-c — never leak scanner prefill into edit mode
     setFieldErr({});
     setDupEmails(new Set());
     setTopErr(null);
@@ -3993,7 +4010,7 @@ export function InboundsView() {
             {FEATURE[lang].scanner.title}
           </Button>
           <Button
-            onClick={openCreate}
+            onClick={() => openCreate()}
             className="glow-cyan gap-2 rounded-xl px-5 font-semibold shadow-lg shadow-primary/25"
           >
             <Plus className="h-4 w-4" />
@@ -4143,7 +4160,7 @@ export function InboundsView() {
                 {t.inbounds.quickCreate}
               </Button>
               <Button
-                onClick={openCreate}
+                onClick={() => openCreate()}
                 className="glow-cyan gap-2 rounded-full px-5 font-semibold"
               >
                 <Plus className="h-4 w-4" />
@@ -4518,6 +4535,27 @@ export function InboundsView() {
                 {composeProto(form.protocol, form.transport, form.security)}
               </span>
             </DialogTitle>
+
+            {/* task 2-c — scanner prefill hint (dismissible, only in New mode) */}
+            {realityPrefill && !editing && (
+              <div className="relative flex items-center px-5 pb-3 md:px-6" role="status">
+                <span className="flex min-w-0 items-center gap-2 rounded-full bg-emerald-400/10 py-1.5 ps-3 pe-1.5 text-[11px] font-medium text-emerald-300 ring-1 ring-emerald-400/25">
+                  <Radar className="h-3 w-3 shrink-0" aria-hidden="true" />
+                  <span className="min-w-0 truncate">
+                    {lfmt(FEATURE[lang].scanner.prefillHint, { dest: realityPrefill.dest })}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setRealityPrefill(null)}
+                    aria-label={t.inbounds.cancel}
+                    title={t.inbounds.cancel}
+                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-emerald-300/70 transition-colors hover:bg-emerald-400/15 hover:text-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                  >
+                    <X className="h-3 w-3" aria-hidden="true" />
+                  </button>
+                </span>
+              </div>
+            )}
           </DialogHeader>
 
           {/* mobile step chips (below md) */}
@@ -5107,8 +5145,13 @@ export function InboundsView() {
         onCreated={() => void load()}
       />
 
-      {/* ── v2.7 — REALITY target scanner ────────────────── */}
-      <RealityScannerDialog open={scanOpen} onOpenChange={setScanOpen} />
+      {/* ── v2.7 — REALITY target scanner (task 2-c: pick-dest + rotate wiring) ── */}
+      <RealityScannerDialog
+        open={scanOpen}
+        onOpenChange={setScanOpen}
+        onPickDest={(pick) => openCreate(pick)}
+        onInboundsChanged={() => void load()}
+      />
     </div>
   );
 }

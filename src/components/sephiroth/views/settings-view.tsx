@@ -84,6 +84,9 @@ import { TelegramBotPanel } from "@/components/sephiroth/views/telegram-bot-pane
 import { TelegramBotSettings } from "@/components/sephiroth/views/telegram-bot-settings"; // Task 23-a — bot card
 import { DiscordBotSettings } from "@/components/sephiroth/views/discord-bot-settings"; // v2.7 — Discord bot card
 import { WebhooksCard } from "@/components/sephiroth/views/webhooks-card"; // v2.7 — outbound webhooks card
+import { DiscountCodesCard } from "@/components/sephiroth/views/discount-codes-card"; // Task 2-d — discount codes card
+import { ReferralCard } from "@/components/sephiroth/views/referral-card"; // Task 2-d — referral settings + stats card
+import { UpdatesCard } from "@/components/sephiroth/views/updates-card"; // Task 3-c — release channel + update check card
 import { SslCard } from "@/components/sephiroth/views/ssl-card"; // Task 23-f — SSL/ACME card
 
 /* ============================================================
@@ -2078,6 +2081,15 @@ docker run -d --name mtproxy --restart=always -p ${mtpPort || "443"}:443 \\
 
             {/* v2.7 — outbound webhooks (event fan-out + delivery log) */}
             <WebhooksCard />
+
+            {/* Task 2-d — bot shop discount codes (cart checkout) */}
+            <DiscountCodesCard />
+
+            {/* Task 2-d — referral program settings + top referrers */}
+            <ReferralCard />
+
+            {/* Task 3-c — release channel (stable/beta) + GitHub update check */}
+            <UpdatesCard />
 
             {/* telegram notifications */}
             <SectionCard icon={Sparkles} title={u.tgNotify}>

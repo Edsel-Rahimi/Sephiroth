@@ -201,6 +201,14 @@ const K = {
   // internal bookkeeping (never exposed via the settings API)
   autoBackupLast: "set_auto_backup_last",
   autoBackupLastSize: "set_auto_backup_last_size",
+  // Task 2-d — referral program (own section, own keys)
+  refEnabled: "set_referral_enabled",
+  refReward: "set_referral_reward_amount",
+  // Task 2-e — anti-abuse (own section, own keys)
+  abuseForceChannel: "set_abuse_force_channel",
+  abuseBanNotify: "set_abuse_ban_notify",
+  // Task 3-c — update channel (stable | beta), own section
+  updChannel: "set_updates_channel",
 } as const;
 
 async function readSettings(keys: string[]): Promise<Map<string, string>> {
@@ -1739,6 +1747,163 @@ export async function getAutoBackupLastRun(): Promise<string> {
 export async function markAutoBackupRun(sizeBytes: number): Promise<void> {
   await writeSetting(K.autoBackupLast, new Date().toISOString());
   await writeSetting(K.autoBackupLastSize, String(Math.max(0, Math.round(sizeBytes))));
+}
+
+/* ---------- referral program (Task 2-d — own section) ----------
+   Rewards live in the SAME wallet the v2.8 /credit flow tops up; the
+   currency is always Toman (the panel has no other sale currency),
+   exposed as a note for the settings card. */
+
+export interface ReferralSettings {
+  /** Master switch — hides the bot menu entry and stops all rewards. */
+  enabled: boolean;
+  /** Toman credited to the referrer on a friend's FIRST PAID order (≥ 0; 0 = no reward). */
+  rewardAmount: number;
+}
+
+const REFERRAL_DEFAULT: ReferralSettings = {
+  enabled: false,
+  rewardAmount: 0,
+};
+
+export async function getReferralSettings(): Promise<ReferralSettings> {
+  const m = await readSettings([K.refEnabled, K.refReward]);
+  const amount = Number(m.get(K.refReward));
+  return {
+    enabled: m.get(K.refEnabled) === "1",
+    rewardAmount: Number.isFinite(amount) && amount > 0 ? Math.floor(amount) : REFERRAL_DEFAULT.rewardAmount,
+  };
+}
+
+export async function validateReferralPatch(body: unknown): Promise<PatchResult<ReferralSettings>> {
+  const b = (body ?? {}) as Record<string, unknown>;
+  // merge onto the CURRENTLY SAVED values so a partial PUT never wipes fields
+  const out: ReferralSettings = { ...(await getReferralSettings()) };
+  if (b.enabled !== undefined) {
+    if (typeof b.enabled !== "boolean") {
+      return { ok: false, fields: [{ field: "enabled", code: "format" }] };
+    }
+    out.enabled = b.enabled;
+  }
+  if (b.rewardAmount !== undefined) {
+    const n = Number(b.rewardAmount);
+    if (!Number.isFinite(n) || n < 0 || n > 1_000_000_000) {
+      return { ok: false, fields: [{ field: "rewardAmount", code: "range" }] };
+    }
+    out.rewardAmount = Math.floor(n);
+  }
+  return { ok: true, data: out };
+}
+
+export async function saveReferralSettings(s: ReferralSettings): Promise<void> {
+  await writeSetting(K.refEnabled, s.enabled ? "1" : "0");
+  await writeSetting(K.refReward, String(Math.max(0, Math.floor(s.rewardAmount))));
+}
+
+/* ---------- anti-abuse (Task 2-e — own section) ----------
+   forceChannel: "" = off; accepts @name or https://t.me/<name>
+   (normalized to the bare <name>). banNotify: send one "you are
+   banned" notice per cooldown when the gate stops a user. */
+
+export interface AbuseSettings {
+  /** Public channel username (bare, no @) users must join; "" = off. */
+  forceChannel: string;
+  /** Send a one-time "you are banned" notice when a banned user writes. */
+  banNotify: boolean;
+}
+
+const ABUSE_DEFAULT: AbuseSettings = {
+  forceChannel: "",
+  banNotify: true,
+};
+
+/** Telegram public usernames: 5–32 chars, letters/digits/underscores, not all digits. */
+const TG_CHANNEL_RE = /^[A-Za-z][A-Za-z0-9_]{4,31}$/;
+
+/** Normalize "@name" / "https://t.me/name" / "t.me/name" → bare "name" ("" stays ""). */
+export function normalizeForceChannel(raw: string): string {
+  let s = (raw ?? "").trim();
+  if (!s) return "";
+  s = s.replace(/^@/, "");
+  s = s.replace(/^https?:\/\//i, "");
+  s = s.replace(/^t\.me\//i, "");
+  s = s.replace(/^\//, "");
+  return s.trim();
+}
+
+export async function getAbuseSettings(): Promise<AbuseSettings> {
+  const m = await readSettings([K.abuseForceChannel, K.abuseBanNotify]);
+  const ch = normalizeForceChannel(m.get(K.abuseForceChannel) ?? "");
+  return {
+    forceChannel: ch,
+    banNotify: m.get(K.abuseBanNotify) === null ? ABUSE_DEFAULT.banNotify : m.get(K.abuseBanNotify) === "1",
+  };
+}
+
+export async function validateAbusePatch(body: unknown): Promise<PatchResult<AbuseSettings>> {
+  const b = (body ?? {}) as Record<string, unknown>;
+  // merge onto the CURRENTLY SAVED values so a partial PUT never wipes fields
+  const out: AbuseSettings = { ...(await getAbuseSettings()) };
+  if (b.forceChannel !== undefined) {
+    if (typeof b.forceChannel !== "string") {
+      return { ok: false, fields: [{ field: "forceChannel", code: "format" }] };
+    }
+    const norm = normalizeForceChannel(b.forceChannel);
+    if (norm && !TG_CHANNEL_RE.test(norm)) {
+      // private invite links (t.me/+hash, joinchat) and malformed names are rejected honestly
+      return { ok: false, fields: [{ field: "forceChannel", code: "format" }] };
+    }
+    out.forceChannel = norm;
+  }
+  if (b.banNotify !== undefined) {
+    if (typeof b.banNotify !== "boolean") {
+      return { ok: false, fields: [{ field: "banNotify", code: "format" }] };
+    }
+    out.banNotify = b.banNotify;
+  }
+  return { ok: true, data: out };
+}
+
+export async function saveAbuseSettings(s: AbuseSettings): Promise<void> {
+  await writeSetting(K.abuseForceChannel, s.forceChannel);
+  await writeSetting(K.abuseBanNotify, s.banNotify ? "1" : "0");
+}
+
+/* ---------- update channel (Task 3-c — own section) ----------
+   Chooses which GitHub release line /api/system/update-check
+   reports: "stable" = newest non-prerelease release, "beta" =
+   newest release including prereleases. Single-key section so
+   future update prefs can join without a schema migration. */
+
+export type UpdateChannel = "stable" | "beta";
+
+export interface UpdateSettings {
+  channel: UpdateChannel;
+}
+
+const UPDATES_DEFAULT: UpdateSettings = { channel: "stable" };
+
+export async function getUpdateSettings(): Promise<UpdateSettings> {
+  const m = await readSettings([K.updChannel]);
+  const raw = m.get(K.updChannel);
+  return { channel: raw === "beta" ? "beta" : UPDATES_DEFAULT.channel };
+}
+
+export async function validateUpdatePatch(body: unknown): Promise<PatchResult<UpdateSettings>> {
+  const b = (body ?? {}) as Record<string, unknown>;
+  // merge onto the CURRENTLY SAVED values so a partial PUT never wipes fields
+  const out: UpdateSettings = { ...(await getUpdateSettings()) };
+  if (b.channel !== undefined) {
+    if (b.channel !== "stable" && b.channel !== "beta") {
+      return { ok: false, fields: [{ field: "channel", code: "format" }] };
+    }
+    out.channel = b.channel;
+  }
+  return { ok: true, data: out };
+}
+
+export async function saveUpdateSettings(s: UpdateSettings): Promise<void> {
+  await writeSetting(K.updChannel, s.channel === "beta" ? "beta" : "stable");
 }
 
 /* ---------- recovery key ---------- */

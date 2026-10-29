@@ -120,6 +120,44 @@ export interface BotTexts {
   doneApplyTpl: string;
   btnResetDevices: string;
   doneResetDevices: string;
+  /* 2-d — cart + discount codes */
+  btnCart: string;
+  btnAddCart: string;
+  cartAdded: string;
+  cartTitle: string;
+  cartEmpty: string;
+  cartLine: string;
+  cartTooMany: string;
+  btnPlus: string;
+  btnMinus: string;
+  btnRemove: string;
+  btnCheckout: string;
+  btnClearCart: string;
+  cartCleared: string;
+  cartAskCode: string;
+  btnSkipCode: string;
+  codeInvalid: string;
+  codeExpired: string;
+  codeLimit: string;
+  codeUsed: string;
+  codeOk: string;
+  cartSummary: string;
+  cartPicker: string;
+  cartDelivered: string;
+  cartDeliveredLine: string;
+  /* 2-d — referral program */
+  btnReferral: string;
+  refTitle: string;
+  refSelf: string;
+  refOk: string;
+  refNotifyReward: string;
+  refDisabled: string;
+  refLinkFail: string;
+  /* 2-e — anti-abuse gate */
+  abuseBanned: string;
+  abuseBannedReason: string;
+  abuseJoinRequired: string;
+  abuseJoinButton: string;
 }
 
 const FA: BotTexts = {
@@ -215,6 +253,41 @@ const FA: BotTexts = {
   doneApplyTpl: "📋 پلن {tpl} روی {user} اعمال شد ({gb}، {days} روز، {ip} دستگاه).",
   btnResetDevices: "📵 ریست دستگاه‌ها",
   doneResetDevices: "📵 دستگاه‌های {user} ریست شد — کلاینت‌ها باید دوباره ثبت نام کنند.",
+  btnCart: "🛒 سبد خرید",
+  btnAddCart: "🛒 افزودن به سبد",
+  cartAdded: "✓ به سبد خرید اضافه شد",
+  cartTitle: "🛒 <b>سبد خرید شما</b>",
+  cartEmpty: "سبد خرید شما خالی است.",
+  cartLine: "• <b>{name}</b> × {qty} — {price} تومان",
+  cartTooMany: "ظرفیت سبد پر است (حداکثر {max} قلم).",
+  btnPlus: "➕",
+  btnMinus: "➖",
+  btnRemove: "🗑",
+  btnCheckout: "✅ تسویه حساب",
+  btnClearCart: "🗑 خالی کردن سبد",
+  cartCleared: "🗑 سبد خرید خالی شد.",
+  cartAskCode: "💸 کد تخفیف دارید؟\nکد را در یک پیام بفرستید یا رد کنید:",
+  btnSkipCode: "➡️ رد کردن",
+  codeInvalid: "❌ کد تخفیف نامعتبر است.",
+  codeExpired: "⌛ این کد تخفیف منقضی شده است.",
+  codeLimit: "🚫 ظرفیت استفاده از این کد تخفیف تمام شده است.",
+  codeUsed: "🔁 شما قبلاً از این کد تخفیف استفاده کرده‌اید.",
+  codeOk: "✅ کد <code>{code}</code> اعمال شد — {discount} تومان تخفیف",
+  cartSummary: "🧾 <b>خلاصه سفارش</b>\n{lines}\n\nجمع: {total} تومان\nتخفیف {code}: −{discount} تومان\n<b>قابل پرداخت: {payable} تومان</b>",
+  cartPicker: "روش پرداخت برای مبلغ <b>{price} تومان</b> را انتخاب کنید:",
+  cartDelivered: "🎉 <b>سفارش شما آماده است!</b>\n\n{lines}\n\nهر مورد لینک اشتراک مخصوص خودش را دارد؛ آن را در برنامه (v2rayNG / Streisand / Hiddify / Clash Meta) وارد کنید.",
+  cartDeliveredLine: "• <b>{name}</b> × {qty}\n  <code>{user}</code>\n  {sub}",
+  btnReferral: "🎁 معرفی به دوستان",
+  refTitle: "👥 <b>برنامه معرفی</b>\n\nکد شما:\n<code>{code}</code>\n\nلینک دعوت:\n{link}\n\n• دوستان دعوت‌شده: {count}\n• پاداش دریافتی: {earned} تومان\n\nبا اولین خرید پرداختی هر دوست، {reward} تومان به کیف پول شما اضافه می‌شود.",
+  refSelf: "شما نمی‌توانید از لینک معرفی خودتان استفاده کنید.",
+  refOk: "✅ خوش آمدید! شما توسط {user} دعوت شده‌اید.",
+  refNotifyReward: "🎉 دوست شما {user} اولین خریدش را انجام داد — <b>{amount} تومان</b> به کیف پول شما اضافه شد.\nموجودی جدید: {balance} تومان",
+  refDisabled: "در حال حاضر برنامه معرفی غیرفعال است.",
+  refLinkFail: "ساخت لینک دعوت ممکن نشد — کمی بعد دوباره تلاش کنید.",
+  abuseBanned: "⛔ دسترسی شما به این ربات مسدود شده است.",
+  abuseBannedReason: "⛔ دسترسی شما به این ربات مسدود شده است.\n\nدلیل: {reason}",
+  abuseJoinRequired: "🔒 برای استفاده از ربات ابتدا باید عضو کانال ما شوید. پس از عضویت، /start را دوباره بزنید.",
+  abuseJoinButton: "📢 عضویت در کانال",
 };
 
 const EN: BotTexts = {
@@ -310,6 +383,41 @@ const EN: BotTexts = {
   doneApplyTpl: "📋 Template {tpl} applied to {user} ({gb}, {days} days, {ip} devices).",
   btnResetDevices: "📵 Reset devices",
   doneResetDevices: "📵 Devices reset for {user} — clients must re-register.",
+  btnCart: "🛒 Cart",
+  btnAddCart: "🛒 Add to cart",
+  cartAdded: "✓ Added to cart",
+  cartTitle: "🛒 <b>Your cart</b>",
+  cartEmpty: "Your cart is empty.",
+  cartLine: "• <b>{name}</b> × {qty} — {price} Toman",
+  cartTooMany: "Cart limit reached (max {max} lines).",
+  btnPlus: "➕",
+  btnMinus: "➖",
+  btnRemove: "🗑",
+  btnCheckout: "✅ Checkout",
+  btnClearCart: "🗑 Clear cart",
+  cartCleared: "🗑 Cart cleared.",
+  cartAskCode: "💸 Have a discount code?\nSend it in one message, or skip:",
+  btnSkipCode: "➡️ Skip",
+  codeInvalid: "❌ Invalid discount code.",
+  codeExpired: "⌛ This discount code has expired.",
+  codeLimit: "🚫 This discount code has reached its usage limit.",
+  codeUsed: "🔁 You have already used this discount code.",
+  codeOk: "✅ Code <code>{code}</code> applied — {discount} Toman off",
+  cartSummary: "🧾 <b>Order summary</b>\n{lines}\n\nSubtotal: {total} Toman\nDiscount {code}: −{discount} Toman\n<b>Total: {payable} Toman</b>",
+  cartPicker: "Choose a payment method for <b>{price} Toman</b>",
+  cartDelivered: "🎉 <b>Your order is ready!</b>\n\n{lines}\n\nEach item above has its own subscription link — paste it into your app (v2rayNG / Streisand / Hiddify / Clash Meta).",
+  cartDeliveredLine: "• <b>{name}</b> × {qty}\n  <code>{user}</code>\n  {sub}",
+  btnReferral: "🎁 Invite friends",
+  refTitle: "👥 <b>Referral program</b>\n\nYour code:\n<code>{code}</code>\n\nInvite link:\n{link}\n\n• Friends joined: {count}\n• Rewards earned: {earned} Toman\n\nWhen a friend completes their FIRST paid order you get {reward} Toman in your wallet.",
+  refSelf: "You cannot use your own referral link.",
+  refOk: "✅ Welcome! You were invited by {user}.",
+  refNotifyReward: "🎉 Your friend {user} made their first purchase — <b>{amount} Toman</b> was added to your wallet.\nNew balance: {balance} Toman",
+  refDisabled: "The referral program is currently disabled.",
+  refLinkFail: "Could not build the invite link right now — please try again later.",
+  abuseBanned: "⛔ Your access to this bot has been blocked.",
+  abuseBannedReason: "⛔ Your access to this bot has been blocked.\n\nReason: {reason}",
+  abuseJoinRequired: "🔒 To use this bot you must first join our channel. Once you have joined, press /start again.",
+  abuseJoinButton: "📢 Join channel",
 };
 
 const AR: BotTexts = {
@@ -405,6 +513,41 @@ const AR: BotTexts = {
   doneApplyTpl: "📋 طُبّقت باقة {tpl} على {user} ({gb}، {days} يوم، {ip} أجهزة).",
   btnResetDevices: "📵 تصفير الأجهزة",
   doneResetDevices: "📵 صُفّرت أجهزة {user} — على العملاء إعادة التسجيل.",
+  btnCart: "🛒 السلة",
+  btnAddCart: "🛒 أضف إلى السلة",
+  cartAdded: "✓ أُضيف إلى السلة",
+  cartTitle: "🛒 <b>سلتك</b>",
+  cartEmpty: "سلتك فارغة.",
+  cartLine: "• <b>{name}</b> × {qty} — {price} تومان",
+  cartTooMany: "بلغت السلة حدها الأقصى ({max} عناصر كحد أعلى).",
+  btnPlus: "➕",
+  btnMinus: "➖",
+  btnRemove: "🗑",
+  btnCheckout: "✅ إتمام الشراء",
+  btnClearCart: "🗑 تفريغ السلة",
+  cartCleared: "🗑 تم تفريغ السلة.",
+  cartAskCode: "💸 لديك رمز تخفيض؟\nأرسله في رسالة واحدة أو تخطَّه:",
+  btnSkipCode: "➡️ تخطي",
+  codeInvalid: "❌ رمز التخفيض غير صالح.",
+  codeExpired: "⌛ انتهت صلاحية رمز التخفيض.",
+  codeLimit: "🚫 استُنفد الحد المسموح لرمز التخفيض.",
+  codeUsed: "🔁 لقد استخدمت رمز التخفيض مسبقاً.",
+  codeOk: "✅ طُبّق الرمز <code>{code}</code> — خصم {discount} تومان",
+  cartSummary: "🧾 <b>ملخص الطلب</b>\n{lines}\n\nالإجمالي: {total} تومان\nالخصم {code}: −{discount} تومان\n<b>المطلوب: {payable} تومان</b>",
+  cartPicker: "اختر طريقة الدفع لمبلغ <b>{price} تومان</b>",
+  cartDelivered: "🎉 <b>طلبك جاهز!</b>\n\n{lines}\n\nلكل عنصر رابط اشتراك خاص به — الصقه في تطبيقك (v2rayNG / Streisand / Hiddify / Clash Meta).",
+  cartDeliveredLine: "• <b>{name}</b> × {qty}\n  <code>{user}</code>\n  {sub}",
+  btnReferral: "🎁 ادعُ أصدقاءك",
+  refTitle: "👥 <b>برنامج الإحالة</b>\n\nرمزك:\n<code>{code}</code>\n\nرابط الدعوة:\n{link}\n\n• الأصدقاء المنضمّون: {count}\n• المكافآت المكتسبة: {earned} تومان\n\nعندما يُكمل صديق أول طلب مدفوع له تحصل على {reward} تومان في محفظتك.",
+  refSelf: "لا يمكنك استخدام رابط الإحالة الخاص بك.",
+  refOk: "✅ مرحباً بك! تمت دعوتك من قبل {user}.",
+  refNotifyReward: "🎉 صديقك {user} أتم أول عملية شراء — أُضيفت <b>{amount} تومان</b> إلى محفظتك.\nالرصيد الجديد: {balance} تومان",
+  refDisabled: "برنامج الإحالة معطّل حالياً.",
+  refLinkFail: "تعذّر إنشاء رابط الدعوة الآن — حاول لاحقاً.",
+  abuseBanned: "⛔ تم حظر وصولك إلى هذا البوت.",
+  abuseBannedReason: "⛔ تم حظر وصولك إلى هذا البوت.\n\nالسبب: {reason}",
+  abuseJoinRequired: "🔒 لاستخدام هذا البوت يجب أن تنضم إلى قناتنا أولاً. بعد الانضمام، اضغط /start مرة أخرى.",
+  abuseJoinButton: "📢 الانضمام للقناة",
 };
 
 const ZH: BotTexts = {
@@ -500,6 +643,41 @@ const ZH: BotTexts = {
   doneApplyTpl: "📋 已将套餐 {tpl} 应用到 {user}（{gb}，{days} 天，{ip} 台设备）。",
   btnResetDevices: "📵 重置设备",
   doneResetDevices: "📵 已重置 {user} 的设备 — 客户端需重新注册。",
+  btnCart: "🛒 购物车",
+  btnAddCart: "🛒 加入购物车",
+  cartAdded: "✓ 已加入购物车",
+  cartTitle: "🛒 <b>您的购物车</b>",
+  cartEmpty: "购物车是空的。",
+  cartLine: "• <b>{name}</b> × {qty} — {price} 托曼",
+  cartTooMany: "购物车已满（最多 {max} 行）。",
+  btnPlus: "➕",
+  btnMinus: "➖",
+  btnRemove: "🗑",
+  btnCheckout: "✅ 结算",
+  btnClearCart: "🗑 清空购物车",
+  cartCleared: "🗑 购物车已清空。",
+  cartAskCode: "💸 有优惠码吗？\n请在一条消息中发送，或跳过：",
+  btnSkipCode: "➡️ 跳过",
+  codeInvalid: "❌ 优惠码无效。",
+  codeExpired: "⌛ 该优惠码已过期。",
+  codeLimit: "🚫 该优惠码的使用次数已达上限。",
+  codeUsed: "🔁 您已经使用过该优惠码。",
+  codeOk: "✅ 优惠码 <code>{code}</code> 已生效 — 立减 {discount} 托曼",
+  cartSummary: "🧾 <b>订单摘要</b>\n{lines}\n\n小计：{total} 托曼\n优惠 {code}：−{discount} 托曼\n<b>应付：{payable} 托曼</b>",
+  cartPicker: "请选择 <b>{price} 托曼</b> 的支付方式",
+  cartDelivered: "🎉 <b>您的订单已完成！</b>\n\n{lines}\n\n以上每项都有各自的订阅链接 — 请粘贴到客户端（v2rayNG / Streisand / Hiddify / Clash Meta）。",
+  cartDeliveredLine: "• <b>{name}</b> × {qty}\n  <code>{user}</code>\n  {sub}",
+  btnReferral: "🎁 邀请好友",
+  refTitle: "👥 <b>推荐计划</b>\n\n您的推荐码：\n<code>{code}</code>\n\n邀请链接：\n{link}\n\n• 已加入好友：{count}\n• 已获奖励：{earned} 托曼\n\n好友完成首笔付费订单后，您的钱包将获得 {reward} 托曼奖励。",
+  refSelf: "不能使用自己的推荐链接。",
+  refOk: "✅ 欢迎！您由 {user} 邀请加入。",
+  refNotifyReward: "🎉 您的好友 {user} 完成了首笔购买 — 钱包已到账 <b>{amount} 托曼</b>。\n新余额：{balance} 托曼",
+  refDisabled: "推荐计划当前已停用。",
+  refLinkFail: "暂时无法生成邀请链接 — 请稍后再试。",
+  abuseBanned: "⛔ 您使用此机器人的权限已被封禁。",
+  abuseBannedReason: "⛔ 您使用此机器人的权限已被封禁。\n\n原因：{reason}",
+  abuseJoinRequired: "🔒 使用本机器人前，请先加入我们的频道。加入后请重新发送 /start。",
+  abuseJoinButton: "📢 加入频道",
 };
 
 const TR: BotTexts = {
@@ -595,6 +773,41 @@ const TR: BotTexts = {
   doneApplyTpl: "📋 {tpl} paketi {user} üzerine uygulandı ({gb}, {days} gün, {ip} cihaz).",
   btnResetDevices: "📵 Cihazları sıfırla",
   doneResetDevices: "📵 {user} cihazları sıfırlandı — istemciler yeniden kaydolmalı.",
+  btnCart: "🛒 Sepet",
+  btnAddCart: "🛒 Sepete ekle",
+  cartAdded: "✓ Sepete eklendi",
+  cartTitle: "🛒 <b>Sepetiniz</b>",
+  cartEmpty: "Sepetiniz boş.",
+  cartLine: "• <b>{name}</b> × {qty} — {price} Toman",
+  cartTooMany: "Sepet sınırına ulaşıldı (en fazla {max} kalem).",
+  btnPlus: "➕",
+  btnMinus: "➖",
+  btnRemove: "🗑",
+  btnCheckout: "✅ Ödemeye geç",
+  btnClearCart: "🗑 Sepeti boşalt",
+  cartCleared: "🗑 Sepet boşaltıldı.",
+  cartAskCode: "💸 İndirim kodunuz var mı?\nTek mesajda gönderin ya da geçin:",
+  btnSkipCode: "➡️ Atla",
+  codeInvalid: "❌ Geçersiz indirim kodu.",
+  codeExpired: "⌛ Bu indirim kodunun süresi doldu.",
+  codeLimit: "🚫 Bu indirim kodu kullanım sınırına ulaştı.",
+  codeUsed: "🔁 Bu indirim kodunu zaten kullandınız.",
+  codeOk: "✅ <code>{code}</code> kodu uygulandı — {discount} Toman indirim",
+  cartSummary: "🧾 <b>Sipariş özeti</b>\n{lines}\n\nAra toplam: {total} Toman\nİndirim {code}: −{discount} Toman\n<b>Ödenecek: {payable} Toman</b>",
+  cartPicker: "<b>{price} Toman</b> için ödeme yöntemi seçin",
+  cartDelivered: "🎉 <b>Siparişiniz hazır!</b>\n\n{lines}\n\nHer kalemin kendi abonelik bağlantısı var — uygulamaya yapıştırın (v2rayNG / Streisand / Hiddify / Clash Meta).",
+  cartDeliveredLine: "• <b>{name}</b> × {qty}\n  <code>{user}</code>\n  {sub}",
+  btnReferral: "🎁 Arkadaş davet et",
+  refTitle: "👥 <b>Davet programı</b>\n\nKodunuz:\n<code>{code}</code>\n\nDavet bağlantısı:\n{link}\n\n• Katılan arkadaşlar: {count}\n• Kazanılan ödül: {earned} Toman\n\nBir arkadaş ilk ÜCRETLİ siparişini tamamladığında cüzdanınıza {reward} Toman eklenir.",
+  refSelf: "Kendi davet bağlantınızı kullanamazsınız.",
+  refOk: "✅ Hoş geldiniz! {user} tarafından davet edildiniz.",
+  refNotifyReward: "🎉 Arkadaşınız {user} ilk satın alımını yaptı — cüzdanınıza <b>{amount} Toman</b> eklendi.\nYeni bakiye: {balance} Toman",
+  refDisabled: "Davet programı şu anda devre dışı.",
+  refLinkFail: "Davet bağlantısı şu anda oluşturulamadı — lütfen sonra tekrar deneyin.",
+  abuseBanned: "⛔ Bu bota erişiminiz engellendi.",
+  abuseBannedReason: "⛔ Bu bota erişiminiz engellendi.\n\nSebep: {reason}",
+  abuseJoinRequired: "🔒 Bu botu kullanmak için önce kanalımıza katılmanız gerekir. Katıldıktan sonra /start komutunu tekrar gönderin.",
+  abuseJoinButton: "📢 Kanala katıl",
 };
 
 const RU: BotTexts = {
@@ -690,6 +903,41 @@ const RU: BotTexts = {
   doneApplyTpl: "📋 Тариф {tpl} применён к {user} ({gb}, {days} дн., {ip} устройств).",
   btnResetDevices: "📵 Сбросить устройства",
   doneResetDevices: "📵 Устройства {user} сброшены — клиентам нужно зарегистрироваться заново.",
+  btnCart: "🛒 Корзина",
+  btnAddCart: "🛒 В корзину",
+  cartAdded: "✓ Добавлено в корзину",
+  cartTitle: "🛒 <b>Ваша корзина</b>",
+  cartEmpty: "Ваша корзина пуста.",
+  cartLine: "• <b>{name}</b> × {qty} — {price} томанов",
+  cartTooMany: "Достигнут лимит корзины (максимум {max} позиций).",
+  btnPlus: "➕",
+  btnMinus: "➖",
+  btnRemove: "🗑",
+  btnCheckout: "✅ Оформить",
+  btnClearCart: "🗑 Очистить корзину",
+  cartCleared: "🗑 Корзина очищена.",
+  cartAskCode: "💸 Есть промокод?\nОтправьте его одним сообщением или пропустите:",
+  btnSkipCode: "➡️ Пропустить",
+  codeInvalid: "❌ Неверный промокод.",
+  codeExpired: "⌛ Срок действия промокода истёк.",
+  codeLimit: "🚫 Лимит использования промокода исчерпан.",
+  codeUsed: "🔁 Вы уже использовали этот промокод.",
+  codeOk: "✅ Промокод <code>{code}</code> применён — скидка {discount} томанов",
+  cartSummary: "🧾 <b>Сводка заказа</b>\n{lines}\n\nСумма: {total} томанов\nСкидка {code}: −{discount} томанов\n<b>К оплате: {payable} томанов</b>",
+  cartPicker: "Выберите способ оплаты для суммы <b>{price} томанов</b>",
+  cartDelivered: "🎉 <b>Ваш заказ готов!</b>\n\n{lines}\n\nУ каждой позиции своя ссылка подписки — вставьте её в приложение (v2rayNG / Streisand / Hiddify / Clash Meta).",
+  cartDeliveredLine: "• <b>{name}</b> × {qty}\n  <code>{user}</code>\n  {sub}",
+  btnReferral: "🎁 Пригласить друзей",
+  refTitle: "👥 <b>Реферальная программа</b>\n\nВаш код:\n<code>{code}</code>\n\nСсылка для приглашения:\n{link}\n\n• Приглашено друзей: {count}\n• Получено наград: {earned} томанов\n\nКогда друг завершит свой ПЕРВЫЙ платный заказ, на ваш кошелёк будет начислено {reward} томанов.",
+  refSelf: "Нельзя использовать собственную реферальную ссылку.",
+  refOk: "✅ Добро пожаловать! Вас пригласил {user}.",
+  refNotifyReward: "🎉 Ваш друг {user} совершил первую покупку — на ваш кошелёк начислено <b>{amount} томанов</b>.\nНовый баланс: {balance} томанов",
+  refDisabled: "Реферальная программа сейчас отключена.",
+  refLinkFail: "Не удалось создать ссылку-приглашение — попробуйте позже.",
+  abuseBanned: "⛔ Ваш доступ к этому боту заблокирован.",
+  abuseBannedReason: "⛔ Ваш доступ к этому боту заблокирован.\n\nПричина: {reason}",
+  abuseJoinRequired: "🔒 Чтобы пользоваться ботом, сначала вступите в наш канал. После вступления снова отправьте /start.",
+  abuseJoinButton: "📢 Вступить в канал",
 };
 
 const TABLE: Record<BotLang, BotTexts> = { fa: FA, en: EN, ar: AR, zh: ZH, tr: TR, ru: RU };

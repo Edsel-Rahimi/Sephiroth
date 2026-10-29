@@ -65,6 +65,10 @@ import * as apiResellersId from "./src/app/api/resellers/[id]/route";
 import * as apiRouting from "./src/app/api/routing/route";
 import * as apiSaleTemplates from "./src/app/api/sale-templates/route";
 import * as apiSaleTemplatesId from "./src/app/api/sale-templates/[id]/route";
+import * as apiDiscountCodes from "./src/app/api/discount-codes/route"; // Task 2-d — bot shop discount codes
+import * as apiDiscountCodesId from "./src/app/api/discount-codes/[id]/route"; // Task 2-d — discount code item API
+import * as apiReferralSettings from "./src/app/api/referral/settings/route"; // Task 2-d — referral settings (own section)
+import * as apiReferralStats from "./src/app/api/referral/stats/route"; // Task 2-d — top referrers
 import * as apiSettings from "./src/app/api/settings/route";
 import * as apiSettingsBackup from "./src/app/api/settings/backup/route";
 import * as apiSettingsRestore from "./src/app/api/settings/restore/route";
@@ -91,6 +95,7 @@ import * as apiSystemRestart from "./src/app/api/system/restart/route";
 import * as apiSystemServerInfo from "./src/app/api/system/server-info/route";
 import * as apiSystemUpdate from "./src/app/api/system/update/route";
 import * as apiSystemUpdateInfo from "./src/app/api/system/update-info/route";
+import * as apiSystemUpdateCheck from "./src/app/api/system/update-check/route"; // task 3-c — stable/beta release channel check
 import * as apiSystemUpdateStatus from "./src/app/api/system/update-status/route";
 import * as apiTelegramBotAction from "./src/app/api/telegram/bot-action/route";
 import * as apiTelegramBotStatus from "./src/app/api/telegram/bot-status/route";
@@ -123,6 +128,7 @@ import * as apiUsersId from "./src/app/api/users/[id]/route";
 import * as apiApiTokens from "./src/app/api/api-tokens/route"; // Phase 27 — public API tokens
 import * as apiApiTokensId from "./src/app/api/api-tokens/[id]/route"; // Phase 27 — token revoke/toggle
 import * as apiOpenapi from "./src/app/api/openapi/route"; // Phase 27 — OpenAPI spec
+import * as apiMetrics from "./src/app/api/metrics/route"; // task 3-c — Prometheus exposition (seph_ bearer tokens)
 import * as apiV1Ping from "./src/app/api/v1/ping/route"; // Phase 28 — /api/v1 health probe
 import * as apiRefProxy from "./src/app/ref/[panel]/[[...path]]/route";
 
@@ -393,6 +399,7 @@ async function startServer() {
   mountRoute(app, "/api/api-tokens", apiApiTokens);
   mountRoute(app, "/api/api-tokens/:id", apiApiTokensId);
   mountRoute(app, "/api/openapi.json", apiOpenapi);
+  mountRoute(app, "/api/metrics", apiMetrics); // task 3-c — Prometheus text exposition (seph_ bearer token or ?token=)
 
   /* Phase 28 — /api/v1 public namespace: curated bearer-authed aliases of the
      dashboard REST API under a stable versioned prefix for external
@@ -457,6 +464,10 @@ async function startServer() {
 
   mountRoute(app, "/api/sale-templates", apiSaleTemplates);
   mountRoute(app, "/api/sale-templates/:id", apiSaleTemplatesId);
+  mountRoute(app, "/api/discount-codes/:id", apiDiscountCodesId); // Task 2-d — nested BEFORE the list route
+  mountRoute(app, "/api/discount-codes", apiDiscountCodes); // Task 2-d
+  mountRoute(app, "/api/referral/settings", apiReferralSettings); // Task 2-d — BEFORE /api/referral/stats (no overlap, but keep nesting order)
+  mountRoute(app, "/api/referral/stats", apiReferralStats); // Task 2-d
 
   mountRoute(app, "/api/settings/backup", apiSettingsBackup);
   mountRoute(app, "/api/settings/restore", apiSettingsRestore);
@@ -488,6 +499,7 @@ async function startServer() {
   mountRoute(app, "/api/system/ssl-install-acme", apiSystemSslInstall);
   mountRoute(app, "/api/system/ssl-issue", apiSystemSslIssue);
   mountRoute(app, "/api/system/update-info", apiSystemUpdateInfo);
+  mountRoute(app, "/api/system/update-check", apiSystemUpdateCheck); // task 3-c — BEFORE /api/system/update-status (literal paths, order for readability)
   mountRoute(app, "/api/system/update-status", apiSystemUpdateStatus);
   mountRoute(app, "/api/system/update", apiSystemUpdate);
 

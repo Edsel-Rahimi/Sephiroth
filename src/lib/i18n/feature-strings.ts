@@ -159,6 +159,23 @@ export interface FeatureDict {
     tip: string;
     presetBadge: string;
     customBadge: string;
+    /** task 2-c — pick-dest prefill + SNI rotation */
+    useAsDest: string;
+    prefillHint: string;
+    rotTitle: string;
+    rotReasonLowScore: string;
+    rotReasonSlow: string;
+    rotReasonRedirect: string;
+    rotCurrent: string;
+    rotCandidate: string;
+    rotConfirm: string;
+    rotBefore: string;
+    rotAfter: string;
+    rotRotate: string;
+    rotRotating: string;
+    rotOk: string;
+    rotFail: string;
+    rotNone: string;
   };
   usersCsv: {
     exportCsv: string;
@@ -169,6 +186,89 @@ export interface FeatureDict {
     csvFilePick: string;
     csvPicked: string;
     csvHint: string;
+  };
+  /** Task 2-d — discount codes card (bot shop) */
+  discounts: {
+    title: string;
+    desc: string;
+    codeLabel: string;
+    codePh: string;
+    percentLabel: string;
+    percentPh: string;
+    capLabel: string;
+    capPh: string;
+    capHint: string;
+    usageLabel: string;
+    usagePh: string;
+    usageHint: string;
+    expiryLabel: string;
+    expiryHint: string;
+    create: string;
+    creating: string;
+    listTitle: string;
+    empty: string;
+    loadError: string;
+    colCode: string;
+    colPercent: string;
+    colCap: string;
+    colUsed: string;
+    colExpiry: string;
+    colStatus: string;
+    noCap: string;
+    unlimited: string;
+    never: string;
+    stateOn: string;
+    stateOff: string;
+    colUsedFmt: string;
+    rowAria: string;
+    delete: string;
+    deleting: string;
+    deletedToast: string;
+    createdToast: string;
+  };
+  /** Task 2-d — referral settings + stats card */
+  referral: {
+    title: string;
+    desc: string;
+    enabled: string;
+    rewardLabel: string;
+    rewardPh: string;
+    currencyNote: string;
+    save: string;
+    saving: string;
+    savedToast: string;
+    statsTitle: string;
+    statsEmpty: string;
+    statsError: string;
+    statsLoading: string;
+    colUser: string;
+    colReferrals: string;
+    colRewarded: string;
+    colEarned: string;
+    earnedFmt: string;
+    referralsFmt: string;
+    rewardedFmt: string;
+    userAria: string;
+  };
+  /** Task 3-c — Updates card (release channel + check) */
+  updates: {
+    title: string;
+    desc: string;
+    channel: string;
+    stable: string;
+    beta: string;
+    stableHint: string;
+    betaHint: string;
+    current: string;
+    checkNow: string;
+    checking: string;
+    save: string;
+    saving: string;
+    upToDate: string;
+    updateAvail: string;
+    releaseUrl: string;
+    offline: string;
+    saved: string;
   };
 }
 
@@ -319,6 +419,22 @@ export const FEATURE: Record<Lang, FeatureDict> = {
       tip: "Pick a Good row as the REALITY dest + SNI pair. Avoid targets that redirect to HTTP.",
       presetBadge: "preset",
       customBadge: "custom",
+      useAsDest: "Use as REALITY dest",
+      prefillHint: "Prefilled from scanner: {dest}",
+      rotTitle: "SNI rotation suggestions",
+      rotReasonLowScore: "Low score",
+      rotReasonSlow: "Slow response",
+      rotReasonRedirect: "Redirects to HTTP",
+      rotCurrent: "Current SNI: {sni}",
+      rotCandidate: "Suggested targets",
+      rotConfirm: "Rotate SNI for {tag}?",
+      rotBefore: "Before",
+      rotAfter: "After",
+      rotRotate: "Rotate",
+      rotRotating: "Rotating…",
+      rotOk: "SNI rotated for {tag} → {dest}",
+      rotFail: "Rotation failed: {detail}",
+      rotNone: "All REALITY inbounds look healthy.",
     },
     usersCsv: {
       exportCsv: "Export CSV",
@@ -329,6 +445,86 @@ export const FEATURE: Record<Lang, FeatureDict> = {
       csvFilePick: "Choose CSV file",
       csvPicked: "Loaded {name} — {rows} rows",
       csvHint: "Columns: username, note, enabled, traffic_limit_gb, expiry_days, ip_limit, reset_period, on_hold, auto_renew, used_traffic_gb, inbounds, emails, keys (lists joined with ;)",
+    },
+    discounts: {
+      title: "Discount codes",
+      desc: "Promo codes for the bot shop — percent off, optional Toman cap, usage limit and expiry. Applied at cart checkout.",
+      codeLabel: "Code",
+      codePh: "SUMMER25",
+      percentLabel: "Percent off",
+      percentPh: "1–100",
+      capLabel: "Max discount cap (Toman)",
+      capPh: "optional",
+      capHint: "Maximum discount amount — leave empty for no cap.",
+      usageLabel: "Usage limit",
+      usagePh: "0",
+      usageHint: "0 = unlimited uses. Each user can redeem a code once.",
+      expiryLabel: "Expires at",
+      expiryHint: "Optional — the code keeps working until the end of this day.",
+      create: "Add code",
+      creating: "Adding…",
+      listTitle: "Codes",
+      empty: "No discount codes yet.",
+      loadError: "Failed to load discount codes.",
+      colCode: "Code",
+      colPercent: "Percent",
+      colCap: "Cap",
+      colUsed: "Used",
+      colExpiry: "Expires",
+      colStatus: "Status",
+      noCap: "No cap",
+      unlimited: "Unlimited",
+      never: "Never",
+      stateOn: "Enabled",
+      stateOff: "Disabled",
+      colUsedFmt: "{used}/{limit}",
+      rowAria: "Discount code {key}",
+      delete: "Delete",
+      deleting: "Deleting…",
+      deletedToast: "Discount code deleted.",
+      createdToast: "Discount code created.",
+    },
+    referral: {
+      title: "Referral program",
+      desc: "Invite friends to the bot with your link — when a friend completes their first paid order, the referrer's wallet earns a reward.",
+      enabled: "Enable referral program",
+      rewardLabel: "Reward amount (Toman)",
+      rewardPh: "0",
+      currencyNote: "Currency: Toman — rewards land in the same wallet the bot payments top up.",
+      save: "Save",
+      saving: "Saving…",
+      savedToast: "Referral settings saved.",
+      statsTitle: "Top referrers",
+      statsEmpty: "No referrals yet.",
+      statsError: "Failed to load referral stats.",
+      statsLoading: "Loading…",
+      colUser: "User",
+      colReferrals: "Referrals",
+      colRewarded: "Rewarded",
+      colEarned: "Total earned",
+      earnedFmt: "{n} Toman",
+      referralsFmt: "{n}",
+      rewardedFmt: "{n}",
+      userAria: "Referrer {user}",
+    },
+    updates: {
+      title: "Updates",
+      desc: "Pick which release line the panel tracks and check GitHub for a newer build.",
+      channel: "Release channel",
+      stable: "Stable",
+      beta: "Beta",
+      stableHint: "Newest official release — prereleases are skipped.",
+      betaHint: "Newest release including prereleases — early features, less polish.",
+      current: "Current version",
+      checkNow: "Check now",
+      checking: "Checking…",
+      save: "Save",
+      saving: "Saving…",
+      upToDate: "You are on the latest version.",
+      updateAvail: "Update available",
+      releaseUrl: "Release page",
+      offline: "Could not reach GitHub — check the server's internet connection and try again.",
+      saved: "Update channel saved.",
     },
   },
 
@@ -478,6 +674,22 @@ export const FEATURE: Record<Lang, FeatureDict> = {
       tip: "یکی از ردیف‌های «خوب» را به‌عنوان جفت dest و SNI واقعی انتخاب کنید. از هدف‌هایی که به HTTP ریدایرکت می‌شوند پرهیز کنید.",
       presetBadge: "پیش‌فرض",
       customBadge: "دلخواه",
+      useAsDest: "استفاده به‌عنوان مقصد REALITY",
+      prefillHint: "از اسکنر پیش‌پر شده: {dest}",
+      rotTitle: "پیشنهادهای چرخش SNI",
+      rotReasonLowScore: "امتیاز پایین",
+      rotReasonSlow: "پاسخ‌دهی کند",
+      rotReasonRedirect: "ریدایرکت به HTTP",
+      rotCurrent: "SNI کنونی: {sni}",
+      rotCandidate: "هدف‌های پیشنهادی",
+      rotConfirm: "چرخش SNI برای {tag}؟",
+      rotBefore: "قبل",
+      rotAfter: "بعد",
+      rotRotate: "چرخش",
+      rotRotating: "در حال چرخش…",
+      rotOk: "SNI برای {tag} چرخش شد → {dest}",
+      rotFail: "چرخش ناموفق: {detail}",
+      rotNone: "همه‌ی inboundهای REALITY سالم به‌نظر می‌رسند.",
     },
     usersCsv: {
       exportCsv: "خروجی CSV",
@@ -488,6 +700,86 @@ export const FEATURE: Record<Lang, FeatureDict> = {
       csvFilePick: "انتخاب فایل CSV",
       csvPicked: "{name} بارگذاری شد — {rows} ردیف",
       csvHint: "ستون‌ها: username، note، enabled، traffic_limit_gb، expiry_days، ip_limit، reset_period، on_hold، auto_renew، used_traffic_gb، inbounds، emails، keys (لیست‌ها با ؛)",
+    },
+    discounts: {
+      title: "کدهای تخفیف",
+      desc: "کدهای تخفیف فروشگاه ربات — درصد، سقف اختیاری، محدودیت تعداد و تاریخ انقضا؛ هنگام تسویه سبد خرید اعمال می‌شود.",
+      codeLabel: "کد",
+      codePh: "مثال: A12",
+      percentLabel: "درصد تخفیف",
+      percentPh: "1 تا 100",
+      capLabel: "سقف تخفیف (تومان)",
+      capPh: "اختیاری",
+      capHint: "حداکثر مبلغ تخفیف — خالی یعنی بدون سقف.",
+      usageLabel: "محدودیت استفاده",
+      usagePh: "0",
+      usageHint: "0 یعنی نامحدود؛ هر کاربر هر کد را فقط یک‌بار می‌تواند استفاده کند.",
+      expiryLabel: "تاریخ انقضا",
+      expiryHint: "اختیاری — کد تا پایان این روز کار می‌کند.",
+      create: "افزودن کد",
+      creating: "در حال افزودن…",
+      listTitle: "کدهای فعال",
+      empty: "هنوز کد تخفیفی ساخته نشده است.",
+      loadError: "خطا در بارگذاری کدها.",
+      colCode: "کد",
+      colPercent: "درصد",
+      colCap: "سقف",
+      colUsed: "استفاده",
+      colExpiry: "انقضا",
+      colStatus: "وضعیت",
+      noCap: "بدون سقف",
+      unlimited: "نامحدود",
+      never: "هرگز",
+      stateOn: "فعال",
+      stateOff: "غیرفعال",
+      colUsedFmt: "{used}/{limit}",
+      rowAria: "کد تخفیف {key}",
+      delete: "حذف",
+      deleting: "در حال حذف…",
+      deletedToast: "کد تخفیف حذف شد.",
+      createdToast: "کد تخفیف ساخته شد.",
+    },
+    referral: {
+      title: "برنامه معرفی",
+      desc: "با لینک دعوت، دوستان را به ربات بیاورید؛ با اولین خرید پرداختی هر دوست، پاداش به کیف پول معرف اضافه می‌شود.",
+      enabled: "فعال‌سازی برنامه معرفی",
+      rewardLabel: "مبلغ پاداش (تومان)",
+      rewardPh: "0",
+      currencyNote: "واحد پول: تومان — پاداش به همان کیف پولی می‌رود که پرداخت‌های ربات از آن‌جا انجام می‌شود.",
+      save: "ذخیره",
+      saving: "در حال ذخیره…",
+      savedToast: "تنظیمات معرفی ذخیره شد.",
+      statsTitle: "برترین معرفان",
+      statsEmpty: "هنوز کسی را معرفی نکرده‌اند.",
+      statsError: "خطا در بارگذاری آمار.",
+      statsLoading: "در حال بارگذاری…",
+      colUser: "کاربر",
+      colReferrals: "معرفی‌ها",
+      colRewarded: "پاداش‌گرفته",
+      colEarned: "پاداش کل",
+      earnedFmt: "{n} تومان",
+      referralsFmt: "{n}",
+      rewardedFmt: "{n}",
+      userAria: "معرف {user}",
+    },
+    updates: {
+      title: "به‌روزرسانی‌ها",
+      desc: "خط انتشار موردنظر پنل را انتخاب کنید و نسخه جدیدتر را از گیت‌هاب بررسی کنید.",
+      channel: "کانال انتشار",
+      stable: "پایدار",
+      beta: "بتا",
+      stableHint: "جدیدترین انتشار رسمی — پیش‌انتشارها نادیده گرفته می‌شوند.",
+      betaHint: "جدیدترین انتشار همراه با پیش‌انتشارها — ویژگی‌های تازه، پالودگی کمتر.",
+      current: "نسخه فعلی",
+      checkNow: "بررسی الان",
+      checking: "در حال بررسی…",
+      save: "ذخیره",
+      saving: "در حال ذخیره…",
+      upToDate: "شما روی جدیدترین نسخه هستید.",
+      updateAvail: "به‌روزرسانی موجود است",
+      releaseUrl: "صفحه انتشار",
+      offline: "دسترسی به گیت‌هاب ممکن نشد — اتصال اینترنت سرور را بررسی کنید و دوباره تلاش کنید.",
+      saved: "کانال به‌روزرسانی ذخیره شد.",
     },
   },
 
@@ -637,6 +929,22 @@ export const FEATURE: Record<Lang, FeatureDict> = {
       tip: "اختر صفاً «جيد» ليكون زوج dest وSNI لـ REALITY. تجنّب الأهداف التي تحوّل إلى HTTP.",
       presetBadge: "جاهزة",
       customBadge: "مخصصة",
+      useAsDest: "استخدام كوجهة REALITY",
+      prefillHint: "معبأة مسبقاً من الفاحص: {dest}",
+      rotTitle: "اقتراحات تدوير SNI",
+      rotReasonLowScore: "نقاط منخفضة",
+      rotReasonSlow: "استجابة بطيئة",
+      rotReasonRedirect: "يحوّل إلى HTTP",
+      rotCurrent: "SNI الحالي: {sni}",
+      rotCandidate: "الأهداف المقترحة",
+      rotConfirm: "تدوير SNI لـ {tag}?",
+      rotBefore: "قبل",
+      rotAfter: "بعد",
+      rotRotate: "تدوير",
+      rotRotating: "جارٍ التدوير…",
+      rotOk: "تم تدوير SNI لـ {tag} → {dest}",
+      rotFail: "فشل التدوير: {detail}",
+      rotNone: "تبدو جميع قنوات REALITY سليمة.",
     },
     usersCsv: {
       exportCsv: "تصدير CSV",
@@ -647,6 +955,86 @@ export const FEATURE: Record<Lang, FeatureDict> = {
       csvFilePick: "اختيار ملف CSV",
       csvPicked: "تم تحميل {name} — {rows} صفاً",
       csvHint: "الأعمدة: username، note، enabled، traffic_limit_gb، expiry_days، ip_limit، reset_period، on_hold، auto_renew، used_traffic_gb، inbounds، emails، keys (القوائم بفاصلة ;)",
+    },
+    discounts: {
+      title: "رموز التخفيض",
+      desc: "رموز تخفيض متجر البوت — نسبة مئوية، حد أقصى اختياري، حد استخدام وتاريخ انتهاء؛ تُطبّق عند إتمام الشراء من السلة.",
+      codeLabel: "الرمز",
+      codePh: "مثال A12",
+      percentLabel: "نسبة التخفيض",
+      percentPh: "1 إلى 100",
+      capLabel: "الحد الأقصى للتخفيض (تومان)",
+      capPh: "اختياري",
+      capHint: "الحد الأقصى لمبلغ التخفيض — اتركه فارغاً لعدم التحديد.",
+      usageLabel: "حد الاستخدام",
+      usagePh: "0",
+      usageHint: "0 تعني غير محدود؛ كل مستخدم يمكنه استخدام الرمز مرة واحدة فقط.",
+      expiryLabel: "تاريخ الانتهاء",
+      expiryHint: "اختياري — يعمل الرمز حتى نهاية هذا اليوم.",
+      create: "إضافة رمز",
+      creating: "جارٍ الإضافة…",
+      listTitle: "الرموز الحالية",
+      empty: "لم تُنشأ رموز تخفيض بعد.",
+      loadError: "خطأ في تحميل الرموز.",
+      colCode: "الرمز",
+      colPercent: "النسبة",
+      colCap: "الحد",
+      colUsed: "الاستخدام",
+      colExpiry: "الانتهاء",
+      colStatus: "الحالة",
+      noCap: "بلا حد",
+      unlimited: "غير محدود",
+      never: "أبداً",
+      stateOn: "مفعّل",
+      stateOff: "معطّل",
+      colUsedFmt: "{used}/{limit}",
+      rowAria: "رمز التخفيض {key}",
+      delete: "حذف",
+      deleting: "جارٍ الحذف…",
+      deletedToast: "حُذف رمز التخفيض.",
+      createdToast: "أُنشئ رمز التخفيض.",
+    },
+    referral: {
+      title: "برنامج الإحالة",
+      desc: "ادعُ أصدقاءك إلى البوت عبر رابط الإحالة؛ عند أول عملية شراء مدفوعة لصديق يحصل المُحيل على مكافأة في محفظته.",
+      enabled: "تفعيل برنامج الإحالة",
+      rewardLabel: "مبلغ المكافأة (تومان)",
+      rewardPh: "0",
+      currencyNote: "العملة: تومان — تُضاف المكافأة إلى نفس محفظة مدفوعات البوت.",
+      save: "حفظ",
+      saving: "جارٍ الحفظ…",
+      savedToast: "حُفظت إعدادات الإحالة.",
+      statsTitle: "أفضل المُحيلين",
+      statsEmpty: "لم يُحيل أحد بعد.",
+      statsError: "خطأ في تحميل الإحصاءات.",
+      statsLoading: "جارٍ التحميل…",
+      colUser: "المستخدم",
+      colReferrals: "الإحالات",
+      colRewarded: "المكافأة",
+      colEarned: "إجمالي المكافآت",
+      earnedFmt: "{n} تومان",
+      referralsFmt: "{n}",
+      rewardedFmt: "{n}",
+      userAria: "المُحيل {user}",
+    },
+    updates: {
+      title: "التحديثات",
+      desc: "اختر خط الإصدارات الذي يتبعه اللوحة وتحقق من وجود إصدار أحدث في المستودع العام.",
+      channel: "قناة الإصدار",
+      stable: "مستقر",
+      beta: "تجريبي",
+      stableHint: "أحدث إصدار رسمي — تُتجاهل الإصدارات الأولية.",
+      betaHint: "أحدث إصدار شاملاً الإصدارات الأولية — ميزات مبكرة بتنقيح أقل.",
+      current: "الإصدار الحالي",
+      checkNow: "تحقق الآن",
+      checking: "جارٍ التحقق…",
+      save: "حفظ",
+      saving: "جارٍ الحفظ…",
+      upToDate: "أنت على أحدث إصدار.",
+      updateAvail: "يتوفر تحديث",
+      releaseUrl: "صفحة الإصدار",
+      offline: "تعذر الوصول إلى مصدر التحديث — تحقق من اتصال الخادم بالإنترنت وحاول مجدداً.",
+      saved: "تم حفظ قناة التحديث.",
     },
   },
 
@@ -796,6 +1184,22 @@ export const FEATURE: Record<Lang, FeatureDict> = {
       tip: "从「良好」行中挑选 REALITY 的 dest 与 SNI 组合。避开会重定向到 HTTP 的目标。",
       presetBadge: "预设",
       customBadge: "自定义",
+      useAsDest: "用作 REALITY dest",
+      prefillHint: "已从扫描器预填：{dest}",
+      rotTitle: "SNI 轮换建议",
+      rotReasonLowScore: "评分过低",
+      rotReasonSlow: "响应缓慢",
+      rotReasonRedirect: "重定向到 HTTP",
+      rotCurrent: "当前 SNI：{sni}",
+      rotCandidate: "推荐目标",
+      rotConfirm: "确定轮换 {tag} 的 SNI？",
+      rotBefore: "轮换前",
+      rotAfter: "轮换后",
+      rotRotate: "轮换",
+      rotRotating: "轮换中…",
+      rotOk: "已为 {tag} 轮换 SNI → {dest}",
+      rotFail: "轮换失败：{detail}",
+      rotNone: "所有 REALITY 入站运行正常。",
     },
     usersCsv: {
       exportCsv: "导出 CSV",
@@ -806,6 +1210,86 @@ export const FEATURE: Record<Lang, FeatureDict> = {
       csvFilePick: "选择 CSV 文件",
       csvPicked: "已加载 {name} — {rows} 行",
       csvHint: "列：username、note、enabled、traffic_limit_gb、expiry_days、ip_limit、reset_period、on_hold、auto_renew、used_traffic_gb、inbounds、emails、keys（列表用 ; 连接）",
+    },
+    discounts: {
+      title: "优惠码",
+      desc: "机器人商店的优惠码 — 折扣比例、可选上限、使用次数限制与过期日期；在购物车结算时生效。",
+      codeLabel: "优惠码",
+      codePh: "示例 A12",
+      percentLabel: "折扣比例（%）",
+      percentPh: "1 到 100",
+      capLabel: "折扣上限（托曼）",
+      capPh: "可选",
+      capHint: "单笔折扣的最大金额 — 留空表示不设上限。",
+      usageLabel: "使用次数上限",
+      usagePh: "0",
+      usageHint: "0 表示不限次数；每位用户只能使用同一优惠码一次。",
+      expiryLabel: "过期日期",
+      expiryHint: "可选 — 优惠码在该日当天结束前有效。",
+      create: "添加",
+      creating: "添加中…",
+      listTitle: "现有优惠码",
+      empty: "还没有优惠码。",
+      loadError: "加载优惠码失败。",
+      colCode: "优惠码",
+      colPercent: "比例",
+      colCap: "上限",
+      colUsed: "已用",
+      colExpiry: "过期",
+      colStatus: "状态",
+      noCap: "无上限金额",
+      unlimited: "不限",
+      never: "从不",
+      stateOn: "启用",
+      stateOff: "停用",
+      colUsedFmt: "{used}/{limit}",
+      rowAria: "优惠码 {key}",
+      delete: "删除",
+      deleting: "删除中…",
+      deletedToast: "优惠码已删除。",
+      createdToast: "优惠码已创建。",
+    },
+    referral: {
+      title: "推荐计划",
+      desc: "通过邀请链接把朋友带来机器人；朋友完成首笔付费订单后，推荐人的钱包会收到奖励。",
+      enabled: "启用推荐计划",
+      rewardLabel: "奖励金额（托曼）",
+      rewardPh: "0",
+      currencyNote: "货币：托曼 — 奖励进入机器人付款使用的同一钱包。",
+      save: "保存",
+      saving: "保存中…",
+      savedToast: "推荐设置已保存。",
+      statsTitle: "推荐达人",
+      statsEmpty: "还没有人被推荐。",
+      statsError: "加载统计失败。",
+      statsLoading: "加载中…",
+      colUser: "用户",
+      colReferrals: "推荐数",
+      colRewarded: "已奖励",
+      colEarned: "累计奖励",
+      earnedFmt: "{n} 托曼",
+      referralsFmt: "{n}",
+      rewardedFmt: "{n}",
+      userAria: "推荐人 {user}",
+    },
+    updates: {
+      title: "更新",
+      desc: "选择面板跟随的发布通道，并在公共代码仓库中检查是否有更新的版本。",
+      channel: "发布通道",
+      stable: "稳定版",
+      beta: "测试版",
+      stableHint: "最新正式版本 — 跳过预发布。",
+      betaHint: "包含预发布的最新版本 — 功能更新，打磨较少。",
+      current: "当前版本",
+      checkNow: "立即检查",
+      checking: "检查中…",
+      save: "保存",
+      saving: "保存中…",
+      upToDate: "您已是最新版本。",
+      updateAvail: "有可用更新",
+      releaseUrl: "发布页面",
+      offline: "无法连接更新源 — 请检查服务器的网络连接后重试。",
+      saved: "更新通道已保存。",
     },
   },
 
@@ -955,6 +1439,22 @@ export const FEATURE: Record<Lang, FeatureDict> = {
       tip: "REALITY dest + SNI çifti olarak İyi satırlarından birini seçin. HTTP'ye yönlendiren hedeflerden kaçının.",
       presetBadge: "hazır",
       customBadge: "özel",
+      useAsDest: "REALITY dest olarak kullan",
+      prefillHint: "Tarayıcıdan ön dolduruldu: {dest}",
+      rotTitle: "SNI döndürme önerileri",
+      rotReasonLowScore: "Düşük puan",
+      rotReasonSlow: "Yanıt yavaş",
+      rotReasonRedirect: "HTTP'ye yönlendiriyor",
+      rotCurrent: "Mevcut SNI: {sni}",
+      rotCandidate: "Önerilen hedefler",
+      rotConfirm: "{tag} için SNI döndürülsün mü?",
+      rotBefore: "Önce",
+      rotAfter: "Sonra",
+      rotRotate: "Döndür",
+      rotRotating: "Döndürülüyor…",
+      rotOk: "{tag} için SNI döndürüldü → {dest}",
+      rotFail: "Döndürme başarısız: {detail}",
+      rotNone: "Tüm REALITY giriş bağlantıları sağlıklı görünüyor.",
     },
     usersCsv: {
       exportCsv: "CSV dışa aktar",
@@ -965,6 +1465,86 @@ export const FEATURE: Record<Lang, FeatureDict> = {
       csvFilePick: "CSV dosyası seç",
       csvPicked: "{name} yüklendi — {rows} satır",
       csvHint: "Sütunlar: username, note, enabled, traffic_limit_gb, expiry_days, ip_limit, reset_period, on_hold, auto_renew, used_traffic_gb, inbounds, emails, keys (listeler ; ile birleşir)",
+    },
+    discounts: {
+      title: "İndirim kodları",
+      desc: "Bot mağazası için indirim kodları — yüzde, isteğe bağlı üst sınır, kullanım limiti ve son tarih; sepet ödemesinde uygulanır.",
+      codeLabel: "Kod",
+      codePh: "örnek: SUMMER25",
+      percentLabel: "İndirim yüzdesi",
+      percentPh: "1–100",
+      capLabel: "İndirim üst sınırı (Toman)",
+      capPh: "isteğe bağlı",
+      capHint: "Maksimum indirim tutarı — boş bırakılırsa sınır yok.",
+      usageLabel: "Kullanım limiti",
+      usagePh: "0",
+      usageHint: "0 = sınırsız; her kullanıcı bir kodu yalnızca bir kez kullanabilir.",
+      expiryLabel: "Son tarih",
+      expiryHint: "İsteğe bağlı — kod o günün sonuna kadar geçerli.",
+      create: "Ekle",
+      creating: "Ekleniyor…",
+      listTitle: "Mevcut kodlar",
+      empty: "Henüz indirim kodu yok.",
+      loadError: "Kodlar yüklenemedi.",
+      colCode: "Kod",
+      colPercent: "Yüzde",
+      colCap: "Üst sınır",
+      colUsed: "Kullanım",
+      colExpiry: "Son tarih",
+      colStatus: "Durum",
+      noCap: "Sınır yok",
+      unlimited: "Sınırsız",
+      never: "Hiçbir zaman",
+      stateOn: "Etkin",
+      stateOff: "Devre dışı",
+      colUsedFmt: "{used}/{limit}",
+      rowAria: "İndirim kodu {key}",
+      delete: "Sil",
+      deleting: "Siliniyor…",
+      deletedToast: "İndirim kodu silindi.",
+      createdToast: "İndirim kodu oluşturuldu.",
+    },
+    referral: {
+      title: "Davet programı",
+      desc: "Davet bağlantısıyla arkadaşlarınızı bota getirin; arkadaş ilk ücretli siparişini tamamlayınca davet edenin cüzdanına ödül eklenir.",
+      enabled: "Davet programını etkinleştir",
+      rewardLabel: "Ödül tutarı (Toman)",
+      rewardPh: "0",
+      currencyNote: "Para birimi: Toman — ödül, bot ödemeleriyle aynı cüzdana gider.",
+      save: "Kaydet",
+      saving: "Kaydediliyor…",
+      savedToast: "Davet ayarları kaydedildi.",
+      statsTitle: "En çok davet edenler",
+      statsEmpty: "Henüz kimse davet etmedi.",
+      statsError: "İstatistikler yüklenemedi.",
+      statsLoading: "Yükleniyor…",
+      colUser: "Kullanıcı",
+      colReferrals: "Davet",
+      colRewarded: "Ödüllenen",
+      colEarned: "Toplam ödül",
+      earnedFmt: "{n} Toman",
+      referralsFmt: "{n}",
+      rewardedFmt: "{n}",
+      userAria: "Davet eden {user}",
+    },
+    updates: {
+      title: "Güncellemeler",
+      desc: "Panelin takip edeceği sürüm kanalını seçin ve GitHub'da daha yeni bir sürüm olup olmadığını kontrol edin.",
+      channel: "Sürüm kanalı",
+      stable: "Kararlı",
+      beta: "Beta",
+      stableHint: "En yeni resmi sürüm — ön sürümler atlanır.",
+      betaHint: "Ön sürümler dahil en yeni sürüm — yeni özellikler, daha az cilalama.",
+      current: "Mevcut sürüm",
+      checkNow: "Şimdi kontrol et",
+      checking: "Kontrol ediliyor…",
+      save: "Kaydet",
+      saving: "Kaydediliyor…",
+      upToDate: "En son sürümü kullanıyorsunuz.",
+      updateAvail: "Güncelleme mevcut",
+      releaseUrl: "Sürüm sayfası",
+      offline: "GitHub'a ulaşılamadı — sunucunun internet bağlantısını kontrol edip tekrar deneyin.",
+      saved: "Güncelleme kanalı kaydedildi.",
     },
   },
 
@@ -1114,6 +1694,22 @@ export const FEATURE: Record<Lang, FeatureDict> = {
       tip: "Выберите строку «Хорошо» как пару dest + SNI для REALITY. Избегайте целей с редиректом на HTTP.",
       presetBadge: "пресет",
       customBadge: "свои",
+      useAsDest: "Использовать как dest для REALITY",
+      prefillHint: "Предзаполнено из сканера: {dest}",
+      rotTitle: "Предложения ротации SNI",
+      rotReasonLowScore: "Низкий балл",
+      rotReasonSlow: "Медленный отклик",
+      rotReasonRedirect: "Перенаправляет на HTTP",
+      rotCurrent: "Текущий SNI: {sni}",
+      rotCandidate: "Рекомендуемые цели",
+      rotConfirm: "Ротировать SNI для {tag}?",
+      rotBefore: "Было",
+      rotAfter: "Станет",
+      rotRotate: "Ротировать",
+      rotRotating: "Ротация…",
+      rotOk: "SNI для {tag} ротирован → {dest}",
+      rotFail: "Ротация не удалась: {detail}",
+      rotNone: "Все REALITY-инбаунды выглядят исправными.",
     },
     usersCsv: {
       exportCsv: "Экспорт CSV",
@@ -1124,6 +1720,86 @@ export const FEATURE: Record<Lang, FeatureDict> = {
       csvFilePick: "Выбрать CSV-файл",
       csvPicked: "Загружено {name} — строк: {rows}",
       csvHint: "Колонки: username, note, enabled, traffic_limit_gb, expiry_days, ip_limit, reset_period, on_hold, auto_renew, used_traffic_gb, inbounds, emails, keys (списки через ;)",
+    },
+    discounts: {
+      title: "Промокоды",
+      desc: "Промокоды магазина бота — процент, необязательный потолок, лимит применений и срок действия; применяются при оформлении корзины.",
+      codeLabel: "Код",
+      codePh: "пример: A12",
+      percentLabel: "Процент скидки",
+      percentPh: "1–100",
+      capLabel: "Потолок скидки (туманов)",
+      capPh: "необязательно",
+      capHint: "Максимальная сумма скидки — пусто = без потолка.",
+      usageLabel: "Лимит применений",
+      usagePh: "0",
+      usageHint: "0 = без лимита; каждый пользователь может применить код один раз.",
+      expiryLabel: "Срок действия",
+      expiryHint: "Необязательно — код работает до конца этого дня.",
+      create: "Добавить",
+      creating: "Добавление…",
+      listTitle: "Действующие коды",
+      empty: "Промокодов пока нет.",
+      loadError: "Не удалось загрузить промокоды.",
+      colCode: "Код",
+      colPercent: "Процент",
+      colCap: "Потолок",
+      colUsed: "Использовано",
+      colExpiry: "Истекает",
+      colStatus: "Статус",
+      noCap: "Без потолка",
+      unlimited: "Без лимита",
+      never: "Никогда",
+      stateOn: "Включён",
+      stateOff: "Выключен",
+      colUsedFmt: "{used}/{limit}",
+      rowAria: "Промокод {key}",
+      delete: "Удалить",
+      deleting: "Удаление…",
+      deletedToast: "Промокод удалён.",
+      createdToast: "Промокод создан.",
+    },
+    referral: {
+      title: "Реферальная программа",
+      desc: "Приглашайте друзей в бота по своей ссылке; после первой платной покупки друга на кошелёк приглашающего начисляется награда.",
+      enabled: "Включить реферальную программу",
+      rewardLabel: "Сумма награды (туманов)",
+      rewardPh: "0",
+      currencyNote: "Валюта: туманы — награда приходит в тот же кошелёк, что и платежи бота.",
+      save: "Сохранить",
+      saving: "Сохранение…",
+      savedToast: "Настройки реферальной программы сохранены.",
+      statsTitle: "Лучшие по приглашениям",
+      statsEmpty: "Пока никто никого не пригласил.",
+      statsError: "Не удалось загрузить статистику.",
+      statsLoading: "Загрузка…",
+      colUser: "Пользователь",
+      colReferrals: "Приглашено",
+      colRewarded: "С наградой",
+      colEarned: "Всего наград",
+      earnedFmt: "{n} туманов",
+      referralsFmt: "{n}",
+      rewardedFmt: "{n}",
+      userAria: "Пригласивший {user}",
+    },
+    updates: {
+      title: "Обновления",
+      desc: "Выберите линию выпусков, за которой следует панель, и проверьте в публичном репозитории более новую версию.",
+      channel: "Канал выпуска",
+      stable: "Стабильный",
+      beta: "Бета",
+      stableHint: "Новейший официальный выпуск — предварительные пропускаются.",
+      betaHint: "Новейший выпуск, включая предварительные — новые функции, меньше полировки.",
+      current: "Текущая версия",
+      checkNow: "Проверить сейчас",
+      checking: "Проверка…",
+      save: "Сохранить",
+      saving: "Сохранение…",
+      upToDate: "У вас последняя версия.",
+      updateAvail: "Доступно обновление",
+      releaseUrl: "Страница выпуска",
+      offline: "Не удалось связаться с источником обновлений — проверьте интернет-соединение сервера и повторите.",
+      saved: "Канал обновлений сохранён.",
     },
   },
 };

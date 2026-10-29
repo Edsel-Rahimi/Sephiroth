@@ -1,9 +1,20 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Check, Copy, Info, Loader2, Radar } from "lucide-react";
+import { Check, Copy, Info, Loader2, Radar, RotateCcw, Rocket, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Dialog,
   DialogContent,
@@ -26,20 +37,52 @@ import { cn } from "@/lib/utils";
 /* ============================================================
    Sephiroth · v2.7 — REALITY Target Scanner dialog (task 2-c)
 
-   POST /api/system/reality-scan { targets: string[] }
-     → { ok, scanned, preset, results: [{ target, reachable, tls,
+   POST /api/system/reality-scan { targets: string[], withSuggestions: true }
+     → { ok, scanned, preset, results: [{ target, host, reachable, tls,
          alpn, rttMs, certOk, issuer, http2, httpStatus,
-         redirectedToHttp, score, verdict, reason }] }
+         redirectedToHttp, score, verdict, reason }],
+         suggestions?: [{ inboundId, inboundTag, currentDest, currentSni,
+           reason, score, rttMs, candidateTargets }],
+         realityInbounds?: number }
 
    Empty textarea = server-side preset list. Results come back
    pre-sorted by score desc (server-side); order is kept here.
+
+   task 2-c additions:
+   • per-row “Use as REALITY dest” → onPickDest({ dest, serverNames,
+     port }) — the parent closes this dialog and opens the New-Inbound
+     forge with the REALITY fields prefilled.
+   • SNI rotation suggestions for existing REALITY inbounds whose
+     dest/SNI probed degraded — one-click Rotate PATCHes the inbound
+     via /api/inbounds/:id (same endpoint the edit flow uses).
    ============================================================ */
 
 type ScanVerdict = "good" | "warn" | "bad";
 type ToneKey = "good" | "warn" | "bad";
 
+type RotReason = "low-score" | "slow" | "redirect";
+
+/** What the parent forges from a picked scan row (port "" = no hint). */
+export interface RealityDestPick {
+  dest: string;
+  serverNames: string;
+  port: string;
+}
+
+interface RotationSuggestion {
+  inboundId: string;
+  inboundTag: string;
+  currentDest: string;
+  currentSni: string;
+  reason: RotReason;
+  score: number | null;
+  rttMs: number | null;
+  candidateTargets: string[];
+}
+
 interface RealityScanResult {
   target: string;
+  host: string;
   reachable: boolean;
   tls: string | null;
   alpn: string | null;
@@ -59,6 +102,8 @@ interface RealityScanResponse {
   scanned: number;
   preset: boolean;
   results: RealityScanResult[];
+  suggestions?: RotationSuggestion[];
+  realityInbounds?: number;
 }
 
 /* Shared chip tones (same palette the panel uses elsewhere). */
@@ -99,12 +144,19 @@ function Chip({ tone, title, children }: { tone: ToneKey; title?: string; childr
 export function RealityScannerDialog({
   open,
   onOpenChange,
+  onPickDest,
+  onInboundsChanged,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  /** task 2-c — when provided, each row gets a “Use as REALITY dest” action. */
+  onPickDest?: (pick: RealityDestPick) => void;
+  /** task 2-c — called after a successful SNI rotation so the parent refetches inbounds. */
+  onInboundsChanged?: () => void;
 }) {
   const lang = useAppStore((s) => s.lang);
   const fx = FEATURE[lang].scanner;
+  const { toast } = useToast();
 
   const [targets, setTargets] = useState("");
   const [running, setRunning] = useState(false);
@@ -112,6 +164,12 @@ export function RealityScannerDialog({
   const [scannedCount, setScannedCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [copiedTarget, setCopiedTarget] = useState<string | null>(null);
+  /* task 2-c — SNI rotation */
+  const [suggestions, setSuggestions] = useState<RotationSuggestion[]>([]);
+  const [realityInbounds, setRealityInbounds] = useState<number | null>(null);
+  const [rotPick, setRotPick] = useState<Record<string, string>>({});
+  const [rotConfirmFor, setRotConfirmFor] = useState<RotationSuggestion | null>(null);
+  const [rotBusy, setRotBusy] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -132,6 +190,11 @@ export function RealityScannerDialog({
     setScannedCount(0);
     setError(null);
     setCopiedTarget(null);
+    setSuggestions([]);
+    setRealityInbounds(null);
+    setRotPick({});
+    setRotConfirmFor(null);
+    setRotBusy(false);
   }, [open]);
 
   /* Cleanup timers + in-flight request on unmount. */
@@ -152,7 +215,7 @@ export function RealityScannerDialog({
       const res = await fetch("/api/system/reality-scan", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ targets: parsedTargets }),
+        body: JSON.stringify({ targets: parsedTargets, withSuggestions: true }),
         signal: ac.signal,
       });
       if (!res.ok) {
@@ -170,10 +233,14 @@ export function RealityScannerDialog({
       const rows = Array.isArray(data.results) ? data.results : [];
       setResults(rows);
       setScannedCount(typeof data.scanned === "number" ? data.scanned : rows.length);
+      setSuggestions(Array.isArray(data.suggestions) ? data.suggestions : []);
+      setRealityInbounds(typeof data.realityInbounds === "number" ? data.realityInbounds : null);
     } catch (err) {
       if (ac.signal.aborted) return;
       setResults(null);
       setScannedCount(0);
+      setSuggestions([]);
+      setRealityInbounds(null);
       setError(err instanceof Error && err.message ? err.message : String(err));
     } finally {
       if (!ac.signal.aborted) setRunning(false);
@@ -190,6 +257,72 @@ export function RealityScannerDialog({
       /* clipboard unavailable (permissions / insecure context) — silent no-op */
     }
   };
+
+  /* ── task 2-c — pick a scanned row as the forge's REALITY dest ── */
+  const pickDest = (r: RealityScanResult) => {
+    if (!onPickDest) return;
+    const host = (r.host || r.target.split(":")[0] || r.target).trim();
+    const portSuffix = r.target.includes(":") ? r.target.slice(r.target.indexOf(":") + 1) : "";
+    onPickDest({
+      dest: r.reachable && portSuffix && portSuffix !== "443" ? `${host}:${portSuffix}` : host,
+      serverNames: host,
+      port: r.reachable ? "443" : "", // hint only — parent falls back to a free port
+    });
+    onOpenChange(false);
+  };
+
+  /* ── task 2-c — SNI rotation: PATCH stream.dest/serverNames via the
+     same /api/inbounds/:id endpoint the edit flow uses. The full stream
+     object travels along (patch mode replaces streamJson wholesale). ── */
+  const rotateSni = async () => {
+    const sug = rotConfirmFor;
+    if (!sug || rotBusy) return;
+    const candidate = rotPick[sug.inboundId] ?? sug.candidateTargets[0] ?? "";
+    if (!candidate) {
+      toast({ title: fmt(fx.rotFail, { detail: "no_candidate" }), variant: "destructive" });
+      return;
+    }
+    setRotBusy(true);
+    try {
+      const listRes = await fetch("/api/inbounds", { cache: "no-store" });
+      if (!listRes.ok) throw new Error(`HTTP ${listRes.status}`);
+      const list = (await listRes.json()) as {
+        inbounds?: Array<{ id: string; stream: Record<string, string | number | boolean> }>;
+      };
+      const inbound = (list.inbounds ?? []).find((x) => x.id === sug.inboundId);
+      if (!inbound) throw new Error("inbound_not_found");
+
+      const host = candidate.includes(":") ? candidate.slice(0, candidate.indexOf(":")) : candidate;
+      const res = await fetch(`/api/inbounds/${sug.inboundId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          stream: { ...inbound.stream, dest: candidate, serverNames: host },
+        }),
+      });
+      if (!res.ok) {
+        const j = (await res.json().catch(() => ({}))) as { error?: unknown };
+        throw new Error(typeof j.error === "string" && j.error ? j.error : `HTTP ${res.status}`);
+      }
+      toast({ title: fmt(fx.rotOk, { tag: sug.inboundTag, dest: candidate }) });
+      setSuggestions((prev) => prev.filter((s) => s.inboundId !== sug.inboundId));
+      setRotConfirmFor(null);
+      onInboundsChanged?.();
+    } catch (err) {
+      toast({
+        title: fmt(fx.rotFail, {
+          detail: err instanceof Error && err.message ? err.message : String(err),
+        }),
+        variant: "destructive",
+      });
+    } finally {
+      setRotBusy(false);
+    }
+  };
+
+  const rotReasonLabel = (reason: RotReason): string =>
+    reason === "low-score" ? fx.rotReasonLowScore : reason === "slow" ? fx.rotReasonSlow : fx.rotReasonRedirect;
+  const rotReasonTone = (reason: RotReason): ToneKey => (reason === "redirect" ? "bad" : "warn");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -326,6 +459,11 @@ export function RealityScannerDialog({
                       <TableHead className="h-8 px-2.5 text-[10px] uppercase tracking-wider text-muted-foreground">
                         {fx.colVerdict}
                       </TableHead>
+                      {onPickDest && (
+                        <TableHead className="h-8 px-2.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                          <span className="sr-only">{fx.useAsDest}</span>
+                        </TableHead>
+                      )}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -412,6 +550,22 @@ export function RealityScannerDialog({
                                 : fx.verdictBad}
                           </Chip>
                         </TableCell>
+                        {onPickDest && (
+                          <TableCell className="px-2.5 py-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => pickDest(r)}
+                              disabled={running}
+                              aria-label={fx.useAsDest}
+                              title={fx.useAsDest}
+                              className="h-7 w-7 gap-1 rounded-full border-emerald-400/30 bg-emerald-400/[0.08] p-0 text-emerald-300 hover:bg-emerald-400/[0.16]"
+                            >
+                              <Rocket className="h-3.5 w-3.5" aria-hidden="true" />
+                            </Button>
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>
@@ -423,6 +577,112 @@ export function RealityScannerDialog({
               {fx.empty}
             </p>
           )}
+
+          {/* ── task 2-c — SNI rotation suggestions ── */}
+          {!running && suggestions.length > 0 && (
+            <section
+              aria-label={fx.rotTitle}
+              className="glass space-y-3 rounded-2xl p-3.5 ring-1 ring-amber-500/20"
+            >
+              <p className="flex items-center gap-2 text-xs font-bold text-amber-300">
+                <RotateCcw className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                {fx.rotTitle}
+              </p>
+              {suggestions.map((s) => {
+                const selected = rotPick[s.inboundId] ?? s.candidateTargets[0] ?? "";
+                return (
+                  <div
+                    key={s.inboundId}
+                    className="space-y-2.5 rounded-xl border border-white/10 bg-white/[0.02] p-3"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        dir="ltr"
+                        className="min-w-0 truncate font-mono text-[12px] font-bold text-foreground"
+                        title={s.inboundTag}
+                      >
+                        {s.inboundTag}
+                      </span>
+                      <Chip tone={rotReasonTone(s.reason)}>{rotReasonLabel(s.reason)}</Chip>
+                      {s.score !== null && (
+                        <span
+                          dir="ltr"
+                          className="font-mono text-[10px] font-semibold text-muted-foreground"
+                        >
+                          {s.score}/100
+                        </span>
+                      )}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setRotConfirmFor(s)}
+                        disabled={rotBusy || !selected}
+                        className="ms-auto h-8 gap-1.5 rounded-full border-amber-500/40 bg-amber-500/10 px-3 text-[11px] font-bold text-amber-300 hover:bg-amber-500/20"
+                      >
+                        <RotateCcw className="h-3 w-3" aria-hidden="true" />
+                        {fx.rotRotate}
+                      </Button>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      <span className="font-semibold text-foreground/80">
+                        {fmt(fx.rotCurrent, { sni: s.currentSni })}
+                      </span>
+                      {s.currentDest && (
+                        <span dir="ltr" className="ms-1.5 font-mono text-[10px] text-muted-foreground/80">
+                          ({s.currentDest})
+                        </span>
+                      )}
+                    </p>
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        {fx.rotCandidate}
+                      </p>
+                      <div
+                        className="flex flex-wrap gap-1.5"
+                        role="group"
+                        aria-label={fx.rotCandidate}
+                      >
+                        {s.candidateTargets.map((c) => {
+                          const active = selected === c;
+                          return (
+                            <button
+                              key={c}
+                              type="button"
+                              dir="ltr"
+                              aria-pressed={active}
+                              title={c}
+                              onClick={() => setRotPick((prev) => ({ ...prev, [s.inboundId]: c }))}
+                              className={cn(
+                                "max-w-[220px] truncate rounded-full px-2.5 py-1 font-mono text-[10px] font-semibold transition-colors",
+                                active
+                                  ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/40"
+                                  : "bg-white/5 text-muted-foreground ring-1 ring-white/10 hover:bg-white/10 hover:text-foreground"
+                              )}
+                            >
+                              {c}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </section>
+          )}
+
+          {/* healthy REALITY fleet → quiet all-clear line (no noise when none exist) */}
+          {!running &&
+            suggestions.length === 0 &&
+            results !== null &&
+            realityInbounds !== null &&
+            realityInbounds > 0 && (
+              <p className="flex items-center gap-2 rounded-xl bg-emerald-500/[0.06] px-3 py-2 text-[11px] text-emerald-300/90 ring-1 ring-emerald-500/20">
+                <ShieldCheck className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                {fx.rotNone}
+              </p>
+            )}
         </div>
 
         {/* ── footer tip ── */}
@@ -430,6 +690,71 @@ export function RealityScannerDialog({
           <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary/70" aria-hidden="true" />
           <span>{fx.tip}</span>
         </p>
+
+        {/* ── task 2-c — rotate confirmation (before → after) ── */}
+        <AlertDialog
+          open={rotConfirmFor !== null}
+          onOpenChange={(v) => {
+            if (!v && !rotBusy) setRotConfirmFor(null);
+          }}
+        >
+          <AlertDialogContent className="glass-strong max-w-md border-white/10">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-start text-silver">
+                {rotConfirmFor ? fmt(fx.rotConfirm, { tag: rotConfirmFor.inboundTag }) : ""}
+              </AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-2 text-start">
+                  {rotConfirmFor && (
+                    <>
+                      <div className="rounded-xl bg-rose-500/[0.07] px-3 py-2 ring-1 ring-rose-500/20">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-rose-300/80">
+                          {fx.rotBefore}
+                        </p>
+                        <p dir="ltr" className="mt-0.5 truncate font-mono text-[11px] text-foreground/90">
+                          {rotConfirmFor.currentDest || rotConfirmFor.currentSni}
+                        </p>
+                        <p dir="ltr" className="truncate font-mono text-[10px] text-muted-foreground">
+                          {rotConfirmFor.currentSni}
+                        </p>
+                      </div>
+                      <div className="rounded-xl bg-emerald-500/[0.07] px-3 py-2 ring-1 ring-emerald-500/20">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-300/80">
+                          {fx.rotAfter}
+                        </p>
+                        <p dir="ltr" className="mt-0.5 truncate font-mono text-[11px] text-foreground/90">
+                          {rotPick[rotConfirmFor.inboundId] ?? rotConfirmFor.candidateTargets[0] ?? "—"}
+                        </p>
+                        <p dir="ltr" className="truncate font-mono text-[10px] text-muted-foreground">
+                          {(rotPick[rotConfirmFor.inboundId] ?? rotConfirmFor.candidateTargets[0] ?? "").split(":")[0]}
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                disabled={rotBusy}
+                className="rounded-full border-white/10 bg-white/[0.03]"
+              >
+                {fx.close}
+              </AlertDialogCancel>
+              <AlertDialogAction
+                disabled={rotBusy}
+                onClick={(e) => {
+                  e.preventDefault(); // keep the dialog open while PATCH runs
+                  void rotateSni();
+                }}
+                className="rounded-full bg-amber-500/90 font-bold text-black hover:bg-amber-400"
+              >
+                {rotBusy && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />}
+                {rotBusy ? fx.rotRotating : fx.rotRotate}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   );

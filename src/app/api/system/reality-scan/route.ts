@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/inbounds";
+import { requireAdmin, toDTO, type InboundDTO } from "@/lib/inbounds";
+import { db } from "@/lib/db";
 import tls from "node:tls";
 import http2 from "node:http2";
 
 /* ============================================================
    Sephiroth · v2.7 — REALITY Target Scanner (admin)
-   POST /api/system/reality-scan  { targets?: string[], timeoutMs? }
+   POST /api/system/reality-scan  { targets?: string[], timeoutMs?,
+                                    withSuggestions? }   (task 2-c)
+   GET  /api/system/reality-scan?withSuggestions=1&targets=a,b
 
    Probes candidate camouflage destinations for Xray REALITY and
    grades them with the classic scanner heuristics:
@@ -17,12 +20,18 @@ import http2 from "node:http2";
      • low round-trip latency     (nice to have)
 
    Returns a sorted score list the admin can pick a `dest` from.
+   Additive (task 2-c): when withSuggestions is set, the response
+   also carries `suggestions` — existing REALITY inbounds whose
+   current dest/SNI probed degraded, each with better-scoring
+   candidate targets for a one-click SNI rotation. No secrets.
    Safety rails: admin-only, ≤ 30 targets, ≤ 6s per target,
    concurrency pool of 6, no host resolves to a private range.
    ============================================================ */
 
 interface ScanResult {
   target: string;
+  /** v2.7 task 2-c — bare hostname (label without the :port suffix). */
+  host: string;
   reachable: boolean;
   tls: string | null;
   alpn: string | null;
@@ -36,6 +45,26 @@ interface ScanResult {
   verdict: "good" | "warn" | "bad";
   reason: string;
 }
+
+/* v2.7 task 2-c — SNI rotation suggestion for an existing REALITY inbound
+   whose current dest/SNI probed degraded. Carries NO secrets (never the
+   inbound's privateKey/publicKey — only the two public-facing fields). */
+export interface RotationSuggestion {
+  inboundId: string;
+  inboundTag: string;
+  currentDest: string;
+  currentSni: string;
+  reason: "low-score" | "slow" | "redirect";
+  score: number | null;
+  rttMs: number | null;
+  candidateTargets: string[];
+}
+
+/* Degradation thresholds (mirrors the dialog's own RTT/verdict tones).
+   warn/bad verdict ⇒ score < 85; rose RTT ⇒ > 600ms. */
+const SNI_LOW_SCORE = 85;
+const SNI_SLOW_RTT_MS = 600;
+const SNI_CANDIDATES = 3;
 
 /** Well-known TLS 1.3 + h2 friendly destinations (classic REALITY seeds). */
 const PRESET_TARGETS = [
@@ -171,6 +200,7 @@ async function scanOne(target: string, timeoutMs: number): Promise<ScanResult> {
   const label = parsed ? `${parsed.host}${parsed.port !== 443 ? `:${parsed.port}` : ""}` : target.trim();
   const base: ScanResult = {
     target: label,
+    host: parsed?.host ?? "",
     reachable: false,
     tls: null,
     alpn: null,
@@ -214,6 +244,7 @@ async function scanOne(target: string, timeoutMs: number): Promise<ScanResult> {
   const verdict: ScanResult["verdict"] = score >= 85 ? "good" : score >= 55 ? "warn" : "bad";
   return {
     target: label,
+    host: parsed.host,
     reachable: true,
     tls: tlsRes.tls,
     alpn: tlsRes.alpn,
@@ -228,6 +259,129 @@ async function scanOne(target: string, timeoutMs: number): Promise<ScanResult> {
     reason: reasons.join(",") || "ok",
   };
 }
+
+/* ---------- v2.7 task 2-c — SNI rotation suggestions ---------- */
+
+/** Matches panel REALITY inbounds against live scan results. Read-only:
+ *  degrades to [] if the inbound store can't be read (scan still works). */
+async function computeSuggestions(results: ScanResult[]): Promise<{
+  suggestions: RotationSuggestion[];
+  realityInbounds: number;
+}> {
+  let reality: InboundDTO[];
+  try {
+    const rows = await db.inbound.findMany();
+    reality = rows.map(toDTO).filter((d) => d.security === "reality");
+  } catch (err) {
+    console.error("[system:reality-scan] suggestions: inbound read failed", err);
+    return { suggestions: [], realityInbounds: 0 };
+  }
+  if (reality.length === 0) return { suggestions: [], realityInbounds: 0 };
+
+  /* results arrive sorted by score desc → first hit per host is the best */
+  const byHost = new Map<string, ScanResult>();
+  for (const r of results) {
+    if (r.reachable && r.host && !byHost.has(r.host)) byHost.set(r.host, r);
+  }
+
+  const suggestions: RotationSuggestion[] = [];
+  for (const dto of reality) {
+    const dest = typeof dto.stream.dest === "string" ? dto.stream.dest : "";
+    const sniRaw = typeof dto.stream.serverNames === "string" ? dto.stream.serverNames : "";
+    const snis = sniRaw
+      .split(/[\s,;]+/)
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean);
+    const destHost = (dest.split(":")[0] ?? "").trim().toLowerCase();
+    const matched = [destHost, ...snis]
+      .filter(Boolean)
+      .map((h) => byHost.get(h))
+      .find((r) => r !== undefined);
+    if (!matched) continue; // not scanned → no data, no fabricated advice
+
+    const reason: RotationSuggestion["reason"] | null = matched.redirectedToHttp
+      ? "redirect"
+      : matched.score < SNI_LOW_SCORE
+        ? "low-score"
+        : (matched.rttMs ?? 0) > SNI_SLOW_RTT_MS
+          ? "slow"
+          : null;
+    if (!reason) continue;
+
+    /* strictly better-scoring reachable targets, best first */
+    const candidateTargets = results
+      .filter((r) => r.reachable && r.host && r.host !== destHost && !snis.includes(r.host) && r.score > matched.score)
+      .slice(0, SNI_CANDIDATES)
+      .map((r) => r.target);
+    if (candidateTargets.length === 0) continue;
+
+    suggestions.push({
+      inboundId: dto.id,
+      inboundTag: dto.tag,
+      currentDest: dest,
+      currentSni: snis[0] ?? destHost,
+      reason,
+      score: matched.score,
+      rttMs: matched.rttMs,
+      candidateTargets,
+    });
+  }
+  return { suggestions, realityInbounds: reality.length };
+}
+
+/* ---------- shared scan core (POST + GET) ---------- */
+
+interface ScanOutput {
+  ok: true;
+  scanned: number;
+  preset: boolean;
+  results: ScanResult[];
+  /* task 2-c — present only when the request asks for them */
+  suggestions?: RotationSuggestion[];
+  realityInbounds?: number;
+}
+
+async function runScan(opts: {
+  targets: string[];
+  timeoutMs: number;
+  withSuggestions: boolean;
+}): Promise<ScanOutput> {
+  const { timeoutMs, withSuggestions } = opts;
+  const cleaned = opts.targets.map((t) => t.trim()).filter(Boolean).slice(0, 30);
+  const targets = cleaned.length > 0 ? cleaned : PRESET_TARGETS;
+
+  const results: ScanResult[] = [];
+  let idx = 0;
+  const worker = async () => {
+    while (idx < targets.length) {
+      const i = idx++;
+      results.push(await scanOne(targets[i]!, timeoutMs));
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, targets.length) }, worker));
+  results.sort((a, x) => x.score - a.score || (a.rttMs ?? 9e9) - (x.rttMs ?? 9e9));
+
+  const out: ScanOutput = {
+    ok: true,
+    scanned: results.length,
+    preset: cleaned.length === 0,
+    results,
+  };
+  if (withSuggestions) {
+    const { suggestions, realityInbounds } = await computeSuggestions(results);
+    out.suggestions = suggestions;
+    out.realityInbounds = realityInbounds;
+  }
+  return out;
+}
+
+function parseTargetsInput(raw: unknown): string[] {
+  if (Array.isArray(raw)) return raw.map(String);
+  if (typeof raw === "string") return String(raw).split(/[\n,;]+/);
+  return [];
+}
+
+const truthy = (v: unknown): boolean => v === true || v === "true" || v === "1" || v === 1;
 
 export async function POST(req: Request) {
   try {
@@ -244,32 +398,33 @@ export async function POST(req: Request) {
     }
     const b = (body ?? {}) as Record<string, unknown>;
 
-    const rawTargets = Array.isArray(b.targets)
-      ? (b.targets as unknown[]).map(String)
-      : typeof b.targets === "string"
-        ? String(b.targets).split(/[\n,;]+/)
-        : [];
-    const cleaned = rawTargets.map((t) => t.trim()).filter(Boolean).slice(0, 30);
-    const targets = cleaned.length > 0 ? cleaned : PRESET_TARGETS;
-    const timeoutMs = Math.min(Math.max(Number(b.timeoutMs) || PER_TARGET_TIMEOUT_MS, 2_000), 8_000);
-
-    const results: ScanResult[] = [];
-    let idx = 0;
-    const worker = async () => {
-      while (idx < targets.length) {
-        const i = idx++;
-        results.push(await scanOne(targets[i]!, timeoutMs));
-      }
-    };
-    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, targets.length) }, worker));
-    results.sort((a, x) => x.score - a.score || (a.rttMs ?? 9e9) - (x.rttMs ?? 9e9));
-
-    return NextResponse.json({
-      ok: true,
-      scanned: results.length,
-      preset: cleaned.length === 0,
-      results,
+    const out = await runScan({
+      targets: parseTargetsInput(b.targets),
+      timeoutMs: Math.min(Math.max(Number(b.timeoutMs) || PER_TARGET_TIMEOUT_MS, 2_000), 8_000),
+      withSuggestions: truthy(b.withSuggestions),
     });
+    return NextResponse.json(out);
+  } catch (err) {
+    console.error("[system:reality-scan]", err);
+    return NextResponse.json({ error: "server_error" }, { status: 500 });
+  }
+}
+
+/* GET variant (task 2-c) — same core, query-string driven:
+   /api/system/reality-scan?withSuggestions=1&targets=a.com,b.com&timeoutMs=4000 */
+export async function GET(req: Request) {
+  try {
+    const admin = await requireAdmin(req);
+    if (!admin) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+    const q = new URL(req.url).searchParams;
+    const out = await runScan({
+      targets: parseTargetsInput(q.get("targets") ?? ""),
+      timeoutMs: Math.min(Math.max(Number(q.get("timeoutMs")) || PER_TARGET_TIMEOUT_MS, 2_000), 8_000),
+      withSuggestions: truthy(q.get("withSuggestions")),
+    });
+    return NextResponse.json(out);
   } catch (err) {
     console.error("[system:reality-scan]", err);
     return NextResponse.json({ error: "server_error" }, { status: 500 });

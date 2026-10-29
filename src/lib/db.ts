@@ -236,9 +236,24 @@ export interface TgUser {
   /** "fa" | "en" — per-user interface language for the sales bot. */
   lang: string;
   banned: boolean;
+  /** 2-e — optional ban note surfaced by the anti-abuse gate ("" = no reason). */
+  banReason?: string;
+  /** 2-e — ISO instant of the ban (absent/null = never banned or unbanned). */
+  bannedAt?: string | null;
   /** v2.8 — wallet balance in Toman. OPTIONAL: rows created before v2.8 lack
    *  it entirely — EVERY read must use `?? 0` (no migration needed). */
   balanceToman?: number;
+  /** 2-d — referral program. OPTIONAL: pre-2-d rows lack them — every read
+   *  must tolerate `undefined`. refCode is generated LAZILY ("REF-XXXXXX",
+   *  unique-ish via collision-checked generation); refBy is the referrer's
+   *  chatId ("" = nobody); refRewarded flips once the first PAID order of
+   *  this user completed; refEarnedToman is the exact lifetime reward total
+   *  credited to this user (reward settings may change over time, so the
+   *  earned figure is accumulated per grant, never recomputed). */
+  refCode?: string;
+  refBy?: string;
+  refRewarded?: boolean;
+  refEarnedToman?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -268,6 +283,15 @@ export interface TgOrder {
    *  this subId instead of creating a new ClientUser. OPTIONAL: rows created
    *  before v2.8 lack it — reads use `?? null` (no migration needed). */
   renewTargetSubId?: string;
+  /** 2-d — multi-item cart orders: JSON array of {templateId, qty}. OPTIONAL:
+   *  absent (or unparseable) = legacy single-item order → treat as
+   *  [{templateId: order.templateId, qty: 1}] (backward compatible). */
+  itemsJson?: string;
+  /** 2-d — discount applied at checkout: JSON {code, percentOff, maxOff,
+   *  discountToman}. OPTIONAL: absent = no discount. amountToman ALWAYS holds
+   *  the post-discount payable so the whole payment pipeline (zarinpal verify,
+   *  wallet debit, admin revenue) stays on one number. */
+  discountJson?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -329,6 +353,47 @@ export interface WebhookDeadLetter {
   sign: string;
 }
 
+// ------------------------------------------------------------
+// Task 2-d — admin-managed discount codes for the bot shop.
+// code is UNIQUE + UPPERCASE (`^[A-Z0-9_-]{3,32}$`). usageLimit
+// 0 = unlimited. usedBy lists the tg chatIds that already consumed
+// the code (per-user single use). maxOff null = no currency cap.
+// ------------------------------------------------------------
+export interface DiscountCode {
+  id: string;
+  code: string;
+  enabled: boolean;
+  percentOff: number;
+  maxOff: number | null;
+  usageLimit: number;
+  usedCount: number;
+  usedBy: string[];
+  expiresAt: Date | null;
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// ------------------------------------------------------------
+// Task 2-e — broadcast queue. One row per admin broadcast; the
+// async sender (src/lib/bot/broadcast.ts) walks the `targets`
+// chatId snapshot and updates sent/failed in place. status:
+// running | done | cancelled | interrupted (boot sweep).
+// ------------------------------------------------------------
+export interface BroadcastJob {
+  id: string;
+  text: string;
+  /** "None" | "MarkdownV2" */
+  parseMode: string;
+  targets: string[];
+  sent: number;
+  failed: number;
+  status: string;
+  lastError: string;
+  createdAt: Date;
+  finishedAt: Date | null;
+}
+
 export namespace Prisma {
   export class PrismaClientKnownRequestError extends Error {
     code: string;
@@ -362,7 +427,9 @@ type TableName =
   | "tgUser"
   | "tgOrder"
   | "apiToken"
-  | "webhookDead";
+  | "webhookDead"
+  | "discountCode"
+  | "broadcastJob";
 
 type StoreData = Record<TableName, Record<string, any>[]>;
 
@@ -389,6 +456,8 @@ function emptyStore(): StoreData {
     tgOrder: [],
     apiToken: [],
     webhookDead: [],
+    discountCode: [],
+    broadcastJob: [],
   };
 }
 
@@ -399,7 +468,8 @@ function reviveDates(obj: any): any {
   for (const [k, v] of Object.entries(obj)) {
     if (
       (k === "createdAt" || k === "updatedAt" || k === "lastSeen" || k === "lastResetAt" ||
-        k === "lastUsedAt" || k === "startedAt" || k === "expiryWarnedAt") &&
+        k === "lastUsedAt" || k === "startedAt" || k === "expiryWarnedAt" || k === "expiresAt" ||
+        k === "finishedAt") &&
       typeof v === "string"
     ) {
       const d = new Date(v);
@@ -493,6 +563,7 @@ const UNIQUE_FIELDS: Partial<Record<TableName, string[]>> = {
   outbound: ["tag"],
   tgUser: ["tgId"],
   apiToken: ["tokenHash"],
+  discountCode: ["code"],
 };
 
 function checkUniqueness(table: TableName, candidate: Record<string, any>, ignoreId?: string): void {
@@ -675,6 +746,12 @@ const DEFAULTS: Record<TableName, () => Record<string, any>> = {
     tgUsername: "",
     lang: "en",
     banned: false,
+    // 2-e — anti-abuse defaults (bannedAt stays ABSENT until a ban happens)
+    banReason: "",
+    // 2-d — referral defaults (refCode stays ABSENT until lazily generated)
+    refBy: "",
+    refRewarded: false,
+    refEarnedToman: 0,
     createdAt: new Date(),
     updatedAt: new Date(),
   }),
@@ -705,6 +782,32 @@ const DEFAULTS: Record<TableName, () => Record<string, any>> = {
     attempts: 0,
     payload: "",
     sign: "",
+    createdAt: new Date(),
+  }),
+  discountCode: () => ({
+    id: cuid(),
+    enabled: true,
+    percentOff: 1,
+    maxOff: null,
+    usageLimit: 0,
+    usedCount: 0,
+    usedBy: [],
+    expiresAt: null,
+    createdBy: "",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }),
+  // 2-e — broadcast queue row (status starts running; the sender finalizes)
+  broadcastJob: () => ({
+    id: cuid(),
+    text: "",
+    parseMode: "None",
+    targets: [],
+    sent: 0,
+    failed: 0,
+    status: "running",
+    lastError: "",
+    finishedAt: null,
     createdAt: new Date(),
   }),
   relayTunnel: () => ({
@@ -1143,6 +1246,8 @@ const baseDb = {
   tgOrder: makeDelegate("tgOrder"),
   apiToken: makeDelegate("apiToken"),
   webhookDead: makeDelegate("webhookDead"),
+  discountCode: makeDelegate("discountCode"),
+  broadcastJob: makeDelegate("broadcastJob"),
 };
 
 export type DbTransactionClient = typeof baseDb;

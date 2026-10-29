@@ -31,6 +31,9 @@ import {
   validateSslPatch,
   validateWebhookPatch,
   validateDiscordPatch,
+  getUpdateSettings,
+  saveUpdateSettings,
+  validateUpdatePatch, // Task 3-c — update channel (stable/beta)
 } from "@/lib/settings";
 import { onTelegramSettingsSaved } from "@/lib/bot/sales-worker";
 import { onDiscordSettingsSaved } from "@/lib/bot/discord-worker";
@@ -53,7 +56,7 @@ export async function GET(req: Request) {
     if (!admin) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
-    const [core, telegram, nav, general, expert, security, payment, ssl, webhooks, discord] = await Promise.all([
+    const [core, telegram, nav, general, expert, security, payment, ssl, webhooks, discord, updates] = await Promise.all([
       getCoreSettings(),
       getTelegramSettings(),
       getNavModules(),
@@ -64,8 +67,9 @@ export async function GET(req: Request) {
       getSslSettings(),
       getWebhookSettings(),
       getDiscordSettings(),
+      getUpdateSettings(), // Task 3-c — update channel (stable/beta)
     ]);
-    return NextResponse.json({ core, telegram, nav, general, expert, security, payment, ssl, webhooks, discord });
+    return NextResponse.json({ core, telegram, nav, general, expert, security, payment, ssl, webhooks, discord, updates });
   } catch (err) {
     console.error("[settings:GET]", err);
     return NextResponse.json({ error: "server_error" }, { status: 500 });
@@ -288,6 +292,27 @@ export async function PUT(req: Request) {
         meta: { section: "discord" },
       });
       return NextResponse.json({ discord });
+    }
+
+    // Task 3-c — release update channel (stable | beta)
+    if (section === "updates") {
+      const parsed = await validateUpdatePatch(patch);
+      if (!parsed.ok) {
+        return NextResponse.json(
+          { error: "validation", fields: parsed.fields },
+          { status: 400 }
+        );
+      }
+      await saveUpdateSettings(parsed.data);
+      const updates = await getUpdateSettings();
+      await logActivity({
+        kind: "settings.updated",
+        level: "info",
+        actor: admin,
+        message: `Update channel set to ${updates.channel}`,
+        meta: { section: "updates" },
+      });
+      return NextResponse.json({ updates });
     }
 
     return NextResponse.json({ error: "unknown_section" }, { status: 400 });
