@@ -37,8 +37,10 @@ ROOT_REMOTE="/Sephiroth-Backups"
 if [ ! -f "$CONF" ]; then
   if [ "${SKIP_UPLOAD:-0}" = "1" ]; then
     echo "(no $CONF — SKIP_UPLOAD mode, archives only)"
+  elif [ -f "$PROJ/.pcloud/auth" ] || [ -f "$TOKEN_FILE" ]; then
+    echo "(no $CONF — but a cached token exists, continuing with it)"
   else
-    echo "ERROR: missing config $CONF (PCLOUD_EMAIL/PCLOUD_PASSWORD/PCLOUD_REGION)" >&2
+    echo "ERROR: missing config $CONF (PCLOUD_EMAIL/PCLOUD_PASSWORD/PCLOUD_REGION) and no cached token" >&2
     exit 1
   fi
 else
@@ -46,7 +48,7 @@ else
   # shellcheck disable=SC1090
   source "$CONF"
 fi
-REGION="${PCLOUD_REGION:-eu}"
+REGION="${PCLOUD_REGION:-us}"
 API="https://eapi.pcloud.com"
 [ "$REGION" = "us" ] && API="https://api.pcloud.com"
 
@@ -97,7 +99,7 @@ fi
 if [ "$auth_ok" != "1" ]; then
   if [ "${SKIP_UPLOAD:-0}" = "1" ]; then
     echo "(SKIP_UPLOAD mode — skipping login)"
-  else
+  elif [ -n "${PCLOUD_EMAIL:-}" ] && [ -n "${PCLOUD_PASSWORD:-}" ]; then
     DIGEST="$(curl -s "$API/getdigest" | jget digest)"
     INNER="$(printf '%s' "$PCLOUD_PASSWORD" | sha1sum | cut -d' ' -f1)"
     PASSHASH="$(printf '%s' "${DIGEST}${INNER}" | sha1sum | cut -d' ' -f1)"
@@ -114,6 +116,9 @@ if [ "$auth_ok" != "1" ]; then
     TOKEN="$(printf '%s' "$RESP" | jget auth)"
     save_token "$TOKEN"
     echo ">> logged in to pCloud ($REGION), authtoken cached + mirrored"
+  else
+    echo "ERROR: no valid pCloud token and no PCLOUD_EMAIL/PCLOUD_PASSWORD configured (send a fresh pcauth)" >&2
+    exit 1
   fi
 fi
 
