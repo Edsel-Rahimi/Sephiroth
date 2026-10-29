@@ -68,3 +68,21 @@ db/update.log
 .pcloud-stage/
 .pcloud/
 public-export/
+
+# ── sandbox/internal-only (mirrors scripts/prepare-public.sh exclusions) ──
+/db/
+/agent-ctx/
+/.zscripts/
+/worklog.md
+/panels.json
+/metadata.json
+/upload/
+/download/
+/.pcloud/
+/.pcloud-stage/
+/tool-results/
+/skills/
+/dev.log
+/server.log
+.env
+.env.*
