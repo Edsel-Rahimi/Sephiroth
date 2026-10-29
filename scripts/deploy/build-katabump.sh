@@ -57,7 +57,7 @@ cat > "$OUT/package.json" << 'EOF'
   "name": "sephiroth",
   "version": "2.3.0",
   "private": true,
-  "author": "EPODONIOS",
+  "author": "Edsel-Rahimi",
   "scripts": {
     "start": "node server.cjs"
   }

@@ -722,7 +722,7 @@ export function LoginScene({
             rel="noreferrer"
             className="font-mono font-semibold text-primary hover:glow-cyan transition-colors"
           >
-            EPODONIOS
+            Edsel-Rahimi
           </a>
         </p>
       </main>

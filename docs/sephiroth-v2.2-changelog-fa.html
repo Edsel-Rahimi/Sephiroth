@@ -107,11 +107,11 @@
       <span class="chip">نسخه <b>2.2.0</b></span>
       <span class="chip">تاریخ <b class="mono">2026-10-26</b></span>
       <span class="chip">۶ زبان · RTL کامل</span>
-      <span class="chip">ساخت <b>EPODONIOS</b></span>
+      <span class="chip">ساخت <b>Edsel-Rahimi</b></span>
     </div>
   </div>
   <div class="cover-foot">
-    <div><b>Sephiroth</b> · Next-Gen Xray Panel · <span class="mono">github.com/Edsel-Rahimi/Sephiroth</span></div>
+    <div><b>Sephiroth</b> · Next-Gen Xray Panel · <span class="mono">github.com/Edsel-Rahimi/sephiroth</span></div>
     <div>صفحه ۱ / ۵</div>
   </div>
 </section>
@@ -135,7 +135,7 @@
       <p>خروجی کامل کانفیگ کلاینت Xray/v2ray-core از آدرس اشتراک با <span class="mono">?format=xray</span> (vless/vmess/trojan/shadowsocks + TLS/Reality + ws/grpc/xhttp) + دکمه‌ی «کپی JSON سرور» در تب پیشرفته‌ی Forge.</p></div>
   </div>
   <div class="note"><b>پاک‌سازی کامل دمو (نسخه ۲.۱.۱):</b> هیچ داده‌ی فیک در پنل نیست — هیچ اینباند نمونه، کاربر تزئینی یا عدد ساختگی. همه‌ی اعداد داشبورد واقعی اند (CPU/RAM/دیسک/شبکه‌ی واقعی سرور) و ورود اول = تجربه‌ی «اولین بار» تمیز.</div>
-  <div class="foot"><span>Sephiroth v2.2.0 — Changelog</span><span>EPODONIOS</span></div>
+  <div class="foot"><span>Sephiroth v2.2.0 — Changelog</span><span>Edsel-Rahimi</span></div>
 </section>
 
 <!-- ═══════════════ PAGE 3 — تک‌پورت ═══════════════ -->
@@ -168,7 +168,7 @@
     <li><b>خروجی آماده</b> — در تب «پیشرفته» دکمه‌ی «کپی JSON سرور» همان کانفیگ واقعی Xray را می‌دهد؛ روی سرور واقعی‌ات داخل <span class="mono">inbounds</span> کانفیگ paste کن — همان یک پورت، چند پروتکل.</li>
   </ul>
   <div class="note"><b>نکته‌ی مهم درباره‌ی کتابامپ:</b> اگر پورت کتابامپ مستقیم به پروسه‌ی پنل می‌رسد (HTTP)، برای اجرای واقعی Xray به یکی از این سه راه نیاز داری: ① پلتفرمی که پورت خام TCP بدهد (VPS/اسکیل)، ② پنل + VLESS روی همان یک پورت با همین الگوی Fallback روی سرور شخصی، ③ تانل: سرور خارجی پورت را باز می‌کند و با <span class="mono">dokodemo-door</span> یا تانل (بخش تانل‌های پنل) ترافیک را به هاست تو می‌رساند.</div>
-  <div class="foot"><span>Sephiroth v2.2.0 — Changelog</span><span>EPODONIOS</span></div>
+  <div class="foot"><span>Sephiroth v2.2.0 — Changelog</span><span>Edsel-Rahimi</span></div>
 </section>
 
 <!-- ═══════════════ PAGE 4 — MTProto + آپدیت کتابامپ ═══════════════ -->
@@ -192,10 +192,10 @@ docker run -d --name mtproxy --restart=always -p 443:443 \
   <h2 style="margin-top:6mm"><span class="no">۰۴</span> · بروزرسانی پنل در کتابامپ — سه راه</h2>
   <ul class="steps">
     <li><b>داخل خود پنل (جدید):</b> تنظیمات ← بروزرسانی نرم‌افزار ← «بررسی بروزرسانی». اگر نسخه‌ی جدیدی در مخزن باشد دکمه‌ی «همین حالا بروزرسانی کن» ظاهر می‌شود؛ بعد از اتمام، «ری‌استارت پنل» را بزن. (نیازمند نصب از نوع git clone)</li>
-    <li><b>اگر با ZIP آپلود کرده‌ای:</b> کارت بروزرسانی خودش تشخیص می‌دهد و راهنمایی می‌کند — آخرین نسخه را از <span class="mono">github.com/Edsel-Rahimi/Sephiroth</span> به‌صورت ZIP بگیر و مثل دفعه‌ی قبل آپلود/جایگزین کن؛ پوشه‌ی <span class="mono">db/</span> را دست نزن تا اطلاعات بماند.</li>
+    <li><b>اگر با ZIP آپلود کرده‌ای:</b> کارت بروزرسانی خودش تشخیص می‌دهد و راهنمایی می‌کند — آخرین نسخه را از <span class="mono">github.com/Edsel-Rahimi/sephiroth</span> به‌صورت ZIP بگیر و مثل دفعه‌ی قبل آپلود/جایگزین کن؛ پوشه‌ی <span class="mono">db/</span> را دست نزن تا اطلاعات بماند.</li>
     <li><b>خط فرمان ( اگر دسترسی SSH داری):</b> <span class="mono">git fetch origin && git reset --hard origin/main && (bun install || npm install)</span> و ری‌استارت پروسه.</li>
   </ul>
-  <div class="foot"><span>Sephiroth v2.2.0 — Changelog</span><span>EPODONIOS</span></div>
+  <div class="foot"><span>Sephiroth v2.2.0 — Changelog</span><span>Edsel-Rahimi</span></div>
 </section>
 
 <!-- ═══════════════ PAGE 5 — مقایسه + ربات ═══════════════ -->
@@ -226,7 +226,7 @@ docker run -d --name mtproxy --restart=always -p 443:443 \
     <tr><td>Sushbot</td><td>فارسی، سریع</td><td>مستندات ضعیف</td></tr>
   </table>
   <div class="note"><b>پیشنهاد v1 برای فردا:</b> ربات درون‌خودی پنل (بدون سرویس جدا) — حالت ربات + شناسه‌های مدیر در همین بخش ربات تلگرام، کاربر قالب فروش را می‌بیند → پرداخت (زارین‌پل/کارت‌به‌کارت) → ساخت خودکار کاربر → تحویل لینک اشتراک در چت. منتظر تایید شما هستیم.</div>
-  <div class="foot"><span>Sephiroth v2.2.0 — Changelog</span><span>EPODONIOS · MIT</span></div>
+  <div class="foot"><span>Sephiroth v2.2.0 — Changelog</span><span>Edsel-Rahimi · MIT</span></div>
 </section>
 
 </body>

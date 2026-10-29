@@ -13,12 +13,12 @@
 ![Sephiroth v2.5.0 infografiği](docs/infographic.png)
 
 <p align="center">
-  <a href="https://github.com/Edsel-Rahimi/Sephiroth/releases"><img alt="Release" src="https://img.shields.io/github/v/release/edsel-rahimi/sephiroth"></a>&nbsp;
+  <a href="https://github.com/Edsel-Rahimi/sephiroth/releases"><img alt="Release" src="https://img.shields.io/github/v/release/edsel-rahimi/sephiroth"></a>&nbsp;
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>&nbsp;
   <a href="https://nodejs.org"><img alt="Node.js 20 or newer" src="https://img.shields.io/badge/node-%E2%89%A520-339933?logo=node.js&logoColor=white"></a>&nbsp;
   <img alt="i18n: 6 languages" src="https://img.shields.io/badge/i18n-6%20languages-blueviolet">&nbsp;
   <img alt="Platform: Linux and Docker" src="https://img.shields.io/badge/platform-Linux%20%7C%20Docker-informational">&nbsp;
-  <a href="https://github.com/Edsel-Rahimi/Sephiroth/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/edsel-rahimi/sephiroth?style=flat&logo=github&color=22d8ee"></a>
+  <a href="https://github.com/Edsel-Rahimi/sephiroth/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/edsel-rahimi/sephiroth?style=flat&logo=github&color=22d8ee"></a>
 </p>
 
 ---
@@ -120,7 +120,7 @@ Onu farklı yapan ne?
 ### Tek tıkla kurulum
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/sephiroth/main/install.sh)
 ```
 
 Kurulum betiği dağıtımınızı ve mimarinizi algılar, sistem bağımlılıklarını **ve Node 22'yi** kurar, depoyu klonlar, uygulamayı derler ve sıkılaştırılmış bir **systemd** servisi oluşturur (systemd yokken devre dışı kalır). Sonunda panel adresini ve **rastgele üretilmiş yönetici parolasını** yazdırır ve ikisini de `/etc/sephiroth/install-result.env` içine (`0600` izniyle) kaydeder.
@@ -128,13 +128,13 @@ Kurulum betiği dağıtımınızı ve mimarinizi algılar, sistem bağımlılık
 Belirli bir sürümü sabitlemek için etiketi argüman olarak geçirin (etiket bu depodaki git tag'lerinde bulunmalıdır; yoksa kurulum betiği açıklayıcı bir ipucuyla çıkar):
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh) v2.5.0
+bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/sephiroth/main/install.sh) v2.5.0
 ```
 
 Katılımsız / cloud-init — sıfır soru; parola yine de sonuç dosyasına yazılır:
 
 ```bash
-SEPH_NONINTERACTIVE=1 bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh)
+SEPH_NONINTERACTIVE=1 bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/sephiroth/main/install.sh)
 ```
 
 > [!IMPORTANT]
@@ -151,7 +151,7 @@ docker run -d --name sephiroth -p 3000:3000 -v sephiroth_data:/app/db \
 Ya da Compose ile (çok aşamalı derleme, isimli volume, yerleşik healthcheck):
 
 ```bash
-git clone https://github.com/Edsel-Rahimi/Sephiroth.git && cd Sephiroth
+git clone https://github.com/Edsel-Rahimi/sephiroth.git && cd Sephiroth
 export SEPH_PORT=3000 SEPHIROTH_ADMIN_USER=admin SEPHIROTH_ADMIN_PASS='S3cure-Pass!'
 docker compose up -d
 ```
@@ -231,7 +231,7 @@ Sephiroth işinizi kolaylaştırıyorsa bir ⭐ yörüngeyi canlı tutar. Panel 
 
 ## Lisans
 
-[MIT](LICENSE) © EPODONIOS
+[MIT](LICENSE) © Edsel-Rahimi
 
 ## Yasal Uyarı
 
@@ -239,4 +239,4 @@ Bu proje **eğitim amaçlı ve yasal kişisel kullanım** için yapılmıştır.
 
 ---
 
-<p align="center"><sub><b>Sephiroth</b> · crafted by <a href="https://github.com/Edsel-Rahimi">EPODONIOS</a></sub></p>
+<p align="center"><sub><b>Sephiroth</b> · crafted by <a href="https://github.com/Edsel-Rahimi">Edsel-Rahimi</a></sub></p>

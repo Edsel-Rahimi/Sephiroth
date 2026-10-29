@@ -50,13 +50,13 @@
 ## 📦 Install
 ```bash
 # one-click (recommended)
-bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/sephiroth/main/install.sh)
 
 # pinned version
-bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh) v2.5.0
+bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/sephiroth/main/install.sh) v2.5.0
 
 # unattended
-SEPH_NONINTERACTIVE=1 bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh)
+SEPH_NONINTERACTIVE=1 bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/sephiroth/main/install.sh)
 ```
 ```bash
 # docker
@@ -74,4 +74,4 @@ After install run `sephiroth` for the management menu. **Change the generated ad
 ### 🇮🇷 خلاصه فارسی
 نسخه ۲.۵.۰: ربات فروش تلگرام (فروش خودکار با زرین‌پل و کارت‌به‌کارت، تحویل خودکار کانفیگ)، ناوگان چندنودی (پوش کانفیگ به نودهای دور + نمای ناوگان)، پروتکل‌های جدید (mKCP، Shadowsocks 2022، Hysteria2)، هسته دوم sing-box در کنار Xray، صدور گواهی SSL/ACME داخل پنل، محدودیت IP و قفل دستگاه HWID، کاتالوگ ۲۰ صفحه‌ای در ۶ زبان و اینفوگرافیک README.
 
-**Full changelog:** https://github.com/Edsel-Rahimi/Sephiroth/commits/main · **Docs:** `docs/sephiroth-catalog-<fa|en|tr|ru|ar|zh>.pdf`
+**Full changelog:** https://github.com/Edsel-Rahimi/sephiroth/commits/main · **Docs:** `docs/sephiroth-catalog-<fa|en|tr|ru|ar|zh>.pdf`

@@ -13,12 +13,12 @@
 ![Sephiroth v2.5.0 信息图](docs/infographic.png)
 
 <p align="center">
-  <a href="https://github.com/Edsel-Rahimi/Sephiroth/releases"><img alt="Release" src="https://img.shields.io/github/v/release/edsel-rahimi/sephiroth"></a>&nbsp;
+  <a href="https://github.com/Edsel-Rahimi/sephiroth/releases"><img alt="Release" src="https://img.shields.io/github/v/release/edsel-rahimi/sephiroth"></a>&nbsp;
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>&nbsp;
   <a href="https://nodejs.org"><img alt="Node.js 20 or newer" src="https://img.shields.io/badge/node-%E2%89%A520-339933?logo=node.js&logoColor=white"></a>&nbsp;
   <img alt="i18n: 6 languages" src="https://img.shields.io/badge/i18n-6%20languages-blueviolet">&nbsp;
   <img alt="Platform: Linux and Docker" src="https://img.shields.io/badge/platform-Linux%20%7C%20Docker-informational">&nbsp;
-  <a href="https://github.com/Edsel-Rahimi/Sephiroth/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/edsel-rahimi/sephiroth?style=flat&logo=github&color=22d8ee"></a>
+  <a href="https://github.com/Edsel-Rahimi/sephiroth/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/edsel-rahimi/sephiroth?style=flat&logo=github&color=22d8ee"></a>
 </p>
 
 ---
@@ -120,7 +120,7 @@
 ### 一键安装
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/sephiroth/main/install.sh)
 ```
 
 安装脚本会检测发行版与架构，安装系统依赖 **和 Node 22**，克隆仓库、构建应用，并创建带加固配置的 **systemd** 服务（在无 systemd 的环境中自动降级）。结束时它会打印面板地址和**随机生成的管理员密码**，并把两者写入 `/etc/sephiroth/install-result.env`（权限 `0600`）。
@@ -128,13 +128,13 @@ bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/in
 想固定安装某个版本，把标签作为参数传入（该标签必须存在于本仓库的 git tag 中，否则安装脚本会带着明确提示退出）：
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh) v2.5.0
+bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/sephiroth/main/install.sh) v2.5.0
 ```
 
 无人值守 / cloud-init — 零交互，密码照常写入结果文件：
 
 ```bash
-SEPH_NONINTERACTIVE=1 bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh)
+SEPH_NONINTERACTIVE=1 bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/sephiroth/main/install.sh)
 ```
 
 > [!IMPORTANT]
@@ -151,7 +151,7 @@ docker run -d --name sephiroth -p 3000:3000 -v sephiroth_data:/app/db \
 或使用 Compose（多阶段构建、命名卷、内置健康检查）：
 
 ```bash
-git clone https://github.com/Edsel-Rahimi/Sephiroth.git && cd Sephiroth
+git clone https://github.com/Edsel-Rahimi/sephiroth.git && cd Sephiroth
 export SEPH_PORT=3000 SEPHIROTH_ADMIN_USER=admin SEPHIROTH_ADMIN_PASS='S3cure-Pass!'
 docker compose up -d
 ```
@@ -231,7 +231,7 @@ Sephiroth 自带两个可互换的核心后端。随时在 **设置 → 核心**
 
 ## 许可证
 
-[MIT](LICENSE) © EPODONIOS
+[MIT](LICENSE) © Edsel-Rahimi
 
 ## 免责声明
 
@@ -239,4 +239,4 @@ Sephiroth 自带两个可互换的核心后端。随时在 **设置 → 核心**
 
 ---
 
-<p align="center"><sub><b>Sephiroth</b> · crafted by <a href="https://github.com/Edsel-Rahimi">EPODONIOS</a></sub></p>
+<p align="center"><sub><b>Sephiroth</b> · crafted by <a href="https://github.com/Edsel-Rahimi">Edsel-Rahimi</a></sub></p>

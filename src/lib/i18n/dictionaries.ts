@@ -3448,7 +3448,7 @@ export const dictionaries: Record<Lang, Dict> = {
       reymitDesc: "Support via Reymit — great for Iran-based supporters",
       stars: "Star on GitHub",
       starsDesc: "A star costs nothing but means the world",
-      creator: "Crafted by EPODONIOS",
+      creator: "Crafted by Edsel-Rahimi",
       close: "Close",
     },
     routingPresets: {
@@ -5336,7 +5336,7 @@ export const dictionaries: Record<Lang, Dict> = {
       reymitDesc: "حمایت از طریق رایمیت — مناسب برای کاربران ایران",
       stars: "ستاره در گیت‌هاب",
       starsDesc: "ستاره هزینه‌ای نداره ولی دنیا رو بهم می‌ده",
-      creator: "ساخته‌ی EPODONIOS",
+      creator: "ساخته‌ی Edsel-Rahimi",
       close: "بستن",
     },
     routingPresets: {
@@ -7223,7 +7223,7 @@ export const dictionaries: Record<Lang, Dict> = {
       reymitDesc: "الدعم عبر Reymit — مناسب للداعمين في إيران",
       stars: "نجمة على GitHub",
       starsDesc: "النجمة لا تكلف شيئًا لكنها تعني الكثير",
-      creator: "صُنع بواسطة EPODONIOS",
+      creator: "صُنع بواسطة Edsel-Rahimi",
       close: "إغلاق",
     },
     routingPresets: {
@@ -9108,7 +9108,7 @@ export const dictionaries: Record<Lang, Dict> = {
       reymitDesc: "通过 Reymit 支持 — 适合伊朗用户",
       stars: "GitHub 星标",
       starsDesc: "一个星标不花一分钱，却意义非凡",
-      creator: "由 EPODONIOS 打造",
+      creator: "由 Edsel-Rahimi 打造",
       close: "关闭",
     },
     routingPresets: {
@@ -10996,7 +10996,7 @@ export const dictionaries: Record<Lang, Dict> = {
       reymitDesc: "Reymit üzerinden destek — İran'daki destekçiler için ideal",
       stars: "GitHub'da Yıldızla",
       starsDesc: "Bir yıldızın maliyeti yok ama dünyalar kadar değerli",
-      creator: "EPODONIOS tarafından tasarlandı",
+      creator: "Edsel-Rahimi tarafından tasarlandı",
       close: "Kapat",
     },
     routingPresets: {
@@ -12885,7 +12885,7 @@ export const dictionaries: Record<Lang, Dict> = {
       reymitDesc: "Поддержка через Reymit — удобно для сторонников из Ирана",
       stars: "Звезда на GitHub",
       starsDesc: "Звезда ничего не стоит, но значит всё",
-      creator: "Создано EPODONIOS",
+      creator: "Создано Edsel-Rahimi",
       close: "Закрыть",
     },
     routingPresets: {

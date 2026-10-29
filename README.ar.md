@@ -13,12 +13,12 @@
 ![إنفوغراف سيفيروث v2.5.0](docs/infographic.png)
 
 <p align="center">
-  <a href="https://github.com/Edsel-Rahimi/Sephiroth/releases"><img alt="Release" src="https://img.shields.io/github/v/release/edsel-rahimi/sephiroth"></a>&nbsp;
+  <a href="https://github.com/Edsel-Rahimi/sephiroth/releases"><img alt="Release" src="https://img.shields.io/github/v/release/edsel-rahimi/sephiroth"></a>&nbsp;
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>&nbsp;
   <a href="https://nodejs.org"><img alt="Node.js 20 or newer" src="https://img.shields.io/badge/node-%E2%89%A520-339933?logo=node.js&logoColor=white"></a>&nbsp;
   <img alt="i18n: 6 languages" src="https://img.shields.io/badge/i18n-6%20languages-blueviolet">&nbsp;
   <img alt="Platform: Linux and Docker" src="https://img.shields.io/badge/platform-Linux%20%7C%20Docker-informational">&nbsp;
-  <a href="https://github.com/Edsel-Rahimi/Sephiroth/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/edsel-rahimi/sephiroth?style=flat&logo=github&color=22d8ee"></a>
+  <a href="https://github.com/Edsel-Rahimi/sephiroth/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/edsel-rahimi/sephiroth?style=flat&logo=github&color=22d8ee"></a>
 </p>
 
 <div dir="rtl">
@@ -120,7 +120,7 @@
 ### تثبيت بنقرة واحدة
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/sephiroth/main/install.sh)
 ```
 
 يكتشف المثبِّت توزيعتك ومعمارية خادمك، ويثبّت التبعيات النظامية مع **Node 22**، ويستنسخ المستودع، ويبني التطبيق، وينشئ خدمة **systemd** مقيّدة (مع حماية عند غياب systemd). في النهاية يطبع رابط اللوحة و**كلمة مرور مدير مولّدة عشوائيًا**، ويحفظ كليهما في `/etc/sephiroth/install-result.env` (بصلاحية `0600`).
@@ -128,13 +128,13 @@ bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/in
 لتثبيت إصدار محدد مرّر الوسم كوسيطة (يجب أن يكون الوسم موجودًا في وسوم git لهذا المستودع، وإلا خرج المثبِّت برسالة إرشادية):
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh) v2.5.0
+bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/sephiroth/main/install.sh) v2.5.0
 ```
 
 تثبيت غير تفاعلي / cloud-init — بلا أي أسئلة؛ تُكتب كلمة المرور في ملف النتيجة كالمعتاد:
 
 ```bash
-SEPH_NONINTERACTIVE=1 bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh)
+SEPH_NONINTERACTIVE=1 bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/sephiroth/main/install.sh)
 ```
 
 > [!IMPORTANT]
@@ -151,7 +151,7 @@ docker run -d --name sephiroth -p 3000:3000 -v sephiroth_data:/app/db \
 أو مع Compose (بناء متعدد المراحل، وحدة تخزين مسماة، فحص صحة مدمج):
 
 ```bash
-git clone https://github.com/Edsel-Rahimi/Sephiroth.git && cd Sephiroth
+git clone https://github.com/Edsel-Rahimi/sephiroth.git && cd Sephiroth
 export SEPH_PORT=3000 SEPHIROTH_ADMIN_USER=admin SEPHIROTH_ADMIN_PASS='S3cure-Pass!'
 docker compose up -d
 ```
@@ -231,7 +231,7 @@ sephiroth                  # open the interactive menu
 
 ## الترخيص
 
-[MIT](LICENSE) © EPODONIOS
+[MIT](LICENSE) © Edsel-Rahimi
 
 ## إخلاء المسؤولية
 
@@ -239,6 +239,6 @@ sephiroth                  # open the interactive menu
 
 ---
 
-<p align="center"><sub><b>Sephiroth</b> · crafted by <a href="https://github.com/Edsel-Rahimi">EPODONIOS</a></sub></p>
+<p align="center"><sub><b>Sephiroth</b> · crafted by <a href="https://github.com/Edsel-Rahimi">Edsel-Rahimi</a></sub></p>
 
 </div>

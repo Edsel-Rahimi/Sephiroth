@@ -2,8 +2,16 @@
   "name": "sephiroth",
   "version": "3.0.0",
   "private": true,
-  "author": "EPODONIOS",
+  "author": "Edsel-Rahimi",
   "description": "Sephiroth — Next-Gen Xray VPN Panel (full-stack: Express + Vite + React, zero external DB)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Edsel-Rahimi/sephiroth.git"
+  },
+  "homepage": "https://github.com/Edsel-Rahimi/sephiroth#readme",
+  "bugs": {
+    "url": "https://github.com/Edsel-Rahimi/sephiroth/issues"
+  },
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",

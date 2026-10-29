@@ -13,12 +13,12 @@
 ![Sephiroth v2.5.0 infographic](docs/infographic.png)
 
 <p align="center">
-  <a href="https://github.com/Edsel-Rahimi/Sephiroth/releases"><img alt="Release" src="https://img.shields.io/github/v/release/edsel-rahimi/sephiroth"></a>&nbsp;
+  <a href="https://github.com/Edsel-Rahimi/sephiroth/releases"><img alt="Release" src="https://img.shields.io/github/v/release/edsel-rahimi/sephiroth"></a>&nbsp;
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>&nbsp;
   <a href="https://nodejs.org"><img alt="Node.js 20 or newer" src="https://img.shields.io/badge/node-%E2%89%A520-339933?logo=node.js&logoColor=white"></a>&nbsp;
   <img alt="i18n: 6 languages" src="https://img.shields.io/badge/i18n-6%20languages-blueviolet">&nbsp;
   <img alt="Platform: Linux and Docker" src="https://img.shields.io/badge/platform-Linux%20%7C%20Docker-informational">&nbsp;
-  <a href="https://github.com/Edsel-Rahimi/Sephiroth/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/edsel-rahimi/sephiroth?style=flat&logo=github&color=22d8ee"></a>
+  <a href="https://github.com/Edsel-Rahimi/sephiroth/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/edsel-rahimi/sephiroth?style=flat&logo=github&color=22d8ee"></a>
 </p>
 
 ---
@@ -120,7 +120,7 @@ What makes it different:
 ### One-click install
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/sephiroth/main/install.sh)
 ```
 
 The installer detects your distro and architecture, installs system dependencies **plus Node 22**, clones the repository, builds the app and creates a hardened **systemd** service (guarded when systemd is unavailable). At the end it prints the panel URL and a **randomly generated admin password**, and stores both in `/etc/sephiroth/install-result.env` (mode `0600`).
@@ -128,13 +128,13 @@ The installer detects your distro and architecture, installs system dependencies
 Pin a specific release by passing the tag as an argument (the tag must exist in this repository's git tags — otherwise the installer exits with an actionable hint):
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh) v2.5.0
+bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/sephiroth/main/install.sh) v2.5.0
 ```
 
 Unattended / cloud-init — zero prompts, credentials still written to the result file:
 
 ```bash
-SEPH_NONINTERACTIVE=1 bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh)
+SEPH_NONINTERACTIVE=1 bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/sephiroth/main/install.sh)
 ```
 
 > [!IMPORTANT]
@@ -151,7 +151,7 @@ docker run -d --name sephiroth -p 3000:3000 -v sephiroth_data:/app/db \
 Or with compose (multi-stage build, named volume, healthcheck included):
 
 ```bash
-git clone https://github.com/Edsel-Rahimi/Sephiroth.git && cd Sephiroth
+git clone https://github.com/Edsel-Rahimi/sephiroth.git && cd Sephiroth
 export SEPH_PORT=3000 SEPHIROTH_ADMIN_USER=admin SEPHIROTH_ADMIN_PASS='S3cure-Pass!'
 docker compose up -d
 ```
@@ -233,7 +233,7 @@ If Sephiroth makes your day easier, a ⭐ keeps the orbit alive. The in-panel **
 
 ## License
 
-[MIT](LICENSE) © EPODONIOS
+[MIT](LICENSE) © Edsel-Rahimi
 
 ## Disclaimer
 
@@ -241,4 +241,4 @@ This project is built for **educational purposes and lawful personal use**. You 
 
 ---
 
-<p align="center"><sub><b>Sephiroth</b> · crafted by <a href="https://github.com/Edsel-Rahimi">EPODONIOS</a></sub></p>
+<p align="center"><sub><b>Sephiroth</b> · crafted by <a href="https://github.com/Edsel-Rahimi">Edsel-Rahimi</a></sub></p>

@@ -20,7 +20,7 @@ LOG_FILE="$SEPH_ROOT/sephiroth.log"
 PID_FILE="$SEPH_ROOT/sephiroth.pid"
 INSTALLER="$SEPH_ROOT/install.sh"
 BACKUP_DIR="$SEPH_ROOT/backups"
-RAW_PKG_URL="https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/package.json"
+RAW_PKG_URL="https://raw.githubusercontent.com/Edsel-Rahimi/sephiroth/main/package.json"
 
 if [[ -t 1 ]]; then
   C_RESET='\033[0m'; C_GREEN='\033[0;32m'; C_YELLOW='\033[1;33m'; C_RED='\033[0;31m'

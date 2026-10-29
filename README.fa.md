@@ -13,12 +13,12 @@
 ![اینفوگرافیک سِفیروث v2.5.0](docs/infographic.png)
 
 <p align="center">
-  <a href="https://github.com/Edsel-Rahimi/Sephiroth/releases"><img alt="Release" src="https://img.shields.io/github/v/release/edsel-rahimi/sephiroth"></a>&nbsp;
+  <a href="https://github.com/Edsel-Rahimi/sephiroth/releases"><img alt="Release" src="https://img.shields.io/github/v/release/edsel-rahimi/sephiroth"></a>&nbsp;
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>&nbsp;
   <a href="https://nodejs.org"><img alt="Node.js 20 or newer" src="https://img.shields.io/badge/node-%E2%89%A520-339933?logo=node.js&logoColor=white"></a>&nbsp;
   <img alt="i18n: 6 languages" src="https://img.shields.io/badge/i18n-6%20languages-blueviolet">&nbsp;
   <img alt="Platform: Linux and Docker" src="https://img.shields.io/badge/platform-Linux%20%7C%20Docker-informational">&nbsp;
-  <a href="https://github.com/Edsel-Rahimi/Sephiroth/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/edsel-rahimi/sephiroth?style=flat&logo=github&color=22d8ee"></a>
+  <a href="https://github.com/Edsel-Rahimi/sephiroth/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/edsel-rahimi/sephiroth?style=flat&logo=github&color=22d8ee"></a>
 </p>
 
 <div dir="rtl">
@@ -120,7 +120,7 @@
 ### نصب یک‌کلیکی
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/sephiroth/main/install.sh)
 ```
 
 نصب‌کننده توزیع و معماری سرور را تشخیص می‌دهد، وابستگی‌های سیستمی را به‌همراه **Node 22** نصب می‌کند، مخزن را کلون می‌کند، اپ را می‌سازد و یک سرویس **systemd** سخت‌گیرانه (با گاردِ نبودِ systemd) می‌سازد. در پایان آدرس پنل و یک **رمز عبور تصادفیِ مدیر** را چاپ می‌کند و هر دو را در `/etc/sephiroth/install-result.env` (با دسترسی `0600`) ذخیره می‌کند.
@@ -128,13 +128,13 @@ bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/in
 برای نصب نسخه‌ی مشخص، تگ را به‌عنوان آرگومان بدهید (تگ باید در گیت این مخزن وجود داشته باشد؛ وگرنه نصب‌کننده با پیام راهنما خارج می‌شود):
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh) v2.5.0
+bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/sephiroth/main/install.sh) v2.5.0
 ```
 
 نصب بی‌پرس‌وجو / cloud-init — بدون هیچ پرامپتی؛ رمز باز هم در فایل نتیجه نوشته می‌شود:
 
 ```bash
-SEPH_NONINTERACTIVE=1 bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh)
+SEPH_NONINTERACTIVE=1 bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/sephiroth/main/install.sh)
 ```
 
 > [!IMPORTANT]
@@ -151,7 +151,7 @@ docker run -d --name sephiroth -p 3000:3000 -v sephiroth_data:/app/db \
 یا با کامپوز (بیلد چندمرحله‌ای، والیوم نام‌دار، هلث‌چک):
 
 ```bash
-git clone https://github.com/Edsel-Rahimi/Sephiroth.git && cd Sephiroth
+git clone https://github.com/Edsel-Rahimi/sephiroth.git && cd Sephiroth
 export SEPH_PORT=3000 SEPHIROTH_ADMIN_USER=admin SEPHIROTH_ADMIN_PASS='S3cure-Pass!'
 docker compose up -d
 ```
@@ -231,7 +231,7 @@ Sephiroth دو بک‌اند هسته‌ی جابه‌جاشدنی دارد. ه�
 
 ## مجوز
 
-[MIT](LICENSE) © EPODONIOS
+[MIT](LICENSE) © Edsel-Rahimi
 
 ## سلب مسئولیت
 
@@ -239,6 +239,6 @@ Sephiroth دو بک‌اند هسته‌ی جابه‌جاشدنی دارد. ه�
 
 ---
 
-<p align="center"><sub><b>Sephiroth</b> · crafted by <a href="https://github.com/Edsel-Rahimi">EPODONIOS</a></sub></p>
+<p align="center"><sub><b>Sephiroth</b> · crafted by <a href="https://github.com/Edsel-Rahimi">Edsel-Rahimi</a></sub></p>
 
 </div>

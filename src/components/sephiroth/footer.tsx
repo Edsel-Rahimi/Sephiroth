@@ -75,7 +75,7 @@ export function Footer() {
               rel="noreferrer"
               className="font-mono font-semibold text-primary hover:glow-cyan transition-colors"
             >
-              EPODONIOS
+              Edsel-Rahimi
             </a>
           </span>
           <span className="text-border">|</span>

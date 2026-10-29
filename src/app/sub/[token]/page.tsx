@@ -785,7 +785,7 @@ export default function SubPage() {
               {t.poweredBy}
             </p>
             <p className="mt-1 text-[9px] uppercase tracking-[0.24em] text-muted-foreground/40">
-              Crafted by EPODONIOS
+              Crafted by Edsel-Rahimi
             </p>
           </>
         )}

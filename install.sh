@@ -3,15 +3,15 @@
 #  Sephiroth — Next-Gen Xray Panel · one-click installer (3x-ui style)
 #
 #  Usage:
-#    bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh)
-#    bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh) v2.4.0   # pin a version/tag
+#    bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/sephiroth/main/install.sh)
+#    bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/sephiroth/main/install.sh) v2.4.0   # pin a version/tag
 #    SEPH_NONINTERACTIVE=1 bash install.sh                 # unattended (writes /etc/sephiroth/install-result.env)
 #    SEPH_LOCAL_DIR=/path/to/repo bash install.sh          # offline install from a local directory
 #
 #  What it does:
 #    1. installs base deps (curl, git, tar, openssl) via the detected package manager
 #    2. installs Node.js 22 if node < 20 is present
-#    3. clones Edsel-Rahimi/Sephiroth into /opt/sephiroth (git fetch + tag checkout on re-run)
+#    3. clones Edsel-Rahimi/sephiroth into /opt/sephiroth (git fetch + tag checkout on re-run)
 #    4. builds the SPA (vite) and bundles a single-file server.cjs (esbuild, zero node_modules runtime)
 #    5. writes /etc/sephiroth/sephiroth.env, a hardened systemd unit, and the `sephiroth` CLI
 #    6. starts the service, waits for readiness and prints the credentials
@@ -21,8 +21,8 @@
 set -o pipefail
 
 # ------------------------------------------------------------------ constants
-REPO_URL="https://github.com/Edsel-Rahimi/Sephiroth"
-RAW_PKG_URL="https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/package.json"
+REPO_URL="https://github.com/Edsel-Rahimi/sephiroth"
+RAW_PKG_URL="https://raw.githubusercontent.com/Edsel-Rahimi/sephiroth/main/package.json"
 INSTALL_DIR="/opt/sephiroth"
 ENV_DIR="/etc/sephiroth"
 ENV_FILE="$ENV_DIR/sephiroth.env"

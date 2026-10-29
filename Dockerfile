@@ -47,9 +47,9 @@ LABEL org.opencontainers.image.title="Sephiroth Panel" \
       org.opencontainers.image.description="Next-Gen Xray VPN Panel — single-process full-stack (Express + Vite SPA + Socket.IO), zero external DB" \
       org.opencontainers.image.version="${SEPH_VERSION}" \
       org.opencontainers.image.licenses="MIT" \
-      org.opencontainers.image.source="https://github.com/Epodonios/Sephiroth" \
-      org.opencontainers.image.url="https://github.com/Epodonios/Sephiroth" \
-      org.opencontainers.image.documentation="https://github.com/Epodonios/Sephiroth#readme" \
+      org.opencontainers.image.source="https://github.com/Edsel-Rahimi/sephiroth" \
+      org.opencontainers.image.url="https://github.com/Edsel-Rahimi/sephiroth" \
+      org.opencontainers.image.documentation="https://github.com/Edsel-Rahimi/sephiroth#readme" \
       org.opencontainers.image.authors="EPODONIOS"
 
 WORKDIR /app

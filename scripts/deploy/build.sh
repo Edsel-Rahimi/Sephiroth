@@ -77,7 +77,7 @@ cat > "$OUT/package.json" << 'EOF'
   "name": "sephiroth",
   "version": "1.0.0",
   "private": true,
-  "author": "EPODONIOS"
+  "author": "Edsel-Rahimi"
 }
 EOF
 # copy socket.io dependency tree (not traced — server.js loads it directly)

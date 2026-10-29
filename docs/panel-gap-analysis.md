@@ -1,7 +1,7 @@
 # Sephiroth — Panel Gap Analysis vs Competitors
 
 **Task 19-a · research only (no code changed) · sources fetched live from GitHub/docs on research day.**
-Baseline: **Sephiroth v2.1.0** (Edsel-Rahimi/Sephiroth, single-process Vite+Express, atomic JSON store, Xray *simulator* driver).
+Baseline: **Sephiroth v2.1.0** (Edsel-Rahimi/sephiroth, single-process Vite+Express, atomic JSON store, Xray *simulator* driver).
 
 Versions researched:
 
