@@ -82,6 +82,8 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { TelegramBotPanel } from "@/components/sephiroth/views/telegram-bot-panel";
 import { TelegramBotSettings } from "@/components/sephiroth/views/telegram-bot-settings"; // Task 23-a — bot card
+import { DiscordBotSettings } from "@/components/sephiroth/views/discord-bot-settings"; // v2.7 — Discord bot card
+import { WebhooksCard } from "@/components/sephiroth/views/webhooks-card"; // v2.7 — outbound webhooks card
 import { SslCard } from "@/components/sephiroth/views/ssl-card"; // Task 23-f — SSL/ACME card
 
 /* ============================================================
@@ -2070,6 +2072,12 @@ docker run -d --name mtproxy --restart=always -p ${mtpPort || "443"}:443 \\
 
             {/* telegram bot (23-a — worker / sales config + live pill) */}
             <TelegramBotSettings />
+
+            {/* v2.7 — Discord bot (gateway worker + live pill) */}
+            <DiscordBotSettings />
+
+            {/* v2.7 — outbound webhooks (event fan-out + delivery log) */}
+            <WebhooksCard />
 
             {/* telegram notifications */}
             <SectionCard icon={Sparkles} title={u.tgNotify}>

@@ -1,0 +1,1036 @@
+import type { Lang } from "./dictionaries";
+
+/* ============================================================
+   Sephiroth · v2.7 — feature strings (webhooks / discord /
+   online users / REALITY scanner / CSV import-export)
+
+   Separate bundle so the giant dictionaries.ts stays stable.
+   Typed as Record<Lang, FeatureDict> — the compiler enforces
+   key parity across all 6 languages, and scripts/i18n-audit.ts
+   audits value quality (placeholders, artifacts, heuristics).
+   ============================================================ */
+
+export interface FeatureDict {
+  nav: {
+    online: string;
+  };
+  online: {
+    title: string;
+    subtitle: string;
+    liveBadge: string;
+    connecting: string;
+    offlineTitle: string;
+    offlineNote: string;
+    emptyTitle: string;
+    emptyNote: string;
+    kpiActive: string;
+    kpiSessions: string;
+    kpiConnected: string;
+    kpiIdle: string;
+    kpiLimited: string;
+    colUser: string;
+    colProto: string;
+    colTraffic: string;
+    colDelta: string;
+    colExpires: string;
+    colUsage: string;
+    colIps: string;
+    deltaUnit: string;
+    unlimited: string;
+    daysLeft: string;
+    hoursLeft: string;
+    expired: string;
+    ipTitle: string;
+    ipWindow: string;
+    ipLive: string;
+    ipStale: string;
+    ipEmpty: string;
+    colEmail: string;
+    colCount: string;
+    colLimit: string;
+    breachBadge: string;
+    simNote: string;
+  };
+  webhooks: {
+    title: string;
+    desc: string;
+    enabled: string;
+    url: string;
+    urlPh: string;
+    secret: string;
+    secretPh: string;
+    secretKeepHint: string;
+    eventsTitle: string;
+    evUserCreated: string;
+    evUserDeleted: string;
+    evUserUpdated: string;
+    evUserExpired: string;
+    evTraffic: string;
+    evLogin: string;
+    evDigest: string;
+    evBackup: string;
+    evRestart: string;
+    evInboundCreated: string;
+    evInboundDeleted: string;
+    save: string;
+    saving: string;
+    savedToast: string;
+    test: string;
+    testing: string;
+    testOk: string;
+    testFail: string;
+    recentTitle: string;
+    recentEmpty: string;
+    okBadge: string;
+    failBadge: string;
+    hintSign: string;
+  };
+  discord: {
+    title: string;
+    desc: string;
+    enabled: string;
+    token: string;
+    tokenPh: string;
+    keepHint: string;
+    adminIds: string;
+    adminIdsPh: string;
+    channelId: string;
+    channelIdPh: string;
+    prefix: string;
+    prefixPh: string;
+    botLang: string;
+    save: string;
+    saving: string;
+    savedToast: string;
+    test: string;
+    testing: string;
+    testOk: string;
+    testFail: string;
+    statusRunning: string;
+    statusConnecting: string;
+    statusReconnecting: string;
+    statusStopped: string;
+    handled: string;
+    errors: string;
+    lastEvent: string;
+    never: string;
+    commandsHint: string;
+    hint: string;
+  };
+  scanner: {
+    title: string;
+    desc: string;
+    targets: string;
+    targetsPh: string;
+    run: string;
+    running: string;
+    close: string;
+    colTarget: string;
+    colTls: string;
+    colAlpn: string;
+    colRtt: string;
+    colCert: string;
+    colScore: string;
+    colVerdict: string;
+    verdictGood: string;
+    verdictWarn: string;
+    verdictBad: string;
+    rttUnit: string;
+    certOk: string;
+    certBad: string;
+    scanned: string;
+    empty: string;
+    errorRun: string;
+    tip: string;
+    presetBadge: string;
+    customBadge: string;
+  };
+  usersCsv: {
+    exportCsv: string;
+    exportJson: string;
+    importFormat: string;
+    formatJson: string;
+    formatCsv: string;
+    csvFilePick: string;
+    csvPicked: string;
+    csvHint: string;
+  };
+}
+
+export const FEATURE: Record<Lang, FeatureDict> = {
+  /* ---------------- English ---------------- */
+  en: {
+    nav: { online: "Online Users" },
+    online: {
+      title: "Online Users",
+      subtitle: "Who is connected right now — live from the core feed.",
+      liveBadge: "Live",
+      connecting: "Connecting…",
+      offlineTitle: "Live feed offline",
+      offlineNote: "No live core data right now. The list fills in as soon as the realtime feed reconnects.",
+      emptyTitle: "Nobody is online",
+      emptyNote: "No active connections at the moment. New connections appear here within a second.",
+      kpiActive: "Online now",
+      kpiSessions: "Sessions",
+      kpiConnected: "Connected",
+      kpiIdle: "Idle",
+      kpiLimited: "Limited",
+      colUser: "User",
+      colProto: "Proto",
+      colTraffic: "Traffic",
+      colDelta: "Rate",
+      colExpires: "Expires",
+      colUsage: "Usage",
+      colIps: "IPs",
+      deltaUnit: "{mbps} MB/s",
+      unlimited: "Unlimited",
+      daysLeft: "{n}d",
+      hoursLeft: "{n}h",
+      expired: "Expired",
+      ipTitle: "Concurrent IP usage",
+      ipWindow: "window {minutes} min",
+      ipLive: "live snapshot",
+      ipStale: "needs the real core",
+      ipEmpty: "No IP activity recorded in the current window.",
+      colEmail: "Client email",
+      colCount: "IPs",
+      colLimit: "Limit",
+      breachBadge: "Breach",
+      simNote: "The simulator core has no live connection data — switch to the Xray driver to see who is actually online.",
+    },
+    webhooks: {
+      title: "Webhooks",
+      desc: "POST every panel event to your own endpoint — n8n, Make, Discord relays or any automation.",
+      enabled: "Enable webhooks",
+      url: "Endpoint URL",
+      urlPh: "https://example.com/hook/sephiroth",
+      secret: "Signing secret",
+      secretPh: "min 8 characters — HMAC-SHA256",
+      secretKeepHint: "Leave empty to keep the current secret",
+      eventsTitle: "Events",
+      evUserCreated: "User created",
+      evUserDeleted: "User deleted",
+      evUserUpdated: "User updated",
+      evUserExpired: "User expired",
+      evTraffic: "Traffic alert / reset",
+      evLogin: "Failed login",
+      evDigest: "Daily digest",
+      evBackup: "Backup done",
+      evRestart: "Panel restart",
+      evInboundCreated: "Inbound created",
+      evInboundDeleted: "Inbound deleted",
+      save: "Save",
+      saving: "Saving…",
+      savedToast: "Webhook settings saved",
+      test: "Send test",
+      testing: "Sending…",
+      testOk: "Delivered · HTTP {status} · {ms}ms",
+      testFail: "Failed: {detail}",
+      recentTitle: "Recent deliveries",
+      recentEmpty: "No deliveries yet.",
+      okBadge: "OK",
+      failBadge: "FAIL",
+      hintSign: "Bodies are JSON; signed with X-Sephiroth-Sign (HMAC-SHA256 over timestamp.body) when a secret is set. 3 attempts, 6s timeout.",
+    },
+    discord: {
+      title: "Discord Bot",
+      desc: "Run the panel console and event relay on your Discord server.",
+      enabled: "Enable Discord bot",
+      token: "Bot token",
+      tokenPh: "paste the token from the Developer Portal",
+      keepHint: "Leave empty to keep the current token",
+      adminIds: "Admin user IDs",
+      adminIdsPh: "comma-separated Discord user IDs",
+      channelId: "Announce channel ID",
+      channelIdPh: "empty = DM the admins instead",
+      prefix: "Command prefix",
+      prefixPh: "!",
+      botLang: "Bot language",
+      save: "Save",
+      saving: "Saving…",
+      savedToast: "Discord bot settings saved",
+      test: "Send test message",
+      testing: "Sending…",
+      testOk: "Delivered in {ms}ms",
+      testFail: "Failed: {detail}",
+      statusRunning: "Gateway ready",
+      statusConnecting: "Connecting…",
+      statusReconnecting: "Reconnecting…",
+      statusStopped: "Stopped",
+      handled: "Handled: {n}",
+      errors: "Errors: {n}",
+      lastEvent: "Last event: {time}",
+      never: "never",
+      commandsHint: "Commands: {prefix}status · {prefix}users · {prefix}user <name> · {prefix}inbounds · {prefix}help",
+      hint: "Enable the MESSAGE_CONTENT privileged intent in the Discord Developer Portal, otherwise commands stay silent.",
+    },
+    scanner: {
+      title: "REALITY Target Scanner",
+      desc: "Grade candidate camouflage destinations for REALITY: TLS 1.3, h2 ALPN, valid cert, latency.",
+      targets: "Target hosts",
+      targetsPh: "one host per line\nempty = preset list",
+      run: "Scan",
+      running: "Scanning…",
+      close: "Close",
+      colTarget: "Target",
+      colTls: "TLS",
+      colAlpn: "ALPN",
+      colRtt: "RTT",
+      colCert: "Cert",
+      colScore: "Score",
+      colVerdict: "Verdict",
+      verdictGood: "Good",
+      verdictWarn: "Usable",
+      verdictBad: "Bad",
+      rttUnit: "{ms}ms",
+      certOk: "valid",
+      certBad: "not verified",
+      scanned: "{n} targets scanned",
+      empty: "No results yet.",
+      errorRun: "Scan failed: {detail}",
+      tip: "Pick a Good row as the REALITY dest + SNI pair. Avoid targets that redirect to HTTP.",
+      presetBadge: "preset",
+      customBadge: "custom",
+    },
+    usersCsv: {
+      exportCsv: "Export CSV",
+      exportJson: "Export JSON",
+      importFormat: "Format",
+      formatJson: "JSON",
+      formatCsv: "CSV",
+      csvFilePick: "Choose CSV file",
+      csvPicked: "Loaded {name} — {rows} rows",
+      csvHint: "Columns: username, note, enabled, traffic_limit_gb, expiry_days, ip_limit, reset_period, on_hold, auto_renew, used_traffic_gb, inbounds, emails, keys (lists joined with ;)",
+    },
+  },
+
+  /* ---------------- Persian ---------------- */
+  fa: {
+    nav: { online: "کاربران آنلاین" },
+    online: {
+      title: "کاربران آنلاین",
+      subtitle: "چه کسی همین حالا متصل است — زنده از فید هسته.",
+      liveBadge: "زنده",
+      connecting: "در حال اتصال…",
+      offlineTitle: "فید زنده قطع است",
+      offlineNote: "در حال حاضر داده زنده‌ای از هسته نیست. به‌محض وصل شدن فید بلادرنگ، فهرست پر می‌شود.",
+      emptyTitle: "کسی آنلاین نیست",
+      emptyNote: "در این لحظه اتصال فعالی وجود ندارد. اتصال‌های جدید حداکثر تا یک ثانیه بعد اینجا دیده می‌شوند.",
+      kpiActive: "همین حالا آنلاین",
+      kpiSessions: "نشست‌ها",
+      kpiConnected: "متصل",
+      kpiIdle: "بی‌کار",
+      kpiLimited: "محدود",
+      colUser: "کاربر",
+      colProto: "پروتکل",
+      colTraffic: "ترافیک",
+      colDelta: "نرخ",
+      colExpires: "انقضا",
+      colUsage: "مصرف",
+      colIps: "آی‌پی",
+      deltaUnit: "{mbps} MB/s",
+      unlimited: "نامحدود",
+      daysLeft: "{n} روز",
+      hoursLeft: "{n} ساعت",
+      expired: "منقضی",
+      ipTitle: "مصرف همزمان آی‌پی",
+      ipWindow: "پنجره {minutes} دقیقه",
+      ipLive: "نمونه زنده",
+      ipStale: "نیاز به هسته واقعی",
+      ipEmpty: "در پنجره فعلی فعالیتی از آی‌پی ثبت نشده است.",
+      colEmail: "ایمیل کلاینت",
+      colCount: "تعداد",
+      colLimit: "حد",
+      breachBadge: "نقض حد",
+      simNote: "هسته شبیه‌ساز داده اتصال زنده ندارد — برای دیدن کاربران واقعاً آنلاین به درایور Xray سوییچ کنید.",
+    },
+    webhooks: {
+      title: "وب‌هوک‌ها",
+      desc: "ارسال POST هر رویداد پنل به نقطه پایانی خودتان — n8n، Make، رله Discord یا هر اتوماسیون دیگر.",
+      enabled: "فعال‌سازی وب‌هوک",
+      url: "آدرس نقطه پایانی",
+      urlPh: "https://example.com/hook/sephiroth",
+      secret: "کلید امضا",
+      secretPh: "حداقل 8 نویسه — HMAC-SHA256",
+      secretKeepHint: "برای حفظ کلید فعلی خالی بگذارید",
+      eventsTitle: "رویدادها",
+      evUserCreated: "کاربر ساخته شد",
+      evUserDeleted: "کاربر حذف شد",
+      evUserUpdated: "کاربر به‌روزرسانی شد",
+      evUserExpired: "کاربر منقضی شد",
+      evTraffic: "هشدار/ریست ترافیک",
+      evLogin: "ورود ناموفق",
+      evDigest: "گزارش روزانه",
+      evBackup: "پشتیبان‌گیری انجام شد",
+      evRestart: "ری‌استارت پنل",
+      evInboundCreated: "Inbound ساخته شد",
+      evInboundDeleted: "Inbound حذف شد",
+      save: "ذخیره",
+      saving: "در حال ذخیره…",
+      savedToast: "تنظیمات وب‌هوک ذخیره شد",
+      test: "ارسال تست",
+      testing: "در حال ارسال…",
+      testOk: "تحویل شد · HTTP {status} · {ms}ms",
+      testFail: "ناموفق: {detail}",
+      recentTitle: "تحویل‌های اخیر",
+      recentEmpty: "هنوز تحویلی ثبت نشده.",
+      okBadge: "موفق",
+      failBadge: "ناموفق",
+      hintSign: "بدنه‌ها JSON هستند؛ وقتی کلید امضا تنظیم شده باشد با X-Sephiroth-Sign (HMAC-SHA256 روی timestamp.body) امضا می‌شوند. 3 تلاش، مهلت 6 ثانیه.",
+    },
+    discord: {
+      title: "ربات Discord",
+      desc: "کنسول پنل و رله رویدادها را روی سرور Discord خودتان اجرا کنید.",
+      enabled: "فعال‌سازی ربات Discord",
+      token: "توکن ربات",
+      tokenPh: "توکن را از پورتال توسعه‌دهنده بچسبانید",
+      keepHint: "برای حفظ توکن فعلی خالی بگذارید",
+      adminIds: "شناسه کاربران مدیر",
+      adminIdsPh: "شناسه‌های Discord با کاما جدا شوند",
+      channelId: "شناسه کانال اعلان",
+      channelIdPh: "خالی = پیام مستقیم به مدیران",
+      prefix: "پیشوند دستور",
+      prefixPh: "!",
+      botLang: "زبان ربات",
+      save: "ذخیره",
+      saving: "در حال ذخیره…",
+      savedToast: "تنظیمات ربات Discord ذخیره شد",
+      test: "ارسال پیام تست",
+      testing: "در حال ارسال…",
+      testOk: "در {ms}ms تحویل شد",
+      testFail: "ناموفق: {detail}",
+      statusRunning: "گیت‌وی آماده است",
+      statusConnecting: "در حال اتصال…",
+      statusReconnecting: "در حال اتصال مجدد…",
+      statusStopped: "متوقف",
+      handled: "رسیدگی‌شده: {n}",
+      errors: "خطاها: {n}",
+      lastEvent: "آخرین رویداد: {time}",
+      never: "هرگز",
+      commandsHint: "دستورها: {prefix}status · {prefix}users · {prefix}user <name> · {prefix}inbounds · {prefix}help",
+      hint: "برای کار کردن دستورها باید intent ممتاز MESSAGE_CONTENT را در پورتال توسعه‌دهنده Discord فعال کنید.",
+    },
+    scanner: {
+      title: "اسکنر هدف REALITY",
+      desc: "ارزیابی مقصدهای استتار برای REALITY: TLS 1.3، ALPN h2، گواهی معتبر، تأخیر.",
+      targets: "میزبان‌های هدف",
+      targetsPh: "در هر خط یک میزبان\nخالی = فهرست پیش‌فرض",
+      run: "اسکن",
+      running: "در حال اسکن…",
+      close: "بستن",
+      colTarget: "هدف",
+      colTls: "TLS",
+      colAlpn: "ALPN",
+      colRtt: "RTT",
+      colCert: "گواهی",
+      colScore: "امتیاز",
+      colVerdict: "نتیجه",
+      verdictGood: "خوب",
+      verdictWarn: "قابل استفاده",
+      verdictBad: "بد",
+      rttUnit: "{ms}ms",
+      certOk: "معتبر",
+      certBad: "تأیید نشده",
+      scanned: "{n} هدف اسکن شد",
+      empty: "هنوز نتیجه‌ای نیست.",
+      errorRun: "اسکن ناموفق: {detail}",
+      tip: "یکی از ردیف‌های «خوب» را به‌عنوان جفت dest و SNI واقعی انتخاب کنید. از هدف‌هایی که به HTTP ریدایرکت می‌شوند پرهیز کنید.",
+      presetBadge: "پیش‌فرض",
+      customBadge: "دلخواه",
+    },
+    usersCsv: {
+      exportCsv: "خروجی CSV",
+      exportJson: "خروجی JSON",
+      importFormat: "قالب",
+      formatJson: "JSON",
+      formatCsv: "CSV",
+      csvFilePick: "انتخاب فایل CSV",
+      csvPicked: "{name} بارگذاری شد — {rows} ردیف",
+      csvHint: "ستون‌ها: username، note، enabled، traffic_limit_gb، expiry_days، ip_limit، reset_period، on_hold، auto_renew، used_traffic_gb، inbounds، emails، keys (لیست‌ها با ؛)",
+    },
+  },
+
+  /* ---------------- Arabic ---------------- */
+  ar: {
+    nav: { online: "المستخدمون المتصلون" },
+    online: {
+      title: "المستخدمون المتصلون",
+      subtitle: "من متصل الآن — مباشرة من تغذية النواة.",
+      liveBadge: "مباشر",
+      connecting: "جارٍ الاتصال…",
+      offlineTitle: "التغذية المباشرة غير متاحة",
+      offlineNote: "لا توجد بيانات مباشرة من النواة حالياً. تمتلئ القائمة بمجرد عودة التغذية الفورية.",
+      emptyTitle: "لا أحد متصل",
+      emptyNote: "لا توجد اتصالات نشطة في هذه اللحظة. تظهر الاتصالات الجديدة هنا خلال ثانية.",
+      kpiActive: "متصلون الآن",
+      kpiSessions: "الجلسات",
+      kpiConnected: "متصل",
+      kpiIdle: "خامل",
+      kpiLimited: "محدود",
+      colUser: "المستخدم",
+      colProto: "البروتوكول",
+      colTraffic: "البيانات",
+      colDelta: "المعدل",
+      colExpires: "انتهاء",
+      colUsage: "الاستخدام",
+      colIps: "IPs",
+      deltaUnit: "{mbps} MB/s",
+      unlimited: "غير محدود",
+      daysLeft: "{n}ي",
+      hoursLeft: "{n}س",
+      expired: "منتهٍ",
+      ipTitle: "استخدام IP المتزامن",
+      ipWindow: "نافذة {minutes} دقيقة",
+      ipLive: "لقطة مباشرة",
+      ipStale: "يتطلب النواة الحقيقية",
+      ipEmpty: "لم يُسجل أي نشاط IP في النافذة الحالية.",
+      colEmail: "بريد العميل",
+      colCount: "العدد",
+      colLimit: "الحد",
+      breachBadge: "تجاوز",
+      simNote: "نواة المحاكي لا تملك بيانات اتصال مباشرة — انتقل إلى مشغل Xray لترى من متصل فعلاً.",
+    },
+    webhooks: {
+      title: "خطافات الويب",
+      desc: "إرسال POST لكل حدث في اللوحة إلى نقطة النهاية الخاصة بك — n8n أو Make أو مرحّل Discord أو أي أتمتة.",
+      enabled: "تفعيل خطافات الويب",
+      url: "عنوان URL للنقطة",
+      urlPh: "https://example.com/hook/sephiroth",
+      secret: "مفتاح التوقيع",
+      secretPh: "8 أحرف على الأقل — HMAC-SHA256",
+      secretKeepHint: "اتركه فارغاً للإبقاء على المفتاح الحالي",
+      eventsTitle: "الأحداث",
+      evUserCreated: "إنشاء مستخدم",
+      evUserDeleted: "حذف مستخدم",
+      evUserUpdated: "تحديث مستخدم",
+      evUserExpired: "انتهاء مستخدم",
+      evTraffic: "تنبيه/تصفير البيانات",
+      evLogin: "فشل تسجيل الدخول",
+      evDigest: "الملخص اليومي",
+      evBackup: "اكتمال النسخ الاحتياطي",
+      evRestart: "إعادة تشغيل اللوحة",
+      evInboundCreated: "إنشاء Inbound",
+      evInboundDeleted: "حذف Inbound",
+      save: "حفظ",
+      saving: "جارٍ الحفظ…",
+      savedToast: "تم حفظ إعدادات خطافات الويب",
+      test: "إرسال اختبار",
+      testing: "جارٍ الإرسال…",
+      testOk: "تم التسليم · HTTP {status} · {ms}ms",
+      testFail: "فشل: {detail}",
+      recentTitle: "أحدث عمليات التسليم",
+      recentEmpty: "لا توجد عمليات تسليم بعد.",
+      okBadge: "ناجح",
+      failBadge: "فاشل",
+      hintSign: "الجسم بصيغة JSON؛ يُوقَّع بـ X-Sephiroth-Sign (HMAC-SHA256 على timestamp.body) عند تعيين مفتاح. 3 محاولات ومهلة 6 ثوانٍ.",
+    },
+    discord: {
+      title: "بوت Discord",
+      desc: "شغّل وحدة تحكم اللوحة ومرحّل الأحداث على خادم Discord الخاص بك.",
+      enabled: "تفعيل بوت Discord",
+      token: "رمز البوت",
+      tokenPh: "الصق الرمز من بوّابة المطورين",
+      keepHint: "اتركه فارغاً للإبقاء على الرمز الحالي",
+      adminIds: "معرّفات المستخدمين المشرفين",
+      adminIdsPh: "معرّفات Discord مفصولة بفواصل",
+      channelId: "معرّف قناة الإعلانات",
+      channelIdPh: "فارغ = رسائل مباشرة للمشرفين",
+      prefix: "بادئة الأوامر",
+      prefixPh: "!",
+      botLang: "لغة البوت",
+      save: "حفظ",
+      saving: "جارٍ الحفظ…",
+      savedToast: "تم حفظ إعدادات بوت Discord",
+      test: "إرسال رسالة اختبار",
+      testing: "جارٍ الإرسال…",
+      testOk: "تم التسليم خلال {ms}ms",
+      testFail: "فشل: {detail}",
+      statusRunning: "البوابة جاهزة",
+      statusConnecting: "جارٍ الاتصال…",
+      statusReconnecting: "جارٍ إعادة الاتصال…",
+      statusStopped: "متوقف",
+      handled: "المعالَجة: {n}",
+      errors: "الأخطاء: {n}",
+      lastEvent: "آخر حدث: {time}",
+      never: "أبداً",
+      commandsHint: "الأوامر: {prefix}status · {prefix}users · {prefix}user <name> · {prefix}inbounds · {prefix}help",
+      hint: "فعّل صلاحية MESSAGE_CONTENT في بوّابة مطوري Discord وإلا ستبقى الأوامر صامتة.",
+    },
+    scanner: {
+      title: "ماسح أهداف REALITY",
+      desc: "تقييم وجهات التمويه المرشحة لـ REALITY: TLS 1.3 و ALPN h2 وشهرة صالحة وزمن الاستجابة.",
+      targets: "المضيفون المستهدفون",
+      targetsPh: "مضيف واحد في كل سطر\nفارغ = القائمة الجاهزة",
+      run: "فحص",
+      running: "جارٍ الفحص…",
+      close: "إغلاق",
+      colTarget: "الهدف",
+      colTls: "TLS",
+      colAlpn: "ALPN",
+      colRtt: "RTT",
+      colCert: "الشهادة",
+      colScore: "النقاط",
+      colVerdict: "الحكم",
+      verdictGood: "جيد",
+      verdictWarn: "قابل الاستخدام",
+      verdictBad: "سيئ",
+      rttUnit: "{ms}ms",
+      certOk: "صالحة",
+      certBad: "غير موثقة",
+      scanned: "تم فحص {n} هدفاً",
+      empty: "لا نتائج بعد.",
+      errorRun: "فشل الفحص: {detail}",
+      tip: "اختر صفاً «جيد» ليكون زوج dest وSNI لـ REALITY. تجنّب الأهداف التي تحوّل إلى HTTP.",
+      presetBadge: "جاهزة",
+      customBadge: "مخصصة",
+    },
+    usersCsv: {
+      exportCsv: "تصدير CSV",
+      exportJson: "تصدير JSON",
+      importFormat: "الصيغة",
+      formatJson: "JSON",
+      formatCsv: "CSV",
+      csvFilePick: "اختيار ملف CSV",
+      csvPicked: "تم تحميل {name} — {rows} صفاً",
+      csvHint: "الأعمدة: username، note، enabled، traffic_limit_gb، expiry_days، ip_limit، reset_period، on_hold، auto_renew، used_traffic_gb، inbounds، emails، keys (القوائم بفاصلة ;)",
+    },
+  },
+
+  /* ---------------- Chinese ---------------- */
+  zh: {
+    nav: { online: "在线用户" },
+    online: {
+      title: "在线用户",
+      subtitle: "此刻谁在线 — 来自核心实时数据流。",
+      liveBadge: "实时",
+      connecting: "连接中…",
+      offlineTitle: "实时数据流离线",
+      offlineNote: "当前没有核心实时数据。实时数据流重新连接后列表会立即填充。",
+      emptyTitle: "当前无人在线",
+      emptyNote: "目前没有活动连接。新连接会在一秒内出现在这里。",
+      kpiActive: "当前在线",
+      kpiSessions: "会话",
+      kpiConnected: "已连接",
+      kpiIdle: "空闲",
+      kpiLimited: "受限",
+      colUser: "用户",
+      colProto: "协议",
+      colTraffic: "流量",
+      colDelta: "速率",
+      colExpires: "到期",
+      colUsage: "用量",
+      colIps: "IP",
+      deltaUnit: "{mbps} MB/s",
+      unlimited: "不限",
+      daysLeft: "{n}天",
+      hoursLeft: "{n}小时",
+      expired: "已到期",
+      ipTitle: "并发 IP 用量",
+      ipWindow: "窗口 {minutes} 分钟",
+      ipLive: "实时快照",
+      ipStale: "需要真实核心",
+      ipEmpty: "当前窗口内未记录到 IP 活动。",
+      colEmail: "客户端邮箱",
+      colCount: "数量",
+      colLimit: "上限",
+      breachBadge: "超限",
+      simNote: "模拟核心没有实时连接数据 — 切换到 Xray 驱动即可查看真实在线用户。",
+    },
+    webhooks: {
+      title: "Webhook",
+      desc: "把每个面板事件 POST 到你自己的端点 — n8n、Make、Discord 中继或任何自动化。",
+      enabled: "启用 Webhook",
+      url: "端点 URL",
+      urlPh: "https://example.com/hook/sephiroth",
+      secret: "签名密钥",
+      secretPh: "至少 8 个字符 — HMAC-SHA256",
+      secretKeepHint: "留空则保留当前密钥",
+      eventsTitle: "事件",
+      evUserCreated: "用户已创建",
+      evUserDeleted: "用户已删除",
+      evUserUpdated: "用户已更新",
+      evUserExpired: "用户已到期",
+      evTraffic: "流量告警/重置",
+      evLogin: "登录失败",
+      evDigest: "每日摘要",
+      evBackup: "备份完成",
+      evRestart: "面板重启",
+      evInboundCreated: "Inbound 已创建",
+      evInboundDeleted: "Inbound 已删除",
+      save: "保存",
+      saving: "保存中…",
+      savedToast: "Webhook 设置已保存",
+      test: "发送测试",
+      testing: "发送中…",
+      testOk: "已送达 · HTTP {status} · {ms}ms",
+      testFail: "失败：{detail}",
+      recentTitle: "最近投递",
+      recentEmpty: "还没有投递记录。",
+      okBadge: "成功",
+      failBadge: "失败",
+      hintSign: "请求体为 JSON；设置了密钥时会用 X-Sephiroth-Sign（对 timestamp.body 做 HMAC-SHA256）签名。3 次尝试，6 秒超时。",
+    },
+    discord: {
+      title: "Discord 机器人",
+      desc: "在你的 Discord 服务器上运行面板控制台与事件中继。",
+      enabled: "启用 Discord 机器人",
+      token: "机器人令牌",
+      tokenPh: "粘贴开发者门户中的令牌",
+      keepHint: "留空则保留当前令牌",
+      adminIds: "管理员用户 ID",
+      adminIdsPh: "多个 Discord 用户 ID 用逗号分隔",
+      channelId: "公告频道 ID",
+      channelIdPh: "留空 = 改为私信管理员",
+      prefix: "命令前缀",
+      prefixPh: "!",
+      botLang: "机器人语言",
+      save: "保存",
+      saving: "保存中…",
+      savedToast: "Discord 机器人设置已保存",
+      test: "发送测试消息",
+      testing: "发送中…",
+      testOk: "{ms}ms 内送达",
+      testFail: "失败：{detail}",
+      statusRunning: "网关就绪",
+      statusConnecting: "连接中…",
+      statusReconnecting: "重连中…",
+      statusStopped: "已停止",
+      handled: "已处理：{n}",
+      errors: "错误：{n}",
+      lastEvent: "最近事件：{time}",
+      never: "从未",
+      commandsHint: "命令：{prefix}status · {prefix}users · {prefix}user <name> · {prefix}inbounds · {prefix}help",
+      hint: "必须在 Discord 开发者门户开启 MESSAGE_CONTENT 特权 intent，否则命令不会有回应。",
+    },
+    scanner: {
+      title: "REALITY 目标扫描器",
+      desc: "为 REALITY 评估候选伪装目标：TLS 1.3、h2 ALPN、有效证书、延迟。",
+      targets: "目标主机",
+      targetsPh: "每行一个主机\n留空 = 使用预设列表",
+      run: "扫描",
+      running: "扫描中…",
+      close: "关闭",
+      colTarget: "目标",
+      colTls: "TLS",
+      colAlpn: "ALPN",
+      colRtt: "RTT",
+      colCert: "证书",
+      colScore: "评分",
+      colVerdict: "结论",
+      verdictGood: "良好",
+      verdictWarn: "可用",
+      verdictBad: "差",
+      rttUnit: "{ms}ms",
+      certOk: "有效",
+      certBad: "未验证",
+      scanned: "已扫描 {n} 个目标",
+      empty: "暂无结果。",
+      errorRun: "扫描失败：{detail}",
+      tip: "从「良好」行中挑选 REALITY 的 dest 与 SNI 组合。避开会重定向到 HTTP 的目标。",
+      presetBadge: "预设",
+      customBadge: "自定义",
+    },
+    usersCsv: {
+      exportCsv: "导出 CSV",
+      exportJson: "导出 JSON",
+      importFormat: "格式",
+      formatJson: "JSON",
+      formatCsv: "CSV",
+      csvFilePick: "选择 CSV 文件",
+      csvPicked: "已加载 {name} — {rows} 行",
+      csvHint: "列：username、note、enabled、traffic_limit_gb、expiry_days、ip_limit、reset_period、on_hold、auto_renew、used_traffic_gb、inbounds、emails、keys（列表用 ; 连接）",
+    },
+  },
+
+  /* ---------------- Turkish ---------------- */
+  tr: {
+    nav: { online: "Çevrimiçi Kullanıcılar" },
+    online: {
+      title: "Çevrimiçi Kullanıcılar",
+      subtitle: "Şu anda kim bağlı — çekirdek akışından canlı.",
+      liveBadge: "Canlı",
+      connecting: "Bağlanıyor…",
+      offlineTitle: "Canlı akış çevrimdışı",
+      offlineNote: "Şu anda canlı çekirdek verisi yok. Gerçek zamanlı akış yeniden bağlandığında liste dolar.",
+      emptyTitle: "Kimse çevrimiçi değil",
+      emptyNote: "Şu anda aktif bağlantı yok. Yeni bağlantılar bir saniye içinde burada görünür.",
+      kpiActive: "Şimdi çevrimiçi",
+      kpiSessions: "Oturumlar",
+      kpiConnected: "Bağlı",
+      kpiIdle: "Boşta",
+      kpiLimited: "Sınırlı",
+      colUser: "Kullanıcı",
+      colProto: "Protokol",
+      colTraffic: "Trafik",
+      colDelta: "Hız",
+      colExpires: "Bitiş",
+      colUsage: "Kullanım",
+      colIps: "IP",
+      deltaUnit: "{mbps} MB/s",
+      unlimited: "Sınırsız",
+      daysLeft: "{n}g",
+      hoursLeft: "{n}s",
+      expired: "Süresi doldu",
+      ipTitle: "Eşzamanlı IP kullanımı",
+      ipWindow: "pencere {minutes} dk",
+      ipLive: "canlı anlık görüntü",
+      ipStale: "gerçek çekirdek gerekir",
+      ipEmpty: "Geçerli pencerede IP etkinliği kaydedilmedi.",
+      colEmail: "İstemci e-postası",
+      colCount: "Adet",
+      colLimit: "Sınır",
+      breachBadge: "İhlal",
+      simNote: "Simülatör çekirdeğinde canlı bağlantı verisi yok — gerçekten kimin çevrimiçi olduğunu görmek için Xray sürücüsüne geçin.",
+    },
+    webhooks: {
+      title: "Webhook'lar",
+      desc: "Her panel olayını kendi uç noktanıza POST edin — n8n, Make, Discord aktarıcıları veya herhangi bir otomasyon.",
+      enabled: "Webhook'ları etkinleştir",
+      url: "Uç nokta URL'si",
+      urlPh: "https://example.com/hook/sephiroth",
+      secret: "İmza anahtarı",
+      secretPh: "en az 8 karakter — HMAC-SHA256",
+      secretKeepHint: "Mevcut anahtarı korumak için boş bırakın",
+      eventsTitle: "Olaylar",
+      evUserCreated: "Kullanıcı oluşturuldu",
+      evUserDeleted: "Kullanıcı silindi",
+      evUserUpdated: "Kullanıcı güncellendi",
+      evUserExpired: "Kullanıcının süresi doldu",
+      evTraffic: "Trafik uyarı/sıfırlama",
+      evLogin: "Başarısız giriş",
+      evDigest: "Günlük özet",
+      evBackup: "Yedek tamamlandı",
+      evRestart: "Panel yeniden başlatma",
+      evInboundCreated: "Inbound oluşturuldu",
+      evInboundDeleted: "Inbound silindi",
+      save: "Kaydet",
+      saving: "Kaydediliyor…",
+      savedToast: "Webhook ayarları kaydedildi",
+      test: "Test gönder",
+      testing: "Gönderiliyor…",
+      testOk: "Teslim edildi · HTTP {status} · {ms}ms",
+      testFail: "Başarısız: {detail}",
+      recentTitle: "Son teslimatlar",
+      recentEmpty: "Henüz teslimat yok.",
+      okBadge: "BAŞARILI",
+      failBadge: "HATA",
+      hintSign: "Gövde JSON'dur; anahtar tanımlıysa X-Sephiroth-Sign (timestamp.body üzerinde HMAC-SHA256) ile imzalanır. 3 deneme, 6 sn zaman aşımı.",
+    },
+    discord: {
+      title: "Discord Botu",
+      desc: "Panel konsolunu ve olay aktarıcısını kendi Discord sunucunuzda çalıştırın.",
+      enabled: "Discord botunu etkinleştir",
+      token: "Bot anahtarı",
+      tokenPh: "Geliştirici Portalı'ndaki anahtarı yapıştırın",
+      keepHint: "Mevcut anahtarı korumak için boş bırakın",
+      adminIds: "Yönetici kullanıcı kimlikleri",
+      adminIdsPh: "virgülle ayrılmış Discord kullanıcı kimlikleri",
+      channelId: "Duyuru kanalı kimliği",
+      channelIdPh: "boş = yöneticilere DM",
+      prefix: "Komut öneki",
+      prefixPh: "!",
+      botLang: "Bot dili",
+      save: "Kaydet",
+      saving: "Kaydediliyor…",
+      savedToast: "Discord botu ayarları kaydedildi",
+      test: "Test mesajı gönder",
+      testing: "Gönderiliyor…",
+      testOk: "{ms}ms içinde teslim edildi",
+      testFail: "Başarısız: {detail}",
+      statusRunning: "Ağ geçidi hazır",
+      statusConnecting: "Bağlanıyor…",
+      statusReconnecting: "Yeniden bağlanıyor…",
+      statusStopped: "Durduruldu",
+      handled: "İşlenen: {n}",
+      errors: "Hatalar: {n}",
+      lastEvent: "Son olay: {time}",
+      never: "asla",
+      commandsHint: "Komutlar: {prefix}status · {prefix}users · {prefix}user <name> · {prefix}inbounds · {prefix}help",
+      hint: "Komutların çalışması için Discord Geliştirici Portalı'nda MESSAGE_CONTENT ayrıcalıklı intent'inin açık olması gerekir.",
+    },
+    scanner: {
+      title: "REALITY Hedef Tarayıcısı",
+      desc: "REALITY için aday gizlenme hedeflerini derecelendirin: TLS 1.3, h2 ALPN, geçerli sertifika, gecikme.",
+      targets: "Hedef sunucular",
+      targetsPh: "her satıra bir sunucu\nboş = hazır liste",
+      run: "Tara",
+      running: "Taranıyor…",
+      close: "Kapat",
+      colTarget: "Hedef",
+      colTls: "TLS",
+      colAlpn: "ALPN",
+      colRtt: "RTT",
+      colCert: "Sertifika",
+      colScore: "Puan",
+      colVerdict: "Karar",
+      verdictGood: "İyi",
+      verdictWarn: "Kullanılabilir",
+      verdictBad: "Kötü",
+      rttUnit: "{ms}ms",
+      certOk: "geçerli",
+      certBad: "doğrulanmadı",
+      scanned: "{n} hedef tarandı",
+      empty: "Henüz sonuç yok.",
+      errorRun: "Tarama başarısız: {detail}",
+      tip: "REALITY dest + SNI çifti olarak İyi satırlarından birini seçin. HTTP'ye yönlendiren hedeflerden kaçının.",
+      presetBadge: "hazır",
+      customBadge: "özel",
+    },
+    usersCsv: {
+      exportCsv: "CSV dışa aktar",
+      exportJson: "JSON dışa aktar",
+      importFormat: "Biçim",
+      formatJson: "JSON",
+      formatCsv: "CSV",
+      csvFilePick: "CSV dosyası seç",
+      csvPicked: "{name} yüklendi — {rows} satır",
+      csvHint: "Sütunlar: username, note, enabled, traffic_limit_gb, expiry_days, ip_limit, reset_period, on_hold, auto_renew, used_traffic_gb, inbounds, emails, keys (listeler ; ile birleşir)",
+    },
+  },
+
+  /* ---------------- Russian ---------------- */
+  ru: {
+    nav: { online: "Пользователи онлайн" },
+    online: {
+      title: "Пользователи онлайн",
+      subtitle: "Кто подключён прямо сейчас — в прямом эфире от ядра.",
+      liveBadge: "Онлайн",
+      connecting: "Подключение…",
+      offlineTitle: "Живой поток недоступен",
+      offlineNote: "Сейчас нет живых данных ядра. Список заполнится, как только realtime-поток переподключится.",
+      emptyTitle: "Никого в сети",
+      emptyNote: "Активных подключений сейчас нет. Новые появления — в течение секунды.",
+      kpiActive: "Сейчас онлайн",
+      kpiSessions: "Сессии",
+      kpiConnected: "Подключено",
+      kpiIdle: "Простаивают",
+      kpiLimited: "Ограничены",
+      colUser: "Пользователь",
+      colProto: "Протокол",
+      colTraffic: "Трафик",
+      colDelta: "Скорость",
+      colExpires: "Истекает",
+      colUsage: "Использовано",
+      colIps: "IP",
+      deltaUnit: "{mbps} MB/s",
+      unlimited: "Безлимит",
+      daysLeft: "{n}д",
+      hoursLeft: "{n}ч",
+      expired: "Истёк",
+      ipTitle: "Одновременные IP",
+      ipWindow: "окно {minutes} мин",
+      ipLive: "живой снимок",
+      ipStale: "нужно реальное ядро",
+      ipEmpty: "В текущем окне активность IP не зафиксирована.",
+      colEmail: "Email клиента",
+      colCount: "IP",
+      colLimit: "Лимит",
+      breachBadge: "Нарушение",
+      simNote: "У ядра-симулятора нет живых данных подключений — переключитесь на драйвер Xray, чтобы видеть, кто реально онлайн.",
+    },
+    webhooks: {
+      title: "Вебхуки",
+      desc: "POST каждого события панели на вашу конечную точку — n8n, Make, Discord-ретрансляторы или любая автоматизация.",
+      enabled: "Включить вебхуки",
+      url: "URL конечной точки",
+      urlPh: "https://example.com/hook/sephiroth",
+      secret: "Ключ подписи",
+      secretPh: "минимум 8 символов — HMAC-SHA256",
+      secretKeepHint: "Оставьте пустым, чтобы сохранить текущий ключ",
+      eventsTitle: "События",
+      evUserCreated: "Пользователь создан",
+      evUserDeleted: "Пользователь удалён",
+      evUserUpdated: "Пользователь обновлён",
+      evUserExpired: "Пользователь истёк",
+      evTraffic: "Оповещение/сброс трафика",
+      evLogin: "Неудачный вход",
+      evDigest: "Ежедневный дайджест",
+      evBackup: "Бэкап завершён",
+      evRestart: "Перезапуск панели",
+      evInboundCreated: "Inbound создан",
+      evInboundDeleted: "Inbound удалён",
+      save: "Сохранить",
+      saving: "Сохранение…",
+      savedToast: "Настройки вебхуков сохранены",
+      test: "Отправить тест",
+      testing: "Отправка…",
+      testOk: "Доставлено · HTTP {status} · {ms}ms",
+      testFail: "Ошибка: {detail}",
+      recentTitle: "Последние доставки",
+      recentEmpty: "Доставок пока нет.",
+      okBadge: "OK",
+      failBadge: "СБОЙ",
+      hintSign: "Тело — JSON; при заданном ключе подписывается X-Sephiroth-Sign (HMAC-SHA256 от timestamp.body). 3 попытки, таймаут 6 с.",
+    },
+    discord: {
+      title: "Discord-бот",
+      desc: "Консоль панели и ретранслятор событий на вашем сервере Discord.",
+      enabled: "Включить Discord-бота",
+      token: "Токен бота",
+      tokenPh: "вставьте токен из портала разработчиков",
+      keepHint: "Оставьте пустым, чтобы сохранить текущий токен",
+      adminIds: "ID пользователей-админов",
+      adminIdsPh: "ID пользователей Discord через запятую",
+      channelId: "ID канала оповещений",
+      channelIdPh: "пусто = личные сообщения админам",
+      prefix: "Префикс команд",
+      prefixPh: "!",
+      botLang: "Язык бота",
+      save: "Сохранить",
+      saving: "Сохранение…",
+      savedToast: "Настройки Discord-бота сохранены",
+      test: "Отправить тестовое сообщение",
+      testing: "Отправка…",
+      testOk: "Доставлено за {ms}ms",
+      testFail: "Ошибка: {detail}",
+      statusRunning: "Шлюз готов",
+      statusConnecting: "Подключение…",
+      statusReconnecting: "Переподключение…",
+      statusStopped: "Остановлен",
+      handled: "Обработано: {n}",
+      errors: "Ошибки: {n}",
+      lastEvent: "Последнее событие: {time}",
+      never: "никогда",
+      commandsHint: "Команды: {prefix}status · {prefix}users · {prefix}user <name> · {prefix}inbounds · {prefix}help",
+      hint: "Включите привилегированный intent MESSAGE_CONTENT в портале разработчиков Discord, иначе команды будут молчать.",
+    },
+    scanner: {
+      title: "Сканер целей REALITY",
+      desc: "Оценка кандидатов-маскировок для REALITY: TLS 1.3, h2 ALPN, действующий сертификат, задержка.",
+      targets: "Целевые хосты",
+      targetsPh: "по одному хосту в строке\nпусто = готовый список",
+      run: "Сканировать",
+      running: "Сканирование…",
+      close: "Закрыть",
+      colTarget: "Цель",
+      colTls: "TLS",
+      colAlpn: "ALPN",
+      colRtt: "RTT",
+      colCert: "Сертификат",
+      colScore: "Балл",
+      colVerdict: "Вердикт",
+      verdictGood: "Хорошо",
+      verdictWarn: "Пригодно",
+      verdictBad: "Плохо",
+      rttUnit: "{ms}ms",
+      certOk: "действителен",
+      certBad: "не подтверждён",
+      scanned: "Просканировано целей: {n}",
+      empty: "Результатов пока нет.",
+      errorRun: "Сканирование не удалось: {detail}",
+      tip: "Выберите строку «Хорошо» как пару dest + SNI для REALITY. Избегайте целей с редиректом на HTTP.",
+      presetBadge: "пресет",
+      customBadge: "свои",
+    },
+    usersCsv: {
+      exportCsv: "Экспорт CSV",
+      exportJson: "Экспорт JSON",
+      importFormat: "Формат",
+      formatJson: "JSON",
+      formatCsv: "CSV",
+      csvFilePick: "Выбрать CSV-файл",
+      csvPicked: "Загружено {name} — строк: {rows}",
+      csvHint: "Колонки: username, note, enabled, traffic_limit_gb, expiry_days, ip_limit, reset_period, on_hold, auto_renew, used_traffic_gb, inbounds, emails, keys (списки через ;)",
+    },
+  },
+};

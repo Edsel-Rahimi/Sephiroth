@@ -1,6 +1,8 @@
 import { getTelegramSettings, getTelegramToken, type TelegramNotify } from "@/lib/settings";
 import { sendMessage } from "@/lib/bot/api";
 import { botTexts, fmt, fmtDays, fmtGb, type BotLang } from "@/lib/bot/texts";
+import { fireWebhook } from "@/lib/webhooks"; // v2.7 — outbound webhook fan-out
+import { relayDiscord } from "@/lib/bot/discord-worker"; // v2.7 — Discord relay
 
 /* ============================================================
    Sephiroth · Task 23-a — Bot notification engine (server-only)
@@ -88,6 +90,10 @@ const TOGGLE_MAP: Partial<Record<NotifyKind, keyof TelegramNotify>> = {
 /**
  * Send one admin notification. Returns true when a message was
  * actually dispatched (dedupe + gate passed).
+ *
+ * v2.7 — dedupe runs first and the same event is relayed to the
+ * Discord bot (relayDiscord) even when Telegram itself is off —
+ * the two transports are independent.
  */
 export async function tgNotify(
   kind: NotifyKind,
@@ -95,12 +101,13 @@ export async function tgNotify(
   opts?: { dedupeKey?: string }
 ): Promise<boolean> {
   try {
+    if (!dedupe(kind, opts?.dedupeKey ?? "*")) return false;
+    void relayDiscord(kind, text, { dedupeKey: opts?.dedupeKey });
     const tg = await getTelegramSettings();
     if (!tg.enabled || tg.botMode === "console" || tg.adminChatIds.length === 0) return false;
     if (TOGGLE_MAP[kind] && !tg.notify[TOGGLE_MAP[kind]!]) return false;
     const token = await getTelegramToken();
     if (!token) return false;
-    if (!dedupe(kind, opts?.dedupeKey ?? "*")) return false;
     for (const chatId of tg.adminChatIds) {
       await sendMessage(token, chatId, text, undefined, { proxyUrl: tg.botProxyUrl }).catch(() => {});
     }
@@ -125,6 +132,11 @@ export function notifyUserCreated(u: {
   trafficLimitGb: number | null;
   expiryDays: number | null;
 }): Promise<boolean> {
+  void fireWebhook("user.created", {
+    username: u.username,
+    trafficLimitGb: u.trafficLimitGb,
+    expiryDays: u.expiryDays,
+  });
   return lang().then((l) => {
     const t = botTexts(l);
     return tgNotify(
@@ -136,6 +148,7 @@ export function notifyUserCreated(u: {
 }
 
 export function notifyUserDeleted(username: string): Promise<boolean> {
+  void fireWebhook("user.deleted", { username });
   return lang().then((l) =>
     tgNotify("user.deleted", `${head(l)}\n${fmt(botTexts(l).nUserDeleted, { user: username })}`, {
       dedupeKey: username,
@@ -144,6 +157,7 @@ export function notifyUserDeleted(username: string): Promise<boolean> {
 }
 
 export function notifyUserUpdated(username: string): Promise<boolean> {
+  void fireWebhook("user.updated", { username });
   return lang().then((l) =>
     tgNotify("user.updated", `${head(l)}\n${fmt(botTexts(l).nUserUpdated, { user: username })}`, {
       dedupeKey: username,
@@ -152,6 +166,7 @@ export function notifyUserUpdated(username: string): Promise<boolean> {
 }
 
 export function notifyUserExpired(username: string): Promise<boolean> {
+  void fireWebhook("user.expired", { username });
   return lang().then((l) =>
     tgNotify("user.expired", `${head(l)}\n${fmt(botTexts(l).nUserExpired, { user: username })}`, {
       dedupeKey: username,
@@ -160,6 +175,7 @@ export function notifyUserExpired(username: string): Promise<boolean> {
 }
 
 export function notifyQuotaCapped(username: string, usedGb: number, limitGb: number): Promise<boolean> {
+  void fireWebhook("user.quota", { username, usedGb, limitGb });
   return lang().then((l) => {
     const t = botTexts(l);
     return tgNotify(
@@ -171,6 +187,7 @@ export function notifyQuotaCapped(username: string, usedGb: number, limitGb: num
 }
 
 export function notifyTrafficReset(username: string, period: string): Promise<boolean> {
+  void fireWebhook("user.traffic-reset", { username, period });
   return lang().then((l) =>
     tgNotify("user.traffic-reset", `${head(l)}\n${fmt(botTexts(l).nTrafficReset, { user: username, period })}`, {
       dedupeKey: username,
@@ -179,6 +196,7 @@ export function notifyTrafficReset(username: string, period: string): Promise<bo
 }
 
 export function notifyBackupDone(file: string, sizeBytes: number): Promise<boolean> {
+  void fireWebhook("backup.done", { file, sizeBytes });
   return lang().then((l) =>
     tgNotify(
       "backup.done",
@@ -189,12 +207,14 @@ export function notifyBackupDone(file: string, sizeBytes: number): Promise<boole
 }
 
 export function notifyPanelRestarted(version: string): Promise<boolean> {
+  void fireWebhook("panel.restart", { version });
   return lang().then((l) =>
     tgNotify("panel.restart", `${head(l)}\n${fmt(botTexts(l).nRestart, { ver: version })}`)
   );
 }
 
 export function notifyInboundCreated(tag: string, proto: string, port: number): Promise<boolean> {
+  void fireWebhook("inbound.created", { tag, protocol: proto, port });
   return lang().then((l) =>
     tgNotify("inbound.created", `${head(l)}\n${fmt(botTexts(l).nInboundCreated, { tag, proto, port })}`, {
       dedupeKey: tag,
@@ -203,6 +223,7 @@ export function notifyInboundCreated(tag: string, proto: string, port: number): 
 }
 
 export function notifyInboundDeleted(tag: string): Promise<boolean> {
+  void fireWebhook("inbound.deleted", { tag });
   return lang().then((l) =>
     tgNotify("inbound.deleted", `${head(l)}\n${fmt(botTexts(l).nInboundDeleted, { tag })}`, {
       dedupeKey: tag,
@@ -214,6 +235,7 @@ export function notifyInboundDeleted(tag: string): Promise<boolean> {
 
 /** Fired from the login route on bad credentials / bad TOTP (gated by loginAlert). */
 export function notifyLoginFailed(username: string, ip: string): Promise<boolean> {
+  void fireWebhook("login.failed", { username, ip });
   return lang().then((l) =>
     tgNotify("login.failed", `${head(l)}\n${fmt(botTexts(l).nLoginFailed, { user: username || "?", ip })}`, {
       dedupeKey: `${username}@${ip}`,
@@ -223,6 +245,7 @@ export function notifyLoginFailed(username: string, ip: string): Promise<boolean
 
 /** Proactive “expires soon” ping — maintenance calls it with the whole-day remainder. */
 export function notifyUserExpiringSoon(username: string, daysLeft: number): Promise<boolean> {
+  void fireWebhook("user.near-expiry", { username, daysLeft });
   return lang().then((l) =>
     tgNotify("user.near-expiry", `${head(l)}\n${fmt(botTexts(l).nNearExpiry, { user: username, days: String(Math.max(1, daysLeft)) })}`, {
       dedupeKey: username,
@@ -232,6 +255,7 @@ export function notifyUserExpiringSoon(username: string, daysLeft: number): Prom
 
 /** Daily 24h digest — completed orders, revenue and new users (gated by dailyDigest). */
 export function notifyDailyDigest(orders: number, revenueToman: number, newUsers: number): Promise<boolean> {
+  void fireWebhook("sales.digest", { orders, revenueToman, newUsers });
   return lang().then((l) =>
     tgNotify(
       "sales.digest",
@@ -247,6 +271,7 @@ export function notifyDailyDigest(orders: number, revenueToman: number, newUsers
 
 /** On-hold user crossed their first connection — the clock started. */
 export function notifyUserActivated(username: string, expiryDays: number): Promise<boolean> {
+  void fireWebhook("user.activated", { username, expiryDays });
   return lang().then((l) =>
     tgNotify("user.activated", `${head(l)}\n${fmt(botTexts(l).nUserActivated, { user: username, days: fmtDays(expiryDays) })}`, {
       dedupeKey: username,
@@ -256,6 +281,7 @@ export function notifyUserActivated(username: string, expiryDays: number): Promi
 
 /** Auto-renew rolled the subscription window forward. */
 export function notifyUserRenewed(username: string, renewals: number): Promise<boolean> {
+  void fireWebhook("user.renewed", { username, renewals });
   return lang().then((l) =>
     tgNotify("user.renewed", `${head(l)}\n${fmt(botTexts(l).nUserRenewed, { user: username, renewals: String(renewals) })}`, {
       dedupeKey: username,

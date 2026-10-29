@@ -10,6 +10,8 @@ import {
   Download,
   ExternalLink,
   Eye,
+  FileJson,
+  FileSpreadsheet,
   Fingerprint,
   Gauge,
   KeyRound,
@@ -71,7 +73,14 @@ import {
 } from "@/components/ui/sheet";
 import { useAppStore } from "@/lib/store/app-store";
 import { dictionaries } from "@/lib/i18n/dictionaries";
+import { FEATURE } from "@/lib/i18n/feature-strings"; // v2.7 — CSV import/export strings
 import { lfmt } from "@/lib/i18n/live-strings";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { daysLeftSmart, forecastUsage, type AccessDTO, type UserDTO, type UserStatus } from "@/lib/user-types";
 import { buildShareLink } from "@/lib/share-links";
 import { useToast } from "@/hooks/use-toast";
@@ -321,6 +330,7 @@ export function UsersView() {
   const lang = useAppStore((s) => s.lang);
   const t = useMemo(() => dictionaries[lang], [lang]);
   const u = t.users;
+  const fxc = FEATURE[lang].usersCsv; // v2.7 — CSV import/export strings
   const { toast } = useToast();
   const rtl = lang === "fa" || lang === "ar";
 
@@ -519,6 +529,7 @@ export function UsersView() {
     inboundIds: new Set<string>(),
   });
   const [importOpen, setImportOpen] = useState(false);
+  const [importFormat, setImportFormat] = useState<"json" | "csv">("json");
   const [importBusy, setImportBusy] = useState(false);
   const [importText, setImportText] = useState("");
   const [importRename, setImportRename] = useState(false);
@@ -579,35 +590,46 @@ export function UsersView() {
     setBulkSaving(false);
   };
 
-  const runExport = () => {
-    window.open("/api/users/export", "_blank");
+  const runExport = (format: "json" | "csv") => {
+    window.open(format === "csv" ? "/api/users/export?format=csv" : "/api/users/export", "_blank");
   };
 
   const runImport = async () => {
     setImportBusy(true);
     try {
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(importText);
-      } catch {
-        toast({ description: u.importBadJson });
-        setImportBusy(false);
-        return;
-      }
-      const list = Array.isArray(parsed)
-        ? parsed
-        : Array.isArray((parsed as { users?: unknown[] })?.users)
-          ? (parsed as { users: unknown[] }).users
-          : null;
-      if (!list) {
-        toast({ description: u.importBadJson });
-        setImportBusy(false);
-        return;
+      let body: string;
+      if (importFormat === "csv") {
+        if (!importText.includes(",")) {
+          toast({ description: fxc.csvHint });
+          setImportBusy(false);
+          return;
+        }
+        body = JSON.stringify({ csv: importText, mode: importRename ? "rename" : "skip" });
+      } else {
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(importText);
+        } catch {
+          toast({ description: u.importBadJson });
+          setImportBusy(false);
+          return;
+        }
+        const list = Array.isArray(parsed)
+          ? parsed
+          : Array.isArray((parsed as { users?: unknown[] })?.users)
+            ? (parsed as { users: unknown[] }).users
+            : null;
+        if (!list) {
+          toast({ description: u.importBadJson });
+          setImportBusy(false);
+          return;
+        }
+        body = JSON.stringify({ users: list, mode: importRename ? "rename" : "skip" });
       }
       const res = await fetch("/api/users/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ users: list, mode: importRename ? "rename" : "skip" }),
+        body,
       });
       if (!res.ok) throw new Error("import");
       const j = (await res.json()) as { created: string[]; skipped: string[] };
@@ -620,7 +642,7 @@ export function UsersView() {
       setImportText("");
       toast({ description: lfmt(u.importDone, { n: j.created.length, s: j.skipped.length }) });
     } catch {
-      toast({ description: u.importBadJson });
+      toast({ description: importFormat === "csv" ? fxc.csvHint : u.importBadJson });
     }
     setImportBusy(false);
   };
@@ -903,16 +925,23 @@ export function UsersView() {
               <Upload className="h-4 w-4" aria-hidden="true" />
               <span className="hidden sm:inline">{u.importTitle}</span>
             </Button>
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={runExport}
-              aria-label={u.exportUsers}
-              title={u.exportUsers}
-            >
-              <Download className="h-4 w-4" aria-hidden="true" />
-              <span className="hidden sm:inline">{u.exportUsers}</span>
-            </Button>
+            {/* v2.7 — export as JSON (full fidelity) or CSV (spreadsheet) */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2" aria-label={u.exportUsers} title={u.exportUsers}>
+                  <Download className="h-4 w-4" aria-hidden="true" />
+                  <span className="hidden sm:inline">{u.exportUsers}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="glass-strong">
+                <DropdownMenuItem onClick={() => runExport("json")}>
+                  <FileJson className="h-4 w-4" aria-hidden="true" /> {fxc.exportJson}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => runExport("csv")}>
+                  <FileSpreadsheet className="h-4 w-4" aria-hidden="true" /> {fxc.exportCsv}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button onClick={openCreate} className="glow-cyan gap-2" aria-label={u.new}>
               <UserPlus className="h-4 w-4" aria-hidden="true" />
               {u.new}
@@ -1939,21 +1968,48 @@ export function UsersView() {
           </DialogHeader>
 
           <div className="space-y-4">
+            {/* v2.7 — format toggle: JSON (panel export) vs CSV (spreadsheet) */}
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs font-medium">{fxc.importFormat}</p>
+              <div className="flex overflow-hidden rounded-xl border border-white/10">
+                {(["json", "csv"] as const).map((f) => (
+                  <button
+                    key={f}
+                    type="button"
+                    onClick={() => {
+                      setImportFormat(f);
+                      setImportText("");
+                    }}
+                    className={cn(
+                      "flex min-h-9 items-center gap-1.5 px-3 text-xs font-medium transition-colors",
+                      importFormat === f ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-white/5"
+                    )}
+                    aria-pressed={importFormat === f}
+                  >
+                    {f === "json" ? <FileJson className="h-3.5 w-3.5" aria-hidden="true" /> : <FileSpreadsheet className="h-3.5 w-3.5" aria-hidden="true" />}
+                    {f === "json" ? fxc.formatJson : fxc.formatCsv}
+                  </button>
+                ))}
+              </div>
+            </div>
             <input
               ref={importFileRef}
               type="file"
-              accept="application/json,.json"
+              accept={importFormat === "csv" ? ".csv,.txt,text/csv" : "application/json,.json"}
               className="hidden"
               onChange={(e) => void onImportFile(e.target.files?.[0])}
             />
             <Button variant="outline" className="w-full gap-2" onClick={() => importFileRef.current?.click()}>
-              <Upload className="h-4 w-4" aria-hidden="true" /> {u.importPick}
+              <Upload className="h-4 w-4" aria-hidden="true" /> {importFormat === "csv" ? fxc.csvFilePick : u.importPick}
             </Button>
+            {importFormat === "csv" && (
+              <p className="text-[10px] leading-relaxed text-muted-foreground">{fxc.csvHint}</p>
+            )}
             <textarea
               className="max-h-48 min-h-32 w-full resize-y rounded-xl border border-white/10 bg-background/60 p-3 font-mono text-[11px] outline-none ring-primary/40 focus:ring-2"
               value={importText}
               onChange={(e) => setImportText(e.target.value)}
-              placeholder='{ "users": [...] }'
+              placeholder={importFormat === "csv" ? "username,enabled,traffic_limit_gb,expiry_days,inbounds\nali,true,50,30,main-vless" : '{ "users": [...] }'}
               dir="ltr"
               aria-label={u.importTitle}
             />

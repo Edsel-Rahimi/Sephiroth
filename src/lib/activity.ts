@@ -35,7 +35,9 @@ export type ActivityKind =
   | "backup.exported"
   | "backup.restored"
   | "system.cleared"
-  | "system.update";
+  | "system.update"
+  | "webhook.delivered" // v2.7 — outbound webhook succeeded (meta: event, status, ms)
+  | "webhook.failed"; // v2.7 — outbound webhook exhausted retries
 
 export interface ActivityEntry {
   kind: ActivityKind;

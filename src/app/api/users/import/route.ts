@@ -4,11 +4,13 @@ import { getSession } from "@/lib/auth";
 import { emailFor, flowFor, genAccessFields, genSubId, projectUserOntoInbound } from "@/lib/users";
 import { parseClients, USERNAME_RE } from "@/lib/user-types";
 import { logActivity } from "@/lib/activity";
+import { parseCsv } from "@/lib/csv";
 
 /* ============================================================
    Sephiroth · 26-b — Users JSON import (migration in)
    POST /api/users/import
      body: { users: [...], mode?: "skip" | "rename" }   (default skip)
+       or: { csv: "...,", mode? }   (v2.7 — spreadsheet round-trip)
    → { ok, created, skipped, failed: {username, reason}[] }
 
    Accepts the Sephiroth export format AND lenient aliases used by
@@ -19,6 +21,12 @@ import { logActivity } from "@/lib/activity";
    links resolve by TAG against this panel; unknown tags are dropped
    (reported per user). Existing usernames are skipped or renamed
    with a -2 suffix depending on the mode. Admin-only.
+
+   v2.7 CSV dialect (matches the CSV export column-for-column):
+   username, note, enabled, traffic_limit_gb, expiry_days, ip_limit,
+   reset_period, on_hold, auto_renew, used_traffic_gb, inbounds,
+   emails, keys  — inbound lists are `;`-joined; emails/keys align
+   index-for-index with inbounds when present.
    ============================================================ */
 
 interface ImportUser {
@@ -128,6 +136,71 @@ function normalizeImportUser(raw: unknown): ImportUser | null {
   };
 }
 
+/* ---------- v2.7 — CSV → JSON row conversion ---------- */
+
+const CSV_TRUTHY = new Set(["true", "1", "yes", "y", "on"]);
+
+function csvBool(v: unknown): boolean {
+  return typeof v === "string" ? CSV_TRUTHY.has(v.trim().toLowerCase()) : v === true;
+}
+
+function splitList(v: unknown): string[] {
+  if (typeof v !== "string" || v.trim() === "") return [];
+  return v
+    .split(";")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+/** Convert one CSV row (header-keyed) into the JSON import dialect. */
+function csvRowToImportUser(row: Record<string, string>): Record<string, unknown> | null {
+  const username = String(row.username ?? row.name ?? row.user ?? "").trim();
+  if (!username) return null;
+  const tags = splitList(row.inbounds ?? row.inbound_tags ?? row.configs);
+  const emails = splitList(row.emails);
+  const keys = splitList(row.keys ?? row.passwords ?? row.uuids);
+  const flows = splitList(row.flows);
+  const inbounds = tags.map((tag, i) => {
+    const link: Record<string, string> = { tag };
+    if (emails[i]) link.email = emails[i];
+    if (keys[i]) link.key = keys[i];
+    if (flows[i]) link.flow = flows[i];
+    return link;
+  });
+  const enabledRaw = row.enabled ?? row.active ?? row.status;
+  return {
+    username,
+    note: row.note || row.comment || null,
+    enabled: enabledRaw === undefined ? true : csvBool(enabledRaw),
+    trafficLimitGb: row.traffic_limit_gb ?? row.trafficlimitgb ?? row.limit_gb ?? row.quota_gb ?? row.traffic_limit ?? null,
+    expiryDays: row.expiry_days ?? row.expirydays ?? row.days ?? row.expire_days ?? null,
+    ipLimit: row.ip_limit ?? row.iplimit ?? null,
+    resetPeriod: row.reset_period ?? row.resetperiod ?? null,
+    onHold: csvBool(row.on_hold ?? row.onhold),
+    autoRenew: csvBool(row.auto_renew ?? row.autorenew),
+    startedAt: row.started_at ?? row.startedat ?? null,
+    renewals: row.renewals ?? null,
+    usedTrafficGb: row.used_traffic_gb ?? row.usedtrafficgb ?? row.used_traffic ?? null,
+    inbounds,
+  };
+}
+
+function csvToUsers(csv: string): unknown[] {
+  const rows = parseCsv(csv).filter((r) => r.some((cell) => cell.trim() !== ""));
+  if (rows.length < 2) return []; // header + at least one data row
+  const header = rows[0]!.map((h) => h.trim().toLowerCase().replace(/[\s-]+/g, "_"));
+  const out: unknown[] = [];
+  for (const cells of rows.slice(1)) {
+    const obj: Record<string, string> = {};
+    header.forEach((key, i) => {
+      obj[key] = cells[i] ?? "";
+    });
+    const user = csvRowToImportUser(obj);
+    if (user) out.push(user);
+  }
+  return out;
+}
+
 export async function POST(req: Request) {
   try {
     const actor = await getSession(req);
@@ -142,7 +215,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "bad_json" }, { status: 400 });
     }
     const b = (body ?? {}) as Record<string, unknown>;
-    const list = Array.isArray(b.users) ? b.users : [];
+    /* v2.7 — CSV body variant → same normalized pipeline as JSON */
+    let list: unknown[];
+    if (typeof b.csv === "string" && b.csv.trim() !== "") {
+      list = csvToUsers(b.csv);
+    } else {
+      list = Array.isArray(b.users) ? b.users : [];
+    }
     if (list.length === 0) {
       return NextResponse.json({ error: "validation", fields: [{ field: "username", code: "bulk_count" }] }, { status: 400 });
     }
@@ -272,8 +351,8 @@ export async function POST(req: Request) {
       kind: "user.created",
       level: "info",
       actor: actor.username,
-      message: `Imported ${created.length} user(s) from JSON (${skipped.length} skipped, ${failed.length} issue(s))`,
-      meta: { created: created.length, skipped: skipped.length, failed: failed.length },
+      message: `Imported ${created.length} user(s) from ${typeof b.csv === "string" ? "CSV" : "JSON"} (${skipped.length} skipped, ${failed.length} issue(s))`,
+      meta: { created: created.length, skipped: skipped.length, failed: failed.length, format: typeof b.csv === "string" ? "csv" : "json" },
     });
 
     return NextResponse.json({ ok: true, created, skipped, failed });

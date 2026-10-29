@@ -17,6 +17,7 @@ import {
   Settings,
   Store,
   Users,
+  Wifi,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ const PHASE_MAP: Record<Exclude<ViewId, "dashboard">, { phase: number; icon: Luc
   outbounds: { phase: 8, icon: ArrowRightLeft },
   routing: { phase: 8, icon: Route },
   users: { phase: 4, icon: Users },
+  online: { phase: 4, icon: Wifi },
   subgroups: { phase: 5, icon: Boxes },
   resellers: { phase: 6, icon: Store },
   activity: { phase: 8, icon: Activity },

@@ -4,6 +4,7 @@ import { subDictionaries } from "../src/lib/i18n/sub-dictionary";
 import { guideLessons } from "../src/lib/i18n/guide-detail";
 import { liveDictionaries } from "../src/lib/i18n/live-strings";
 import { d2Dictionaries } from "../src/lib/i18n/dashboard-strings";
+import { FEATURE } from "../src/lib/i18n/feature-strings";
 
 type Lang = "en" | "fa" | "ar" | "zh" | "tr" | "ru";
 const LANGS: Lang[] = ["en", "fa", "ar", "zh", "tr", "ru"];
@@ -29,6 +30,12 @@ const TECH = new Set([
   "b", "url", "uri", "id", "tag", "email", "x25519", "ed", "pbk", "sid", "sni", "fp", "dns", "api",
   "json", "env", "bin", "v", "lang", "user", "pass", "h", "m", "s", "d", "w", "y", "sec", "t", "proto",
   "type", "name", "size", "mbps", "gbps", "tb", "pb", "count", "index", "list", "key", "value", "host",
+  // v2.7 — webhooks / discord / online / scanner / csv vocabulary
+  "webhook", "webhooks", "discord", "sephiroth", "sign", "hmac", "sha", "message", "content",
+  "csv", "alpn", "rtt", "dest", "post", "example", "timestamp", "body", "inbound", "status", "users",
+  "help", "username", "note", "enabled", "traffic", "limit", "expiry", "days", "reset", "period",
+  "hold", "auto", "renew", "used", "inbounds", "emails", "keys", "rows", "make",
+  "minutes", "detail", "time", "prefix", "hook", "intent", "realtime", "com", "https",
 ]);
 
 let issues = 0;
@@ -109,5 +116,7 @@ audit("live-strings", liveDictionaries as unknown as Record<Lang, unknown>);
 audit("dashboard-strings", d2Dictionaries as unknown as Record<Lang, unknown>);
 // guide-detail: Record<Lang, Record<viewId, Lesson>> — nested arrays/objects, leaves() handles it
 audit("guide-detail", guideLessons as unknown as Record<Lang, unknown>);
+// v2.7 — webhooks / discord / online / scanner / csv bundle
+audit("feature-strings", FEATURE as unknown as Record<Lang, unknown>);
 
 console.log(`\n== total reported: ${issues} (heuristics include benign latin tech words)`);

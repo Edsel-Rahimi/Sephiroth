@@ -70,6 +70,11 @@ import * as apiSettingsBackup from "./src/app/api/settings/backup/route";
 import * as apiSettingsRestore from "./src/app/api/settings/restore/route";
 import * as apiSettingsTestCore from "./src/app/api/settings/test-core/route";
 import * as apiSettingsTestTelegram from "./src/app/api/settings/test-telegram/route";
+import * as apiSettingsTestWebhook from "./src/app/api/settings/test-webhook/route"; // v2.7 — webhook test delivery
+import * as apiWebhooksDeliveries from "./src/app/api/webhooks/deliveries/route"; // v2.7 — recent webhook deliveries
+import * as apiDiscordBotStatus from "./src/app/api/discord/bot-status/route"; // v2.7 — Discord worker status
+import * as apiDiscordTest from "./src/app/api/discord/test/route"; // v2.7 — Discord test message
+import * as apiSystemRealityScan from "./src/app/api/system/reality-scan/route"; // v2.7 — REALITY target scanner
 import * as apiSubGroups from "./src/app/api/sub/groups/route";
 import * as apiSubGroupsId from "./src/app/api/sub/groups/[id]/route";
 import * as apiSubToken from "./src/app/api/sub/[token]/route";
@@ -88,6 +93,7 @@ import * as apiTelegramBotAction from "./src/app/api/telegram/bot-action/route";
 import * as apiTelegramBotStatus from "./src/app/api/telegram/bot-status/route";
 import * as apiTelegramDigestTest from "./src/app/api/telegram/digest-test/route"; // Task 1-a — force-run the daily sales digest
 import { salesWorkerBoot, salesWorkerShutdown } from "./src/lib/bot/sales-worker"; // Task 23-c — Sephiroth Sales Bot worker
+import { discordWorkerBoot, discordWorkerShutdown } from "./src/lib/bot/discord-worker"; // v2.7 — Discord gateway worker
 import {
   notifyPanelRestarted,
   notifyQuotaCapped,
@@ -453,6 +459,10 @@ async function startServer() {
   mountRoute(app, "/api/settings/restore", apiSettingsRestore);
   mountRoute(app, "/api/settings/test-core", apiSettingsTestCore);
   mountRoute(app, "/api/settings/test-telegram", apiSettingsTestTelegram);
+  mountRoute(app, "/api/settings/test-webhook", apiSettingsTestWebhook); // v2.7 — BEFORE /api/settings
+  mountRoute(app, "/api/webhooks/deliveries", apiWebhooksDeliveries); // v2.7
+  mountRoute(app, "/api/discord/bot-status", apiDiscordBotStatus); // v2.7
+  mountRoute(app, "/api/discord/test", apiDiscordTest); // v2.7
   mountRoute(app, "/api/settings", apiSettings);
 
   mountRoute(app, "/api/sub/groups", apiSubGroups);
@@ -465,6 +475,7 @@ async function startServer() {
   mountRoute(app, "/api/system/core-install", apiSystemCoreInstall);
   mountRoute(app, "/api/system/core-log", apiSystemCoreLog);
   mountRoute(app, "/api/system/doctor", apiSystemDoctor);
+  mountRoute(app, "/api/system/reality-scan", apiSystemRealityScan); // v2.7 — REALITY target scanner
   mountRoute(app, "/api/system/restart", apiSystemRestart);
   mountRoute(app, "/api/system/server-info", apiSystemServerInfo);
   mountRoute(app, "/api/system/ssl", apiSystemSsl); // Task 23-f — managed certs
@@ -635,6 +646,7 @@ async function startServer() {
   const shutdownCore = (signal: string): void => {
     console.log(`[sephiroth] ${signal} received — stopping core…`);
     salesWorkerShutdown(); // Task 23-c — stop the sales bot long-poll first
+    void discordWorkerShutdown(); // v2.7 — close the Discord gateway
     void getSidecarManager()
       ?.dispose()
       .catch(() => undefined);
@@ -679,6 +691,9 @@ async function startServer() {
   setTimeout(() => {
     void salesWorkerBoot().catch((err) =>
       console.warn("[sephiroth] sales worker boot failed:", err)
+    );
+    void discordWorkerBoot().catch((err) =>
+      console.warn("[sephiroth] discord worker boot failed:", err)
     );
     // Task 23-a — “panel restarted” notification (notify+sales modes, deduped)
     void notifyPanelRestarted(appVersion()).catch(() => {});

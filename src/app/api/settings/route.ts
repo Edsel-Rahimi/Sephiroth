@@ -9,6 +9,8 @@ import {
   getSecuritySettings,
   getPaymentSettings,
   getSslSettings,
+  getWebhookSettings,
+  getDiscordSettings,
   saveCoreSettings,
   saveTelegramSettings,
   saveNavModules,
@@ -17,6 +19,8 @@ import {
   saveSecuritySettings,
   savePaymentSettings,
   saveSslSettings,
+  saveWebhookSettings,
+  saveDiscordSettings,
   validateCorePatch,
   validateTelegramPatch,
   validateNavPatch,
@@ -25,16 +29,19 @@ import {
   validateSecurityPatch,
   validatePaymentPatch,
   validateSslPatch,
+  validateWebhookPatch,
+  validateDiscordPatch,
 } from "@/lib/settings";
 import { onTelegramSettingsSaved } from "@/lib/bot/sales-worker";
+import { onDiscordSettingsSaved } from "@/lib/bot/discord-worker";
 import { logActivity } from "@/lib/activity";
 
 /* ============================================================
    Sephiroth · Phase 7/8 — Settings API (admin only)
-   GET  /api/settings           → { core, telegram, nav, general, expert, security, payment, ssl }
+   GET  /api/settings           → { core, telegram, nav, general, expert, security, payment, ssl, webhooks, discord }
    PUT  /api/settings           → body { section: "core" | "telegram" | "nav"
                                           | "general" | "expert" | "security" | "payment"
-                                          | "ssl", ...patch }
+                                          | "ssl" | "webhooks" | "discord", ...patch }
    ============================================================ */
 
 export async function GET(req: Request) {
@@ -43,7 +50,7 @@ export async function GET(req: Request) {
     if (!admin) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
-    const [core, telegram, nav, general, expert, security, payment, ssl] = await Promise.all([
+    const [core, telegram, nav, general, expert, security, payment, ssl, webhooks, discord] = await Promise.all([
       getCoreSettings(),
       getTelegramSettings(),
       getNavModules(),
@@ -52,8 +59,10 @@ export async function GET(req: Request) {
       getSecuritySettings(),
       getPaymentSettings(),
       getSslSettings(),
+      getWebhookSettings(),
+      getDiscordSettings(),
     ]);
-    return NextResponse.json({ core, telegram, nav, general, expert, security, payment, ssl });
+    return NextResponse.json({ core, telegram, nav, general, expert, security, payment, ssl, webhooks, discord });
   } catch (err) {
     console.error("[settings:GET]", err);
     return NextResponse.json({ error: "server_error" }, { status: 500 });
@@ -232,6 +241,50 @@ export async function PUT(req: Request) {
         meta: { section: "expert" },
       });
       return NextResponse.json({ expert });
+    }
+
+    if (section === "webhooks") {
+      const parsed = validateWebhookPatch(patch);
+      if (!parsed.ok) {
+        return NextResponse.json(
+          { error: "validation", fields: parsed.fields },
+          { status: 400 }
+        );
+      }
+      await saveWebhookSettings(parsed.data);
+      const webhooks = await getWebhookSettings();
+      await logActivity({
+        kind: "settings.updated",
+        level: "info",
+        actor: admin,
+        message: `Webhook settings updated (enabled: ${webhooks.enabled}, url: ${webhooks.url ? "set" : "empty"})`,
+        meta: { section: "webhooks" },
+      });
+      return NextResponse.json({ webhooks });
+    }
+
+    if (section === "discord") {
+      const parsed = validateDiscordPatch(patch);
+      if (!parsed.ok) {
+        return NextResponse.json(
+          { error: "validation", fields: parsed.fields },
+          { status: 400 }
+        );
+      }
+      await saveDiscordSettings(parsed.data);
+      const discord = await getDiscordSettings();
+      // v2.7 — gateway worker lifecycle follows the saved settings
+      await onDiscordSettingsSaved().catch((err) =>
+        console.warn("[settings:discord] worker resync failed:", err)
+      );
+      await logActivity({
+        kind: "settings.updated",
+        level: "info",
+        actor: admin,
+        message: `Discord bot settings updated (enabled: ${parsed.data.enabled})`,
+        meta: { section: "discord" },
+      });
+      return NextResponse.json({ discord });
     }
 
     return NextResponse.json({ error: "unknown_section" }, { status: 400 });

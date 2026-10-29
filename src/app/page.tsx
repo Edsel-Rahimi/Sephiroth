@@ -14,6 +14,7 @@ import { NodesView } from "@/components/sephiroth/views/nodes-view";
 import { OutboundsView } from "@/components/sephiroth/views/outbounds-view";
 import { RoutingView } from "@/components/sephiroth/views/routing-view";
 import { UsersView } from "@/components/sephiroth/views/users-view";
+import { OnlineUsersView } from "@/components/sephiroth/views/online-users-view";
 import { SubGroupsView } from "@/components/sephiroth/views/subgroups-view";
 import { ResellersView } from "@/components/sephiroth/views/resellers-view";
 import { ActivityView } from "@/components/sephiroth/views/activity-view";
@@ -151,6 +152,8 @@ export default function Home() {
           <RoutingView />
         ) : effectiveView === "users" ? (
           <UsersView />
+        ) : effectiveView === "online" ? (
+          <OnlineUsersView />
         ) : effectiveView === "subgroups" ? (
           <SubGroupsView />
         ) : effectiveView === "resellers" ? (

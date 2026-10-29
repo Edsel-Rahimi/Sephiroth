@@ -94,6 +94,8 @@ import { genMtpSecret, MTP_DEFAULT_DOMAIN } from "@/lib/mtp-secret";
 import QRCode from "react-qr-code";
 import type { DoctorFinding, DoctorReport } from "@/lib/doctor-types";
 import { InboundsAutopilot } from "@/components/sephiroth/views/inbounds-autopilot";
+import { RealityScannerDialog } from "@/components/sephiroth/views/reality-scanner-dialog"; // v2.7 — REALITY target scanner
+import { FEATURE } from "@/lib/i18n/feature-strings"; // v2.7 — scanner title
 import { Progress } from "@/components/ui/progress";
 
 // moved to lib/share-links.ts (shared with the public sub API) — re-exported for older import paths
@@ -1045,6 +1047,8 @@ export function InboundsView() {
   const [quickOpen, setQuickOpen] = useState(false);
   /* Task 25-b — one-port autopilot wizard */
   const [autoOpen, setAutoOpen] = useState(false);
+  /* v2.7 — REALITY target scanner dialog */
+  const [scanOpen, setScanOpen] = useState(false);
   const [quickProto, setQuickProto] = useState<string>("vless");
   const [quickDraft, setQuickDraft] = useState({
     tag: "",
@@ -3978,6 +3982,16 @@ export function InboundsView() {
             <Rocket className="h-4 w-4" />
             {t.inbounds.autopilotBtn}
           </Button>
+          {/* v2.7 — REALITY target scanner */}
+          <Button
+            onClick={() => setScanOpen(true)}
+            variant="outline"
+            className="min-h-11 gap-2 rounded-xl border-emerald-400/30 bg-emerald-400/[0.08] px-4 font-semibold text-emerald-300 hover:bg-emerald-400/[0.15]"
+            title="REALITY Target Scanner"
+          >
+            <Radar className="h-4 w-4" />
+            {FEATURE[lang].scanner.title}
+          </Button>
           <Button
             onClick={openCreate}
             className="glow-cyan gap-2 rounded-xl px-5 font-semibold shadow-lg shadow-primary/25"
@@ -5092,6 +5106,9 @@ export function InboundsView() {
         onOpenChange={setAutoOpen}
         onCreated={() => void load()}
       />
+
+      {/* ── v2.7 — REALITY target scanner ────────────────── */}
+      <RealityScannerDialog open={scanOpen} onOpenChange={setScanOpen} />
     </div>
   );
 }

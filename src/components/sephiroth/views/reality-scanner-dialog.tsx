@@ -1,0 +1,436 @@
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Check, Copy, Info, Loader2, Radar } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { FEATURE } from "@/lib/i18n/feature-strings";
+import { useAppStore } from "@/lib/store/app-store";
+import { cn } from "@/lib/utils";
+
+/* ============================================================
+   Sephiroth · v2.7 — REALITY Target Scanner dialog (task 2-c)
+
+   POST /api/system/reality-scan { targets: string[] }
+     → { ok, scanned, preset, results: [{ target, reachable, tls,
+         alpn, rttMs, certOk, issuer, http2, httpStatus,
+         redirectedToHttp, score, verdict, reason }] }
+
+   Empty textarea = server-side preset list. Results come back
+   pre-sorted by score desc (server-side); order is kept here.
+   ============================================================ */
+
+type ScanVerdict = "good" | "warn" | "bad";
+type ToneKey = "good" | "warn" | "bad";
+
+interface RealityScanResult {
+  target: string;
+  reachable: boolean;
+  tls: string | null;
+  alpn: string | null;
+  rttMs: number | null;
+  certOk: boolean;
+  issuer: string | null;
+  http2: boolean;
+  httpStatus: number | null;
+  redirectedToHttp: boolean;
+  score: number;
+  verdict: ScanVerdict;
+  reason: string;
+}
+
+interface RealityScanResponse {
+  ok: boolean;
+  scanned: number;
+  preset: boolean;
+  results: RealityScanResult[];
+}
+
+/* Shared chip tones (same palette the panel uses elsewhere). */
+const TONE_CHIP: Record<ToneKey, string> = {
+  good: "bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/30",
+  warn: "bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/30",
+  bad: "bg-rose-500/10 text-rose-400 ring-1 ring-rose-500/30",
+};
+
+/* "{ms}ms"-style placeholder interpolation (local, no deps). */
+const fmt = (s: string, vars: Record<string, string | number> = {}): string =>
+  s.replace(/\{(\w+)\}/g, (_: string, k: string) => String(vars[k] ?? ""));
+
+/* Split the textarea by newlines / commas / semicolons (mirrors the API). */
+const parseTargets = (raw: string): string[] =>
+  raw
+    .split(/[\n,;]+/)
+    .map((t) => t.trim())
+    .filter(Boolean);
+
+const rttToneClass = (ms: number): string =>
+  ms <= 200 ? "text-emerald-400" : ms <= 600 ? "text-amber-400" : "text-rose-400";
+
+function Chip({ tone, title, children }: { tone: ToneKey; title?: string; children: ReactNode }) {
+  return (
+    <Badge
+      title={title}
+      className={cn(
+        "rounded-full border-transparent px-2 py-0.5 font-mono text-[10px] font-semibold",
+        TONE_CHIP[tone]
+      )}
+    >
+      {children}
+    </Badge>
+  );
+}
+
+export function RealityScannerDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}) {
+  const lang = useAppStore((s) => s.lang);
+  const fx = FEATURE[lang].scanner;
+
+  const [targets, setTargets] = useState("");
+  const [running, setRunning] = useState(false);
+  const [results, setResults] = useState<RealityScanResult[] | null>(null);
+  const [scannedCount, setScannedCount] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [copiedTarget, setCopiedTarget] = useState<string | null>(null);
+
+  const abortRef = useRef<AbortController | null>(null);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const parsedTargets = parseTargets(targets);
+  const isPreset = parsedTargets.length === 0;
+
+  /* Fresh state on (re)open; abort an in-flight scan when it closes. */
+  useEffect(() => {
+    if (!open) {
+      abortRef.current?.abort();
+      setRunning(false);
+      return;
+    }
+    setTargets("");
+    setRunning(false);
+    setResults(null);
+    setScannedCount(0);
+    setError(null);
+    setCopiedTarget(null);
+  }, [open]);
+
+  /* Cleanup timers + in-flight request on unmount. */
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    };
+  }, []);
+
+  const runScan = async () => {
+    if (running) return;
+    const ac = new AbortController();
+    abortRef.current = ac;
+    setRunning(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/system/reality-scan", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ targets: parsedTargets }),
+        signal: ac.signal,
+      });
+      if (!res.ok) {
+        let detail = `HTTP ${res.status}`;
+        try {
+          const j = (await res.json()) as { error?: unknown };
+          if (typeof j?.error === "string" && j.error) detail = j.error;
+        } catch {
+          /* non-JSON error body — keep the HTTP status */
+        }
+        throw new Error(detail);
+      }
+      const data = (await res.json()) as RealityScanResponse;
+      if (ac.signal.aborted) return;
+      const rows = Array.isArray(data.results) ? data.results : [];
+      setResults(rows);
+      setScannedCount(typeof data.scanned === "number" ? data.scanned : rows.length);
+    } catch (err) {
+      if (ac.signal.aborted) return;
+      setResults(null);
+      setScannedCount(0);
+      setError(err instanceof Error && err.message ? err.message : String(err));
+    } finally {
+      if (!ac.signal.aborted) setRunning(false);
+    }
+  };
+
+  const copyTarget = async (target: string) => {
+    try {
+      await navigator.clipboard.writeText(target);
+      setCopiedTarget(target);
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = setTimeout(() => setCopiedTarget(null), 1500);
+    } catch {
+      /* clipboard unavailable (permissions / insecure context) — silent no-op */
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="glass-strong max-h-[92dvh] overflow-y-auto border-white/10 p-0 sm:max-w-3xl">
+        {/* ── header ── */}
+        <DialogHeader className="border-b border-white/5 px-5 py-4 text-start">
+          <DialogTitle className="flex items-center gap-3 text-silver">
+            <span className="glass flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
+              <Radar className="h-4 w-4 text-primary" aria-hidden="true" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-base">{fx.title}</span>
+              <DialogDescription className="mt-0.5 block text-[11px] font-normal leading-relaxed text-muted-foreground">
+                {fx.desc}
+              </DialogDescription>
+            </span>
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4 px-5 pb-5">
+          {/* ── targets input ── */}
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <label
+                htmlFor="reality-scan-targets"
+                className="text-xs font-bold text-muted-foreground"
+              >
+                {fx.targets}
+              </label>
+              <Badge
+                className={cn(
+                  "rounded-full border-transparent px-2 py-0.5 text-[10px] font-semibold",
+                  isPreset
+                    ? "bg-white/5 text-muted-foreground ring-1 ring-white/10"
+                    : "bg-primary/10 text-primary ring-1 ring-primary/30"
+                )}
+              >
+                {isPreset ? fx.presetBadge : fx.customBadge}
+              </Badge>
+            </div>
+            <Textarea
+              id="reality-scan-targets"
+              value={targets}
+              onChange={(e) => setTargets(e.target.value)}
+              placeholder={fx.targetsPh}
+              rows={4}
+              dir="ltr"
+              spellCheck={false}
+              disabled={running}
+              className="min-h-[104px] font-mono text-xs leading-relaxed"
+            />
+          </div>
+
+          {/* ── actions ── */}
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              onClick={() => void runScan()}
+              disabled={running}
+              className="min-w-32 gap-2 rounded-full text-xs font-bold"
+            >
+              {running ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+              ) : (
+                <Radar className="h-3.5 w-3.5" aria-hidden="true" />
+              )}
+              {running ? fx.running : fx.run}
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => onOpenChange(false)}
+              className="rounded-full text-xs text-muted-foreground"
+            >
+              {fx.close}
+            </Button>
+          </div>
+
+          {/* ── error ── */}
+          {error && (
+            <p
+              role="alert"
+              className="rounded-xl bg-rose-500/10 px-3 py-2 text-xs leading-relaxed text-rose-300 ring-1 ring-rose-500/25"
+            >
+              {fmt(fx.errorRun, { detail: error })}
+            </p>
+          )}
+
+          {/* ── results ── */}
+          {running ? (
+            /* Honest loading state — pulsing placeholders, no fake data. */
+            <div
+              className="max-h-[50vh] space-y-2.5 overflow-y-auto rounded-xl bg-black/30 p-3.5 ring-1 ring-white/10"
+              role="status"
+              aria-label={fx.running}
+            >
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <Skeleton className="h-3 w-40 shrink-0" />
+                  <Skeleton className="h-3 w-12 shrink-0" />
+                  <Skeleton className="h-3 w-12 shrink-0" />
+                  <Skeleton className="h-3 w-14 shrink-0" />
+                  <Skeleton className="h-3 w-14 shrink-0" />
+                  <Skeleton className="h-3 w-10 shrink-0" />
+                  <Skeleton className="ms-auto h-3 w-14 shrink-0" />
+                </div>
+              ))}
+            </div>
+          ) : results && results.length > 0 ? (
+            <>
+              <p role="status" className="text-xs font-semibold text-foreground">
+                {fmt(fx.scanned, { n: scannedCount })}
+              </p>
+              <div className="max-h-[50vh] overflow-y-auto rounded-xl bg-black/30 ring-1 ring-white/10">
+                <Table className="text-xs">
+                  <TableHeader>
+                    <TableRow className="border-white/10 hover:bg-transparent">
+                      <TableHead className="h-8 px-2.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                        {fx.colTarget}
+                      </TableHead>
+                      <TableHead className="h-8 px-2.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                        {fx.colTls}
+                      </TableHead>
+                      <TableHead className="h-8 px-2.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                        {fx.colAlpn}
+                      </TableHead>
+                      <TableHead className="h-8 px-2.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                        {fx.colRtt}
+                      </TableHead>
+                      <TableHead className="h-8 px-2.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                        {fx.colCert}
+                      </TableHead>
+                      <TableHead className="h-8 px-2.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                        {fx.colScore}
+                      </TableHead>
+                      <TableHead className="h-8 px-2.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                        {fx.colVerdict}
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {results.map((r, i) => (
+                      <TableRow key={`${i}:${r.target}`} className="border-white/5">
+                        <TableCell className="px-2.5 py-2">
+                          <span className="flex max-w-[260px] items-center gap-1.5">
+                            <span
+                              dir="ltr"
+                              title={r.target}
+                              className="truncate font-mono text-[11px] text-foreground/90"
+                            >
+                              {r.target}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => void copyTarget(r.target)}
+                              aria-label={r.target}
+                              title={r.target}
+                              className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-white/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                            >
+                              {copiedTarget === r.target ? (
+                                <Check
+                                  className="h-3 w-3 text-emerald-400"
+                                  aria-hidden="true"
+                                />
+                              ) : (
+                                <Copy className="h-3 w-3" aria-hidden="true" />
+                              )}
+                            </button>
+                          </span>
+                        </TableCell>
+                        <TableCell className="px-2.5 py-2">
+                          {r.tls ? (
+                            <Chip tone={r.tls === "TLSv1.3" ? "good" : "warn"}>{r.tls}</Chip>
+                          ) : (
+                            <Chip tone="bad">—</Chip>
+                          )}
+                        </TableCell>
+                        <TableCell className="px-2.5 py-2">
+                          {r.alpn ? (
+                            <Chip tone={r.alpn === "h2" ? "good" : "warn"}>{r.alpn}</Chip>
+                          ) : (
+                            <Chip tone="bad">—</Chip>
+                          )}
+                        </TableCell>
+                        <TableCell className="px-2.5 py-2">
+                          {r.rttMs === null ? (
+                            <span className="font-mono text-[11px] text-muted-foreground">—</span>
+                          ) : (
+                            <span
+                              dir="ltr"
+                              className={cn(
+                                "font-mono text-[11px] font-semibold",
+                                rttToneClass(r.rttMs)
+                              )}
+                            >
+                              {fmt(fx.rttUnit, { ms: r.rttMs })}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="px-2.5 py-2">
+                          <Chip tone={r.certOk ? "good" : "bad"}>
+                            {r.certOk ? fx.certOk : fx.certBad}
+                          </Chip>
+                        </TableCell>
+                        <TableCell className="px-2.5 py-2">
+                          <span
+                            dir="ltr"
+                            className="font-mono text-[11px] font-semibold text-foreground"
+                          >
+                            {r.score}
+                            <span className="text-[9px] font-normal text-muted-foreground">
+                              /100
+                            </span>
+                          </span>
+                        </TableCell>
+                        <TableCell className="px-2.5 py-2">
+                          <Chip tone={r.verdict} title={r.reason}>
+                            {r.verdict === "good"
+                              ? fx.verdictGood
+                              : r.verdict === "warn"
+                                ? fx.verdictWarn
+                                : fx.verdictBad}
+                          </Chip>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
+          ) : (
+            <p className="rounded-xl bg-black/20 px-3 py-6 text-center text-xs text-muted-foreground ring-1 ring-white/5">
+              {fx.empty}
+            </p>
+          )}
+        </div>
+
+        {/* ── footer tip ── */}
+        <p className="flex items-start gap-2 border-t border-white/5 px-5 py-3 text-[11px] leading-relaxed text-muted-foreground">
+          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary/70" aria-hidden="true" />
+          <span>{fx.tip}</span>
+        </p>
+      </DialogContent>
+    </Dialog>
+  );
+}

@@ -34,6 +34,7 @@ import {
   UserX,
   Users,
   Boxes,
+  Wifi,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -82,6 +83,7 @@ const NAV_ICONS: Record<ViewId, React.ComponentType<{ className?: string }>> = {
   outbounds: ArrowRightLeft,
   routing: Route,
   users: Users,
+  online: Wifi,
   subgroups: Boxes,
   resellers: Store,
   activity: Activity,
@@ -99,6 +101,7 @@ const NAV_ORDER: ViewId[] = [
   "outbounds",
   "routing",
   "users",
+  "online",
   "subgroups",
   "resellers",
   "activity",

@@ -20,6 +20,7 @@ export type ViewId =
   | "outbounds"
   | "routing"
   | "users"
+  | "online"
   | "subgroups"
   | "resellers"
   | "activity"
@@ -38,6 +39,7 @@ export interface Dict {
     outbounds: string;
     routing: string;
     users: string;
+    online: string;
     subgroups: string;
     resellers: string;
     activity: string;
@@ -1910,6 +1912,7 @@ export const dictionaries: Record<Lang, Dict> = {
       outbounds: "Outbounds",
       routing: "Routing",
       users: "Users",
+      online: "Online Users",
       subgroups: "Sub Groups",
       resellers: "Resellers",
       activity: "Activity",
@@ -3392,6 +3395,7 @@ export const dictionaries: Record<Lang, Dict> = {
           "Protocol-grade inbound management — VLESS, VMess, Trojan and Shadowsocks with TLS/REALITY, glowing QR codes and share links.",
         users:
           "The workhorse: traffic, expiry, speed, IP and HWID limits with bulk actions and a rich user drawer.",
+        online: "A live room list — everyone connected this second, refreshed from the core feed.",
         subgroups:
           "Bundle configs into groups and publish one glamorous public subscription page.",
         resellers:
@@ -3789,6 +3793,7 @@ export const dictionaries: Record<Lang, Dict> = {
       outbounds: "خروجی‌ها",
       routing: "روتینگ",
       users: "کاربران",
+      online: "کاربران آنلاین",
       subgroups: "گروه‌های ساب",
       resellers: "نماینده‌ها",
       activity: "فعالیت‌ها",
@@ -5271,6 +5276,7 @@ export const dictionaries: Record<Lang, Dict> = {
           "مدیریت حرفه‌ای کانفیگ‌ها — VLESS، VMess، Trojan و Shadowsocks با TLS/REALITY، QR درخشان و لینک اشتراک.",
         users:
           "موتور اصلی پنل: حجم، انقضا، سرعت، آی‌پی و محدودیت HWID با عملیات گروهی و پروفایل کامل کاربر.",
+        online: "فهرست زنده اتاق — همه‌ی متصل‌های همین لحظه، تازه‌شده از فید هسته.",
         subgroups:
           "چند کانفیگ را در یک گروه جمع کن و یک صفحه اشتراک عمومی لوکس منتشر کن.",
         resellers: "حساب‌های نمایندگی با سهمیه مشخص، قالب فروش و کاربران مخصوص به خودشان.",
@@ -5664,6 +5670,7 @@ export const dictionaries: Record<Lang, Dict> = {
       outbounds: "المخارج",
       routing: "التوجيه",
       users: "المستخدمون",
+      online: "المتصلون",
       subgroups: "مجموعات الاشتراك",
       resellers: "الموزّعون",
       activity: "النشاط",
@@ -7146,6 +7153,7 @@ export const dictionaries: Record<Lang, Dict> = {
           "إدارة احترافية لنقاط الدخول — VLESS و VMess و Trojan و Shadowsocks مع TLS/REALITY ورموز QR وروابط المشاركة.",
         users:
           "محرك اللوحة: الحجم والانتهاء والسرعة وحدود IP وHWID مع إجراءات جماعية وملف مستخدم كامل.",
+        online: "قائمة الغرفة المباشرة — كل من هو متصل في هذه اللحظة، تُحدَّث من تغذية النواة.",
         subgroups: "اجمع عدة إعدادات في مجموعة وانشر صفحة اشتراك عامة فاخرة.",
         resellers: "حسابات موزّعين بحصص محددة وقوالب بيع ومستخدموهم الخاصون.",
         activity: "بث مباشر للأحداث — الاتصالات والإنشاءات والتنبيهات لحظة بلحظة.",
@@ -7538,6 +7546,7 @@ export const dictionaries: Record<Lang, Dict> = {
       outbounds: "出站",
       routing: "路由",
       users: "用户",
+      online: "在线用户",
       subgroups: "订阅分组",
       resellers: "分销代理",
       activity: "动态",
@@ -9018,6 +9027,7 @@ export const dictionaries: Record<Lang, Dict> = {
         inbounds:
           "协议级入站管理 — VLESS、VMess、Trojan 和 Shadowsocks，支持 TLS/REALITY、发光二维码与分享链接。",
         users: "核心引擎：流量、到期、速度、IP 与 HWID 限制，支持批量操作与完整用户侧栏。",
+        online: "实时在线房间列表 — 此刻的每一个连接，随核心数据流刷新。",
         subgroups: "将多个配置打包成组，发布一个华丽的公共订阅页。",
         resellers: "带配额的分销账户，附带销售模板与专属用户范围。",
         activity: "实时事件流 — 连接、创建与警报，尽在眼前。",
@@ -9410,6 +9420,7 @@ export const dictionaries: Record<Lang, Dict> = {
       outbounds: "Çıkışlar",
       routing: "Yönlendirme",
       users: "Kullanıcılar",
+      online: "Çevrimiçi",
       subgroups: "Abonelik Grupları",
       resellers: "Bayiler",
       activity: "Etkinlik",
@@ -10892,6 +10903,7 @@ export const dictionaries: Record<Lang, Dict> = {
           "Protokol seviyesinde giriş yönetimi — TLS/REALITY, parlayan QR kodlar ve paylaşım bağlantılarıyla VLESS, VMess, Trojan ve Shadowsocks.",
         users:
           "Ana motor: toplu işlemler ve zengin kullanıcı çekmecesiyle trafik, süre, hız, IP ve HWID limitleri.",
+        online: "Canlı oda listesi — şu anda bağlı olan herkes, çekirdek akışından tazelenir.",
         subgroups:
           "Yapılandırmaları gruplara topla ve tek bir şık genel abonelik sayfası yayınla.",
         resellers: "Kotalı bayi hesapları, satış şablonları ve kendilerine ait kullanıcı kapsamı.",
@@ -11285,6 +11297,7 @@ export const dictionaries: Record<Lang, Dict> = {
       outbounds: "Исходящие",
       routing: "Маршрутизация",
       users: "Пользователи",
+      online: "Онлайн",
       subgroups: "Группы подписок",
       resellers: "Реселлеры",
       activity: "Активность",
@@ -12768,6 +12781,7 @@ export const dictionaries: Record<Lang, Dict> = {
           "Управление подключениями протокольного уровня — VLESS, VMess, Trojan и Shadowsocks с TLS/REALITY, светящимися QR-кодами и ссылками.",
         users:
           "Рабочая лошадка: трафик, срок, скорость, лимиты IP и HWID с массовыми действиями и полной карточкой пользователя.",
+        online: "Живой список комнаты — все, кто подключён прямо сейчас, обновляется из потока ядра.",
         subgroups:
           "Соберите конфиги в группы и опубликуйте одну роскошную страницу подписки.",
         resellers: "Аккаунты реселлеров с квотами, шаблонами продаж и своим кругом пользователей.",

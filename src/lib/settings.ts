@@ -129,6 +129,18 @@ const K = {
   tgSalesPayMode: "set_tg_sales_pay_mode",
   /** Long-poll offset persistence (23-a) — internal bookkeeping. */
   tgOffset: "set_tg_bot_offset",
+  // v2.7 — outbound webhooks (automation fan-out)
+  whEnabled: "set_wh_enabled",
+  whUrl: "set_wh_url",
+  whSecret: "set_wh_secret",
+  whEvents: "set_wh_events",
+  // v2.7 — Discord bot (gateway worker, mirrors the Telegram bot)
+  dcEnabled: "set_dc_enabled",
+  dcToken: "set_dc_token",
+  dcAdminUserIds: "set_dc_admin_user_ids",
+  dcChannelId: "set_dc_channel_id",
+  dcLang: "set_dc_lang",
+  dcPrefix: "set_dc_prefix",
   // payment credentials read by the sales bot (card-to-card + ZarinPal)
   payCardNumber: "set_pay_card_number",
   payCardHolder: "set_pay_card_holder",
@@ -617,6 +629,303 @@ export async function saveTelegramSettings(patch: {
   }
   if (patch.shopLang !== undefined) {
     await writeSetting(K.tgShopLang, patch.shopLang);
+  }
+}
+
+/* ---------- outbound webhooks (v2.7, automation fan-out) ---------- */
+
+export interface WebhookEventToggles {
+  userCreated: boolean;
+  userDeleted: boolean;
+  userUpdated: boolean;
+  userExpired: boolean;
+  trafficAlert: boolean;
+  loginAlert: boolean;
+  salesDigest: boolean;
+  backupDone: boolean;
+  panelRestart: boolean;
+  inboundCreated: boolean;
+  inboundDeleted: boolean;
+}
+
+export interface WebhookSettings {
+  enabled: boolean;
+  /** HTTPS POST target (n8n / Make / Discord relay / custom). "" = unset. */
+  url: string;
+  /** Shared secret for the X-Sephiroth-Sign HMAC header ("" = unsigned). */
+  secretConfigured: boolean;
+  secretMasked: string;
+  /** Per-event opt-in map (default: everything on). */
+  events: WebhookEventToggles;
+}
+
+const WEBHOOK_EVENTS_DEFAULT: WebhookEventToggles = {
+  userCreated: true,
+  userDeleted: true,
+  userUpdated: true,
+  userExpired: true,
+  trafficAlert: true,
+  loginAlert: false,
+  salesDigest: false,
+  backupDone: true,
+  panelRestart: true,
+  inboundCreated: true,
+  inboundDeleted: true,
+};
+
+export async function getWebhookSettings(): Promise<WebhookSettings> {
+  const m = await readSettings([K.whEnabled, K.whUrl, K.whSecret, K.whEvents]);
+  let events = WEBHOOK_EVENTS_DEFAULT;
+  const raw = m.get(K.whEvents);
+  if (raw) {
+    try {
+      const p = JSON.parse(raw) as Partial<WebhookEventToggles>;
+      events = { ...WEBHOOK_EVENTS_DEFAULT };
+      for (const key of Object.keys(WEBHOOK_EVENTS_DEFAULT) as (keyof WebhookEventToggles)[]) {
+        if (typeof p[key] === "boolean") events[key] = p[key] as boolean;
+      }
+    } catch {
+      /* keep defaults */
+    }
+  }
+  const secret = m.get(K.whSecret) ?? "";
+  return {
+    enabled: m.get(K.whEnabled) === "1",
+    url: m.get(K.whUrl) ?? "",
+    secretConfigured: secret.length > 0,
+    secretMasked: secret ? `${secret.slice(0, 3)}••••••••` : "",
+    events,
+  };
+}
+
+export async function getWebhookSecret(): Promise<string> {
+  const m = await readSettings([K.whSecret]);
+  return m.get(K.whSecret) ?? "";
+}
+
+export function validateWebhookPatch(
+  body: unknown
+): PatchResult<{
+  enabled: boolean;
+  url: string;
+  secret: string | null | undefined; // undefined = keep, null = clear, string = replace
+  events: WebhookEventToggles;
+}> {
+  const b = (body ?? {}) as Record<string, unknown>;
+  let url = "";
+  if (b.url !== undefined) {
+    url = String(b.url).trim().replace(/\/$/, "");
+    if (url !== "" && !/^https:\/\/\S+$/.test(url)) {
+      return { ok: false, fields: [{ field: "url", code: "format" }] };
+    }
+    if (url.length > 500) {
+      return { ok: false, fields: [{ field: "url", code: "range" }] };
+    }
+  }
+  let secret: string | null | undefined = undefined;
+  if (b.secret === null) {
+    secret = null;
+  } else if (b.secret !== undefined) {
+    const s = String(b.secret).trim();
+    if (s === "") {
+      secret = undefined; // empty string = keep current
+    } else {
+      if (s.length < 8 || s.length > 128) {
+        return { ok: false, fields: [{ field: "secret", code: "format" }] };
+      }
+      secret = s;
+    }
+  }
+  const events: WebhookEventToggles = { ...WEBHOOK_EVENTS_DEFAULT };
+  if (b.events !== undefined && b.events !== null) {
+    const e = b.events as Record<string, unknown>;
+    for (const key of Object.keys(WEBHOOK_EVENTS_DEFAULT) as (keyof WebhookEventToggles)[]) {
+      if (typeof e[key] === "boolean") events[key] = e[key] as boolean;
+    }
+  }
+  return {
+    ok: true,
+    data: {
+      enabled: b.enabled === undefined ? false : Boolean(b.enabled),
+      url,
+      secret,
+      events,
+    },
+  };
+}
+
+export async function saveWebhookSettings(patch: {
+  enabled: boolean;
+  url: string;
+  secret: string | null | undefined;
+  events: WebhookEventToggles;
+}): Promise<void> {
+  await writeSetting(K.whEnabled, patch.enabled ? "1" : "0");
+  await writeSetting(K.whUrl, patch.url);
+  if (patch.secret === null) {
+    await deleteSetting(K.whSecret);
+  } else if (patch.secret !== undefined) {
+    await writeSetting(K.whSecret, patch.secret);
+  }
+  await writeSetting(K.whEvents, JSON.stringify(patch.events));
+}
+
+/* ---------- Discord bot (v2.7, gateway worker) ---------- */
+
+export interface DiscordSettings {
+  enabled: boolean;
+  tokenConfigured: boolean;
+  tokenMasked: string;
+  /** Discord user ids allowed to drive admin commands (snowflakes). */
+  adminUserIds: string[];
+  /** Optional channel id for event announcements ("" = DM admins instead). */
+  announceChannelId: string;
+  /** Bot language for announcements — same catalogue as the Telegram bot. */
+  botLang: BotLangCode;
+  /** Message prefix for commands (default "!"). */
+  prefix: string;
+}
+
+const DISCORD_DEFAULT: DiscordSettings = {
+  enabled: false,
+  tokenConfigured: false,
+  tokenMasked: "",
+  adminUserIds: [],
+  announceChannelId: "",
+  botLang: "fa",
+  prefix: "!",
+};
+
+export async function getDiscordSettings(): Promise<DiscordSettings> {
+  const m = await readSettings([
+    K.dcEnabled, K.dcToken, K.dcAdminUserIds, K.dcChannelId, K.dcLang,
+  ]);
+  const token = m.get(K.dcToken) ?? "";
+  const langRaw = m.get(K.dcLang);
+  return {
+    ...DISCORD_DEFAULT,
+    enabled: m.get(K.dcEnabled) === "1",
+    tokenConfigured: token.length > 0,
+    tokenMasked: token ? maskBotToken(token) : "",
+    adminUserIds: (m.get(K.dcAdminUserIds) ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
+    announceChannelId: m.get(K.dcChannelId) ?? "",
+    botLang: (BOT_LANGS as readonly string[]).includes(langRaw ?? "")
+      ? (langRaw as BotLangCode)
+      : "fa",
+  };
+}
+
+export async function getDiscordToken(): Promise<string> {
+  const m = await readSettings([K.dcToken]);
+  return m.get(K.dcToken) ?? "";
+}
+
+const DISCORD_SNOWFLAKE = /^\d{15,21}$/;
+
+export function validateDiscordPatch(
+  body: unknown
+): PatchResult<{
+  enabled: boolean;
+  token: string | null | undefined; // undefined = keep, null = clear, string = replace
+  adminUserIds?: string[];
+  announceChannelId?: string;
+  botLang?: BotLangCode;
+  prefix?: string;
+}> {
+  const b = (body ?? {}) as Record<string, unknown>;
+  let token: string | null | undefined = undefined;
+  if (b.token === null) {
+    token = null;
+  } else if (b.token !== undefined) {
+    const t = String(b.token).trim();
+    if (t === "") {
+      token = undefined;
+    } else {
+      // Discord bot tokens: <app-id>.<6 chars>.<32+ chars> — accept a sane subset
+      if (!/^[A-Za-z0-9_-]{40,80}$/.test(t.replace(/\./g, "")) || t.length > 90) {
+        return { ok: false, fields: [{ field: "token", code: "format" }] };
+      }
+      token = t;
+    }
+  }
+  let adminUserIds: string[] | undefined;
+  if (b.adminUserIds !== undefined) {
+    if (typeof b.adminUserIds !== "string") {
+      return { ok: false, fields: [{ field: "adminUserIds", code: "format" }] };
+    }
+    const ids = b.adminUserIds
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (ids.length > 16 || ids.some((id) => !DISCORD_SNOWFLAKE.test(id))) {
+      return { ok: false, fields: [{ field: "adminUserIds", code: "format" }] };
+    }
+    adminUserIds = ids;
+  }
+  let announceChannelId: string | undefined;
+  if (b.announceChannelId !== undefined) {
+    const v = String(b.announceChannelId).trim();
+    if (v !== "" && !DISCORD_SNOWFLAKE.test(v)) {
+      return { ok: false, fields: [{ field: "announceChannelId", code: "format" }] };
+    }
+    announceChannelId = v;
+  }
+  let botLang: BotLangCode | undefined;
+  if (b.botLang !== undefined) {
+    if (typeof b.botLang !== "string" || !(BOT_LANGS as readonly string[]).includes(b.botLang)) {
+      return { ok: false, fields: [{ field: "botLang", code: "format" }] };
+    }
+    botLang = b.botLang as BotLangCode;
+  }
+  let prefix: string | undefined;
+  if (b.prefix !== undefined) {
+    const p = String(b.prefix);
+    if (p.length < 1 || p.length > 4 || /\s/.test(p)) {
+      return { ok: false, fields: [{ field: "prefix", code: "format" }] };
+    }
+    prefix = p;
+  }
+  return {
+    ok: true,
+    data: {
+      enabled: b.enabled === undefined ? false : Boolean(b.enabled),
+      token,
+      adminUserIds,
+      announceChannelId,
+      botLang,
+      prefix,
+    },
+  };
+}
+
+export async function saveDiscordSettings(patch: {
+  enabled: boolean;
+  token: string | null | undefined;
+  adminUserIds?: string[];
+  announceChannelId?: string;
+  botLang?: BotLangCode;
+  prefix?: string;
+}): Promise<void> {
+  await writeSetting(K.dcEnabled, patch.enabled ? "1" : "0");
+  if (patch.token === null) {
+    await deleteSetting(K.dcToken);
+  } else if (patch.token !== undefined) {
+    await writeSetting(K.dcToken, patch.token);
+  }
+  if (patch.adminUserIds !== undefined) {
+    await writeSetting(K.dcAdminUserIds, patch.adminUserIds.join(","));
+  }
+  if (patch.announceChannelId !== undefined) {
+    await writeSetting(K.dcChannelId, patch.announceChannelId);
+  }
+  if (patch.botLang !== undefined) {
+    await writeSetting(K.dcLang, patch.botLang);
+  }
+  if (patch.prefix !== undefined) {
+    await writeSetting(K.dcPrefix, patch.prefix);
   }
 }
 
