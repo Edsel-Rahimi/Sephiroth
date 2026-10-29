@@ -310,6 +310,25 @@ export interface ApiToken {
   updatedAt: Date;
 }
 
+// ------------------------------------------------------------
+// Task 2-a — Webhook dead-letter queue. Rows are appended by
+// fireWebhook after all 3 delivery attempts fail; payload is the
+// raw JSON body truncated to 4096 chars. Cap 100 (pruned by the
+// dispatcher, not here).
+// ------------------------------------------------------------
+export interface WebhookDeadLetter {
+  id: string;
+  createdAt: Date;
+  event: string;
+  url: string;
+  status: number | null;
+  error: string;
+  attempts: number;
+  payload: string;
+  /** X-Sephiroth-Sign that was used ("" when unsigned). */
+  sign: string;
+}
+
 export namespace Prisma {
   export class PrismaClientKnownRequestError extends Error {
     code: string;
@@ -342,7 +361,8 @@ type TableName =
   | "relayTunnel"
   | "tgUser"
   | "tgOrder"
-  | "apiToken";
+  | "apiToken"
+  | "webhookDead";
 
 type StoreData = Record<TableName, Record<string, any>[]>;
 
@@ -368,6 +388,7 @@ function emptyStore(): StoreData {
     tgUser: [],
     tgOrder: [],
     apiToken: [],
+    webhookDead: [],
   };
 }
 
@@ -674,6 +695,17 @@ const DEFAULTS: Record<TableName, () => Record<string, any>> = {
     lastUsedIp: "",
     createdAt: new Date(),
     updatedAt: new Date(),
+  }),
+  webhookDead: () => ({
+    id: cuid(),
+    event: "",
+    url: "",
+    status: null,
+    error: "",
+    attempts: 0,
+    payload: "",
+    sign: "",
+    createdAt: new Date(),
   }),
   relayTunnel: () => ({
     id: cuid(),
@@ -1110,6 +1142,7 @@ const baseDb = {
   tgUser: makeDelegate("tgUser"),
   tgOrder: makeDelegate("tgOrder"),
   apiToken: makeDelegate("apiToken"),
+  webhookDead: makeDelegate("webhookDead"),
 };
 
 export type DbTransactionClient = typeof baseDb;

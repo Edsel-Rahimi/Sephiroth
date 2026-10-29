@@ -72,6 +72,8 @@ import * as apiSettingsTestCore from "./src/app/api/settings/test-core/route";
 import * as apiSettingsTestTelegram from "./src/app/api/settings/test-telegram/route";
 import * as apiSettingsTestWebhook from "./src/app/api/settings/test-webhook/route"; // v2.7 — webhook test delivery
 import * as apiWebhooksDeliveries from "./src/app/api/webhooks/deliveries/route"; // v2.7 — recent webhook deliveries
+import * as apiWebhooksDeadLetters from "./src/app/api/webhooks/dead-letters/route"; // Task 2-a — dead-letter queue list/clear
+import * as apiWebhooksDeadLettersRetry from "./src/app/api/webhooks/dead-letters/retry/route"; // Task 2-a — dead-letter retry
 import * as apiDiscordBotStatus from "./src/app/api/discord/bot-status/route"; // v2.7 — Discord worker status
 import * as apiDiscordTest from "./src/app/api/discord/test/route"; // v2.7 — Discord test message
 import * as apiSystemRealityScan from "./src/app/api/system/reality-scan/route"; // v2.7 — REALITY target scanner
@@ -84,6 +86,7 @@ import * as apiSystemCoreInstall from "./src/app/api/system/core-install/route";
 import * as apiSystemCoreLog from "./src/app/api/system/core-log/route";
 import * as apiSystemCoreStatus from "./src/app/api/system/core-status/route";
 import * as apiSystemDoctor from "./src/app/api/system/doctor/route";
+import * as apiSystemOnlineSessions from "./src/app/api/system/online-sessions/route"; // task 2-b — session drill-down
 import * as apiSystemRestart from "./src/app/api/system/restart/route";
 import * as apiSystemServerInfo from "./src/app/api/system/server-info/route";
 import * as apiSystemUpdate from "./src/app/api/system/update/route";
@@ -461,6 +464,8 @@ async function startServer() {
   mountRoute(app, "/api/settings/test-telegram", apiSettingsTestTelegram);
   mountRoute(app, "/api/settings/test-webhook", apiSettingsTestWebhook); // v2.7 — BEFORE /api/settings
   mountRoute(app, "/api/webhooks/deliveries", apiWebhooksDeliveries); // v2.7
+  mountRoute(app, "/api/webhooks/dead-letters/retry", apiWebhooksDeadLettersRetry); // Task 2-a — BEFORE /api/webhooks/dead-letters
+  mountRoute(app, "/api/webhooks/dead-letters", apiWebhooksDeadLetters); // Task 2-a
   mountRoute(app, "/api/discord/bot-status", apiDiscordBotStatus); // v2.7
   mountRoute(app, "/api/discord/test", apiDiscordTest); // v2.7
   mountRoute(app, "/api/settings", apiSettings);
@@ -475,6 +480,7 @@ async function startServer() {
   mountRoute(app, "/api/system/core-install", apiSystemCoreInstall);
   mountRoute(app, "/api/system/core-log", apiSystemCoreLog);
   mountRoute(app, "/api/system/doctor", apiSystemDoctor);
+  mountRoute(app, "/api/system/online-sessions", apiSystemOnlineSessions); // task 2-b — session drill-down
   mountRoute(app, "/api/system/reality-scan", apiSystemRealityScan); // v2.7 — REALITY target scanner
   mountRoute(app, "/api/system/restart", apiSystemRestart);
   mountRoute(app, "/api/system/server-info", apiSystemServerInfo);

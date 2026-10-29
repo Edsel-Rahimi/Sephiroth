@@ -84,6 +84,21 @@ export interface FeatureDict {
     okBadge: string;
     failBadge: string;
     hintSign: string;
+    /** Task 2-a — per-event URL overrides */
+    ovTitle: string;
+    ovHint: string;
+    /** Task 2-a — dead-letter queue */
+    dlTitle: string;
+    dlEmpty: string;
+    dlRetry: string;
+    dlRetrying: string;
+    dlRetried: string;
+    dlRetryFail: string;
+    dlClear: string;
+    dlClearAll: string;
+    dlCleared: string;
+    dlDel: string;
+    dlTime: string;
   };
   discord: {
     title: string;
@@ -231,6 +246,19 @@ export const FEATURE: Record<Lang, FeatureDict> = {
       okBadge: "OK",
       failBadge: "FAIL",
       hintSign: "Bodies are JSON; signed with X-Sephiroth-Sign (HMAC-SHA256 over timestamp.body) when a secret is set. 3 attempts, 6s timeout.",
+      ovTitle: "Per-event URL overrides",
+      ovHint: "Leave a row empty to use the default endpoint URL for that event.",
+      dlTitle: "Dead letters ({n})",
+      dlEmpty: "No dead letters — nothing waiting for a retry.",
+      dlRetry: "Retry",
+      dlRetrying: "Retrying…",
+      dlRetried: "Delivered · HTTP {status} · {ms}ms",
+      dlRetryFail: "Retry failed: {detail}",
+      dlClear: "Dead letter cleared",
+      dlClearAll: "Clear all",
+      dlCleared: "Removed {n} dead letters",
+      dlDel: "Delete dead letter",
+      dlTime: "Received: {time}",
     },
     discord: {
       title: "Discord Bot",
@@ -377,6 +405,19 @@ export const FEATURE: Record<Lang, FeatureDict> = {
       okBadge: "موفق",
       failBadge: "ناموفق",
       hintSign: "بدنه‌ها JSON هستند؛ وقتی کلید امضا تنظیم شده باشد با X-Sephiroth-Sign (HMAC-SHA256 روی timestamp.body) امضا می‌شوند. 3 تلاش، مهلت 6 ثانیه.",
+      ovTitle: "آدرس اختصاصی هر رویداد",
+      ovHint: "هر ردیف را خالی بگذارید تا آدرس نقطه پایانی پیش‌فرض برای آن رویداد استفاده شود.",
+      dlTitle: "پیام‌های ناموفق ({n})",
+      dlEmpty: "پیام ناموفقی وجود ندارد — چیزی برای تلاش مجدد در صف نیست.",
+      dlRetry: "تلاش مجدد",
+      dlRetrying: "در حال تلاش مجدد…",
+      dlRetried: "تحویل شد · HTTP {status} · {ms}ms",
+      dlRetryFail: "تلاش مجدد ناموفق: {detail}",
+      dlClear: "پیام ناموفق حذف شد",
+      dlClearAll: "حذف همه",
+      dlCleared: "{n} پیام ناموفق حذف شد",
+      dlDel: "حذف پیام ناموفق",
+      dlTime: "دریافت: {time}",
     },
     discord: {
       title: "ربات Discord",
@@ -523,6 +564,19 @@ export const FEATURE: Record<Lang, FeatureDict> = {
       okBadge: "ناجح",
       failBadge: "فاشل",
       hintSign: "الجسم بصيغة JSON؛ يُوقَّع بـ X-Sephiroth-Sign (HMAC-SHA256 على timestamp.body) عند تعيين مفتاح. 3 محاولات ومهلة 6 ثوانٍ.",
+      ovTitle: "عناوين URL خاصة بكل حدث",
+      ovHint: "اترك الصف فارغاً لاستخدام عنوان URL الافتراضي لذلك الحدث.",
+      dlTitle: "الرسائل الميتة ({n})",
+      dlEmpty: "لا توجد رسائل ميتة — لا شيء ينتظر إعادة المحاولة.",
+      dlRetry: "إعادة المحاولة",
+      dlRetrying: "جارٍ إعادة المحاولة…",
+      dlRetried: "تم التسليم · HTTP {status} · {ms}ms",
+      dlRetryFail: "فشلت إعادة المحاولة: {detail}",
+      dlClear: "تم حذف الرسالة الميتة",
+      dlClearAll: "حذف الكل",
+      dlCleared: "تم حذف {n} رسالة ميتة",
+      dlDel: "حذف الرسالة الميتة",
+      dlTime: "الاستلام: {time}",
     },
     discord: {
       title: "بوت Discord",
@@ -669,6 +723,19 @@ export const FEATURE: Record<Lang, FeatureDict> = {
       okBadge: "成功",
       failBadge: "失败",
       hintSign: "请求体为 JSON；设置了密钥时会用 X-Sephiroth-Sign（对 timestamp.body 做 HMAC-SHA256）签名。3 次尝试，6 秒超时。",
+      ovTitle: "按事件覆盖 URL",
+      ovHint: "留空的行将使用该事件的默认端点 URL。",
+      dlTitle: "死信 ({n})",
+      dlEmpty: "没有死信 — 没有等待重试的内容。",
+      dlRetry: "重试",
+      dlRetrying: "重试中…",
+      dlRetried: "已送达 · HTTP {status} · {ms}ms",
+      dlRetryFail: "重试失败：{detail}",
+      dlClear: "死信已清除",
+      dlClearAll: "全部清除",
+      dlCleared: "已清除 {n} 条死信",
+      dlDel: "删除死信",
+      dlTime: "接收时间：{time}",
     },
     discord: {
       title: "Discord 机器人",
@@ -815,6 +882,19 @@ export const FEATURE: Record<Lang, FeatureDict> = {
       okBadge: "BAŞARILI",
       failBadge: "HATA",
       hintSign: "Gövde JSON'dur; anahtar tanımlıysa X-Sephiroth-Sign (timestamp.body üzerinde HMAC-SHA256) ile imzalanır. 3 deneme, 6 sn zaman aşımı.",
+      ovTitle: "Olay bazlı URL geçersiz kılmaları",
+      ovHint: "Bir satırı boş bırakırsanız o olay için varsayılan uç nokta URL'si kullanılır.",
+      dlTitle: "Ölü mektuplar ({n})",
+      dlEmpty: "Ölü mektup yok — yeniden denemeyi bekleyen bir şey yok.",
+      dlRetry: "Yeniden dene",
+      dlRetrying: "Yeniden deneniyor…",
+      dlRetried: "Teslim edildi · HTTP {status} · {ms}ms",
+      dlRetryFail: "Yeniden deneme başarısız: {detail}",
+      dlClear: "Ölü mektup temizlendi",
+      dlClearAll: "Tümünü temizle",
+      dlCleared: "{n} ölü mektup temizlendi",
+      dlDel: "Ölü mektubu sil",
+      dlTime: "Alınma: {time}",
     },
     discord: {
       title: "Discord Botu",
@@ -961,6 +1041,19 @@ export const FEATURE: Record<Lang, FeatureDict> = {
       okBadge: "OK",
       failBadge: "СБОЙ",
       hintSign: "Тело — JSON; при заданном ключе подписывается X-Sephiroth-Sign (HMAC-SHA256 от timestamp.body). 3 попытки, таймаут 6 с.",
+      ovTitle: "Свой URL для каждого события",
+      ovHint: "Пустое поле — для этого события используется URL по умолчанию.",
+      dlTitle: "Недоставленные ({n})",
+      dlEmpty: "Недоставленных нет — повтор не требуется.",
+      dlRetry: "Повторить",
+      dlRetrying: "Повтор…",
+      dlRetried: "Доставлено · HTTP {status} · {ms}ms",
+      dlRetryFail: "Ошибка повтора: {detail}",
+      dlClear: "Запись удалена",
+      dlClearAll: "Очистить всё",
+      dlCleared: "Удалено {n} записей",
+      dlDel: "Удалить запись",
+      dlTime: "Получено: {time}",
     },
     discord: {
       title: "Discord-бот",

@@ -147,6 +147,7 @@ const K = {
   whUrl: "set_wh_url",
   whSecret: "set_wh_secret",
   whEvents: "set_wh_events",
+  whEventUrls: "set_wh_event_urls",
   // v2.7 — Discord bot (gateway worker, mirrors the Telegram bot)
   dcEnabled: "set_dc_enabled",
   dcToken: "set_dc_token",
@@ -717,6 +718,31 @@ export async function saveTelegramSettings(patch: {
 
 /* ---------- outbound webhooks (v2.7, automation fan-out) ---------- */
 
+/**
+ * Canonical webhook event names. Declared here (not in webhooks.ts) so the
+ * settings layer can validate per-event URL overrides without a
+ * settings → webhooks runtime import cycle; webhooks.ts re-exports both.
+ */
+export const WEBHOOK_EVENTS = [
+  "user.created",
+  "user.deleted",
+  "user.updated",
+  "user.expired",
+  "user.near-expiry",
+  "user.quota",
+  "user.traffic-reset",
+  "user.activated",
+  "user.renewed",
+  "login.failed",
+  "sales.digest",
+  "backup.done",
+  "panel.restart",
+  "inbound.created",
+  "inbound.deleted",
+] as const;
+
+export type WebhookEvent = (typeof WEBHOOK_EVENTS)[number];
+
 export interface WebhookEventToggles {
   userCreated: boolean;
   userDeleted: boolean;
@@ -740,6 +766,8 @@ export interface WebhookSettings {
   secretMasked: string;
   /** Per-event opt-in map (default: everything on). */
   events: WebhookEventToggles;
+  /** Task 2-a — per-event URL overrides (empty/missing = use the global url). */
+  eventUrls: Partial<Record<WebhookEvent, string>>;
 }
 
 const WEBHOOK_EVENTS_DEFAULT: WebhookEventToggles = {
@@ -757,7 +785,7 @@ const WEBHOOK_EVENTS_DEFAULT: WebhookEventToggles = {
 };
 
 export async function getWebhookSettings(): Promise<WebhookSettings> {
-  const m = await readSettings([K.whEnabled, K.whUrl, K.whSecret, K.whEvents]);
+  const m = await readSettings([K.whEnabled, K.whUrl, K.whSecret, K.whEvents, K.whEventUrls]);
   let events = WEBHOOK_EVENTS_DEFAULT;
   const raw = m.get(K.whEvents);
   if (raw) {
@@ -772,12 +800,28 @@ export async function getWebhookSettings(): Promise<WebhookSettings> {
     }
   }
   const secret = m.get(K.whSecret) ?? "";
+  // Task 2-a — per-event URL overrides: keep only known events + non-empty
+  // strings so a corrupted store value can never leak into the dispatcher.
+  const eventUrls: Partial<Record<WebhookEvent, string>> = {};
+  const rawUrls = m.get(K.whEventUrls);
+  if (rawUrls) {
+    try {
+      const p = JSON.parse(rawUrls) as Record<string, unknown>;
+      for (const ev of WEBHOOK_EVENTS) {
+        const v = p[ev];
+        if (typeof v === "string" && v.trim() !== "") eventUrls[ev] = v.trim();
+      }
+    } catch {
+      /* keep empty */
+    }
+  }
   return {
     enabled: m.get(K.whEnabled) === "1",
     url: m.get(K.whUrl) ?? "",
     secretConfigured: secret.length > 0,
     secretMasked: secret ? `${secret.slice(0, 3)}••••••••` : "",
     events,
+    eventUrls,
   };
 }
 
@@ -793,6 +837,7 @@ export function validateWebhookPatch(
   url: string;
   secret: string | null | undefined; // undefined = keep, null = clear, string = replace
   events: WebhookEventToggles;
+  eventUrls: Partial<Record<WebhookEvent, string>>;
 }> {
   const b = (body ?? {}) as Record<string, unknown>;
   let url = "";
@@ -826,6 +871,35 @@ export function validateWebhookPatch(
       if (typeof e[key] === "boolean") events[key] = e[key] as boolean;
     }
   }
+  // Task 2-a — per-event URL overrides. Same https + length rules as the
+  // global endpoint URL; empty string clears the override (falls back to
+  // the default URL). Unknown event names are rejected, not silently kept.
+  const eventUrls: Partial<Record<WebhookEvent, string>> = {};
+  if (b.eventUrls !== undefined && b.eventUrls !== null) {
+    if (typeof b.eventUrls !== "object" || Array.isArray(b.eventUrls)) {
+      return { ok: false, fields: [{ field: "eventUrls", code: "format" }] };
+    }
+    const p = b.eventUrls as Record<string, unknown>;
+    for (const [key, val] of Object.entries(p)) {
+      const field = `eventUrls.${key}`;
+      if (!(WEBHOOK_EVENTS as readonly string[]).includes(key)) {
+        return { ok: false, fields: [{ field, code: "format" }] };
+      }
+      if (val === undefined || val === null) continue;
+      if (typeof val !== "string") {
+        return { ok: false, fields: [{ field, code: "format" }] };
+      }
+      const v = val.trim().replace(/\/$/, "");
+      if (v === "") continue; // cleared override → use the global default
+      if (!/^https:\/\/\S+$/.test(v)) {
+        return { ok: false, fields: [{ field, code: "format" }] };
+      }
+      if (v.length > 500) {
+        return { ok: false, fields: [{ field, code: "range" }] };
+      }
+      eventUrls[key as WebhookEvent] = v;
+    }
+  }
   return {
     ok: true,
     data: {
@@ -833,6 +907,7 @@ export function validateWebhookPatch(
       url,
       secret,
       events,
+      eventUrls,
     },
   };
 }
@@ -842,6 +917,7 @@ export async function saveWebhookSettings(patch: {
   url: string;
   secret: string | null | undefined;
   events: WebhookEventToggles;
+  eventUrls: Partial<Record<WebhookEvent, string>>;
 }): Promise<void> {
   await writeSetting(K.whEnabled, patch.enabled ? "1" : "0");
   await writeSetting(K.whUrl, patch.url);
@@ -851,6 +927,7 @@ export async function saveWebhookSettings(patch: {
     await writeSetting(K.whSecret, patch.secret);
   }
   await writeSetting(K.whEvents, JSON.stringify(patch.events));
+  await writeSetting(K.whEventUrls, JSON.stringify(patch.eventUrls ?? {}));
 }
 
 /* ---------- Discord bot (v2.7, gateway worker) ---------- */

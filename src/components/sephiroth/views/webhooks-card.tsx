@@ -4,10 +4,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Check,
   CheckCircle2,
+  ChevronDown,
   Info,
   Loader2,
+  RotateCcw,
   Save,
   Send,
+  Trash2,
   Webhook,
   XCircle,
 } from "lucide-react";
@@ -30,6 +33,12 @@ import { cn } from "@/lib/utils";
    Send-test actions (test uses the CURRENT form values so
    unsaved edits are testable) and a compact "recent
    deliveries" feed (≤12, reloaded after every save/test).
+
+   Task 2-a adds: a collapsible "per-event URL overrides"
+   grid (one row per event — empty row = use the default
+   endpoint) included in the Save PUT body, and a "dead
+   letters" queue (failed-after-3-attempts deliveries) with
+   per-row retry/delete, clear-all and an empty state.
    ============================================================ */
 
 interface WebhookEventsDTO {
@@ -52,6 +61,7 @@ interface WebhookSettingsDTO {
   secretConfigured: boolean;
   secretMasked?: string;
   events: WebhookEventsDTO;
+  eventUrls?: Record<string, string>;
 }
 
 interface DeliveryDTO {
@@ -63,6 +73,18 @@ interface DeliveryDTO {
   status?: number;
   attempts?: number;
   ms?: number;
+}
+
+interface DeadLetterDTO {
+  id: string;
+  createdAt: string;
+  event: string;
+  url?: string;
+  status?: number | null;
+  error?: string;
+  attempts?: number;
+  payload?: string;
+  sign?: string;
 }
 
 /* event field order ↔ fx.ev* label keys */
@@ -82,6 +104,27 @@ const EVENT_KEYS = [
 
 type EventKey = (typeof EVENT_KEYS)[number];
 type WebhookFx = (typeof FEATURE)["fa"]["webhooks"];
+
+/* all 15 dispatcher event names — mirrors WEBHOOK_EVENTS from
+   @/lib/webhooks, duplicated here because that module is
+   server-only (node:fs) and must never reach the client bundle */
+const ALL_EVENTS = [
+  "user.created",
+  "user.deleted",
+  "user.updated",
+  "user.expired",
+  "user.near-expiry",
+  "user.quota",
+  "user.traffic-reset",
+  "user.activated",
+  "user.renewed",
+  "login.failed",
+  "sales.digest",
+  "backup.done",
+  "panel.restart",
+  "inbound.created",
+  "inbound.deleted",
+] as const;
 
 const EV_LABEL: Record<EventKey, keyof WebhookFx> = {
   userCreated: "evUserCreated",
@@ -141,8 +184,17 @@ export function WebhooksCard() {
   const [secretConfigured, setSecretConfigured] = useState(false);
   const [events, setEvents] = useState<WebhookEventsDTO>(EVENTS_OFF);
 
+  /* Task 2-a — per-event URL overrides ("" = use the default endpoint) */
+  const [eventUrls, setEventUrls] = useState<Record<string, string>>({});
+  const [ovOpen, setOvOpen] = useState(false);
+
   const [testResult, setTestResult] = useState<{ ok: boolean; text: string } | null>(null);
   const [deliveries, setDeliveries] = useState<DeliveryDTO[]>([]);
+  const [deadLetters, setDeadLetters] = useState<DeadLetterDTO[]>([]);
+  const [deadLoaded, setDeadLoaded] = useState(false);
+  const [retryingId, setRetryingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [clearingAll, setClearingAll] = useState(false);
   const mounted = useRef(true);
 
   const apply = useCallback((wh: WebhookSettingsDTO) => {
@@ -164,6 +216,13 @@ export function WebhooksCard() {
       inboundCreated: Boolean(e.inboundCreated),
       inboundDeleted: Boolean(e.inboundDeleted),
     });
+    // Task 2-a — per-event URL overrides: normalize to ALL_EVENTS keys
+    const eu = wh?.eventUrls ?? {};
+    const nextUrls: Record<string, string> = {};
+    for (const ev of ALL_EVENTS) {
+      nextUrls[ev] = typeof eu[ev] === "string" ? (eu[ev] as string) : "";
+    }
+    setEventUrls(nextUrls);
   }, []);
 
   const loadDeliveries = useCallback(async () => {
@@ -176,6 +235,22 @@ export function WebhooksCard() {
       }
     } catch {
       /* keep the previous list */
+    }
+  }, []);
+
+  /* Task 2-a — dead-letter queue feed */
+  const loadDeadLetters = useCallback(async () => {
+    try {
+      const res = await fetch("/api/webhooks/dead-letters", { cache: "no-store" });
+      if (!res.ok || !mounted.current) return;
+      const data = (await res.json()) as { deadLetters?: DeadLetterDTO[] };
+      if (mounted.current) {
+        setDeadLetters(Array.isArray(data?.deadLetters) ? data.deadLetters.slice(0, 100) : []);
+      }
+    } catch {
+      /* keep the previous list */
+    } finally {
+      if (mounted.current) setDeadLoaded(true);
     }
   }, []);
 
@@ -196,14 +271,21 @@ export function WebhooksCard() {
       }
     })();
     void loadDeliveries();
+    void loadDeadLetters();
     return () => {
       mounted.current = false;
     };
-  }, [apply, loadDeliveries]);
+  }, [apply, loadDeliveries, loadDeadLetters]);
 
   const save = async () => {
     setSaving(true);
     try {
+      // Task 2-a — the override map is sent for ALL events; "" clears an
+      // override server-side (falls back to the default endpoint URL)
+      const eventUrlsBody: Record<string, string> = {};
+      for (const ev of ALL_EVENTS) {
+        eventUrlsBody[ev] = (eventUrls[ev] ?? "").trim();
+      }
       const res = await fetch("/api/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -213,6 +295,7 @@ export function WebhooksCard() {
           url: url.trim(),
           secret, // "" = keep current, null clears (we never send null here)
           events,
+          eventUrls: eventUrlsBody,
         }),
       });
       if (!res.ok) {
@@ -272,6 +355,81 @@ export function WebhooksCard() {
   };
 
   const toggleEvent = (k: EventKey) => setEvents((p) => ({ ...p, [k]: !p[k] }));
+
+  /* Task 2-a — derived: override rows + resolved default placeholder */
+  const overrideCount = ALL_EVENTS.filter((ev) => (eventUrls[ev] ?? "").trim() !== "").length;
+  const defaultPh = url.trim() || fx.urlPh;
+
+  /* ---------- Task 2-a — dead-letter actions ---------- */
+
+  const retryDead = async (id: string) => {
+    setRetryingId(id);
+    try {
+      const res = await fetch("/api/webhooks/dead-letters/retry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const data = (await res.json().catch(() => null)) as
+        | { ok?: boolean; status?: number; ms?: number; error?: string }
+        | null;
+      if (res.ok && data?.ok) {
+        toast({
+          description: fmt(fx.dlRetried, { status: String(data.status ?? 0), ms: String(data.ms ?? 0) }),
+        });
+      } else {
+        const detail = data?.error || `HTTP ${String(res.status)}`;
+        toast({ variant: "destructive", description: fmt(fx.dlRetryFail, { detail }) });
+      }
+      // refresh in both branches — the server updates/keeps/removes the row
+      await loadDeadLetters();
+    } catch (e) {
+      const detail = e instanceof Error && e.message ? e.message : "network";
+      toast({ variant: "destructive", description: fmt(fx.dlRetryFail, { detail }) });
+    }
+    setRetryingId(null);
+  };
+
+  const deleteDead = async (id: string) => {
+    setDeletingId(id);
+    try {
+      const res = await fetch("/api/webhooks/dead-letters", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      if (res.ok) {
+        if (mounted.current) setDeadLetters((p) => p.filter((d) => d?.id !== id));
+        toast({ description: fx.dlClear });
+      } else {
+        const detail = `HTTP ${String(res.status)}`;
+        toast({ variant: "destructive", description: fmt(fx.testFail, { detail }) });
+      }
+    } catch (e) {
+      const detail = e instanceof Error && e.message ? e.message : "network";
+      toast({ variant: "destructive", description: fmt(fx.testFail, { detail }) });
+    }
+    setDeletingId(null);
+  };
+
+  const clearDeadAll = async () => {
+    setClearingAll(true);
+    try {
+      const res = await fetch("/api/webhooks/dead-letters?all=true", { method: "DELETE" });
+      const data = (await res.json().catch(() => null)) as { removed?: number } | null;
+      if (res.ok) {
+        if (mounted.current) setDeadLetters([]);
+        toast({ description: fmt(fx.dlCleared, { n: String(data?.removed ?? deadLetters.length) }) });
+      } else {
+        const detail = `HTTP ${String(res.status)}`;
+        toast({ variant: "destructive", description: fmt(fx.testFail, { detail }) });
+      }
+    } catch (e) {
+      const detail = e instanceof Error && e.message ? e.message : "network";
+      toast({ variant: "destructive", description: fmt(fx.testFail, { detail }) });
+    }
+    setClearingAll(false);
+  };
 
   return (
     <section className="glass rounded-2xl p-5 md:p-6" aria-label={fx.title}>
@@ -359,6 +517,75 @@ export function WebhooksCard() {
             );
           })}
         </div>
+      </div>
+
+      {/* per-event URL overrides (Task 2-a) — collapsible */}
+      <div className="mt-5">
+        <button
+          type="button"
+          onClick={() => setOvOpen((v) => !v)}
+          aria-expanded={ovOpen}
+          aria-controls="wh-overrides"
+          className="flex min-h-11 w-full items-center justify-between gap-2 rounded-xl px-1 text-start outline-none transition-colors hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <span className="flex min-w-0 items-center gap-2 text-xs font-semibold text-foreground">
+            {fx.ovTitle}
+            {overrideCount > 0 && (
+              <span
+                className="shrink-0 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary ring-1 ring-primary/30"
+                dir="ltr"
+              >
+                {String(overrideCount)}
+              </span>
+            )}
+          </span>
+          <ChevronDown
+            className={cn(
+              "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200",
+              ovOpen && "rotate-180"
+            )}
+            aria-hidden="true"
+          />
+        </button>
+        <p className="mt-1 px-1 text-[11px] text-muted-foreground">{fx.ovHint}</p>
+        {ovOpen && (
+          <div id="wh-overrides" className="mt-2 max-h-64 space-y-1.5 overflow-y-auto pe-1" role="group" aria-label={fx.ovTitle}>
+            {ALL_EVENTS.map((ev) => {
+              const val = eventUrls[ev] ?? "";
+              const hasOverride = val.trim() !== "";
+              return (
+                <div key={ev} className="flex items-center gap-2">
+                  <span
+                    aria-hidden="true"
+                    title={hasOverride ? fx.ovTitle : undefined}
+                    className={cn(
+                      "h-1.5 w-1.5 shrink-0 rounded-full transition-colors",
+                      hasOverride ? "bg-primary" : "ring-1 ring-border"
+                    )}
+                  />
+                  <span
+                    className="w-28 shrink-0 truncate font-mono text-[11px] text-muted-foreground sm:w-36"
+                    dir="ltr"
+                    title={ev}
+                  >
+                    {ev}
+                  </span>
+                  <Input
+                    dir="ltr"
+                    className="h-8 min-w-0 flex-1 font-mono text-xs"
+                    value={val}
+                    onChange={(e) => setEventUrls((p) => ({ ...p, [ev]: e.target.value }))}
+                    placeholder={defaultPh}
+                    autoComplete="off"
+                    spellCheck={false}
+                    aria-label={`${ev} URL`}
+                    disabled={!loaded}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* actions */}
@@ -458,6 +685,113 @@ export function WebhooksCard() {
                 ) : null}
               </li>
             ))}
+          </ul>
+        )}
+      </div>
+
+      {/* dead letters (Task 2-a) — failed deliveries awaiting retry */}
+      <div className="mt-5" aria-busy={!deadLoaded}>
+        <div className="flex items-center justify-between gap-2">
+          <p className="flex items-center gap-2 text-xs font-semibold text-foreground">
+            {fmt(fx.dlTitle, { n: String(deadLetters.length) })}
+            {deadLetters.length > 0 && (
+              <span
+                aria-hidden="true"
+                className="h-1.5 w-1.5 shrink-0 rounded-full bg-rose-400"
+              />
+            )}
+          </p>
+          {deadLetters.length > 0 && (
+            <Button
+              variant="ghost"
+              onClick={() => void clearDeadAll()}
+              disabled={clearingAll}
+              className="min-h-11 gap-1.5 rounded-full px-3 text-xs text-muted-foreground hover:bg-white/5 hover:text-foreground"
+            >
+              {clearingAll ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+              ) : (
+                <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+              )}
+              {fx.dlClearAll}
+            </Button>
+          )}
+        </div>
+        {!deadLoaded ? (
+          <p className="mt-2 flex items-center gap-2 rounded-xl bg-white/[0.02] px-3.5 py-3 text-xs text-muted-foreground ring-1 ring-border/50">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+          </p>
+        ) : deadLetters.length === 0 ? (
+          <p className="mt-2 rounded-xl bg-white/[0.02] px-3.5 py-3 text-xs text-muted-foreground ring-1 ring-border/50">
+            {fx.dlEmpty}
+          </p>
+        ) : (
+          <ul className="mt-2 max-h-64 space-y-2 overflow-y-auto pe-1" aria-label={fmt(fx.dlTitle, { n: String(deadLetters.length) })}>
+            {deadLetters.map((d, idx) => {
+              const busyRetry = retryingId === d?.id;
+              const busyDelete = deletingId === d?.id;
+              const errText = String(d?.error ?? "");
+              return (
+                <li
+                  key={String(d?.id ?? idx)}
+                  className="flex flex-wrap items-center gap-2 rounded-xl bg-white/[0.02] px-3.5 py-2 ring-1 ring-border/50"
+                >
+                  <span
+                    className="shrink-0 font-mono text-[11px] text-muted-foreground"
+                    dir="ltr"
+                    title={fmt(fx.dlTime, { time: timeFmt(d?.createdAt, lang) })}
+                  >
+                    {timeFmt(d?.createdAt, lang)}
+                  </span>
+                  <span className="min-w-0 truncate font-mono text-xs text-foreground" dir="ltr">
+                    {String(d?.event ?? "")}
+                  </span>
+                  <Badge
+                    variant="outline"
+                    className="shrink-0 rounded-full border-transparent bg-rose-500/10 px-2 py-0 text-[10px] font-semibold text-rose-400 ring-1 ring-rose-500/30"
+                  >
+                    {typeof d?.status === "number" && d.status > 0 ? `HTTP ${String(d.status)}` : fx.failBadge}
+                  </Badge>
+                  {errText && (
+                    <span
+                      className="hidden max-w-[180px] truncate font-mono text-[10px] text-rose-300/80 sm:block"
+                      dir="ltr"
+                      title={errText}
+                    >
+                      {errText}
+                    </span>
+                  )}
+                  <span className="ms-auto flex shrink-0 items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => void retryDead(String(d?.id ?? ""))}
+                      disabled={busyRetry || busyDelete || clearingAll}
+                      className="h-11 w-11 text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-400"
+                      aria-label={busyRetry ? fx.dlRetrying : fx.dlRetry}
+                      title={busyRetry ? fx.dlRetrying : fx.dlRetry}
+                    >
+                      {busyRetry ? (
+                        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                      ) : (
+                        <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => void deleteDead(String(d?.id ?? ""))}
+                      disabled={busyRetry || busyDelete || clearingAll}
+                      className="h-11 w-11 text-muted-foreground hover:bg-rose-500/10 hover:text-rose-400"
+                      aria-label={fx.dlDel}
+                      title={fx.dlDel}
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    </Button>
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

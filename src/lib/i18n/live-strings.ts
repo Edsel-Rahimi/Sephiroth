@@ -34,6 +34,20 @@ export interface L {
   evtInboundCreated: string;
   evtInboundUpdated: string;
   evtInboundDeleted: string;
+  /* v2.7 Phase 2 (task 2-b) — Online Users drill-down + CSV export */
+  onlineSessionsTitle: string;
+  onlineNoSessions: string;
+  onlineLastSeen: string;
+  onlineShared: string;
+  onlineOnlyUser: string;
+  onlinePerIpNote: string;
+  onlineExport: string;
+  onlineExportRoster: string;
+  onlineExportIps: string;
+  onlineAriaUser: string;
+  onlineAriaIp: string;
+  onlineColState: string;
+  onlineDetail: string;
 }
 
 export const liveDictionaries: Record<Lang, L> = {
@@ -70,6 +84,19 @@ export const liveDictionaries: Record<Lang, L> = {
     evtInboundCreated: "Inbound {inbound} created on port {port}",
     evtInboundUpdated: "Inbound {inbound} updated · port {port}",
     evtInboundDeleted: "Inbound {inbound} removed",
+    onlineSessionsTitle: "Live sessions",
+    onlineNoSessions: "No active sessions",
+    onlineLastSeen: "Last seen",
+    onlineShared: "Also used by",
+    onlineOnlyUser: "Only this user",
+    onlinePerIpNote: "Per-IP traffic is not tracked — traffic totals are per user.",
+    onlineExport: "Export",
+    onlineExportRoster: "Roster CSV",
+    onlineExportIps: "IPs CSV",
+    onlineAriaUser: "Toggle sessions for {user}",
+    onlineAriaIp: "Toggle IP detail for {ip}",
+    onlineColState: "State",
+    onlineDetail: "Detail",
   },
   fa: {
     feedTitle: "فعالیت زنده",
@@ -104,6 +131,19 @@ export const liveDictionaries: Record<Lang, L> = {
     evtInboundCreated: "اینباند {inbound} روی پورت {port} ساخته شد",
     evtInboundUpdated: "اینباند {inbound} به‌روزرسانی شد · پورت {port}",
     evtInboundDeleted: "اینباند {inbound} حذف شد",
+    onlineSessionsTitle: "نشست‌های زنده",
+    onlineNoSessions: "هیچ نشست فعالی وجود ندارد",
+    onlineLastSeen: "آخرین مشاهده",
+    onlineShared: "کاربران دیگر این آی‌پی",
+    onlineOnlyUser: "فقط همین کاربر",
+    onlinePerIpNote: "ترافیک به تفکیک آی‌پی ردیابی نمی‌شود — مجموع‌ها برای هر کاربر است.",
+    onlineExport: "خروجی",
+    onlineExportRoster: "فهرست کاربران CSV",
+    onlineExportIps: "فهرست آی‌پی‌ها CSV",
+    onlineAriaUser: "نمایش یا پنهان کردن نشست‌های {user}",
+    onlineAriaIp: "نمایش یا پنهان کردن جزئیات {ip}",
+    onlineColState: "وضعیت",
+    onlineDetail: "جزئیات",
   },
   ar: {
     feedTitle: "النشاط المباشر",
@@ -138,6 +178,19 @@ export const liveDictionaries: Record<Lang, L> = {
     evtInboundCreated: "تم إنشاء نقطة الدخول {inbound} على المنفذ {port}",
     evtInboundUpdated: "تم تحديث نقطة الدخول {inbound} · المنفذ {port}",
     evtInboundDeleted: "تمت إزالة نقطة الدخول {inbound}",
+    onlineSessionsTitle: "الجلسات الحية",
+    onlineNoSessions: "لا توجد جلسات نشطة",
+    onlineLastSeen: "آخر ظهور",
+    onlineShared: "مستخدمون آخرون لهذا العنوان",
+    onlineOnlyUser: "هذا المستخدم فقط",
+    onlinePerIpNote: "حركة البيانات لكل عنوان لا تُتتبع — المجاميع تُحتسب لكل مستخدم.",
+    onlineExport: "تصدير",
+    onlineExportRoster: "قائمة المستخدمين CSV",
+    onlineExportIps: "قائمة العناوين CSV",
+    onlineAriaUser: "إظهار أو إخفاء جلسات {user}",
+    onlineAriaIp: "إظهار أو إخفاء تفاصيل {ip}",
+    onlineColState: "الحالة",
+    onlineDetail: "التفاصيل",
   },
   zh: {
     feedTitle: "实时动态",
@@ -172,6 +225,19 @@ export const liveDictionaries: Record<Lang, L> = {
     evtInboundCreated: "入站 {inbound} 已创建 · 端口 {port}",
     evtInboundUpdated: "入站 {inbound} 已更新 · 端口 {port}",
     evtInboundDeleted: "入站 {inbound} 已移除",
+    onlineSessionsTitle: "实时会话",
+    onlineNoSessions: "暂无活动会话",
+    onlineLastSeen: "最后活跃",
+    onlineShared: "共用此 IP 的其他用户",
+    onlineOnlyUser: "仅此用户",
+    onlinePerIpNote: "不按 IP 统计流量 — 流量合计按用户计。",
+    onlineExport: "导出",
+    onlineExportRoster: "用户列表 CSV",
+    onlineExportIps: "IP 列表 CSV",
+    onlineAriaUser: "展开或收起 {user} 的会话",
+    onlineAriaIp: "展开或收起 {ip} 的详情",
+    onlineColState: "状态",
+    onlineDetail: "详情",
   },
   tr: {
     feedTitle: "Canlı Etkinlik",
@@ -206,6 +272,19 @@ export const liveDictionaries: Record<Lang, L> = {
     evtInboundCreated: "{inbound} girişi {port} portunda oluşturuldu",
     evtInboundUpdated: "{inbound} girişi güncellendi · port {port}",
     evtInboundDeleted: "{inbound} girişi kaldırıldı",
+    onlineSessionsTitle: "Canlı Oturumlar",
+    onlineNoSessions: "Etkin oturum yok",
+    onlineLastSeen: "Son görülme",
+    onlineShared: "Bu IP'yi kullanan diğer kullanıcılar",
+    onlineOnlyUser: "Yalnızca bu kullanıcı",
+    onlinePerIpNote: "IP başına trafik izlenmiyor — toplamlar kullanıcı bazında tutulur.",
+    onlineExport: "Dışa Aktar",
+    onlineExportRoster: "Kullanıcı Listesi CSV",
+    onlineExportIps: "IP Listesi CSV",
+    onlineAriaUser: "{user} oturumlarını aç veya kapat",
+    onlineAriaIp: "{ip} ayrıntısını aç veya kapat",
+    onlineColState: "Durum",
+    onlineDetail: "Ayrıntı",
   },
   ru: {
     feedTitle: "Активность в реальном времени",
@@ -240,6 +319,19 @@ export const liveDictionaries: Record<Lang, L> = {
     evtInboundCreated: "Инбаунд {inbound} создан на порту {port}",
     evtInboundUpdated: "Инбаунд {inbound} обновлён · порт {port}",
     evtInboundDeleted: "Инбаунд {inbound} удалён",
+    onlineSessionsTitle: "Активные сессии",
+    onlineNoSessions: "Нет активных сессий",
+    onlineLastSeen: "Последняя активность",
+    onlineShared: "Этот IP используют также",
+    onlineOnlyUser: "Только этот пользователь",
+    onlinePerIpNote: "Трафик по IP не отслеживается — итоги считаются по пользователям.",
+    onlineExport: "Экспорт",
+    onlineExportRoster: "Пользователи CSV",
+    onlineExportIps: "IP-адреса CSV",
+    onlineAriaUser: "Показать или скрыть сессии {user}",
+    onlineAriaIp: "Показать или скрыть детали {ip}",
+    onlineColState: "Статус",
+    onlineDetail: "Детали",
   },
 };
 
