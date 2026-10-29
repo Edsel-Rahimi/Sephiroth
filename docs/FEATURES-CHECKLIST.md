@@ -178,14 +178,15 @@ Legend: ✔ shipped · ◐ shipped with known limits · ☐ planned
 
 ## 20. Roadmap (planned — not started)
 
-> v2.8 note: wallet/renew/adduser/delete/QR (Telegram), single-port autopilot and Discord slash/buttons shipped from `docs/ROADMAP.md` phases 0–1 — see RELEASE-NOTES-v2.8.0.md. Items below remain planned.
-- ☐ Telegram sales: discount codes + multi-item carts
-- ☐ Discord slash-commands (interaction endpoints) + button components
-- ☐ Webhooks: per-event URL overrides + retry dead-letter queue viewer
-- ☐ Online view: per-user session drill-down (IP ↔ user live graph) + export CSV
-- ☐ REALITY scanner: batch "pick dest → prefill inbound dialog" action + SNI rotation suggestions
+> v2.8 note: wallet/renew/adduser/delete/QR (Telegram), single-port autopilot and Discord slash/buttons shipped from `docs/ROADMAP.md` phases 0–1 — see RELEASE-NOTES-v2.8.0.md.
+> v2.9 note: shop cart + discount codes + referral, broadcast queue + anti-abuse, webhooks per-event/dead-letter, online drill-down + CSV, REALITY dest-prefill/SNI-rotation, /api/metrics, update channel — phases 2 (+3.5/3.6) done. Remaining planned:
+- ☑ Telegram sales: discount codes + multi-item carts (v2.9)
+- ☑ Discord slash-commands (interaction endpoints) + button components (v2.8)
+- ☑ Webhooks: per-event URL overrides + retry dead-letter queue viewer (v2.9)
+- ☑ Online view: per-user session drill-down (IP ↔ user live graph) + export CSV (v2.9)
+- ☑ REALITY scanner: batch "pick dest → prefill inbound dialog" action + SNI rotation suggestions (v2.9)
 - ☐ Users: per-user traffic speed limit (core-level)
 - ☐ Multi-admin RBAC (roles beyond owner/reseller)
-- ☐ Prometheus/Grafana metrics endpoint
+- ☑ Prometheus/Grafana metrics endpoint (v2.9 — /api/metrics, api-token auth)
 - ☐ 2FA recovery-code regeneration UI batch
-- ☐ Auto-update channel (stable/beta) selector
+- ☑ Auto-update channel (stable/beta) selector (v2.9)
