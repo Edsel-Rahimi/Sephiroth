@@ -23,7 +23,7 @@ import { appVersion, getUpdateSettings } from "@/lib/settings";
    ============================================================ */
 
 const REPO_OWNER = "Edsel-Rahimi";
-const REPO_NAME = "sephiroth";
+const REPO_NAME = "Sephiroth";
 const REPO_URL = `https://github.com/${REPO_OWNER}/${REPO_NAME}`;
 const RELEASES_API = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases?per_page=30`;
 const FETCH_TIMEOUT_MS = 8_000;

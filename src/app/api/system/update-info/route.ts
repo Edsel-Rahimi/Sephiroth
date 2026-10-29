@@ -6,13 +6,13 @@ import { appVersion } from "@/lib/settings";
    Sephiroth · v2.2 — Panel self-update (check phase)
    GET /api/system/update-info
    Compares the running version against the public repository
-   (Edsel-Rahimi/sephiroth @ main — same pattern 3x-ui uses with
+   (Edsel-Rahimi/Sephiroth @ main — same pattern 3x-ui uses with
    GitHub releases/latest, but version-of-truth = package.json
    on the public main branch, reachable from restricted hosts).
    ============================================================ */
 
-const PUBLIC_REPO = "https://github.com/Edsel-Rahimi/sephiroth";
-const RAW_PKG_URL = "https://raw.githubusercontent.com/Edsel-Rahimi/sephiroth/main/package.json";
+const PUBLIC_REPO = "https://github.com/Edsel-Rahimi/Sephiroth";
+const RAW_PKG_URL = "https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/package.json";
 
 function compareSemver(a: string, b: string): number {
   const pa = a.replace(/^v/, "").split(/[.-]/).map((x) => Number(x) || 0);

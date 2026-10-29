@@ -27,13 +27,13 @@ import { useToast } from "@/hooks/use-toast";
    Donation channels live in the memento repo README:
      · USDT (TRC20) wallet
      · Reymit (Iranian support platform)
-     · GitHub stars for Edsel-Rahimi/sephiroth
+     · GitHub stars for Edsel-Rahimi/Sephiroth
    ============================================================ */
 
 const USDT_TRC20 = "TWdqYu5H6emRHd6jFfkHjfG8Yg2285DFmT";
 const REYMIT_URL = "https://reymit.ir/edsel-rahimi";
-const GITHUB_REPO_URL = "https://github.com/Edsel-Rahimi/sephiroth";
-const GITHUB_API_URL = "https://api.github.com/repos/Edsel-Rahimi/sephiroth";
+const GITHUB_REPO_URL = "https://github.com/Edsel-Rahimi/Sephiroth";
+const GITHUB_API_URL = "https://api.github.com/repos/Edsel-Rahimi/Sephiroth";
 const STARS_TIMEOUT_MS = 8000;
 
 export function DonateDialog({
