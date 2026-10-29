@@ -16,9 +16,13 @@
 #   PCLOUD_REGION=eu     # 'eu' -> eapi.pcloud.com, 'us' -> api.pcloud.com
 #   PCLOUD_AUTH=...      # optional: pre-existing auth token (bypasses login/2FA)
 #
-# Auth order: cached authtoken (~/.pcloud-authtoken, 0600) -> PCLOUD_AUTH from
-# config -> digest login (SHA1(digest+SHA1(password))). Token is cached after
-# any successful auth so the password is only used on re-login.
+# Token mirror (survives sandbox resets): after any successful auth the token is
+# ALSO written to $PROJ/.pcloud/auth (0600, gitignored). On the next run the
+# project-local mirror is checked FIRST, so a reset that wipes $HOME dotfiles
+# doesn't lose pCloud access.
+#
+# Auth order: project mirror ($PROJ/.pcloud/auth) -> cached authtoken
+# (~/.pcloud-authtoken) -> PCLOUD_AUTH from config -> digest login.
 set -euo pipefail
 
 LABEL="${1:-$(date +%Y-%m-%d_%H%M%S)}"
@@ -26,13 +30,9 @@ PROJ="$(cd "$(dirname "$0")/.." && pwd)"
 STAGE="$PROJ/.pcloud-stage"
 CONF="$HOME/.pcloud-backup.conf"
 TOKEN_FILE="$HOME/.pcloud-authtoken"
+MIRROR_DIR="$PROJ/.pcloud"
+MIRROR_FILE="$MIRROR_DIR/auth"
 ROOT_REMOTE="/Sephiroth-Backups"
-
-# Durable fallbacks INSIDE the repo (survive HOME/sandbox wipes when the
-# repo persists; repo dir is 0700, .gitignored, never leaves the machine)
-PCLOUD_DIR="$PROJ/.pcloud"
-[ -f "$CONF" ]      || [ ! -f "$PCLOUD_DIR/backup.conf" ] || CONF="$PCLOUD_DIR/backup.conf"
-[ -f "$TOKEN_FILE" ] || [ ! -f "$PCLOUD_DIR/authtoken" ]  || TOKEN_FILE="$PCLOUD_DIR/authtoken"
 
 if [ ! -f "$CONF" ]; then
   if [ "${SKIP_UPLOAD:-0}" = "1" ]; then
@@ -54,32 +54,42 @@ jget() { python3 -c "import json,sys
 try: print(json.load(sys.stdin).get('$1',''))
 except Exception: print('')"; }
 
-# Mirror auth artifacts into the repo so the 2-hourly cron can always log in
-# even after a sandbox restore (both locations kept in sync)
-pcloud_mirror_auth() {
-  mkdir -p "$PCLOUD_DIR" 2>/dev/null || return 0
-  [ -f "$CONF" ] && cp -f "$CONF" "$PCLOUD_DIR/backup.conf" 2>/dev/null
-  [ -f "$TOKEN_FILE" ] && cp -f "$TOKEN_FILE" "$PCLOUD_DIR/authtoken" 2>/dev/null
-  chmod 700 "$PCLOUD_DIR" 2>/dev/null || true
-  chmod 600 "$PCLOUD_DIR/backup.conf" "$PCLOUD_DIR/authtoken" 2>/dev/null || true
-  return 0
+# ---------- helpers ----------
+save_token() {
+  (umask 077; printf '%s' "$1" > "$TOKEN_FILE")
+  mkdir -p "$MIRROR_DIR"
+  (umask 077; printf '%s' "$1" > "$MIRROR_FILE")
 }
 
-# ---------- auth (cached authtoken -> conf token -> digest login) ----------
+# ---------- auth (project mirror -> cached authtoken -> conf token -> digest login) ----------
 auth_ok=0
-if [ -f "$TOKEN_FILE" ]; then
+if [ -f "$MIRROR_FILE" ]; then
+  TOKEN="$(cat "$MIRROR_FILE")"
+  R="$(curl -s -G "$API/userinfo" --data-urlencode "auth=$TOKEN" | jget result || true)"
+  if [ "$R" = "0" ]; then
+    auth_ok=1
+    echo ">> using project-local token mirror (.pcloud/auth)"
+  else
+    echo "WARN: project mirror token rejected (result=$R)" >&2
+    rm -f "$MIRROR_FILE"
+  fi
+fi
+if [ "$auth_ok" != "1" ] && [ -f "$TOKEN_FILE" ]; then
   TOKEN="$(cat "$TOKEN_FILE")"
   R="$(curl -s -G "$API/userinfo" --data-urlencode "auth=$TOKEN" | jget result || true)"
-  [ "$R" = "0" ] && auth_ok=1
+  if [ "$R" = "0" ]; then
+    auth_ok=1
+    save_token "$TOKEN"
+    echo ">> using cached authtoken (~/.pcloud-authtoken, mirrored to project)"
+  fi
 fi
 if [ "$auth_ok" != "1" ] && [ -n "${PCLOUD_AUTH:-}" ]; then
   TOKEN="$PCLOUD_AUTH"
   R="$(curl -s -G "$API/userinfo" --data-urlencode "auth=$TOKEN" | jget result || true)"
   if [ "$R" = "0" ]; then
     auth_ok=1
-    (umask 077; printf '%s' "$TOKEN" > "$TOKEN_FILE")
-    pcloud_mirror_auth
-    echo ">> using PCLOUD_AUTH from config (cached)"
+    save_token "$TOKEN"
+    echo ">> using PCLOUD_AUTH from config (cached + mirrored)"
   else
     echo "WARN: PCLOUD_AUTH token rejected (result=$R)" >&2
   fi
@@ -102,9 +112,8 @@ if [ "$auth_ok" != "1" ]; then
       exit 1
     fi
     TOKEN="$(printf '%s' "$RESP" | jget auth)"
-    (umask 077; printf '%s' "$TOKEN" > "$TOKEN_FILE")
-    pcloud_mirror_auth
-    echo ">> logged in to pCloud ($REGION), authtoken cached"
+    save_token "$TOKEN"
+    echo ">> logged in to pCloud ($REGION), authtoken cached + mirrored"
   fi
 fi
 
@@ -124,6 +133,7 @@ echo ">> worktree tarball (minus node_modules/.next/db/bin) ..."
 tar -czf "$SRC" \
   --exclude='./node_modules' --exclude='./.next' \
   --exclude='./db/bin' --exclude='./.git' --exclude='./.pcloud-stage' \
+  --exclude='./.pcloud' \
   --exclude='./dist' --exclude='./skills' --exclude='./tool-results' \
   --exclude='./dev.log' \
   -C "$PROJ" .
@@ -177,18 +187,34 @@ echo "   (restore: see MANIFEST)"
 RET_DAYS="${AUTO_RETENTION_DAYS:-7}"
 if [ "$RET_DAYS" != "0" ]; then
   CUTOFF=$(( $(date -u +%s) - RET_DAYS * 86400 ))
-  PRUNE_LIST="$(printf '%s' "$(curl -s -G "$API/listfolder" --data-urlencode "path=$ROOT_REMOTE" --data-urlencode "auth=$TOKEN")" | python3 -c "
+  # resolve root folder id (this account returns RFC2822 string dates + isfolder)
+  ROOT_ID="$(curl -s -m 30 -G "$API/listfolder" --data-urlencode "folderid=0" --data-urlencode "auth=$TOKEN" | python3 -c "
 import json,sys
 try:
     d=json.load(sys.stdin)
     for c in (d.get('metadata') or {}).get('contents') or []:
+        if (c.get('isfolder') or c.get('folder')) and c.get('name')=='${ROOT_REMOTE#/}':
+            print(c.get('folderid','')); break
+except Exception: print('')")"
+  if [ -n "$ROOT_ID" ]; then
+    PRUNE_LIST="$(curl -s -m 30 -G "$API/listfolder" --data-urlencode "folderid=$ROOT_ID" --data-urlencode "auth=$TOKEN" | python3 -c "
+import json,sys,datetime
+def ep(m):
+    try: return int(m)
+    except Exception:
+        try: return datetime.datetime.strptime(str(m),'%a, %d %b %Y %H:%M:%S %z').timestamp()
+        except Exception: return 0
+try:
+    d=json.load(sys.stdin)
+    for c in (d.get('metadata') or {}).get('contents') or []:
         n=c.get('name','')
-        if c.get('folder') and n.startswith('auto-') and int(c.get('modified',0)) < $CUTOFF:
+        if (c.get('isfolder') or c.get('folder')) and n.startswith('auto-') and ep(c.get('modified',0)) < $CUTOFF:
             print(n)
 except Exception: pass")"
-  printf '%s\n' "$PRUNE_LIST" | while IFS= read -r OLD; do
-    [ -n "$OLD" ] || continue
-    echo ">> pruning old auto-backup: $OLD"
-    curl -s -G "$API/deletefolderrecursive" --data-urlencode "path=$ROOT_REMOTE/$OLD" --data-urlencode "auth=$TOKEN" >/dev/null || true
-  done
+    printf '%s\n' "$PRUNE_LIST" | while IFS= read -r OLD; do
+      [ -n "$OLD" ] || continue
+      echo ">> pruning old auto-backup: $OLD"
+      curl -s -G "$API/deletefolderrecursive" --data-urlencode "path=$ROOT_REMOTE/$OLD" --data-urlencode "auth=$TOKEN" >/dev/null || true
+    done
+  fi
 fi
