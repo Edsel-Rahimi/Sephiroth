@@ -64,6 +64,7 @@ import * as apiOutboundsIdTest from "./src/app/api/outbounds/[id]/test/route";
 import * as apiProfile from "./src/app/api/profile/route";
 import * as apiResellers from "./src/app/api/resellers/route";
 import * as apiResellersId from "./src/app/api/resellers/[id]/route";
+import * as apiResellersIdBot from "./src/app/api/resellers/[id]/bot/route"; // task 3-1 — per-reseller bot API
 import * as apiRouting from "./src/app/api/routing/route";
 import * as apiSaleTemplates from "./src/app/api/sale-templates/route";
 import * as apiSaleTemplatesId from "./src/app/api/sale-templates/[id]/route";
@@ -106,6 +107,7 @@ import * as apiTelegramBroadcast from "./src/app/api/telegram/broadcast/route"; 
 import * as apiTelegramBroadcastCancel from "./src/app/api/telegram/broadcast/cancel/route"; // task 2-e — broadcast cancel
 import * as apiTelegramAbuse from "./src/app/api/telegram/abuse/route"; // task 2-e — anti-abuse (force channel + bans)
 import { salesWorkerBoot, salesWorkerShutdown } from "./src/lib/bot/sales-worker"; // Task 23-c — Sephiroth Sales Bot worker
+import { resellerBotsBoot, resellerBotsShutdown } from "./src/lib/bot/reseller-worker"; // task 3-1 — per-reseller bot workers
 import { discordWorkerBoot, discordWorkerShutdown } from "./src/lib/bot/discord-worker"; // v2.7 — Discord gateway worker
 import {
   notifyPanelRestarted,
@@ -123,6 +125,9 @@ import * as apiSystemSslInstall from "./src/app/api/system/ssl-install-acme/rout
 import * as apiSystemSslIssue from "./src/app/api/system/ssl-issue/route";
 import * as apiTunnels from "./src/app/api/tunnels/route";
 import * as apiNowpaymentsIpn from "./src/app/api/nowpayments/ipn/route"; // task 3-a — NowPayments IPN callback (public, signature-verified)
+import * as apiMiniappCatalog from "./src/app/api/miniapp/catalog/route"; // task 3-2 — Mini App catalog (initData-authed)
+import * as apiMiniappCheckout from "./src/app/api/miniapp/checkout/route"; // task 3-2 — Mini App checkout (initData-authed, rate-limited)
+import * as apiMiniappMe from "./src/app/api/miniapp/me/route"; // task 3-2 — Mini App wallet + orders (initData-authed)
 import * as apiUsers from "./src/app/api/users/route";
 import * as apiUsersIpUsage from "./src/app/api/users/ip-usage/route"; // Task 23-g — concurrent-IP usage
 import * as apiUsersResetDevices from "./src/app/api/users/[id]/reset-devices/route"; // Task 23-g — HWID reset
@@ -466,6 +471,7 @@ async function startServer() {
   mountRoute(app, "/api/profile", apiProfile);
 
   mountRoute(app, "/api/resellers", apiResellers);
+  mountRoute(app, "/api/resellers/:id/bot", apiResellersIdBot); // task 3-1 — BEFORE /api/resellers/:id
   mountRoute(app, "/api/resellers/:id", apiResellersId);
 
   mountRoute(app, "/api/routing", apiRouting);
@@ -525,6 +531,14 @@ async function startServer() {
   // (same pattern as /api/auth/login and /api/sub/*: routes self-authorize,
   // there is no global express auth middleware to exempt from).
   mountRoute(app, "/api/nowpayments/ipn", apiNowpaymentsIpn);
+
+  // task 3-2 — Telegram Mini App (OWNER bot). SELF-AUTHORIZED public
+  // routes: every handler validates the Telegram initData HMAC chain
+  // (src/lib/bot/miniapp-auth.ts) — 401 on any failure, 503 when no bot
+  // token is configured. Checkout is additionally rate-limited per tgId.
+  mountRoute(app, "/api/miniapp/catalog", apiMiniappCatalog);
+  mountRoute(app, "/api/miniapp/checkout", apiMiniappCheckout);
+  mountRoute(app, "/api/miniapp/me", apiMiniappMe);
 
   mountRoute(app, "/api/users/bulk", apiUsersBulk);
   mountRoute(app, "/api/users/bulk-create", apiUsersBulkCreate); // 26-b — BEFORE :id
@@ -682,6 +696,7 @@ async function startServer() {
   const shutdownCore = (signal: string): void => {
     console.log(`[sephiroth] ${signal} received — stopping core…`);
     salesWorkerShutdown(); // Task 23-c — stop the sales bot long-poll first
+    resellerBotsShutdown(); // task 3-1 — stop every per-reseller bot instance
     void discordWorkerShutdown(); // v2.7 — close the Discord gateway
     void getSidecarManager()
       ?.dispose()
@@ -728,6 +743,9 @@ async function startServer() {
     void salesWorkerBoot().catch((err) =>
       console.warn("[sephiroth] sales worker boot failed:", err)
     );
+    void resellerBotsBoot().catch((err) =>
+      console.warn("[sephiroth] reseller bots boot failed:", err)
+    ); // task 3-1 — start every enabled per-reseller bot
     void discordWorkerBoot().catch((err) =>
       console.warn("[sephiroth] discord worker boot failed:", err)
     );

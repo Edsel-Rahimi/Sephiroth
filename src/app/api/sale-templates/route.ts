@@ -40,7 +40,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "bad_json" }, { status: 400 });
     }
 
-    const parsed = validateTemplate(body);
+    const parsed = await validateTemplate(body); // task 3-1 — await (resellerId existence check)
     if (!parsed.ok) {
       return NextResponse.json(
         { error: "validation", fields: parsed.fields },

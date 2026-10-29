@@ -37,9 +37,10 @@ export async function PATCH(req: Request, ctx: Ctx) {
       ipLimit: b.ipLimit !== undefined ? b.ipLimit : existing.ipLimit,
       priceToman: b.priceToman !== undefined ? b.priceToman : existing.priceToman,
       botVisible: b.botVisible !== undefined ? b.botVisible : existing.botVisible,
+      resellerId: b.resellerId !== undefined ? b.resellerId : existing.resellerId, // task 3-1 — catalog scoping
     };
 
-    const parsed = validateTemplate(merged);
+    const parsed = await validateTemplate(merged); // task 3-1 — await (resellerId existence check)
     if (!parsed.ok) {
       return NextResponse.json(
         { error: "validation", fields: parsed.fields },

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  BotMessageSquare,
   CalendarDays,
   Check,
   Gauge,
@@ -42,11 +43,20 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAppStore } from "@/lib/store/app-store";
 import { dictionaries } from "@/lib/i18n/dictionaries";
+import { FEATURE } from "@/lib/i18n/feature-strings";
 import { sfmt } from "@/lib/i18n/sub-dictionary";
 import type { ResellerDTO, TemplateDTO } from "@/lib/resellers";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { ResellerPaymentPanel } from "@/components/sephiroth/views/reseller-payment-panel";
+import { ResellerBotCard } from "@/components/sephiroth/views/reseller-bot-card"; // task 3-1
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 /* ============================================================
    Sephiroth · Phase 6 — Resellers view (admin)
@@ -76,6 +86,7 @@ interface TemplateForm {
   trafficGb: string; // "" = unlimited
   expiryDays: string; // "" = unlimited
   ipLimit: string; // "" = 0 (unlimited)
+  resellerId: string; // task 3-1 — "" = owner's global catalog
 }
 
 const EMPTY_RESELLER: ResellerForm = {
@@ -95,6 +106,7 @@ const EMPTY_TEMPLATE: TemplateForm = {
   trafficGb: "",
   expiryDays: "",
   ipLimit: "",
+  resellerId: "",
 };
 
 const USERNAME_OK = /^[a-zA-Z0-9_-]{3,32}$/;
@@ -204,6 +216,7 @@ export function ResellersView() {
   const lang = useAppStore((s) => s.lang);
   const t = useMemo(() => dictionaries[lang], [lang]);
   const u = t.resellers;
+  const rb = FEATURE[lang].resellerBot; // task 3-1 — reseller bot strings
 
   const { toast } = useToast();
 
@@ -228,6 +241,10 @@ export function ResellersView() {
   const [tForm, setTForm] = useState<TemplateForm>(EMPTY_TEMPLATE);
   const [tErr, setTErr] = useState<Partial<Record<string, string>>>({});
   const [tSaving, setTSaving] = useState(false);
+
+  /* task 3-1 — per-reseller bot dialog */
+  const [rbOpen, setRbOpen] = useState(false);
+  const [rbReseller, setRbReseller] = useState<ResellerDTO | null>(null);
 
   /* delete confirms */
   const [rDeleting, setRDeleting] = useState<ResellerDTO | null>(null);
@@ -440,6 +457,7 @@ export function ResellersView() {
       trafficGb: tpl.trafficLimitGb === null ? "" : String(tpl.trafficLimitGb),
       expiryDays: tpl.expiryDays === null ? "" : String(tpl.expiryDays),
       ipLimit: String(tpl.ipLimit),
+      resellerId: tpl.resellerId ?? "", // task 3-1 — catalog scoping
     });
     setTErr({});
     setTOpen(true);
@@ -473,6 +491,7 @@ export function ResellersView() {
         trafficLimitGb,
         expiryDays,
         ipLimit: ipLimit ?? 0, // empty field = 0 = unlimited devices
+        resellerId: tForm.resellerId, // task 3-1 — "" = owner's global catalog
       };
       const res = await fetch(
         tEditing ? `/api/sale-templates/${tEditing.id}` : "/api/sale-templates",
@@ -740,6 +759,19 @@ export function ResellersView() {
                         </td>
                         <td className="px-3 py-3">
                           <div className="flex items-center justify-end gap-1">
+                            {/* task 3-1 — per-reseller bot card */}
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              onClick={() => {
+                                setRbReseller(r);
+                                setRbOpen(true);
+                              }}
+                              aria-label={`${rb.openBot} · ${r.username}`}
+                            >
+                              <BotMessageSquare className="h-3.5 w-3.5" aria-hidden="true" />
+                            </Button>
                             <Button
                               size="icon"
                               variant="ghost"
@@ -827,6 +859,19 @@ export function ResellersView() {
                       {new Date(r.createdAt).toLocaleDateString(lang)}
                     </span>
                     <div className="flex items-center gap-1">
+                      {/* task 3-1 — per-reseller bot card */}
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8"
+                        onClick={() => {
+                          setRbReseller(r);
+                          setRbOpen(true);
+                        }}
+                        aria-label={`${rb.openBot} · ${r.username}`}
+                      >
+                        <BotMessageSquare className="h-3.5 w-3.5" aria-hidden="true" />
+                      </Button>
                       <Button
                         size="icon"
                         variant="ghost"
@@ -1230,6 +1275,28 @@ export function ResellersView() {
                 {tErr.ipLimit && <p className="text-[11px] text-chart-5">{tErr.ipLimit}</p>}
               </div>
             </div>
+            {/* task 3-1 — catalog scoping: assign the template to a reseller's bot shop */}
+            <div className="space-y-1.5">
+              <Label htmlFor="tpl-reseller" className="text-xs text-muted-foreground">
+                {rb.assignLabel}
+              </Label>
+              <Select
+                value={tForm.resellerId || "global"}
+                onValueChange={(v) => setTForm((f) => ({ ...f, resellerId: v === "global" ? "" : v }))}
+              >
+                <SelectTrigger id="tpl-reseller" className="h-10" aria-label={rb.assignLabel}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="glass-strong border-white/10">
+                  <SelectItem value="global">{rb.assignGlobal}</SelectItem>
+                  {(resellers ?? []).map((r) => (
+                    <SelectItem key={r.id} value={r.id} dir="ltr">
+                      {r.username}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <Tip>{u.tipTemplates}</Tip>
 
             <div className="flex items-center justify-end gap-2">
@@ -1309,6 +1376,17 @@ export function ResellersView() {
 
       {/* Reseller Payment Gateways & Wallet Hooks */}
       <ResellerPaymentPanel />
+
+      {/* task 3-1 — per-reseller Telegram bot card */}
+      <ResellerBotCard
+        resellerId={rbReseller?.id ?? null}
+        resellerName={rbReseller?.username ?? ""}
+        open={rbOpen}
+        onOpenChange={(v) => {
+          setRbOpen(v);
+          if (!v) setRbReseller(null);
+        }}
+      />
     </div>
   );
 }

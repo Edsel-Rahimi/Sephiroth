@@ -129,7 +129,10 @@ const PAY_POLL_MS = (() => {
 
 /* ---------- shared config snapshot ---------- */
 
-interface WorkerCtx {
+/* task 3-1 — exported additively so the per-reseller bot worker
+   (reseller-worker.ts) can reuse the SAME delivery engine
+   (provisionAndDeliverClaimed below) with a structurally-identical ctx. */
+export interface WorkerCtx {
   token: string;
   proxyUrl: string;
   adminChatIds: string[];
@@ -2146,7 +2149,8 @@ async function handleReceiptPhoto(
 ): Promise<void> {
   const t = botTexts(lang);
   const order = await db.tgOrder.findFirst({
-    where: { tgId: fromId, method: "card", status: "pending_manual" },
+    // task 3-1 — "" = main-bot orders only (reseller receipts match in the reseller worker)
+    where: { tgId: fromId, method: "card", status: "pending_manual", resellerId: "" },
     orderBy: { createdAt: "desc" },
   });
   if (!order) {
@@ -2513,7 +2517,9 @@ async function completeAndDeliver(ctx: WorkerCtx, orderId: string, via: string):
   await provisionAndDeliverClaimed(ctx, order);
 }
 
-async function provisionAndDeliverClaimed(ctx: WorkerCtx, order: TgOrder): Promise<void> {
+/** task 3-1 — exported additively (no behavior change): the reseller bot
+ *  worker calls the SAME provisioning/delivery path for ITS orders. */
+export async function provisionAndDeliverClaimed(ctx: WorkerCtx, order: TgOrder): Promise<void> {
   const template = await db.saleTemplate.findUnique({ where: { id: order.templateId } });
   // v2.8 — a renewal order EXTENDS the existing subscription instead of
   // provisioning a new ClientUser
@@ -2779,7 +2785,8 @@ async function fulfillFreeOrder(
     return;
   }
   // rate-limit: one free order per tg user, ever
-  const claimed = await db.tgOrder.count({ where: { tgId: fromId, amountToman: 0, status: "completed" } });
+  // task 3-1 — "" = main-bot free orders only (each reseller shop owns its trial budget)
+  const claimed = await db.tgOrder.count({ where: { tgId: fromId, amountToman: 0, status: "completed", resellerId: "" } });
   if (claimed > 0) {
     await sendMessage(ctx.token, chatId, t.trialLimit, menuBackKeyboard(t.backMenu), { proxyUrl: ctx.proxyUrl });
     return;
@@ -2807,7 +2814,9 @@ async function verifyAwaitingZarinpal(): Promise<void> {
   if (!ctx.token || !ctx.zarinpalMerchant) return;
 
   const orders = await db.tgOrder.findMany({
-    where: { method: "zarinpal", status: "awaiting_payment", authority: { not: "" } },
+    // task 3-1 — reseller-bot orders carry their own resellerId and are
+    // verified by the reseller worker's OWN sweep (its merchant), never here
+    where: { method: "zarinpal", status: "awaiting_payment", authority: { not: "" }, resellerId: "" },
     orderBy: { createdAt: "asc" },
     take: 20,
   });
@@ -2821,7 +2830,8 @@ async function verifyAwaitingZarinpal(): Promise<void> {
   }
 
   // self-heal: orders completed but whose provisioning claim never finished
-  const stuck = (await db.tgOrder.findMany({ where: { status: "completed" }, orderBy: { updatedAt: "desc" }, take: 50 }))
+  // (task 3-1 — "" keeps reseller orders on the reseller worker's own heal path)
+  const stuck = (await db.tgOrder.findMany({ where: { status: "completed", resellerId: "" }, orderBy: { updatedAt: "desc" }, take: 50 }))
     .filter(isProvisioningClaim)
     .filter((o) => Date.now() - new Date(o.updatedAt).getTime() > 60_000);
   for (const order of stuck) {

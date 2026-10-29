@@ -164,6 +164,9 @@ export interface BotTexts {
   abuseBannedReason: string;
   abuseJoinRequired: string;
   abuseJoinButton: string;
+  /* task 3-1 — per-reseller branded shop (white-label bot) */
+  rbMenu: string;
+  rbShopTitle: string;
 }
 
 const FA: BotTexts = {
@@ -299,6 +302,8 @@ const FA: BotTexts = {
   abuseBannedReason: "⛔ دسترسی شما به این ربات مسدود شده است.\n\nدلیل: {reason}",
   abuseJoinRequired: "🔒 برای استفاده از ربات ابتدا باید عضو کانال ما شوید. پس از عضویت، /start را دوباره بزنید.",
   abuseJoinButton: "📢 عضویت در کانال",
+  rbMenu: "به فروشگاه <b>{shop}</b> خوش آمدید — یکی را انتخاب کنید:",
+  rbShopTitle: "🛒 <b>{shop} · فروشگاه</b>",
 };
 
 const EN: BotTexts = {
@@ -434,6 +439,8 @@ const EN: BotTexts = {
   abuseBannedReason: "⛔ Your access to this bot has been blocked.\n\nReason: {reason}",
   abuseJoinRequired: "🔒 To use this bot you must first join our channel. Once you have joined, press /start again.",
   abuseJoinButton: "📢 Join channel",
+  rbMenu: "Welcome to the <b>{shop}</b> shop — pick one:",
+  rbShopTitle: "🛒 <b>{shop} · Shop</b>",
 };
 
 const AR: BotTexts = {
@@ -569,6 +576,8 @@ const AR: BotTexts = {
   abuseBannedReason: "⛔ تم حظر وصولك إلى هذا البوت.\n\nالسبب: {reason}",
   abuseJoinRequired: "🔒 لاستخدام هذا البوت يجب أن تنضم إلى قناتنا أولاً. بعد الانضمام، اضغط /start مرة أخرى.",
   abuseJoinButton: "📢 الانضمام للقناة",
+  rbMenu: "مرحباً بك في متجر <b>{shop}</b> — اختر:",
+  rbShopTitle: "🛒 <b>{shop} · المتجر</b>",
 };
 
 const ZH: BotTexts = {
@@ -704,6 +713,8 @@ const ZH: BotTexts = {
   abuseBannedReason: "⛔ 您使用此机器人的权限已被封禁。\n\n原因：{reason}",
   abuseJoinRequired: "🔒 使用本机器人前，请先加入我们的频道。加入后请重新发送 /start。",
   abuseJoinButton: "📢 加入频道",
+  rbMenu: "欢迎来到 <b>{shop}</b> 商店 — 请选择：",
+  rbShopTitle: "🛒 <b>{shop} · 商店</b>",
 };
 
 const TR: BotTexts = {
@@ -839,6 +850,8 @@ const TR: BotTexts = {
   abuseBannedReason: "⛔ Bu bota erişiminiz engellendi.\n\nSebep: {reason}",
   abuseJoinRequired: "🔒 Bu botu kullanmak için önce kanalımıza katılmanız gerekir. Katıldıktan sonra /start komutunu tekrar gönderin.",
   abuseJoinButton: "📢 Kanala katıl",
+  rbMenu: "<b>{shop}</b> mağazasına hoş geldiniz — bir seçim yapın:",
+  rbShopTitle: "🛒 <b>{shop} · Mağaza</b>",
 };
 
 const RU: BotTexts = {
@@ -974,6 +987,8 @@ const RU: BotTexts = {
   abuseBannedReason: "⛔ Ваш доступ к этому боту заблокирован.\n\nПричина: {reason}",
   abuseJoinRequired: "🔒 Чтобы пользоваться ботом, сначала вступите в наш канал. После вступления снова отправьте /start.",
   abuseJoinButton: "📢 Вступить в канал",
+  rbMenu: "Добро пожаловать в магазин <b>{shop}</b> — выберите:",
+  rbShopTitle: "🛒 <b>{shop} · Магазин</b>",
 };
 
 const TABLE: Record<BotLang, BotTexts> = { fa: FA, en: EN, ar: AR, zh: ZH, tr: TR, ru: RU };

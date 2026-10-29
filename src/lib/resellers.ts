@@ -155,11 +155,16 @@ export type ValidatedTemplate = {
   priceToman: number;
   /** Whether the template is listed in the Telegram sales-bot shop. */
   botVisible: boolean;
+  /** task 3-1 — catalog scoping: "" = owner's global catalog; a reseller id
+   *  lists the template ONLY in that reseller's bot shop. */
+  resellerId: string;
 };
 
-export function validateTemplate(
+/** task 3-1 — now async: a non-empty resellerId is existence-checked against
+ *  the reseller table (both sale-templates routes await this). */
+export async function validateTemplate(
   body: unknown
-): { ok: true; data: ValidatedTemplate } | { ok: false; fields: FieldError[] } {
+): Promise<{ ok: true; data: ValidatedTemplate } | { ok: false; fields: FieldError[] }> {
   const errs: FieldError[] = [];
   const b = (body ?? {}) as Record<string, unknown>;
 
@@ -191,6 +196,22 @@ export function validateTemplate(
 
   const botVisible = b.botVisible === undefined ? false : Boolean(b.botVisible);
 
+  /* task 3-1 — optional reseller assignment ("" = owner's global catalog).
+     Any non-empty value must reference an EXISTING reseller row so a typo
+     can never orphan a template out of every shop. */
+  let resellerId = "";
+  if (b.resellerId !== undefined && b.resellerId !== null) {
+    const rid = typeof b.resellerId === "string" ? b.resellerId.trim() : "";
+    if (rid) {
+      const known = await db.reseller.findUnique({ where: { id: rid }, select: { id: true } });
+      if (!known) {
+        errs.push({ field: "resellerId", code: "not_found" });
+      } else {
+        resellerId = rid;
+      }
+    }
+  }
+
   if (errs.length) return { ok: false, fields: errs };
   return {
     ok: true,
@@ -201,6 +222,7 @@ export function validateTemplate(
       ipLimit,
       priceToman,
       botVisible,
+      resellerId,
     },
   };
 }
@@ -214,6 +236,8 @@ export type TemplateDTO = {
   enabled: boolean;
   priceToman: number;
   botVisible: boolean;
+  /** task 3-1 — "" = owner's global catalog; a reseller id = scoped to that bot shop. */
+  resellerId: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -228,6 +252,7 @@ export function toTemplateDTO(row: SaleTemplate): TemplateDTO {
     enabled: row.enabled,
     priceToman: row.priceToman ?? 0,
     botVisible: Boolean(row.botVisible),
+    resellerId: row.resellerId ?? "",
     createdAt: new Date(row.createdAt).toISOString(),
     updatedAt: new Date(row.updatedAt).toISOString(),
   };
@@ -327,5 +352,139 @@ export function resellerCreateData(data: ValidatedReseller) {
     brandName: data.brandName,
     brandLogo: data.brandLogo,
     brandAccent: data.brandAccent,
+  };
+}
+
+/* ============================================================
+   task 3-1 — per-reseller Telegram bot (own token, own shop)
+
+   Scoping model (discovered + implemented here):
+   • catalog    = saleTemplate rows whose resellerId == this reseller
+     ("" templates stay in the OWNER's main-bot shop only);
+   • customers  = tgUser rows whose resellerId == this reseller
+     (set on the FIRST /start through THIS bot; "" = main bot);
+   • orders     = tgOrder rows whose resellerId == this reseller
+     (stamped at creation by the reseller worker).
+   Payment NEVER falls back to the owner's gateway: the reseller row
+   carries its own card/holder/zarinpal merchant; when unset the bot
+   shows an honest "payment not configured" and takes no orders.
+   ============================================================ */
+
+/** Head/tail mask for the reseller bot token + gateway secrets — mirrors the
+ *  settings-API masking (maskBotToken / maskSecretValue): the raw secret never
+ *  echoes back; "" (unset) stays "". */
+export function maskResellerSecret(v: string | null | undefined): string {
+  const s = (v ?? "").trim();
+  if (!s) return "";
+  if (s.length < 12) return "••••••••";
+  return `${s.slice(0, 4)}••••••••${s.slice(-4)}`;
+}
+
+/** Telegram bot token shape — same sane subset the main bot settings accept. */
+export const RESELLER_BOT_TOKEN_RE = /^\d{6,12}:[A-Za-z0-9_-]{30,50}$/;
+
+/** PUT /api/resellers/[id]/bot body (validated): absent = keep, "" = keep for
+ *  the token (bullet-carrying masked echo also = keep), fresh value replaces. */
+export type ValidatedResellerBotPatch = {
+  botToken?: string; // fresh token (validated shape) — only present when replacing
+  botEnabled?: boolean;
+  payCardNumber?: string; // "" = clear, bullet-echo = keep (absent here)
+  payCardHolder?: string;
+  payZarinpalMerchant?: string; // "" = clear, bullet-echo = keep (absent here)
+};
+
+export function validateResellerBotPatch(
+  body: unknown
+): { ok: true; data: ValidatedResellerBotPatch } | { ok: false; fields: FieldError[] } {
+  const errs: FieldError[] = [];
+  const b = (body ?? {}) as Record<string, unknown>;
+  const out: ValidatedResellerBotPatch = {};
+
+  if (b.botToken !== undefined) {
+    const t = typeof b.botToken === "string" ? b.botToken.trim() : "";
+    // "" = keep the stored token; a masked echo (carries •) = keep too
+    if (t !== "" && !t.includes("•")) {
+      if (!RESELLER_BOT_TOKEN_RE.test(t)) {
+        errs.push({ field: "botToken", code: "format" });
+      } else {
+        out.botToken = t;
+      }
+    }
+  }
+  if (b.botEnabled !== undefined) out.botEnabled = Boolean(b.botEnabled);
+
+  /* gateway secrets: "" = clear, masked echo (•) = keep (omitted from the
+     patch so the stored value survives), anything fresh = replace */
+  for (const key of ["payCardNumber", "payCardHolder", "payZarinpalMerchant"] as const) {
+    if (b[key] !== undefined) {
+      const v = typeof b[key] === "string" ? (b[key] as string).trim() : "";
+      if (v.includes("•")) continue; // masked echo — keep
+      out[key] = v.slice(0, 200);
+    }
+  }
+
+  if (errs.length) return { ok: false, fields: errs };
+  return { ok: true, data: out };
+}
+
+/** GET /api/resellers/[id]/bot payload — the token NEVER echoes (masked hint
+ *  only) and every figure is computed live from the scoped store rows. */
+export type ResellerBotDTO = {
+  resellerId: string;
+  botUsername: string;
+  botEnabled: boolean;
+  tokenConfigured: boolean;
+  tokenMasked: string;
+  status: {
+    state: "running" | "stopped" | "error";
+    reason: string;
+    startedAt: string | null;
+    lastPollAt: string | null;
+    handledUpdates: number;
+  };
+  customers: number;
+  ordersTotal: number;
+  ordersCompleted: number;
+  salesToday: { count: number; sumToman: number };
+  salesWeek: { count: number; sumToman: number };
+  catalogCount: number;
+  payCardConfigured: boolean;
+  payZarinConfigured: boolean;
+  payCardMasked: string;
+  payCardHolder: string;
+  payZarinMasked: string;
+};
+
+/** Live shop stats for ONE reseller — counts + today/7d completed sums. */
+export async function resellerBotStats(resellerId: string): Promise<{
+  customers: number;
+  ordersTotal: number;
+  ordersCompleted: number;
+  salesToday: { count: number; sumToman: number };
+  salesWeek: { count: number; sumToman: number };
+  catalogCount: number;
+}> {
+  const [customers, ordersTotal, ordersCompleted, catalogCount] = await Promise.all([
+    db.tgUser.count({ where: { resellerId } }),
+    db.tgOrder.count({ where: { resellerId } }),
+    db.tgOrder.count({ where: { resellerId, status: "completed" } }),
+    db.saleTemplate.count({ where: { resellerId } }),
+  ]);
+  const completed = await db.tgOrder.findMany({
+    where: { resellerId, status: "completed" },
+    orderBy: { updatedAt: "desc" },
+    take: 500,
+  });
+  const startOfDay = new Date(new Date().setHours(0, 0, 0, 0)).getTime();
+  const weekAgo = Date.now() - 7 * 86_400_000;
+  const today = completed.filter((o) => new Date(o.updatedAt).getTime() >= startOfDay);
+  const week = completed.filter((o) => new Date(o.updatedAt).getTime() >= weekAgo);
+  return {
+    customers,
+    ordersTotal,
+    ordersCompleted,
+    salesToday: { count: today.length, sumToman: today.reduce((s, o) => s + (o.amountToman || 0), 0) },
+    salesWeek: { count: week.length, sumToman: week.reduce((s, o) => s + (o.amountToman || 0), 0) },
+    catalogCount,
   };
 }

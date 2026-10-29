@@ -126,6 +126,16 @@ export interface Reseller {
   brandLogo: string | null;
   /** 26-c — accent hex color (e.g. "#f59e0b") for their sub pages. */
   brandAccent: string | null;
+  /* task 3-1 — per-reseller Telegram bot (own token, own shop). "" = no token;
+     botUsername is the getMe result cached by the reseller worker. */
+  botToken: string;
+  botEnabled: boolean;
+  botUsername: string;
+  /* task 3-1 — the reseller's OWN payment gateway for their bot (never falls
+     back to the owner's gateway; "" = not configured → honest pay-unavailable). */
+  payCardNumber: string;
+  payCardHolder: string;
+  payZarinpalMerchant: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -141,6 +151,9 @@ export interface SaleTemplate {
   priceToman: number;
   /** Whether the sales bot lists this template in the shop. */
   botVisible: boolean;
+  /** task 3-1 — catalog scoping: "" = owner's (global) catalog; otherwise this
+   *  template is only listed in THAT reseller's bot shop. */
+  resellerId: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -260,6 +273,10 @@ export interface TgUser {
   refBy?: string;
   refRewarded?: boolean;
   refEarnedToman?: number;
+  /** task 3-1 — which shop this Telegram customer belongs to: "" = the
+   *  owner's main bot; a reseller id = they /started THAT reseller's bot.
+   *  Backfilled to "" at load (pre-3-1 rows are main-bot customers). */
+  resellerId: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -302,6 +319,11 @@ export interface TgOrder {
    *  successful_payment message. OPTIONAL: stars orders only; absent = not
    *  settled yet (or a non-stars order). */
   chargeId?: string;
+  /** task 3-1 — which bot created this order: "" = the owner's main bot;
+   *  a reseller id = the order came through THAT reseller's bot. Backfilled
+   *  to "" at load; the owner worker filters on "" so reseller commerce
+   *  never rides the owner's payment sweeps or receipt matching. */
+  resellerId: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -535,6 +557,28 @@ for (const u of state.clientUser as Array<Record<string, unknown>>) {
   if (u.expiryWarnedAt === undefined) u.expiryWarnedAt = null;
 }
 
+/* task 3-1 — reseller-bot scoping backfills: pre-3-1 tgUser/tgOrder rows are
+   the owner's main-bot customers/orders (""), templates are global (""), and
+   every reseller row gets its bot + gateway scalar set. Defensive — the JSON
+   store tolerates missing keys but typed reads should not see undefined. */
+for (const r of state.reseller as Array<Record<string, unknown>>) {
+  if (typeof r.botToken !== "string") r.botToken = "";
+  if (typeof r.botEnabled !== "boolean") r.botEnabled = false;
+  if (typeof r.botUsername !== "string") r.botUsername = "";
+  if (typeof r.payCardNumber !== "string") r.payCardNumber = "";
+  if (typeof r.payCardHolder !== "string") r.payCardHolder = "";
+  if (typeof r.payZarinpalMerchant !== "string") r.payZarinpalMerchant = "";
+}
+for (const t of state.saleTemplate as Array<Record<string, unknown>>) {
+  if (typeof t.resellerId !== "string") t.resellerId = "";
+}
+for (const u of state.tgUser as Array<Record<string, unknown>>) {
+  if (typeof u.resellerId !== "string") u.resellerId = "";
+}
+for (const o of state.tgOrder as Array<Record<string, unknown>>) {
+  if (typeof o.resellerId !== "string") o.resellerId = "";
+}
+
 /* task 3-b — backfill admin users created before fine-grained RBAC so every
    row carries the full scalar set: single-admin deployments become "owner"
    automatically (no migration), enabled defaults on, lastLogin starts null. */
@@ -677,6 +721,13 @@ const DEFAULTS: Record<TableName, () => Record<string, any>> = {
     brandName: null,
     brandLogo: null,
     brandAccent: null,
+    // task 3-1 — per-reseller bot + own payment gateway ("" = unset)
+    botToken: "",
+    botEnabled: false,
+    botUsername: "",
+    payCardNumber: "",
+    payCardHolder: "",
+    payZarinpalMerchant: "",
     createdAt: new Date(),
     updatedAt: new Date(),
   }),
@@ -688,6 +739,7 @@ const DEFAULTS: Record<TableName, () => Record<string, any>> = {
     enabled: true,
     priceToman: 0,
     botVisible: false,
+    resellerId: "", // task 3-1 — "" = owner's global catalog
     createdAt: new Date(),
     updatedAt: new Date(),
   }),
@@ -768,6 +820,7 @@ const DEFAULTS: Record<TableName, () => Record<string, any>> = {
     tgUsername: "",
     lang: "en",
     banned: false,
+    resellerId: "", // task 3-1 — "" = owner's main bot (reseller bots set their own id on first /start)
     // 2-e — anti-abuse defaults (bannedAt stays ABSENT until a ban happens)
     banReason: "",
     // 2-d — referral defaults (refCode stays ABSENT until lazily generated)
@@ -784,6 +837,7 @@ const DEFAULTS: Record<TableName, () => Record<string, any>> = {
     authority: "",
     receiptFileId: "",
     provisionedUserId: null,
+    resellerId: "", // task 3-1 — "" = created by the owner's main bot
     createdAt: new Date(),
     updatedAt: new Date(),
   }),
