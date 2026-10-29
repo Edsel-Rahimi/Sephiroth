@@ -1,30 +1,52 @@
 /**
  * Sephiroth — KataBump remote provisioning (Task 16)
- * Talks to the LIVE panel at http://203.0.113.10:20364 with its own API:
+ * Talks to a LIVE Sephiroth panel deployment with its own API:
  *  1. login (admin) → cookie
  *  2. wipe every demo object (inbounds, users, groups, hosts, nodes,
  *     outbounds, routing rules, resellers, templates, activity)
  *  3. create the production VLESS inbound + owner user
- * Usage: node scripts/vless-katabump.cjs
+ *
+ * All server identity + credentials come from the environment (no hardcoded
+ * host/IP/user/password — this file is public):
+ *   KATA_BASE       panel base URL, e.g. http://YOUR_SERVER_IP:20364 (required)
+ *   KATA_LISTEN     listen IP for the VLESS inbound (required; the server's
+ *                   public IPv4 — use 0.0.0.0 only if you know what you're doing)
+ *   KATA_USER       proxy client username to create/link (required)
+ *   KATA_ADMIN_USER panel admin username (default: admin)
+ *   KATA_ADMIN_PASS panel admin password (required)
+ * Usage:
+ *   KATA_BASE=http://<host>:<port> KATA_LISTEN=<public-ip> \
+ *   KATA_USER=<proxy-user> KATA_ADMIN_PASS=<admin-password> \
+ *   node scripts/vless-katabump.cjs
  */
-const BASE = process.env.KATA_BASE || 'http://203.0.113.10:20364'
+function requireEnv(name) {
+  const v = process.env[name]
+  if (!v || !v.trim()) {
+    console.error(`${name} required`)
+    process.exit(1)
+  }
+  return v.trim()
+}
+const BASE = requireEnv('KATA_BASE')
+const LISTEN = requireEnv('KATA_LISTEN')
+const USERNAME = requireEnv('KATA_USER')
+const ADMIN_USER = (process.env.KATA_ADMIN_USER || 'admin').trim()
+const ADMIN_PASS = requireEnv('KATA_ADMIN_PASS')
 const INBOUND = {
   tag: 'vless-main',
   protocol: 'vless',
-  port: 20364,
-  listen: '203.0.113.10',
+  port: Number(process.env.KATA_PORT || 20364),
+  listen: LISTEN,
   transport: 'ws',
   security: 'none',
   status: 'online',
-  note: 'Sephiroth production edge · KataBump fr-node-36 · VLESS over WebSocket at /vlessws',
+  note: 'Sephiroth production edge · VLESS over WebSocket at /vlessws',
   trafficLimitGb: null,
   expiryDays: null,
   sniffingJson: JSON.stringify({ enabled: true, destOverride: ['http', 'tls'], routeOnly: false }),
   streamJson: JSON.stringify({ path: '/vlessws' }),
   clientsJson: '[]',
 }
-const USERNAME = 'edsel-rahimi'
-
 let cookie = ''
 
 async function api(method, path, body) {
@@ -68,8 +90,8 @@ async function wipeList(label, key, path) {
 async function main() {
   /* ---------- 1 · login ---------- */
   const login = await api('POST', '/api/auth/login', {
-    username: 'admin',
-    password: 'sephiroth',
+    username: ADMIN_USER,
+    password: ADMIN_PASS,
   })
   if (login.status !== 200 || !cookie) {
     console.error('login failed', login.status, login.text.slice(0, 200))

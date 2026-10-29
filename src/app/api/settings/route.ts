@@ -7,7 +7,7 @@ import {
   getGeneralSettings,
   getExpertSettings,
   getSecuritySettings,
-  getPaymentSettings,
+  getPaymentSettingsView,
   getSslSettings,
   getWebhookSettings,
   getDiscordSettings,
@@ -42,6 +42,9 @@ import { logActivity } from "@/lib/activity";
    PUT  /api/settings           → body { section: "core" | "telegram" | "nav"
                                           | "general" | "expert" | "security" | "payment"
                                           | "ssl" | "webhooks" | "discord", ...patch }
+   Note: the payment section ships MASKED credentials (cardNumber /
+   zarinpalMerchant / usdtWallet) — echoing a masked value back in a PUT
+   keeps the stored secret; only a fresh non-masked value overwrites it.
    ============================================================ */
 
 export async function GET(req: Request) {
@@ -57,7 +60,7 @@ export async function GET(req: Request) {
       getGeneralSettings(),
       getExpertSettings(),
       getSecuritySettings(),
-      getPaymentSettings(),
+      getPaymentSettingsView(),
       getSslSettings(),
       getWebhookSettings(),
       getDiscordSettings(),
@@ -139,7 +142,7 @@ export async function PUT(req: Request) {
         );
       }
       await savePaymentSettings(parsed.data);
-      const payment = await getPaymentSettings();
+      const payment = await getPaymentSettingsView(); // masked — raw secrets never echo back
       await logActivity({
         kind: "settings.updated",
         level: "info",

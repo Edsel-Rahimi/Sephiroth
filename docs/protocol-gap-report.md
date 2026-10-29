@@ -121,11 +121,11 @@ same code path the hysteria sidecar uses — already E2E-proven there).
   0.0.0.0:31087`.
 - hy2 client (socks 127.0.0.1:31992 → outbound hysteria2, insecure):
   `curl --socks5-hostname 127.0.0.1:31992 http://api.ipify.org` →
-  **`47.57.232.232`, code=200**.
+  **`203.0.113.10`, code=200** (egress IP anonymized — TEST-NET-3).
 - tuic client (socks 127.0.0.1:31991 → outbound tuic, bbr, insecure):
   `curl --socks5-hostname 127.0.0.1:31991 http://api.ipify.org` →
-  **`8.212.10.159`, code=200** (server log shows the `[e2e@test] inbound
-  connection to api.ipify.org:80`).
+  **`203.0.113.11`, code=200** (egress IP anonymized — TEST-NET-3; server log
+  shows the `[e2e@test] inbound connection to api.ipify.org:80`).
 - The full panel-level E2E (store → driver → both cores → curl → sub export)
   is documented in the worklog Task 23-c entry.
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Coins, CreditCard, ShieldCheck, Wallet, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,24 +10,93 @@ import { dictionaries } from "@/lib/i18n/dictionaries";
 import { useAppStore } from "@/lib/store/app-store";
 import { useToast } from "@/hooks/use-toast";
 
+/** Payment section as shipped by GET/PUT /api/settings — cardNumber,
+ *  zarinpalMerchant and usdtWallet arrive MASKED (head+tail bullets) and are
+ *  only overwritten server-side when a fresh non-masked value is submitted. */
+interface PaymentViewDTO {
+  cardToCardEnabled?: boolean;
+  zarinpalEnabled?: boolean;
+  cryptoEnabled?: boolean;
+  cardNumber?: string;
+  zarinpalMerchant?: string;
+  usdtWallet?: string;
+  pricePerGb?: string;
+}
+
 export function ResellerPaymentPanel() {
   const lang = useAppStore((s) => s.lang);
-  const t = useMemo(() => dictionaries[lang].payment, [lang]);
+  const d = dictionaries[lang];
+  const t = d.payment;
   const { toast } = useToast();
 
-  // TODO(18-3): persist gateway credentials + toggles via /api/settings —
-  // settings.ts has no paymentGateway section yet, so fields stay session-only.
+  // Task 18-3 — hydrated from GET /api/settings (section "payment"); the save
+  // button below does a real PUT. Masked credentials echo back untouched.
   const [zarinpalEnabled, setZarinpalEnabled] = useState(true);
   const [cryptoEnabled, setCryptoEnabled] = useState(true);
   const [cardToCardEnabled, setCardToCardEnabled] = useState(true);
-  const [merchantId, setMerchantId] = useState("zp-9a84b712-sephiroth-gateway-2026");
-  const [usdtWallet, setUsdtWallet] = useState("TX9kSephirothOrbitTrc20Wallet8892");
-  const [cardNumber, setCardNumber] = useState("6037-9975-8412-3091");
-  const [pricePerGb, setPricePerGb] = useState("1800");
+  const [merchantId, setMerchantId] = useState("");
+  const [usdtWallet, setUsdtWallet] = useState("");
+  const [cardNumber, setCardNumber] = useState("");
+  const [pricePerGb, setPricePerGb] = useState("");
+  const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const saveHooks = () => {
-    // Honest preview toast: nothing is written server-side yet (no settings key).
-    toast({ description: t.savePreview });
+  const applyView = (p: PaymentViewDTO) => {
+    setCardToCardEnabled(p.cardToCardEnabled ?? true);
+    setCardNumber(p.cardNumber ?? "");
+    setPricePerGb(p.pricePerGb ?? "");
+    setZarinpalEnabled(p.zarinpalEnabled ?? true);
+    setMerchantId(p.zarinpalMerchant ?? "");
+    setCryptoEnabled(p.cryptoEnabled ?? true);
+    setUsdtWallet(p.usdtWallet ?? "");
+  };
+
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      try {
+        const res = await fetch("/api/settings", { cache: "no-store" });
+        if (res.ok && alive) {
+          const data = (await res.json()) as { payment?: PaymentViewDTO };
+          if (data.payment) applyView(data.payment);
+        }
+      } catch {
+        /* inputs stay at their defaults until the next reload */
+      }
+      if (alive) setLoaded(true);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const saveHooks = async () => {
+    if (saving || !loaded) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          section: "payment",
+          cardToCardEnabled,
+          cardNumber: cardNumber.trim(),
+          pricePerGb: pricePerGb.trim(),
+          zarinpalEnabled,
+          zarinpalMerchant: merchantId.trim(),
+          cryptoEnabled,
+          usdtWallet: usdtWallet.trim(),
+        }),
+      });
+      if (!res.ok) throw new Error("save");
+      const data = (await res.json()) as { payment?: PaymentViewDTO };
+      // re-hydrate from the server view — secrets come back masked
+      if (data.payment) applyView(data.payment);
+      toast({ description: d.bot.paySaved });
+    } catch {
+      toast({ variant: "destructive", description: d.inbounds.errGeneric });
+    }
+    setSaving(false);
   };
 
   return (
@@ -124,7 +193,7 @@ export function ResellerPaymentPanel() {
             />
           </div>
           <div className="pt-1 flex justify-end">
-            <Button size="sm" onClick={saveHooks} className="gap-1.5 rounded-full">
+            <Button size="sm" onClick={() => void saveHooks()} disabled={saving || !loaded} className="gap-1.5 rounded-full">
               <Check className="h-3.5 w-3.5" />
               {t.save}
             </Button>

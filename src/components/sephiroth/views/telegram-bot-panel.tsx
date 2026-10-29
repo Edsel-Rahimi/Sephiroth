@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Bot, ExternalLink, Loader2, Send, Terminal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -17,17 +17,45 @@ import { useToast } from "@/hooks/use-toast";
 
 export function TelegramBotPanel() {
   const lang = useAppStore((s) => s.lang);
-  const t = useMemo(() => dictionaries[lang].tgBot, [lang]);
+  const d = dictionaries[lang];
+  const t = d.tgBot;
   const { toast } = useToast();
 
   const [runningCmd, setRunningCmd] = useState<string | null>(null);
   const [botOutput, setBotOutput] = useState<string | null>(null);
   const [lastSubUrl, setLastSubUrl] = useState<string | null>(null);
 
+  /** Telegram section as shipped by GET /api/settings (subset the panel needs). */
+  interface TelegramDTO {
+    enabled?: boolean;
+    chatId?: string;
+    tokenConfigured?: boolean;
+    tokenMasked?: string;
+    notify?: Record<string, boolean>;
+    botMode?: string;
+    adminChatIds?: string[];
+    botApiBase?: string;
+    botProxyUrl?: string;
+    botLang?: string;
+    salesTemplateId?: string;
+    salesPayMode?: string;
+    selfService?: boolean;
+    receiptApprove?: boolean;
+    guardianHeal?: boolean;
+    backupIntervalHours?: number;
+  }
+
   // Honest bot identity: derive from real server settings (token lives server-side,
   // GET /api/settings only exposes tokenConfigured + tokenMasked).
   const [tokenConfigured, setTokenConfigured] = useState<boolean | null>(null);
   const [tokenMasked, setTokenMasked] = useState("");
+
+  // Task 18-3 — automation toggles + backup cadence hydrate from the same GET
+  // and persist instantly (auto-PUT on change; see saveAutomation below).
+  const [selfService, setSelfService] = useState(true);
+  const [receiptApprove, setReceiptApprove] = useState(true);
+  const [autoBackupInterval, setAutoBackupInterval] = useState("6h");
+  const [guardianHeal, setGuardianHeal] = useState(true);
 
   useEffect(() => {
     let alive = true;
@@ -35,11 +63,15 @@ export function TelegramBotPanel() {
       try {
         const res = await fetch("/api/settings", { cache: "no-store" });
         if (res.ok && alive) {
-          const data = (await res.json()) as {
-            telegram?: { tokenConfigured?: boolean; tokenMasked?: string };
-          };
-          setTokenConfigured(Boolean(data.telegram?.tokenConfigured));
-          setTokenMasked(data.telegram?.tokenMasked ?? "");
+          const data = (await res.json()) as { telegram?: TelegramDTO };
+          const tg = data.telegram;
+          setTokenConfigured(Boolean(tg?.tokenConfigured));
+          setTokenMasked(tg?.tokenMasked ?? "");
+          setSelfService(tg?.selfService ?? true);
+          setReceiptApprove(tg?.receiptApprove ?? true);
+          setGuardianHeal(tg?.guardianHeal ?? true);
+          const hours = tg?.backupIntervalHours;
+          setAutoBackupInterval(hours === 1 || hours === 12 || hours === 24 ? `${hours}h` : "6h");
         }
       } catch {
         /* keep simulated state */
@@ -50,12 +82,46 @@ export function TelegramBotPanel() {
     };
   }, []);
 
-  // TODO(18-3): persist automation toggles + backup cadence via /api/settings —
-  // settings.ts has no telegramAutomation section yet, so these stay session-only.
-  const [selfService, setSelfService] = useState(true);
-  const [receiptApprove, setReceiptApprove] = useState(true);
-  const [autoBackupInterval, setAutoBackupInterval] = useState("6h");
-  const [guardianHeal, setGuardianHeal] = useState(true);
+  // Task 18-3 — persist automation toggles + backup cadence. Merge onto a
+  // FRESH server copy (same pattern as telegram-bot-settings.tsx) so the PUT
+  // never clobbers the bot identity fields; token: "" = keep the saved token.
+  const saveAutomation = async (patch: {
+    selfService?: boolean;
+    receiptApprove?: boolean;
+    guardianHeal?: boolean;
+    backupIntervalHours?: number;
+  }) => {
+    try {
+      const cur = await fetch("/api/settings", { cache: "no-store" });
+      if (!cur.ok) throw new Error("load");
+      const curData = (await cur.json()) as { telegram?: TelegramDTO };
+      const tg = curData.telegram;
+      if (!tg) throw new Error("load");
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          section: "telegram",
+          enabled: tg.enabled ?? false,
+          chatId: tg.chatId ?? "",
+          token: "", // empty = keep the saved token
+          notify: tg.notify ?? {},
+          botMode: tg.botMode,
+          adminChatIds: (tg.adminChatIds ?? []).join(","),
+          botApiBase: tg.botApiBase || undefined,
+          botProxyUrl: tg.botProxyUrl || undefined,
+          botLang: tg.botLang,
+          salesTemplateId: tg.salesTemplateId || undefined,
+          salesPayMode: tg.salesPayMode,
+          ...patch,
+        }),
+      });
+      if (!res.ok) throw new Error("save");
+      toast({ description: d.bot.botSaved });
+    } catch {
+      toast({ variant: "destructive", description: d.inbounds.errGeneric });
+    }
+  };
 
   const runBotCommand = async (command: string) => {
     setRunningCmd(command);
@@ -171,7 +237,14 @@ export function TelegramBotPanel() {
               <p className="text-sm font-medium text-foreground">{t.selfService}</p>
               <p className="text-xs text-muted-foreground">{t.selfServiceD}</p>
             </div>
-            <Switch checked={selfService} onCheckedChange={setSelfService} aria-label={t.selfService} />
+            <Switch
+              checked={selfService}
+              onCheckedChange={(v) => {
+                setSelfService(v);
+                void saveAutomation({ selfService: v });
+              }}
+              aria-label={t.selfService}
+            />
           </div>
 
           <div className="flex items-center justify-between gap-3 py-1 border-t border-white/10 pt-3">
@@ -179,7 +252,14 @@ export function TelegramBotPanel() {
               <p className="text-sm font-medium text-foreground">{t.receipt}</p>
               <p className="text-xs text-muted-foreground">{t.receiptD}</p>
             </div>
-            <Switch checked={receiptApprove} onCheckedChange={setReceiptApprove} aria-label={t.receipt} />
+            <Switch
+              checked={receiptApprove}
+              onCheckedChange={(v) => {
+                setReceiptApprove(v);
+                void saveAutomation({ receiptApprove: v });
+              }}
+              aria-label={t.receipt}
+            />
           </div>
 
           <div className="flex items-center justify-between gap-3 py-1 border-t border-white/10 pt-3">
@@ -187,7 +267,14 @@ export function TelegramBotPanel() {
               <p className="text-sm font-medium text-foreground">{t.guardian}</p>
               <p className="text-xs text-muted-foreground">{t.guardianD}</p>
             </div>
-            <Switch checked={guardianHeal} onCheckedChange={setGuardianHeal} aria-label={t.guardian} />
+            <Switch
+              checked={guardianHeal}
+              onCheckedChange={(v) => {
+                setGuardianHeal(v);
+                void saveAutomation({ guardianHeal: v });
+              }}
+              aria-label={t.guardian}
+            />
           </div>
 
           <div className="flex items-center justify-between gap-3 border-t border-white/10 pt-3">
@@ -195,7 +282,15 @@ export function TelegramBotPanel() {
               <p className="text-sm font-medium text-foreground">{t.backup}</p>
               <p className="text-xs text-muted-foreground">{t.backupD}</p>
             </div>
-            <Select value={autoBackupInterval} onValueChange={setAutoBackupInterval}>
+            <Select
+              value={autoBackupInterval}
+              onValueChange={(v) => {
+                setAutoBackupInterval(v);
+                void saveAutomation({
+                  backupIntervalHours: v === "1h" ? 1 : v === "12h" ? 12 : v === "24h" ? 24 : 6,
+                });
+              }}
+            >
               <SelectTrigger id="tg-cadence" className="h-8 w-32 text-xs font-mono" aria-label={t.backup}>
                 <SelectValue />
               </SelectTrigger>

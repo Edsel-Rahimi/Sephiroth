@@ -69,6 +69,14 @@ export interface TelegramSettings {
   salesTemplateId: string;
   /** Which payment method the buy flow leads with ("manual" | "zarinpal"). */
   salesPayMode: "manual" | "zarinpal";
+  /** Task 18-3 — users may run self-service queries (quota, QR, sub links) themselves. */
+  selfService: boolean;
+  /** Task 18-3 — forward card-to-card receipts to the admin chat for approval. */
+  receiptApprove: boolean;
+  /** Task 18-3 — 60s core/sub self-healing guardian stays active. */
+  guardianHeal: boolean;
+  /** Task 18-3 — automated telegram backup cadence in hours (1 | 6 | 12 | 24). */
+  backupIntervalHours: number;
   /** Legacy fa/en default (pre-23-a) — kept only as the botLang fallback. */
   shopLang: "fa" | "en";
 }
@@ -127,6 +135,11 @@ const K = {
   tgBotLang: "set_tg_bot_lang",
   tgSalesTemplateId: "set_tg_sales_template_id",
   tgSalesPayMode: "set_tg_sales_pay_mode",
+  // Task 18-3 — bot automation toggles + telegram backup cadence (bot panel)
+  tgSelfService: "set_tg_self_service",
+  tgReceiptApprove: "set_tg_receipt_approve",
+  tgGuardianHeal: "set_tg_guardian_heal",
+  tgBackupHours: "set_tg_backup_hours",
   /** Long-poll offset persistence (23-a) — internal bookkeeping. */
   tgOffset: "set_tg_bot_offset",
   // v2.7 — outbound webhooks (automation fan-out)
@@ -141,10 +154,15 @@ const K = {
   dcChannelId: "set_dc_channel_id",
   dcLang: "set_dc_lang",
   dcPrefix: "set_dc_prefix",
-  // payment credentials read by the sales bot (card-to-card + ZarinPal)
+  // payment credentials + gateway toggles read by the sales bot (Task 18-3)
+  payCardToCardEnabled: "set_pay_card_to_card_enabled",
+  payZarinpalEnabled: "set_pay_zarinpal_enabled",
+  payCryptoEnabled: "set_pay_crypto_enabled",
   payCardNumber: "set_pay_card_number",
   payCardHolder: "set_pay_card_holder",
   payZarinpalMerchant: "set_pay_zarinpal_merchant",
+  payUsdtWallet: "set_pay_usdt_wallet",
+  payPricePerGb: "set_pay_price_per_gb",
   // top-bar module visibility
   navHosts: "set_nav_hosts",
   navNodes: "set_nav_nodes",
@@ -361,6 +379,7 @@ export async function getTelegramSettings(): Promise<TelegramSettings> {
     K.tgEnabled, K.tgToken, K.tgChatId, K.tgNotify,
     K.tgBotMode, K.tgAdminChatIds, K.tgProxyUrl, K.tgShopLang,
     K.tgApiBase, K.tgBotLang, K.tgSalesTemplateId, K.tgSalesPayMode,
+    K.tgSelfService, K.tgReceiptApprove, K.tgGuardianHeal, K.tgBackupHours,
   ]);
   const token = m.get(K.tgToken) ?? "";
   let notify = NOTIFY_DEFAULT;
@@ -388,6 +407,7 @@ export async function getTelegramSettings(): Promise<TelegramSettings> {
     ? (botLangRaw as BotLangCode)
     : "fa";
   const payModeRaw = m.get(K.tgSalesPayMode);
+  const hoursRaw = Number(m.get(K.tgBackupHours));
   return {
     enabled: m.get(K.tgEnabled) === "1",
     chatId: m.get(K.tgChatId) ?? "",
@@ -405,6 +425,12 @@ export async function getTelegramSettings(): Promise<TelegramSettings> {
     salesTemplateId: m.get(K.tgSalesTemplateId) ?? "",
     salesPayMode: payModeRaw === "zarinpal" ? "zarinpal" : "manual",
     shopLang: botLang === "en" ? "en" : "fa",
+    // Task 18-3 — automation toggles default ON (panel parity); cadence 6h
+    selfService: m.get(K.tgSelfService) !== "0", // "0" opts out
+    receiptApprove: m.get(K.tgReceiptApprove) !== "0",
+    guardianHeal: m.get(K.tgGuardianHeal) !== "0",
+    backupIntervalHours:
+      hoursRaw === 1 || hoursRaw === 6 || hoursRaw === 12 || hoursRaw === 24 ? hoursRaw : 6,
   };
 }
 
@@ -441,6 +467,12 @@ export function validateTelegramPatch(
   salesTemplateId?: string;
   salesPayMode?: "manual" | "zarinpal";
   shopLang?: "fa" | "en"; // legacy — kept for older clients, ignored when botLang is sent
+  // Task 18-3 — bot automation toggles + telegram backup cadence (all optional:
+  // undefined = keep the currently saved value)
+  selfService?: boolean;
+  receiptApprove?: boolean;
+  guardianHeal?: boolean;
+  backupIntervalHours?: number;
 }> {
   const b = (body ?? {}) as Record<string, unknown>;
   let token: string | null | undefined = undefined;
@@ -565,6 +597,37 @@ export function validateTelegramPatch(
     shopLang = b.shopLang;
   }
 
+  // Task 18-3 — automation toggles (strict booleans) + backup cadence (1|6|12|24h)
+  let selfService: boolean | undefined;
+  if (b.selfService !== undefined) {
+    if (typeof b.selfService !== "boolean") {
+      return { ok: false, fields: [{ field: "selfService", code: "format" }] };
+    }
+    selfService = b.selfService;
+  }
+  let receiptApprove: boolean | undefined;
+  if (b.receiptApprove !== undefined) {
+    if (typeof b.receiptApprove !== "boolean") {
+      return { ok: false, fields: [{ field: "receiptApprove", code: "format" }] };
+    }
+    receiptApprove = b.receiptApprove;
+  }
+  let guardianHeal: boolean | undefined;
+  if (b.guardianHeal !== undefined) {
+    if (typeof b.guardianHeal !== "boolean") {
+      return { ok: false, fields: [{ field: "guardianHeal", code: "format" }] };
+    }
+    guardianHeal = b.guardianHeal;
+  }
+  let backupIntervalHours: number | undefined;
+  if (b.backupIntervalHours !== undefined) {
+    const n = Number(b.backupIntervalHours);
+    if (!Number.isInteger(n) || (n !== 1 && n !== 6 && n !== 12 && n !== 24)) {
+      return { ok: false, fields: [{ field: "backupIntervalHours", code: "range" }] };
+    }
+    backupIntervalHours = n;
+  }
+
   return {
     ok: true,
     data: {
@@ -580,6 +643,10 @@ export function validateTelegramPatch(
       salesTemplateId,
       salesPayMode,
       shopLang,
+      selfService,
+      receiptApprove,
+      guardianHeal,
+      backupIntervalHours,
     },
   };
 }
@@ -597,6 +664,10 @@ export async function saveTelegramSettings(patch: {
   salesTemplateId?: string;
   salesPayMode?: "manual" | "zarinpal";
   shopLang?: "fa" | "en";
+  selfService?: boolean;
+  receiptApprove?: boolean;
+  guardianHeal?: boolean;
+  backupIntervalHours?: number;
 }): Promise<void> {
   await writeSetting(K.tgEnabled, patch.enabled ? "1" : "0");
   await writeSetting(K.tgChatId, patch.chatId);
@@ -629,6 +700,18 @@ export async function saveTelegramSettings(patch: {
   }
   if (patch.shopLang !== undefined) {
     await writeSetting(K.tgShopLang, patch.shopLang);
+  }
+  if (patch.selfService !== undefined) {
+    await writeSetting(K.tgSelfService, patch.selfService ? "1" : "0");
+  }
+  if (patch.receiptApprove !== undefined) {
+    await writeSetting(K.tgReceiptApprove, patch.receiptApprove ? "1" : "0");
+  }
+  if (patch.guardianHeal !== undefined) {
+    await writeSetting(K.tgGuardianHeal, patch.guardianHeal ? "1" : "0");
+  }
+  if (patch.backupIntervalHours !== undefined) {
+    await writeSetting(K.tgBackupHours, String(patch.backupIntervalHours));
   }
 }
 
@@ -929,42 +1012,126 @@ export async function saveDiscordSettings(patch: {
   }
 }
 
-/* ---------- payment credentials (read by the sales bot) ---------- */
+/* ---------- payment / reseller gateway (read by the sales bot) ---------- */
 
 export interface PaymentSettings {
-  /** Card-to-card destination number (digits, formatting free). */
+  /** Card-to-card hook active (reseller panel toggle, default ON). */
+  cardToCardEnabled: boolean;
+  /** ZarinPal webhook hook active (default ON). */
+  zarinpalEnabled: boolean;
+  /** Crypto USDT (TRC20) hook active (default ON). */
+  cryptoEnabled: boolean;
+  /** Card-to-card destination number (digits, formatting free). RAW — server-only; the settings API ships the masked form via getPaymentSettingsView(). */
   cardNumber: string;
   /** Card holder name shown to buyers. */
   cardHolder: string;
-  /** ZarinPal merchant id (GUID or 36-char id) — "" = gateway off. */
+  /** ZarinPal merchant id (GUID or 36-char id) — "" = gateway off. RAW — masked in the API view. */
   zarinpalMerchant: string;
+  /** TRC20 wallet address — "" = crypto hook off. RAW — masked in the API view. */
+  usdtWallet: string;
+  /** Reseller tariff per GB as displayed in the panel (free text, e.g. "1800"). */
+  pricePerGb: string;
 }
 
 const PAYMENT_DEFAULT: PaymentSettings = {
+  cardToCardEnabled: true,
+  zarinpalEnabled: true,
+  cryptoEnabled: true,
   cardNumber: "",
   cardHolder: "",
   zarinpalMerchant: "",
+  usdtWallet: "",
+  pricePerGb: "",
 };
 
 export async function getPaymentSettings(): Promise<PaymentSettings> {
-  const m = await readSettings([K.payCardNumber, K.payCardHolder, K.payZarinpalMerchant]);
+  const m = await readSettings([
+    K.payCardToCardEnabled, K.payZarinpalEnabled, K.payCryptoEnabled,
+    K.payCardNumber, K.payCardHolder, K.payZarinpalMerchant,
+    K.payUsdtWallet, K.payPricePerGb,
+  ]);
   return {
+    cardToCardEnabled: m.get(K.payCardToCardEnabled) !== "0", // default ON — "0" opts out
+    zarinpalEnabled: m.get(K.payZarinpalEnabled) !== "0",
+    cryptoEnabled: m.get(K.payCryptoEnabled) !== "0",
     cardNumber: m.get(K.payCardNumber) ?? PAYMENT_DEFAULT.cardNumber,
     cardHolder: m.get(K.payCardHolder) ?? PAYMENT_DEFAULT.cardHolder,
     zarinpalMerchant: m.get(K.payZarinpalMerchant) ?? PAYMENT_DEFAULT.zarinpalMerchant,
+    usdtWallet: m.get(K.payUsdtWallet) ?? PAYMENT_DEFAULT.usdtWallet,
+    pricePerGb: m.get(K.payPricePerGb) ?? PAYMENT_DEFAULT.pricePerGb,
   };
 }
+
+/**
+ * Head/tail mask for payment credentials — mirrors maskBotToken: the raw
+ * card number / merchant id / USDT wallet never leave the server through the
+ * settings API. GET ships this mask, and a PUT whose value still carries the
+ * "•" bullet is treated as "keep the stored secret" (only a fresh,
+ * bullet-free value overwrites — "" clears the credential).
+ */
+function maskSecretValue(v: string): string {
+  const s = v.trim();
+  if (!s) return "";
+  if (s.length < 12) return "••••••••";
+  return `${s.slice(0, 4)}••••••••${s.slice(-4)}`;
+}
+
+/** Client-facing payment settings — secrets masked, `*Configured` flags tell the UI a value exists. */
+export interface PaymentSettingsView {
+  cardToCardEnabled: boolean;
+  zarinpalEnabled: boolean;
+  cryptoEnabled: boolean;
+  cardNumber: string; // masked
+  cardNumberConfigured: boolean;
+  cardHolder: string;
+  zarinpalMerchant: string; // masked
+  zarinpalMerchantConfigured: boolean;
+  usdtWallet: string; // masked
+  usdtWalletConfigured: boolean;
+  pricePerGb: string;
+}
+
+export async function getPaymentSettingsView(): Promise<PaymentSettingsView> {
+  const pay = await getPaymentSettings();
+  return {
+    cardToCardEnabled: pay.cardToCardEnabled,
+    zarinpalEnabled: pay.zarinpalEnabled,
+    cryptoEnabled: pay.cryptoEnabled,
+    cardNumber: maskSecretValue(pay.cardNumber),
+    cardNumberConfigured: pay.cardNumber.trim().length > 0,
+    cardHolder: pay.cardHolder,
+    zarinpalMerchant: maskSecretValue(pay.zarinpalMerchant),
+    zarinpalMerchantConfigured: pay.zarinpalMerchant.trim().length > 0,
+    usdtWallet: maskSecretValue(pay.usdtWallet),
+    usdtWalletConfigured: pay.usdtWallet.trim().length > 0,
+    pricePerGb: pay.pricePerGb,
+  };
+}
+
+const PAYMENT_SECRETS = new Set<string>(["cardNumber", "zarinpalMerchant", "usdtWallet"]);
 
 export async function validatePaymentPatch(body: unknown): Promise<PatchResult<PaymentSettings>> {
   const b = (body ?? {}) as Record<string, unknown>;
   // merge onto the CURRENTLY SAVED values so a partial PUT never wipes fields
   const out: PaymentSettings = { ...(await getPaymentSettings()) };
-  for (const key of ["cardNumber", "cardHolder", "zarinpalMerchant"] as const) {
+  for (const key of ["cardToCardEnabled", "zarinpalEnabled", "cryptoEnabled"] as const) {
+    if (b[key] !== undefined) {
+      if (typeof b[key] !== "boolean") {
+        return { ok: false, fields: [{ field: key, code: "format" }] };
+      }
+      out[key] = b[key];
+    }
+  }
+  for (const key of ["cardNumber", "cardHolder", "zarinpalMerchant", "usdtWallet", "pricePerGb"] as const) {
     if (b[key] !== undefined) {
       const v = String(b[key]).trim();
       if (v.length > 120 || /[\r\n]/.test(v)) {
         return { ok: false, fields: [{ field: key, code: "format" }] };
       }
+      // Masked round-trip (honest-secret rule): the client echoed the masked
+      // form back → keep the stored secret untouched. A new non-masked value
+      // (including "" = clear) overwrites.
+      if (PAYMENT_SECRETS.has(key) && v.includes("•")) continue;
       out[key] = v;
     }
   }
@@ -972,9 +1139,14 @@ export async function validatePaymentPatch(body: unknown): Promise<PatchResult<P
 }
 
 export async function savePaymentSettings(p: PaymentSettings): Promise<void> {
+  await writeSetting(K.payCardToCardEnabled, p.cardToCardEnabled ? "1" : "0");
+  await writeSetting(K.payZarinpalEnabled, p.zarinpalEnabled ? "1" : "0");
+  await writeSetting(K.payCryptoEnabled, p.cryptoEnabled ? "1" : "0");
   await writeSetting(K.payCardNumber, p.cardNumber);
   await writeSetting(K.payCardHolder, p.cardHolder);
   await writeSetting(K.payZarinpalMerchant, p.zarinpalMerchant);
+  await writeSetting(K.payUsdtWallet, p.usdtWallet);
+  await writeSetting(K.payPricePerGb, p.pricePerGb);
 }
 
 /* ---------- ssl / acme (Task 23-f) ---------- */

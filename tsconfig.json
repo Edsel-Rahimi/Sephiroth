@@ -36,6 +36,7 @@
   },
   "exclude": [
     "dist",
+    "public-export",
     "skills",
     "examples",
     "tool-results",

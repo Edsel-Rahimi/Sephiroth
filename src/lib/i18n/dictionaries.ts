@@ -3526,7 +3526,7 @@ export const dictionaries: Record<Lang, Dict> = {
       cad6h: "Every 6h",
       cad12h: "Every 12h",
       cad24h: "Daily (24h)",
-      previewNote: "Preview: automation switches are session-only until settings persistence lands.",
+      previewNote: "Automation switches and backup cadence are saved automatically.",
     },
 
     /* Task 23-c — sales bot */
@@ -5403,7 +5403,7 @@ export const dictionaries: Record<Lang, Dict> = {
       cad6h: "هر ۶ ساعت",
       cad12h: "هر ۱۲ ساعت",
       cad24h: "روزانه (۲۴ ساعت)",
-      previewNote: "پیش‌نمایش: کلیدهای اتوماسیون تا اضافه شدن ذخیره‌سازی تنظیمات فقط در همین نشست اعمال می‌شوند.",
+      previewNote: "کلیدهای اتوماسیون و بازه پشتیبان‌گیری به‌صورت خودکار ذخیره می‌شوند.",
     },
 
     /* Task 23-c — sales bot */
@@ -7279,7 +7279,7 @@ export const dictionaries: Record<Lang, Dict> = {
       cad6h: "كل 6 ساعات",
       cad12h: "كل 12 ساعة",
       cad24h: "يومياً (24 ساعة)",
-      previewNote: "معاينة: مفاتيح الأتمتة سارية في هذه الجلسة فقط حتى توفر حفظ الإعدادات.",
+      previewNote: "تُحفظ مفاتيح الأتمتة وفترة النسخ الاحتياطي تلقائيًا.",
     },
 
     /* Task 23-c — sales bot */
@@ -9153,7 +9153,7 @@ export const dictionaries: Record<Lang, Dict> = {
       cad6h: "每 6 小时",
       cad12h: "每 12 小时",
       cad24h: "每天（24 小时）",
-      previewNote: "预览：在设置持久化上线前，自动化开关仅在本会话内生效。",
+      previewNote: "自动化开关与备份周期会自动保存。",
     },
 
     /* Task 23-c — sales bot */
@@ -11030,7 +11030,7 @@ export const dictionaries: Record<Lang, Dict> = {
       cad6h: "Her 6 saat",
       cad12h: "Her 12 saat",
       cad24h: "Günlük (24 saat)",
-      previewNote: "Önizleme: ayar kalıcılığı devreye girene kadar otomasyon anahtarları yalnızca bu oturumda geçerlidir.",
+      previewNote: "Otomasyon anahtarları ve yedekleme periyodu otomatik olarak kaydedilir.",
     },
 
     /* Task 23-c — sales bot */
@@ -12908,7 +12908,7 @@ export const dictionaries: Record<Lang, Dict> = {
       cad6h: "Каждые 6 часов",
       cad12h: "Каждые 12 часов",
       cad24h: "Раз в сутки (24 ч)",
-      previewNote: "Превью: переключатели автоматики действуют только в этой сессии, пока не появится сохранение настроек.",
+      previewNote: "Переключатели автоматики и период резервного копирования сохраняются автоматически.",
     },
 
     /* Task 23-c — sales bot */

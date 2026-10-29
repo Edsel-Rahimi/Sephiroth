@@ -1,33 +1,48 @@
 /**
- * Sephiroth — one-shot provisioning (Task 16)
+ * Sephiroth — one-shot provisioning (Task 16, legacy Prisma/SQLite era)
  * 1. Wipe ALL demo data (inbounds/users/groups/hosts/nodes/outbounds/
  *    routing/resellers/templates/activity) — AdminUser + ServerSetting stay,
  *    the inbound seed flag stays "1" so demo never re-seeds.
  * 2. Create the single production VLESS inbound + owner user + access.
  *
+ * Server identity + the proxy username come from the environment (no
+ * hardcoded IP/user — this file is public):
+ *   VLESS_LISTEN    listen IP for the VLESS inbound (required)
+ *   VLESS_USERNAME  proxy client username to create (required)
+ *
  * Idempotent: upserts by tag/username. Run with:
- *   DATABASE_URL="file:/home/z/my-project/db/custom.db" node scripts/vless-provision.cjs
+ *   DATABASE_URL="file:<path-to-sqlite-db>" VLESS_LISTEN=<public-ip> \
+ *   VLESS_USERNAME=<proxy-user> node scripts/vless-provision.cjs
  */
 const { PrismaClient } = require('@prisma/client')
 const crypto = require('crypto')
 const db = new PrismaClient()
 
+function requireEnv(name) {
+  const v = process.env[name]
+  if (!v || !v.trim()) {
+    console.error(`${name} required`)
+    process.exit(1)
+  }
+  return v.trim()
+}
+
 const INBOUND = {
   tag: 'vless-main',
   protocol: 'vless',
-  port: 20364,
-  listen: '203.0.113.10',
+  port: Number(process.env.VLESS_PORT || 20364),
+  listen: requireEnv('VLESS_LISTEN'),
   transport: 'ws',
   security: 'none',
   status: 'online',
-  note: 'Sephiroth production edge · KataBump fr-node-36 · VLESS over WebSocket at /vlessws',
+  note: 'Sephiroth production edge · VLESS over WebSocket at /vlessws',
   trafficLimitGb: null,
   expiryDays: null,
   sniffingJson: JSON.stringify({ enabled: true, destOverride: ['http', 'tls'], routeOnly: false }),
   streamJson: JSON.stringify({ path: '/vlessws' }),
 }
 
-const USERNAME = 'edsel-rahimi'
+const USERNAME = requireEnv('VLESS_USERNAME')
 
 async function main() {
   /* ---------- 1 · wipe demo data (FK-safe order) ---------- */

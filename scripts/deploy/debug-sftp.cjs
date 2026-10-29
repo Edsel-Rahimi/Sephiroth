@@ -1,10 +1,24 @@
 // verbose SSH/SFTP debug probe (run from /tmp/sftp-work where ssh2 lives)
+// Connection settings come from the environment (no hardcoded credentials —
+// this file is public):
+//   KATA_SFTP_HOST  SFTP host (required)
+//   KATA_SFTP_PORT  SFTP port (default: 2022)
+//   KATA_SFTP_USER  SFTP username (required)
+//   KATA_SFTP_PASS  SFTP password (required)
 const { Client } = require('ssh2')
+function requireEnv(name) {
+  const v = process.env[name]
+  if (!v || !v.trim()) {
+    console.error(`${name} required`)
+    process.exit(1)
+  }
+  return v.trim()
+}
 const cfg = {
-  host: 'fr-node-36.katabump.fr',
-  port: 2022,
-  username: 'e966dfe0280874a.52ccfad9',
-  password: '544a10b26100',
+  host: requireEnv('KATA_SFTP_HOST'),
+  port: Number(process.env.KATA_SFTP_PORT || 2022),
+  username: requireEnv('KATA_SFTP_USER'),
+  password: requireEnv('KATA_SFTP_PASS'),
   readyTimeout: 30000,
   debug: (s) => process.env.VERBOSE && console.log('[ssh2]', s),
 }
