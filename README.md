@@ -1,86 +1,96 @@
 [English](README.md) | [فارسی](README.fa.md) | [العربية](README.ar.md) | [中文](README.zh.md) | [Türkçe](README.tr.md) | [Русский](README.ru.md)
 
-<p align="center">
-  <img src="public/sephiroth-logo.png" alt="Sephiroth" width="140">
-</p>
+<div align="center">
 
-<h1 align="center">Sephiroth</h1>
+<img src="docs/hero.svg" alt="Sephiroth — Next-Gen Xray VPN Panel" width="100%">
 
-<p align="center">
-  <strong>Next-generation Xray VPN panel</strong> — obsidian dark UI, glassmorphism, 6 languages, real Xray core driver.
-</p>
+<br>
 
-![Sephiroth v2.5.0 infographic](docs/infographic.png)
+<a href="https://github.com/Edsel-Rahimi/Sephiroth/releases"><img src="https://img.shields.io/badge/Release-v3.0.0-22d8ee?style=for-the-badge&labelColor=0b1f3a" alt="Release v3.0.0"></a>
+<a href="https://github.com/Edsel-Rahimi/Sephiroth/stargazers"><img src="https://img.shields.io/github/stars/edsel-rahimi/sephiroth?style=for-the-badge&logo=github&color=ffc53d&labelColor=0b1f3a" alt="GitHub Stars"></a>
+<a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-00a389?style=for-the-badge&labelColor=0b1f3a" alt="License: MIT"></a>
+<a href="https://github.com/XTLS/Xray-core"><img src="https://img.shields.io/badge/Xray--core-Real%20Driver-7c3aed?style=for-the-badge&labelColor=0b1f3a" alt="Xray-core"></a>
+<img src="https://img.shields.io/badge/Node.js-%E2%89%A520-339933?style=for-the-badge&logo=node.js&logoColor=white&labelColor=0b1f3a" alt="Node.js 20+">
+<img src="https://img.shields.io/badge/i18n-6%20Languages-blueviolet?style=for-the-badge&labelColor=0b1f3a" alt="i18n: 6 languages">
+<img src="https://img.shields.io/badge/Platform-Linux%20%C2%B7%20Docker-informational?style=for-the-badge&labelColor=0b1f3a" alt="Platform: Linux and Docker">
 
-<p align="center">
-  <a href="https://github.com/Edsel-Rahimi/sephiroth/releases"><img alt="Release" src="https://img.shields.io/github/v/release/edsel-rahimi/sephiroth"></a>&nbsp;
-  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>&nbsp;
-  <a href="https://nodejs.org"><img alt="Node.js 20 or newer" src="https://img.shields.io/badge/node-%E2%89%A520-339933?logo=node.js&logoColor=white"></a>&nbsp;
-  <img alt="i18n: 6 languages" src="https://img.shields.io/badge/i18n-6%20languages-blueviolet">&nbsp;
-  <img alt="Platform: Linux and Docker" src="https://img.shields.io/badge/platform-Linux%20%7C%20Docker-informational">&nbsp;
-  <a href="https://github.com/Edsel-Rahimi/sephiroth/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/edsel-rahimi/sephiroth?style=flat&logo=github&color=22d8ee"></a>
-</p>
+<br><br>
 
----
+<img src="docs/stats.svg" alt="9 protocols · 6 languages · 13 orbit views · realtime cockpit" width="100%">
 
-## What is Sephiroth?
+<br>
 
-**Sephiroth** is an open-source, next-generation control panel for [Xray-core](https://github.com/XTLS/Xray-core) servers. Everything a VPN operator touches — building inbounds, issuing client configs, watching traffic, running the real Xray core — lives behind one calm obsidian-glass cockpit that speaks six languages and treats right-to-left as a first-class citizen. There is no external database to babysit: a single Node.js process with an atomic local JSON store serves the UI, the API, the live telemetry socket and the maintenance cron on one port. Current release: **v2.5.0**.
+<sub><b>forge · subscriptions · resellers · telegram bots · mini-app · payments · observability</b> — one process, one port, one JSON store</sub>
 
-What makes it different:
+</div>
 
-- 🪟 **Glass UI with 6 themes** — deep obsidian, cyan neon, platinum silver; six full themes (Sephiroth Cosmic, Jenova Violet, Masamune Crimson, Matrix Terminal, OLED Void Gold, One-Winged Angel) with real RTL.
-- 🔨 **Per-client Forge with live preview** — a single dialog builds any protocol; the share link and subscription preview update as you turn the knobs.
-- 🩺 **Config Doctor score** — 16 automated health checks with a 0–100 score; nothing like it ships in other panels.
-- 📈 **Traffic forecast** — "≈ N days to cap · rate/day" burn-rate chips under every user's traffic bar.
-- 💼 **Resellers + sale templates + payment gateways** — a combination no other open-source panel ships.
-- ⚙️ **Real Xray core driver** — opt-in production core with true per-user statistics; the built-in simulator stays the zero-setup default.
+<img src="docs/divider.svg" width="100%">
 
-## Features
+<div align="center">
+<img src="docs/t-what.svg" alt="What is Sephiroth" width="100%">
+</div>
 
-### Protocols & Transports
+**Sephiroth** is an open-source, next-generation control panel for [Xray-core](https://github.com/XTLS/Xray-core) servers. Everything a VPN operator touches — building inbounds, forging client configs, selling plans, watching traffic — lives behind one calm obsidian-glass cockpit that speaks **six languages** and treats right-to-left as a first-class citizen. A single Node.js process with an atomic local JSON store serves the UI, the API, the live telemetry socket and the maintenance cron on **one port** — no external database to babysit.
 
-- **9 inbound protocols** — VLESS, VMess, Trojan, Shadowsocks, Hysteria2, WireGuard, SOCKS, HTTP and Dokodemo-door.
-- **Security & transports** — TLS and REALITY over TCP, WebSocket, gRPC, HTTPUpgrade and XHTTP.
-- **Fallbacks & one-port combo preset** — serve multiple protocols (e.g. VLESS + Trojan + the panel itself) on a single port via Xray fallbacks.
+> **One panel. Nine protocols. Zero babysitting.**
 
-### Management
+| | |
+|:---|:---|
+| 🪟 **Glass cockpit** | deep-obsidian UI, 6 full themes, first-class RTL, ⌘K command palette |
+| 🔨 **Per-client Forge** | one dialog builds any protocol; share link & sub preview update as you turn the knobs |
+| 🩺 **Config Doctor** | 16 automated health checks with a 0–100 score |
+| 📈 **Forecast chips** | "≈ N days to cap · rate/day" burn-rate under every traffic bar |
+| 💼 **Reseller economy** | scoped resellers, sale templates, each reseller gets their **own Telegram bot** |
+| ⚙️ **Real Xray driver** | true per-user stats, kill-resilient restart, hash-diff hot reload |
 
-- **Users, quotas & expiry** — per-client traffic limits, expiry dates, enable/disable and bulk actions; one identity can ride many inbounds.
-- **Forecast chips** — burn-rate prediction ("≈ N days to cap") rendered under each user's traffic bar, amber at 7 days, crimson at 3.
-- **Sub groups & branded portal** — one public subscription page per group, password-protectable; output as **raw list, Clash Meta (Mihomo), Sing-Box and Xray-JSON**, with `Subscription-Userinfo` metering and QR codes.
+<img src="docs/divider.svg" width="100%">
 
-### Reliability
+<div align="center">
+<img src="docs/t-features.svg" alt="Features" width="100%">
+</div>
 
-- **Real Xray core driver** (opt-in, simulator is the default) — actual Xray-core process built from your inbounds, real per-user/per-inbound stats, kill-resilient auto-restart and hash-diff hot reload.
-- **Config Doctor** — 16 checks with a 100-point score: open SOCKS/HTTP proxies, TLS without a certificate, incomplete REALITY, broken fallbacks, duplicated WireGuard keys, dead routing rules, ghost accounts and more.
-- **Scheduled backups** — daily server snapshots with N-file retention, one-click download or restore.
-- **TOTP 2FA** — zero-dependency RFC-6238 authenticator login; disabling requires a valid code.
-- **Self-update button** — check → apply → restart, straight from the panel.
+### 🛡 Protocols & Transports
 
-### Business
+- **9 inbound protocols** — VLESS, VMess, Trojan, Shadowsocks (2022), Hysteria2, TUIC v5, WireGuard, **AmneziaWG**, SOCKS, HTTP, Dokodemo-door, MTProto proxy tool.
+- **Security & transports** — TLS and **REALITY** over TCP, WebSocket, gRPC, HTTPUpgrade, XHTTP, mKCP; fallbacks & one-port combo preset.
+- **REALITY scanner** — scan any target, grade it, pre-fill the forge, rotate SNI with a confirm step.
 
-- **Resellers** — scoped sub-operators with user-count and traffic quotas who can only see the users they own.
-- **Sale templates** — one-click plans (traffic, expiry, IP limit) that resellers open instantly.
-- **Payment gateways** — ZarinPal, Tether TRC20, TON and card-to-card, with a per-GB tariff and automated payment webhooks.
+### 🎛 Management
 
-### Telegram
+- **Users, quotas & expiry** — per-client traffic limits, IP-limit + HWID device binding, bulk actions, one identity riding many inbounds.
+- **Autopilot** — one-click inbound wizard incl. **single-port mode** (two protocols on one port via Xray fallbacks).
+- **Sub groups & branded portal** — one public subscription page per group; output as raw list, Clash Meta, Sing-Box, Xray-JSON with `Subscription-Userinfo` metering.
 
-- **Bot console** — `/status`, `/users`, `/create_trial`, `/backup_now` with instant subscription links.
-- **SOCKS5 proxy suite** — Telegram-native `t.me/socks` deep links and scannable QR.
-- **MTProto secret tool** — dd/simple secrets, `tg://` links and ready-made daemon commands.
+### 💼 Business & Shop
 
-### Operations
+- **Shop cart** — multi-item checkout with per-unit provisioning, **discount codes** (caps, single-use) and **referrals** (deep-link, first-paid wallet reward).
+- **Payments** — ZarinPal, card-to-card, Tether TRC20, TON, **NowPayments crypto invoices** (HMAC-SHA512 IPN) and **Telegram Stars**.
+- **Resellers** — scoped sub-operators with quotas, their own catalog, their **own Telegram bot**, and a **Telegram Mini App** storefront with `initData` HMAC validation.
 
-- **Server IP auto-detect + free-port wand** — one-click listen-IP dropdown (public → private → all interfaces) and a suggested free port in the Forge, so `0.0.0.0` never leaks into client links.
-- **Hosts · Nodes · Outbounds · Routing** — domain overrides for polished links, remote nodes with live probes, outbound chaining, and one-click routing presets (block ads, Iran→direct, block QUIC…).
-- **Live ops** — socket-driven telemetry cockpit, live activity feed plus a searchable history with JSON export.
-- **6 themes · 6 languages** — obsidian-glass dark UI with first-class RTL (فارسی / العربية) and a ⌘K command palette.
+### 📣 Reach & Automation
 
-## Screenshots
+- **Telegram sales bot** — shop, wallet, renew, `/adduser`, quota edit, HWID reset, QR delivery, broadcast queue (≤20 msg/s, 429-backoff, cancel).
+- **Anti-abuse** — force-join channel membership gate, ban/unban.
+- **Discord bot** — slash commands + interactive button cards.
+- **Webhooks** — 11 HMAC-signed events, per-event URL overrides, dead-letter queue with retry & viewer.
+
+### 🔬 Operations & Observability
+
+- **Live ops** — socket-driven cockpit, online-users roster with **bidirectional IP ↔ user drill-down** and CSV exports.
+- **Prometheus** — `GET /api/metrics` with API-token auth, 10 metric families.
+- **Update channels** — stable / beta with a cached GitHub Releases check.
+- **RBAC** — owner / admin / viewer, last-owner protection, viewer read-only end-to-end.
+- **Public API** — token-authenticated REST + in-panel OpenAPI/Swagger reference.
+- **Config Doctor · scheduled backups · TOTP 2FA · self-update · hosts/nodes/outbounds/routing · free-port wand · traffic forecast**.
+
+<img src="docs/divider.svg" width="100%">
+
+<div align="center">
+<img src="docs/t-shots.svg" alt="Screenshots" width="100%">
+</div>
 
 <details open>
-<summary><b>Screenshots & GIFs</b> — click to collapse</summary>
+<summary><b>Tour & screenshots</b> — click to collapse</summary>
 
 <p align="center">
   <img src="docs/gif-tour.gif" alt="Sephiroth tour — login, dashboard, inbounds, Forge, Config Doctor, core settings" width="92%">
@@ -89,23 +99,19 @@ What makes it different:
 <table>
   <tr>
     <td align="center" width="50%"><img src="docs/shot-dashboard.png" alt="Dashboard"><br><sub>Dashboard — live telemetry cockpit</sub></td>
-    <td align="center" width="50%"><img src="docs/shot-forge-autofill.png" alt="Forge with server IP auto-fill"><br><sub>Forge — one-click server IP auto-fill</sub></td>
+    <td align="center" width="50%"><img src="docs/shot-forge-autofill.png" alt="Forge"><br><sub>Forge — one-click server IP auto-fill</sub></td>
   </tr>
   <tr>
     <td align="center" width="50%"><img src="docs/shot-doctor.png" alt="Config Doctor"><br><sub>Config Doctor — 16 checks, 0–100 score</sub></td>
     <td align="center" width="50%"><img src="docs/shot-sub-portal.png" alt="Subscription portal"><br><sub>Branded subscription portal</sub></td>
   </tr>
   <tr>
-    <td align="center" width="50%"><img src="docs/shot-settings-core.png" alt="Core driver settings"><br><sub>Settings → Core — real Xray driver</sub></td>
-    <td align="center" width="50%"><img src="docs/shot-users.png" alt="Users view"><br><sub>Users — quotas, expiry and forecast chips</sub></td>
+    <td align="center" width="50%"><img src="docs/shot-api-docs.png" alt="API docs"><br><sub>Public API — OpenAPI reference in-panel</sub></td>
+    <td align="center" width="50%"><img src="docs/shot-autopilot-fa.png" alt="Autopilot wizard"><br><sub>Autopilot — single-port wizard</sub></td>
   </tr>
   <tr>
     <td align="center" width="50%"><img src="docs/shot-fa-dashboard.png" alt="Persian dashboard"><br><sub>فارسی — dashboard, native RTL</sub></td>
-    <td align="center" width="50%"><img src="docs/shot-fa-inbounds.png" alt="Persian inbounds"><br><sub>فارسی — inbounds</sub></td>
-  </tr>
-  <tr>
-    <td align="center" width="50%"><img src="docs/shot-mobile-dashboard.png" alt="Mobile dashboard"><br><sub>Mobile — dashboard</sub></td>
-    <td align="center" width="50%"><img src="docs/shot-mobile-forge.png" alt="Mobile Forge"><br><sub>Mobile — Forge</sub></td>
+    <td align="center" width="50%"><img src="docs/shot-mobile-dashboard.png" alt="Mobile dashboard"><br><sub>Mobile — the same cockpit in your pocket</sub></td>
   </tr>
   <tr>
     <td align="center" width="50%"><img src="docs/gif-forge.gif" alt="Forge auto-fill in motion"><br><sub>Forge auto-fill in motion</sub></td>
@@ -115,30 +121,26 @@ What makes it different:
 
 </details>
 
-## Quick Start
+<img src="docs/divider.svg" width="100%">
 
-### One-click install
+<div align="center">
+<img src="docs/t-start.svg" alt="Quick start" width="100%">
+</div>
 
-```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/sephiroth/main/install.sh)
-```
-
-The installer detects your distro and architecture, installs system dependencies **plus Node 22**, clones the repository, builds the app and creates a hardened **systemd** service (guarded when systemd is unavailable). At the end it prints the panel URL and a **randomly generated admin password**, and stores both in `/etc/sephiroth/install-result.env` (mode `0600`).
-
-Pin a specific release by passing the tag as an argument (the tag must exist in this repository's git tags — otherwise the installer exits with an actionable hint):
+### One-line install
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/sephiroth/main/install.sh) v2.5.0
+bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh)
 ```
 
-Unattended / cloud-init — zero prompts, credentials still written to the result file:
+The installer detects distro & architecture, installs dependencies **plus Node 22**, clones the repo, builds the app and creates a hardened **systemd** service. It prints the panel URL and a **randomly generated admin password**, and stores both in `/etc/sephiroth/install-result.env` (mode `0600`).
 
 ```bash
-SEPH_NONINTERACTIVE=1 bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/sephiroth/main/install.sh)
+# pin a release
+bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh) v3.0.0
+# unattended / cloud-init
+SEPH_NONINTERACTIVE=1 bash <(curl -Ls https://raw.githubusercontent.com/Edsel-Rahimi/Sephiroth/main/install.sh)
 ```
-
-> [!IMPORTANT]
-> The admin password is printed **once** during install and saved to `/etc/sephiroth/install-result.env` (mode `0600`). **Change it right after the first login** — and turn on the panel's TOTP two-factor authentication.
 
 ### Docker
 
@@ -148,22 +150,18 @@ docker run -d --name sephiroth -p 3000:3000 -v sephiroth_data:/app/db \
   --restart unless-stopped ghcr.io/edsel-rahimi/sephiroth:latest
 ```
 
-Or with compose (multi-stage build, named volume, healthcheck included):
-
 ```bash
-git clone https://github.com/Edsel-Rahimi/sephiroth.git && cd Sephiroth
+# or compose — multi-stage build, named volume, healthcheck included
+git clone https://github.com/Edsel-Rahimi/Sephiroth.git && cd Sephiroth
 export SEPH_PORT=3000 SEPHIROTH_ADMIN_USER=admin SEPHIROTH_ADMIN_PASS='S3cure-Pass!'
 docker compose up -d
 ```
 
-- Host port defaults to `${SEPH_PORT:-3000}` — the panel always listens on 3000 inside the container.
-- The JSON store and auto backups live in the `sephiroth_data` volume.
-- A built-in healthcheck polls `/api/auth/session`; the prebuilt image is published to `ghcr.io/edsel-rahimi/sephiroth` on every push.
-
-### `sephiroth` CLI
+> [!IMPORTANT]
+> Change the admin password **right after the first login** and enable TOTP two-factor in Settings.
 
 <details>
-<summary><b>Management menu</b> — the <code>sephiroth</code> command (items 0–14)</summary>
+<summary><b><code>sephiroth</code> CLI — management menu</b></summary>
 
 ```text
 sephiroth                  # open the interactive menu
@@ -181,64 +179,104 @@ Shortcuts: `sephiroth start | stop | restart | status | logs | update | backup`
 
 </details>
 
-## The Core driver
+<details>
+<summary><b>Environment variables</b></summary>
 
-Sephiroth ships two interchangeable core backends. Switch any time in **Settings → Core**:
+| Variable | Purpose | Default |
+|:---|:---|:---:|
+| `SEPH_PORT` | host port (panel always listens on 3000 inside the container) | `3000` |
+| `SEPHIROTH_ADMIN_USER` / `SEPHIROTH_ADMIN_PASS` | first-boot admin seed (only when the store is empty) | — |
+| `SEPH_COOKIE_SECURE` | secure-cookie mode: `auto` / `on` / `off` | `auto` |
+
+</details>
+
+<details>
+<summary><b>Operator endpoints</b></summary>
+
+| Endpoint | Purpose |
+|:---|:---|
+| `GET /api/metrics` | Prometheus exposition (API-token auth, 10 families) |
+| `GET /api/openapi` | machine-readable OpenAPI document (in-panel Swagger viewer) |
+| Update channel | Settings → System → stable / beta (cached GitHub Releases check) |
+
+</details>
+
+<img src="docs/divider.svg" width="100%">
+
+<div align="center">
+<img src="docs/flow.svg" alt="Golden path — inbound to monitor" width="100%">
+</div>
+
+### Two interchangeable cores — switch any time in Settings → Core
 
 | | **Simulator** (default) | **Real Xray core** |
 |---|---|---|
 | What runs | built-in telemetry simulator | a real **Xray-core** process |
 | Config | panel state, previewed | generated from your inbounds, validated with `run -test` |
-| Stats | simulated charts | true per-user and per-inbound counters (Xray stats API) |
-| Resilience | n/a | kill-resilient auto-restart (3/10/30 s backoff) + hash-diff hot reload |
+| Stats | simulated charts | true per-user / per-inbound counters (Xray stats API) |
+| Resilience | n/a | auto-restart (3/10/30 s backoff) + hash-diff hot reload |
 | Best for | trying the panel, staging | serving real traffic |
 
-When you switch to **Real Xray**, the panel **auto-downloads the Xray-core binary** from the XTLS/Xray-core releases (with unzip → 7z → python3 extraction fallbacks) into `db/bin/xray`. You can pin a specific core version, set the stats interval (5–120 s) and watch the live core log right in Settings. If the real core ever fails to start, the panel falls back to the simulator automatically.
+Switching to **Real Xray** auto-downloads the Xray-core binary from XTLS releases into `db/bin/xray`; pin a version, tune the stats interval (5–120 s), watch the live core log. If the real core ever fails, the panel falls back to the simulator automatically.
 
-## Documentation
+<img src="docs/divider.svg" width="100%">
 
-- 📕 **[Full catalog — Persian (PDF)](docs/sephiroth-catalog-fa.pdf)** — the complete visual guide to every view, field and setting.
-- 🗒 Release changelogs (Persian PDF): [v2.2](public/sephiroth-v2.2-changelog-fa.pdf) · [v2.3](public/sephiroth-v2.3-changelog-fa.pdf)
-- 🧭 The in-panel **Guide** view — 13 chapters that explain every field in plain language, zero jargon.
+<div align="center">
+<img src="docs/t-guide.svg" alt="Documentation" width="100%">
+</div>
+
+| Document | What's inside |
+|:---|:---|
+| 📕 [Full catalog — Persian (PDF)](docs/sephiroth-catalog-fa.pdf) | every view, field and setting, illustrated |
+| 🌍 [Catalogs](docs/sephiroth-catalog-en.pdf) · EN / AR / ZH / RU / TR | the same guide in five more languages |
+| 🗕 [Release notes v3.0.0](docs/RELEASE-NOTES-v3.0.0.md) | what shipped in v2.9 → v3.0 |
+| 📋 [Features checklist](docs/FEATURES-CHECKLIST.md) | the §20 shipping ledger — every claim, evidenced |
+| 🧭 In-panel **Guide** view | 13 chapters, zero jargon |
+
+<img src="docs/divider.svg" width="100%">
 
 ## Roadmap
 
 **Shipped**
 
-- [x] In-panel self-update (check → apply → restart)
-- [x] Scheduled server backups with retention
-- [x] TOTP two-factor login
-- [x] MTProto Telegram proxy tool
-- [x] Config Doctor — 16 checks + score
-- [x] Traffic forecast chips
-- [x] Real Xray core driver
-- [x] Deployment suite — one-click installer · `sephiroth` CLI · Docker / GHCR
-- [x] **v2.5.0** — Telegram sales bot · multi-node fleet · mKCP / SS2022 / Hysteria2 · sing-box second core · in-panel SSL/ACME · IP-limit + HWID device binding
+- [x] v2.5.0 — Telegram sales bot · multi-node fleet · SS2022 / mKCP / Hysteria2 · sing-box second core · in-panel SSL/ACME · IP-limit + HWID
+- [x] v2.7.0 — webhooks (11 events) · Discord bot · online users · REALITY scanner · users CSV round-trip
+- [x] v2.8.0 — bot wallet / renew / adduser / QR · autopilot **single-port** mode · Discord slash + buttons · secrets purge & release prep
+- [x] v2.9.0 — per-event webhooks + dead-letter queue · shop cart + discounts + referrals · broadcast queue + anti-abuse · Prometheus metrics · update channels
+- [x] v3.0.0 — NowPayments crypto + Telegram Stars · RBAC (owner/admin/viewer) · per-reseller Telegram bots · **Telegram Mini App** storefront
 
-**Next**
+**What's next**
 
-- [ ] Notification engine — traffic/expiry/login-failed alerts + scheduled reports (webhooks next)
-- [ ] Public token-authenticated REST API + OpenAPI reference
-- [ ] Auto-renewal cycles & on-hold users
-- [ ] TUIC v5 + AmneziaWG protocols
-- [ ] Subscription page templates + bulk client import/export
+- [ ] Xray-JSON subscription format parity
+- [ ] ACME certificate auto-renewal daemon
+- [ ] Per-inbound TLS certificates
+- [ ] Multi-node scheduled orchestration
 
-## Contributing
+<img src="docs/divider.svg" width="100%">
 
-Issues and pull requests are welcome — bug reports, translation fixes and feature proposals alike. When touching translations, keep terminology aligned with the panel's in-app language files so the README and the UI tell the same story.
+<div align="center">
+<img src="docs/t-donate.svg" alt="Support the project" width="100%">
+</div>
 
-## Support Sephiroth
+<div align="center">
 
-If Sephiroth makes your day easier, a ⭐ keeps the orbit alive. The in-panel **Donate** dialog lists wallet addresses and support links.
+If Sephiroth saves you hours every week, a star is the cheapest thank-you:
 
-## License
+<a href="https://github.com/Edsel-Rahimi/Sephiroth/stargazers"><img src="https://img.shields.io/badge/GitHub-%E2%98%85%20Star%20the%20repo-ffc53d?style=for-the-badge&logo=github&labelColor=0b1f3a" alt="Star the repo"></a>
 
-[MIT](LICENSE) © Edsel-Rahimi
+| Wallet | Address |
+|:---|:---|
+| **USDT · TRC20** | `TWdqYu5H6emRHd6jFfkHjfG8Yg2285DFmT` |
+| ❤️ [Reymit](https://reymit.ir/epodonios) | monthly Iranian supporters |
 
-## Disclaimer
+</div>
 
-This project is built for **educational purposes and lawful personal use**. You are responsible for complying with the laws of your jurisdiction; the authors accept no liability for misuse.
+<img src="docs/divider.svg" width="100%">
 
----
+<div align="center">
 
-<p align="center"><sub><b>Sephiroth</b> · crafted by <a href="https://github.com/Edsel-Rahimi">Edsel-Rahimi</a></sub></p>
+<img src="docs/footer.svg" alt="Crafted by Edsel-Rahimi" width="100%">
+
+<sub>Built on <a href="https://github.com/XTLS/Xray-core">Xray-core</a> · licensed <a href="LICENSE">MIT</a> · <a href="CONTRIBUTING.md">contributions welcome</a></sub>
+
+</div>

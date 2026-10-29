@@ -31,7 +31,7 @@ import { useToast } from "@/hooks/use-toast";
    ============================================================ */
 
 const USDT_TRC20 = "TWdqYu5H6emRHd6jFfkHjfG8Yg2285DFmT";
-const REYMIT_URL = "https://reymit.ir/edsel-rahimi";
+const REYMIT_URL = "https://reymit.ir/epodonios";
 const GITHUB_REPO_URL = "https://github.com/Edsel-Rahimi/Sephiroth";
 const GITHUB_API_URL = "https://api.github.com/repos/Edsel-Rahimi/Sephiroth";
 const STARS_TIMEOUT_MS = 8000;
