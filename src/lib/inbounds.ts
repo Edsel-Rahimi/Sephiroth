@@ -1,4 +1,4 @@
-import { getSession } from "@/lib/auth";
+import { requireAdminAccess } from "@/lib/auth"; // task 3-b — central RBAC guard
 import { db, Prisma, type Inbound } from "@/lib/db";
 import { MTP_SECRET_MAX_LEN, MTP_SECRET_PATTERN } from "@/lib/mtp-secret";
 
@@ -175,11 +175,16 @@ export function toDTO(row: InboundRow): InboundDTO {
 
 /* ---------- admin guard ---------- */
 
-/** Returns the admin username for a valid session, else null. */
+/**
+ * Returns the admin username for a valid session, else null.
+ * task 3-b — now delegates to the central RBAC guard in auth.ts so the
+ * whole requireAdmin-based route family is viewer-aware: fine-grained
+ * "viewer" admins pass on GET/HEAD and are REJECTED on mutating methods
+ * (the route's existing null → 401 path). Owner/admin keep full access.
+ */
 export async function requireAdmin(req: Request): Promise<string | null> {
-  const actor = await getSession(req);
-  if (actor && actor.role === "admin") return actor.username;
-  return null;
+  const guard = await requireAdminAccess(req);
+  return guard.ok ? guard.username : null;
 }
 
 /* ---------- input validation ---------- */

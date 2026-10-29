@@ -37,7 +37,10 @@ export type ActivityKind =
   | "system.cleared"
   | "system.update"
   | "webhook.delivered" // v2.7 — outbound webhook succeeded (meta: event, status, ms)
-  | "webhook.failed"; // v2.7 — outbound webhook exhausted retries
+  | "webhook.failed" // v2.7 — outbound webhook exhausted retries
+  | "admin.created" // task 3-b — RBAC admin management (owner-only)
+  | "admin.updated" // task 3-b — role/enabled/password changes
+  | "admin.deleted"; // task 3-b — admin removal
 
 export interface ActivityEntry {
   kind: ActivityKind;

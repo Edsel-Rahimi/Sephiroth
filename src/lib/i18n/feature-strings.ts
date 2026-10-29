@@ -270,6 +270,47 @@ export interface FeatureDict {
     offline: string;
     saved: string;
   };
+  /** task 3-b — multi-admin RBAC management card (owner-only) */
+  admins: {
+    title: string;
+    desc: string;
+    ownerOnly: string;
+    addTitle: string;
+    username: string;
+    usernamePh: string;
+    password: string;
+    passwordPh: string;
+    role: string;
+    roleOwner: string;
+    roleAdmin: string;
+    roleViewer: string;
+    roleHint: string;
+    add: string;
+    adding: string;
+    empty: string;
+    created: string;
+    lastLogin: string;
+    never: string;
+    enabled: string;
+    disabled: string;
+    enable: string;
+    disable: string;
+    del: string;
+    delTitle: string;
+    delDesc: string;
+    delConfirm: string;
+    cancel: string;
+    you: string;
+    errTaken: string;
+    errInvalid: string;
+    errLastOwner: string;
+    errSelfDelete: string;
+    errForbidden: string;
+    errServer: string;
+    added: string;
+    updated: string;
+    deleted: string;
+  };
   /** Task 2-e — broadcast queue card */
   broadcast: {
     title: string;
@@ -342,6 +383,23 @@ export interface FeatureDict {
     unbannedToast: string;
     userNotFound: string;
     unbanAria: string;
+  };
+  /** task 3-a — payment methods card extension (NowPayments crypto + Stars) */
+  payment: {
+    npTitle: string;
+    npKey: string;
+    npKeyHint: string;
+    npIpnSecret: string;
+    npIpnHint: string;
+    npSandbox: string;
+    npSandboxHint: string;
+    npRate: string;
+    npRateHint: string;
+    starsTitle: string;
+    starsRate: string;
+    starsRateHint: string;
+    starsHint: string;
+    keepHint: string;
   };
 }
 
@@ -599,6 +657,46 @@ export const FEATURE: Record<Lang, FeatureDict> = {
       offline: "Could not reach GitHub — check the server's internet connection and try again.",
       saved: "Update channel saved.",
     },
+    admins: {
+      title: "Administrators",
+      desc: "Invite fellow admins and set each one's power — owner, admin or read-only viewer.",
+      ownerOnly: "Only the panel owner can manage administrators. Ask your owner for access.",
+      addTitle: "Add administrator",
+      username: "Username",
+      usernamePh: "3–32 characters",
+      password: "Password",
+      passwordPh: "At least 6 characters",
+      role: "Role",
+      roleOwner: "Owner",
+      roleAdmin: "Admin",
+      roleViewer: "Viewer",
+      roleHint: "Viewers can look but not change. Admins run the panel. Owners also manage administrators.",
+      add: "Add admin",
+      adding: "Adding…",
+      empty: "No administrators yet.",
+      created: "Created",
+      lastLogin: "Last sign-in",
+      never: "Never",
+      enabled: "Active",
+      disabled: "Disabled",
+      enable: "Set active",
+      disable: "Disable",
+      del: "Remove",
+      delTitle: "Remove administrator?",
+      delDesc: "{name} will permanently lose dashboard access.",
+      delConfirm: "Remove",
+      cancel: "Cancel",
+      you: "You",
+      errTaken: "That username is already taken.",
+      errInvalid: "Check the form — username needs 3–32 characters, password at least 6.",
+      errLastOwner: "The last owner cannot be demoted, disabled or removed.",
+      errSelfDelete: "You cannot remove your own account.",
+      errForbidden: "Only owners may manage administrators.",
+      errServer: "Something went wrong. Please try again.",
+      added: "{name} added.",
+      updated: "{name} updated.",
+      deleted: "{name} removed.",
+    },
     broadcast: {
       title: "Broadcast",
       desc: "Send one message to every bot user — queued, rate-limited and cancellable.",
@@ -669,6 +767,22 @@ export const FEATURE: Record<Lang, FeatureDict> = {
       unbannedToast: "User unbanned.",
       userNotFound: "No bot user with this chat ID.",
       unbanAria: "Unban {user}",
+    },
+    payment: {
+      npTitle: "NowPayments (crypto)",
+      npKey: "API key",
+      npKeyHint: "From your NowPayments account → API keys. Stored server-side only; ships masked — leave the •••• value untouched to keep it.",
+      npIpnSecret: "IPN secret",
+      npIpnHint: "From NowPayments → IPN settings. Signs the payment callback with HMAC-SHA512; masked like the API key.",
+      npSandbox: "Sandbox mode",
+      npSandboxHint: "Open test invoices on the sandbox host — no real coins move.",
+      npRate: "Rate (Toman per 1 USD)",
+      npRateHint: "Config-time conversion only — the Toman price is converted to USD once, when the invoice opens.",
+      starsTitle: "Telegram Stars (XTR)",
+      starsRate: "Rate (Toman per 1 ★)",
+      starsRateHint: "The Toman price is rounded UP to whole stars at this rate — the buyer never pays less than the listed price.",
+      starsHint: "Stars are charged inside Telegram; the order completes from the payment event — no gateway key needed.",
+      keepHint: "Masked secrets: echo the •••• value back (or leave it untouched) to keep the stored secret; paste a fresh value to replace it.",
     },
   },
 
@@ -925,6 +1039,46 @@ export const FEATURE: Record<Lang, FeatureDict> = {
       offline: "دسترسی به گیت‌هاب ممکن نشد — اتصال اینترنت سرور را بررسی کنید و دوباره تلاش کنید.",
       saved: "کانال به‌روزرسانی ذخیره شد.",
     },
+    admins: {
+      title: "مدیران",
+      desc: "دعوت از مدیران دیگر و تعیین سطح دسترسی هر نفر: مالک، مدیر یا ناظر فقط‌خواندنی.",
+      ownerOnly: "تنها مالک پنل می‌تواند مدیران را مدیریت کند. برای دسترسی با مالک تماس بگیرید.",
+      addTitle: "افزودن مدیر",
+      username: "نام کاربری",
+      usernamePh: "۳ تا ۳۲ نویسه",
+      password: "گذرواژه",
+      passwordPh: "دست‌کم ۶ نویسه",
+      role: "نقش",
+      roleOwner: "مالک",
+      roleAdmin: "مدیر",
+      roleViewer: "ناظر",
+      roleHint: "ناظر فقط مشاهده می‌کند. مدیر پنل را می‌گرداند. مالک همچنین مدیران را مدیریت می‌کند.",
+      add: "افزودن مدیر",
+      adding: "در حال افزودن…",
+      empty: "هنوز مدیری ثبت نشده است.",
+      created: "ایجاد",
+      lastLogin: "آخرین ورود",
+      never: "هرگز",
+      enabled: "فعال",
+      disabled: "غیرفعال",
+      enable: "فعال‌سازی",
+      disable: "غیرفعال‌سازی",
+      del: "حذف",
+      delTitle: "حذف مدیر؟",
+      delDesc: "{name} برای همیشه دسترسی داشبورد را از دست می‌دهد.",
+      delConfirm: "حذف",
+      cancel: "لغو",
+      you: "شما",
+      errTaken: "این نام کاربری قبلاً گرفته شده است.",
+      errInvalid: "فرم را بررسی کنید: نام کاربری ۳ تا ۳۲ نویسه و گذرواژه دست‌کم ۶ نویسه.",
+      errLastOwner: "آخرین مالک را نمی‌توان تنزل داد، غیرفعال یا حذف کرد.",
+      errSelfDelete: "نمی‌توانید حساب خودتان را حذف کنید.",
+      errForbidden: "تنها مالکان می‌توانند مدیران را مدیریت کنند.",
+      errServer: "خطایی رخ داد. دوباره تلاش کنید.",
+      added: "{name} اضافه شد.",
+      updated: "{name} به‌روزرسانی شد.",
+      deleted: "{name} حذف شد.",
+    },
     broadcast: {
       title: "پیام همگانی",
       desc: "ارسال یک پیام به همه کاربران ربات — صف‌بندی‌شده، با نرخ محدود و قابل لغو.",
@@ -995,6 +1149,22 @@ export const FEATURE: Record<Lang, FeatureDict> = {
       unbannedToast: "مسدودی کاربر رفع شد.",
       userNotFound: "کاربر رباتی با این شناسه گفتگو وجود ندارد.",
       unbanAria: "رفع مسدودی {user}",
+    },
+    payment: {
+      npTitle: "درگاه ارز دیجیتال (کریپتو)",
+      npKey: "کلید API",
+      npKeyHint: "از پنل درگاه، بخش کلیدهای API. فقط روی سرور ذخیره می‌شود و ماسک‌شده برمی‌گردد — مقدار •••• را دست‌نخورده بگذارید تا حفظ شود.",
+      npIpnSecret: "رمز اطلاع‌رسانی پرداخت (IPN)",
+      npIpnHint: "از تنظیمات IPN درگاه. امضای درخواست بازگشت پرداخت را با HMAC-SHA512 تأیید می‌کند؛ مثل کلید API ماسک می‌شود.",
+      npSandbox: "حالت آزمایشی",
+      npSandboxHint: "فاکتورهای آزمایشی روی سرور تست ساخته می‌شوند — هیچ ارز واقعی جابه‌جا نمی‌شود.",
+      npRate: "نرخ تبدیل (تومان به ازای هر ۱ دلار)",
+      npRateHint: "تبدیل فقط هنگام گشودن فاکتور و یک‌بار انجام می‌شود؛ قیمت تومانی همان لحظه به دلار تبدیل می‌شود.",
+      starsTitle: "استارز تلگرام (XTR)",
+      starsRate: "نرخ تبدیل (تومان به ازای هر ⭐)",
+      starsRateHint: "قیمت تومانی با این نرخ به سمت بالا به عدد صحیح ستاره گرد می‌شود؛ خریدار هرگز کمتر از قیمت درج‌شده نمی‌پردازد.",
+      starsHint: "پرداخت درون تلگرام انجام می‌شود و سفارش با رویداد پرداخت کامل می‌کند — به کلید درگاه نیاز ندارد.",
+      keepHint: "رمزهای ماسک‌شده: مقدار •••• را دست‌نخورده بگذارید تا رمز فعلی حفظ شود؛ برای تغییر، مقدار تازه بچسبانید.",
     },
   },
 
@@ -1251,6 +1421,46 @@ export const FEATURE: Record<Lang, FeatureDict> = {
       offline: "تعذر الوصول إلى مصدر التحديث — تحقق من اتصال الخادم بالإنترنت وحاول مجدداً.",
       saved: "تم حفظ قناة التحديث.",
     },
+    admins: {
+      title: "المديرون",
+      desc: "دعوة مدراء آخرين وتحديد صلاحية كل واحد: المالك أو المدير أو مراقب للقراءة فقط.",
+      ownerOnly: "فقط مالك اللوحة يمكنه إدارة المديرين. اطلب الصلاحية من مالك اللوحة.",
+      addTitle: "إضافة مدير",
+      username: "اسم المستخدم",
+      usernamePh: "من ٣ إلى ٣٢ حرفاً",
+      password: "كلمة المرور",
+      passwordPh: "٦ أحرف على الأقل",
+      role: "الدور",
+      roleOwner: "المالك",
+      roleAdmin: "المدير",
+      roleViewer: "مراقب",
+      roleHint: "المراقب يرى دون تعديل. المدير يدير اللوحة. المالك يدير المديرين أيضاً.",
+      add: "إضافة مدير",
+      adding: "جارٍ الإضافة…",
+      empty: "لا يوجد مدراء بعد.",
+      created: "الإنشاء",
+      lastLogin: "آخر دخول",
+      never: "أبداً",
+      enabled: "نشط",
+      disabled: "معطّل",
+      enable: "تنشيط",
+      disable: "تعطيل",
+      del: "إزالة",
+      delTitle: "إزالة المدير؟",
+      delDesc: "سيفقد {name} الوصول إلى اللوحة نهائياً.",
+      delConfirm: "إزالة",
+      cancel: "إلغاء",
+      you: "أنت",
+      errTaken: "اسم المستخدم مستخدم مسبقاً.",
+      errInvalid: "تحقق من النموذج: اسم المستخدم من ٣ إلى ٣٢ حرفاً وكلمة المرور ٦ أحرف على الأقل.",
+      errLastOwner: "لا يمكن تخفيض المالك الأخير أو تعطيله أو إزالته.",
+      errSelfDelete: "لا يمكنك إزالة حسابك الخاص.",
+      errForbidden: "المالك وحده يدير المديرين.",
+      errServer: "حدث خطأ. حاول مرة أخرى.",
+      added: "تمت إضافة {name}.",
+      updated: "تم تحديث {name}.",
+      deleted: "تمت إزالة {name}.",
+    },
     broadcast: {
       title: "البث الجماعي",
       desc: "إرسال رسالة واحدة إلى كل مستخدمي البوت — عبر قائمة انتظار وبمعدل محدود وقابلة للإلغاء.",
@@ -1321,6 +1531,22 @@ export const FEATURE: Record<Lang, FeatureDict> = {
       unbannedToast: "رُفع الحظر عن المستخدم.",
       userNotFound: "لا يوجد مستخدم بوت بهذا المعرّف.",
       unbanAria: "رفع الحظر عن {user}",
+    },
+    payment: {
+      npTitle: "بوابة العملات الرقمية",
+      npKey: "مفتاح API",
+      npKeyHint: "من لوحة البوابة ← مفاتيح API. يُخزَّن على الخادم فقط ويُعاد مُقنَّعاً — اترك قيمة •••• كما هي للإبقاء عليه.",
+      npIpnSecret: "سر تنبيه الدفع (IPN)",
+      npIpnHint: "من إعدادات IPN في البوابة. يوقّع طلب الاستدعاء بمفتاح HMAC-SHA512؛ ويُقنَّع مثل مفتاح API.",
+      npSandbox: "الوضع التجريبي",
+      npSandboxHint: "تُنشأ فواتير تجريبية على خادم الاختبار — لا تُنقل عملات حقيقية.",
+      npRate: "سعر التحويل (تومان لكل 1 دولار)",
+      npRateHint: "التحويل يتم مرة واحدة فقط عند فتح الفاتورة؛ السعر بالتومان يتحول إلى دولار في تلك اللحظة.",
+      starsTitle: "نجوم تيليجرام (XTR)",
+      starsRate: "سعر التحويل (تومان لكل ⭐)",
+      starsRateHint: "يُقرَّب السعر بالتومان للأعلى إلى عدد صحيح من النجوم بهذا السعر؛ لا يدفع المشتري أقل من المعلن أبداً.",
+      starsHint: "تُخصم النجوم داخل تيليجرام ويكتمل الطلب من حدث الدفع — لا حاجة لمفتاح بوابة.",
+      keepHint: "الأسرار المُقنَّعة: اترك قيمة •••• كما هي للإبقاء على السر الحالي؛ الصق قيمة جديدة لاستبداله.",
     },
   },
 
@@ -1577,6 +1803,46 @@ export const FEATURE: Record<Lang, FeatureDict> = {
       offline: "无法连接更新源 — 请检查服务器的网络连接后重试。",
       saved: "更新通道已保存。",
     },
+    admins: {
+      title: "管理员",
+      desc: "邀请其他管理员并分配权限：所有者、管理员或只读观察者。",
+      ownerOnly: "只有面板所有者可以管理管理员。请联系所有者获取权限。",
+      addTitle: "添加管理员",
+      username: "用户名",
+      usernamePh: "3 到 32 个字符",
+      password: "密码",
+      passwordPh: "至少 6 个字符",
+      role: "角色",
+      roleOwner: "所有者",
+      roleAdmin: "管理员",
+      roleViewer: "观察者",
+      roleHint: "观察者只能查看。管理员可运营面板。所有者还可管理管理员。",
+      add: "添加管理员",
+      adding: "添加中…",
+      empty: "还没有管理员。",
+      created: "创建时间",
+      lastLogin: "最近登录",
+      never: "从未",
+      enabled: "启用",
+      disabled: "已禁用",
+      enable: "启用",
+      disable: "禁用",
+      del: "移除",
+      delTitle: "移除管理员？",
+      delDesc: "{name} 将永久失去面板访问权限。",
+      delConfirm: "移除",
+      cancel: "取消",
+      you: "你",
+      errTaken: "该用户名已被占用。",
+      errInvalid: "请检查表单：用户名需 3–32 个字符，密码至少 6 个字符。",
+      errLastOwner: "不能降级、禁用或移除最后一位所有者。",
+      errSelfDelete: "不能移除你自己的账户。",
+      errForbidden: "只有所有者可以管理管理员。",
+      errServer: "出错了，请重试。",
+      added: "已添加 {name}。",
+      updated: "已更新 {name}。",
+      deleted: "已移除 {name}。",
+    },
     broadcast: {
       title: "群发消息",
       desc: "向所有机器人用户发送一条消息 — 排队执行、限速发送、可随时取消。",
@@ -1647,6 +1913,22 @@ export const FEATURE: Record<Lang, FeatureDict> = {
       unbannedToast: "用户已解封。",
       userNotFound: "没有此会话 ID 的机器人用户。",
       unbanAria: "解封 {user}",
+    },
+    payment: {
+      npTitle: "加密货币网关",
+      npKey: "接口密钥",
+      npKeyHint: "来自加密网关账户的接口密钥。仅存于服务器，回显为掩码 — 保留 •••• 即不更改。",
+      npIpnSecret: "回调签名密钥",
+      npIpnHint: "来自网关的回调设置，用 HMAC 签名校验付款回调；与接口密钥一样掩码显示。",
+      npSandbox: "沙盒模式",
+      npSandboxHint: "在沙盒主机创建测试账单 — 不涉及真实币款。",
+      npRate: "汇率（每 1 美元兑托曼）",
+      npRateHint: "仅在打开账单时换算一次；托曼价格此刻换算为美元。",
+      starsTitle: "⭐ 星星支付",
+      starsRate: "汇率（每 ⭐ 兑托曼）",
+      starsRateHint: "托曼价格按此汇率向上取整为整数颗星星 — 买家永远不会少付。",
+      starsHint: "星星在应用内直接扣款，订单随付款事件自动完成 — 无需网关密钥。",
+      keepHint: "掩码密钥：保留 •••• 即维持现有密钥；粘贴新值即可替换。",
     },
   },
 
@@ -1903,6 +2185,46 @@ export const FEATURE: Record<Lang, FeatureDict> = {
       offline: "GitHub'a ulaşılamadı — sunucunun internet bağlantısını kontrol edip tekrar deneyin.",
       saved: "Güncelleme kanalı kaydedildi.",
     },
+    admins: {
+      title: "Yöneticiler",
+      desc: "Diğer yöneticileri davet edin ve her birinin yetkisini belirleyin: sahip, yönetici veya salt okunur gözlemci.",
+      ownerOnly: "Yalnızca panel sahibi yöneticileri yönetebilir. Erişim için panel sahibine danışın.",
+      addTitle: "Yönetici ekle",
+      username: "Kullanıcı adı",
+      usernamePh: "3–32 karakter",
+      password: "Parola",
+      passwordPh: "En az 6 karakter",
+      role: "Rol",
+      roleOwner: "Sahip",
+      roleAdmin: "Yönetici",
+      roleViewer: "Gözlemci",
+      roleHint: "Gözlemci yalnızca görüntüler. Yönetici paneli yönetir. Sahip ayrıca yöneticileri yönetir.",
+      add: "Yönetici ekle",
+      adding: "Ekleniyor…",
+      empty: "Henüz yönetici yok.",
+      created: "Oluşturulma",
+      lastLogin: "Son giriş",
+      never: "Hiç",
+      enabled: "Etkin",
+      disabled: "Devre dışı",
+      enable: "Etkinleştir",
+      disable: "Devre dışı bırak",
+      del: "Kaldır",
+      delTitle: "Yönetici kaldırılsın mı?",
+      delDesc: "{name} panele erişimi kalıcı olarak kaybeder.",
+      delConfirm: "Kaldır",
+      cancel: "İptal",
+      you: "Siz",
+      errTaken: "Bu kullanıcı adı zaten alınmış.",
+      errInvalid: "Formu kontrol edin: kullanıcı adı 3–32 karakter, parola en az 6 karakter olmalı.",
+      errLastOwner: "Son sahip düşürülemez, devre dışı bırakılamaz veya kaldırılamaz.",
+      errSelfDelete: "Kendi hesabınızı kaldıramazsınız.",
+      errForbidden: "Yöneticileri yalnızca sahipler yönetebilir.",
+      errServer: "Bir şeyler ters gitti. Lütfen tekrar deneyin.",
+      added: "{name} eklendi.",
+      updated: "{name} güncellendi.",
+      deleted: "{name} kaldırıldı.",
+    },
     broadcast: {
       title: "Toplu Mesaj",
       desc: "Tüm bot kullanıcılarına tek mesaj gönderin — kuyruklu, hız sınırı olan ve iptal edilebilir.",
@@ -1973,6 +2295,22 @@ export const FEATURE: Record<Lang, FeatureDict> = {
       unbannedToast: "Kullanıcının engeli kaldırıldı.",
       userNotFound: "Bu sohbet kimliğine sahip bir bot kullanıcısı yok.",
       unbanAria: "{user} için engeli kaldır",
+    },
+    payment: {
+      npTitle: "NowPayments (kripto)",
+      npKey: "API anahtarı",
+      npKeyHint: "NowPayments hesabınızdan → API anahtarları. Yalnızca sunucuda saklanır, maskeli döner — •••• değerini olduğu gibi bırakın.",
+      npIpnSecret: "IPN gizli anahtarı",
+      npIpnHint: "NowPayments → IPN ayarları. Ödeme geri çağrısını HMAC-SHA512 ile imzalar; API anahtarı gibi maskelenir.",
+      npSandbox: "Sandbox modu",
+      npSandboxHint: "Test faturaları sandbox sunucusunda açılır — gerçek coin hareketi olmaz.",
+      npRate: "Kur (1 USD başına Toman)",
+      npRateHint: "Dönüşüm yalnızca fatura açılırken bir kez yapılır; Toman tutar o an USD'ye çevrilir.",
+      starsTitle: "Telegram Yıldızları (XTR)",
+      starsRate: "Kur (1 ⭐ başına Toman)",
+      starsRateHint: "Toman tutar bu kurla yukarıya doğru tam yıldıza yuvarlanır — alıcı asla listeden az ödemez.",
+      starsHint: "Yıldızlar Telegram içinde tahsil edilir; sipariş ödeme olayıyla tamamlanır — ağ geçidi anahtarı gerekmez.",
+      keepHint: "Maskeli gizli anahtarlar: •••• değerini değiştirmeden bırakın; değiştirmek için yeni değeri yapıştırın.",
     },
   },
 
@@ -2229,6 +2567,46 @@ export const FEATURE: Record<Lang, FeatureDict> = {
       offline: "Не удалось связаться с источником обновлений — проверьте интернет-соединение сервера и повторите.",
       saved: "Канал обновлений сохранён.",
     },
+    admins: {
+      title: "Администраторы",
+      desc: "Приглашайте других администраторов и задавайте их уровень: владелец, администратор или наблюдатель с правом только чтения.",
+      ownerOnly: "Управлять администраторами может только владелец панели. Запросите доступ у владельца.",
+      addTitle: "Добавить администратора",
+      username: "Имя пользователя",
+      usernamePh: "от 3 до 32 символов",
+      password: "Пароль",
+      passwordPh: "не менее 6 символов",
+      role: "Роль",
+      roleOwner: "Владелец",
+      roleAdmin: "Администратор",
+      roleViewer: "Наблюдатель",
+      roleHint: "Наблюдатель только смотрит. Администратор управляет панелью. Владелец также управляет администраторами.",
+      add: "Добавить администратора",
+      adding: "Добавление…",
+      empty: "Администраторов пока нет.",
+      created: "Создан",
+      lastLogin: "Последний вход",
+      never: "Никогда",
+      enabled: "Активен",
+      disabled: "Отключён",
+      enable: "Включить",
+      disable: "Отключить",
+      del: "Удалить",
+      delTitle: "Удалить администратора?",
+      delDesc: "{name} навсегда потеряет доступ к панели.",
+      delConfirm: "Удалить",
+      cancel: "Отмена",
+      you: "Вы",
+      errTaken: "Это имя пользователя уже занято.",
+      errInvalid: "Проверьте форму: имя от 3 до 32 символов, пароль не менее 6 символов.",
+      errLastOwner: "Последнего владельца нельзя понизить, отключить или удалить.",
+      errSelfDelete: "Нельзя удалить собственную учётную запись.",
+      errForbidden: "Управлять администраторами могут только владельцы.",
+      errServer: "Что-то пошло не так. Попробуйте снова.",
+      added: "{name} добавлен.",
+      updated: "{name} обновлён.",
+      deleted: "{name} удалён.",
+    },
     broadcast: {
       title: "Массовая рассылка",
       desc: "Отправьте одно сообщение всем пользователям бота — через очередь, с ограничением скорости и возможностью отмены.",
@@ -2299,6 +2677,22 @@ export const FEATURE: Record<Lang, FeatureDict> = {
       unbannedToast: "Пользователь разблокирован.",
       userNotFound: "Пользователя бота с таким ID чата нет.",
       unbanAria: "Разблокировать {user}",
+    },
+    payment: {
+      npTitle: "Криптоплатежи",
+      npKey: "API-ключ",
+      npKeyHint: "Из аккаунта шлюза → API-ключи. Хранится только на сервере и возвращается замаскированным — оставьте •••• без изменений.",
+      npIpnSecret: "Секрет IPN",
+      npIpnHint: "Из настроек IPN шлюза. Подписывает колбэк HMAC-SHA512; маскируется как API-ключ.",
+      npSandbox: "Песочница",
+      npSandboxHint: "Тестовые счета создаются на тестовом сервере — реальные монеты не переводятся.",
+      npRate: "Курс (туманов за 1 USD)",
+      npRateHint: "Конвертация выполняется один раз при открытии счёта; цена в туманах переводится в доллары в этот момент.",
+      starsTitle: "Звёзды мессенджера (XTR)",
+      starsRate: "Курс (туманов за 1 ⭐)",
+      starsRateHint: "Цена в туманах округляется вверх до целых звёзд по этому курсу — покупатель никогда не платит меньше.",
+      starsHint: "Звёзды списываются внутри мессенджера; заказ завершается по событию оплаты — ключ шлюза не нужен.",
+      keepHint: "Замаскированные секреты: оставьте •••• как есть, чтобы сохранить текущий секрет; вставьте новое значение, чтобы заменить.",
     },
   },
 };

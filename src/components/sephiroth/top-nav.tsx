@@ -220,7 +220,8 @@ export function TopNav() {
   );
 
   const refreshBell = useCallback(async () => {
-    if (role !== "admin") return; // /api/activity is admin-only — reseller keeps the stub state
+    // task 3-b — every fine-grained admin role reads the activity feed
+    if (role === "reseller") return; // /api/activity is admin-only — reseller keeps the stub state
     try {
       const res = await fetch(`/api/activity?page=1&pageSize=${BELL_FETCH_PAGE_SIZE}`, {
         cache: "no-store",
@@ -279,7 +280,7 @@ export function TopNav() {
 
   /* Phase 8 — pull module visibility from the server (admin only) */
   useEffect(() => {
-    if (role !== "admin") return;
+    if (role === "reseller") return; // task 3-b — all admin roles load settings
     let alive = true;
     fetch("/api/settings", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
@@ -493,7 +494,7 @@ export function TopNav() {
                   })}
                 </div>
               )}
-              {role === "admin" && (
+              {role !== "reseller" && (
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem

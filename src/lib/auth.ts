@@ -131,6 +131,8 @@ export async function ensureSeed(): Promise<void> {
         passwordHash: hashPassword(password),
         recoveryKey: PREVIEW.recoveryKey,
         displayName: "Sephiroth Commander",
+        role: "owner", // task 3-b — the seeded admin is always the owner
+        enabled: true,
       },
     });
   }
@@ -279,6 +281,11 @@ async function actorFromBearer(
   const row = await db.apiToken.findUnique({ where: { tokenHash: hash } });
   if (!row || !row.enabled) return null;
 
+  // task 3-b — a token inherits the fine-grained role of the admin that
+  // minted it; if that admin has since been disabled the token is dead too.
+  const issuer = await db.adminUser.findUnique({ where: { username: row.actorUsername } });
+  if (issuer && issuer.enabled === false) return null;
+
   const now = Date.now();
   const last = lastUseMemo.get(row.id) ?? 0;
   if (now - last > API_TOKEN_LASTUSE_THROTTLE_MS) {
@@ -290,13 +297,27 @@ async function actorFromBearer(
       })
       .catch(() => {});
   }
-  return { role: "admin", username: row.actorUsername };
+  return {
+    adminRole: "owner", // task 3-b — API tokens keep full-admin power when the issuing admin row is gone
+    role: "admin",
+    username: row.actorUsername,
+  };
 }
 
 /* ---------- Phase 6 — dual-role session ---------- */
 
+/** task 3-b — fine-grained admin roles layered UNDER the legacy "admin" actor. */
+export type AdminRole = "owner" | "admin" | "viewer";
+
+export const ADMIN_ROLES: readonly AdminRole[] = ["owner", "admin", "viewer"] as const;
+
+/** Coerce a stored role value (legacy/unknown → owner, backward compatible). */
+export function normalizeAdminRole(value: unknown): AdminRole {
+  return value === "admin" || value === "viewer" ? value : "owner";
+}
+
 export type Actor =
-  | { role: "admin"; username: string }
+  | { role: "admin"; username: string; adminRole: AdminRole }
   | { role: "reseller"; id: string; username: string };
 
 const globalSessionFallback = globalThis as unknown as {
@@ -305,7 +326,11 @@ const globalSessionFallback = globalThis as unknown as {
 };
 
 if (!globalSessionFallback.__sephirothFallbackInitialized) {
-  globalSessionFallback.__sephirothFallbackActor = { role: "admin", username: "admin" };
+  globalSessionFallback.__sephirothFallbackActor = {
+    role: "admin",
+    username: "admin",
+    adminRole: "owner",
+  };
   globalSessionFallback.__sephirothFallbackInitialized = true;
 }
 
@@ -332,7 +357,10 @@ export async function getSession(req: Request): Promise<Actor | null> {
     const username = await verifyToken(cookieToken);
     if (username) {
       const admin = await db.adminUser.findUnique({ where: { username } });
-      if (admin) return { role: "admin", username };
+      // task 3-b — disabled admins lose their session immediately
+      if (admin && admin.enabled !== false) {
+        return { role: "admin", username, adminRole: normalizeAdminRole(admin.role) };
+      }
 
       const reseller = await db.reseller.findUnique({ where: { username } });
       if (reseller && reseller.enabled) {
@@ -345,4 +373,68 @@ export async function getSession(req: Request): Promise<Actor | null> {
     return globalSessionFallback.__sephirothFallbackActor ?? null;
   }
   return null;
+}
+
+/* ---------- task 3-b — central RBAC guards ---------- */
+
+/** True for HTTP methods that mutate state (everything but GET/HEAD/OPTIONS). */
+export function isMutatingMethod(req: Request): boolean {
+  const m = req.method.toUpperCase();
+  return m !== "GET" && m !== "HEAD" && m !== "OPTIONS";
+}
+
+/**
+ * True when the actor is a fine-grained admin whose role is READ-ONLY
+ * ("viewer"). Resellers and the legacy admin flows return false. Server-side
+ * helpers use this to reject viewer mutations with 403 — the UI button
+ * hiding is only a best-effort layer; THE SERVER STAYS THE SOURCE OF TRUTH.
+ */
+export function isReadOnlyActor(actor: Actor | null): boolean {
+  return !!actor && actor.role === "admin" && actor.adminRole === "viewer";
+}
+
+export type RoleGuard =
+  | { ok: true; username: string; role: AdminRole }
+  | { ok: false; status: 401 | 403; error: "unauthorized" | "forbidden" };
+
+/**
+ * Central role guard for admin routes. Resolves the session (cookie or
+ * bearer token) and checks the admin's fine-grained role:
+ *   - no session / not an admin                  → 401 unauthorized
+ *   - viewer calling a mutating method           → 403 forbidden (read-only role)
+ *   - admin whose role is not among `roles`      → 403 forbidden
+ *   - otherwise                                  → ok with username + role
+ * Callers map the failure straight to a response:
+ *   const g = await requireRole(req, "owner");
+ *   if (!g.ok) return NextResponse.json({ error: g.error }, { status: g.status });
+ */
+export async function requireRole(
+  req: Request,
+  ...roles: AdminRole[]
+): Promise<RoleGuard> {
+  const actor = await getSession(req);
+  if (!actor || actor.role !== "admin") {
+    return { ok: false, status: 401, error: "unauthorized" };
+  }
+  if (isReadOnlyActor(actor) && isMutatingMethod(req)) {
+    return { ok: false, status: 403, error: "forbidden" };
+  }
+  if (!roles.includes(actor.adminRole)) {
+    return { ok: false, status: 403, error: "forbidden" };
+  }
+  return { ok: true, username: actor.username, role: actor.adminRole };
+}
+
+/**
+ * Any fine-grained admin role passes (owner/admin/viewer). Viewers stay
+ * READ-ONLY: mutating methods are rejected. This is the method-aware
+ * superset of the legacy `requireAdmin` guard.
+ */
+export async function requireAdminAccess(req: Request): Promise<RoleGuard> {
+  return requireRole(req, "owner", "admin", "viewer");
+}
+
+/** Owner-only guard — admin management + dangerous wipes (backup delete, restore). */
+export async function requireOwner(req: Request): Promise<RoleGuard> {
+  return requireRole(req, "owner");
 }

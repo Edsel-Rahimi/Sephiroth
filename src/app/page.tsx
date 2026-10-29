@@ -22,7 +22,7 @@ import { GuideView } from "@/components/sephiroth/views/guide-view";
 import { SettingsView } from "@/components/sephiroth/views/settings-view";
 import { ProfileView } from "@/components/sephiroth/views/profile-view";
 import { PanelsView } from "@/components/sephiroth/views/panels-view";
-import { useAppStore } from "@/lib/store/app-store";
+import { useAppStore, roleFromSession } from "@/lib/store/app-store"; // task 3-b — fine-grained RBAC
 import { cn } from "@/lib/utils";
 import { RTL_LANGS, type ViewId } from "@/lib/i18n/dictionaries";
 
@@ -70,7 +70,8 @@ export default function Home() {
       const ok = Boolean(d.authenticated);
       setAuthed(ok);
       setPreviewHints(Boolean(d.showPreviewHints));
-      const nextRole = ok && d.role === "reseller" ? "reseller" : "admin";
+      // task 3-b — session now returns the fine-grained admin role
+      const nextRole = ok ? roleFromSession(d.role) : "admin";
       setRole(nextRole);
       /* resellers land on their only workspace */
       if (ok && nextRole === "reseller" && useAppStore.getState().view !== "users") {
@@ -91,7 +92,8 @@ export default function Home() {
         const ok = Boolean(d.authenticated);
         setAuthed(ok);
         setPreviewHints(Boolean(d.showPreviewHints));
-        const nextRole = ok && d.role === "reseller" ? "reseller" : "admin";
+        // task 3-b — session now returns the fine-grained admin role
+        const nextRole = ok ? roleFromSession(d.role) : "admin";
         setRole(nextRole);
         if (ok && nextRole === "reseller" && useAppStore.getState().view !== "users") {
           useAppStore.getState().setView("users");

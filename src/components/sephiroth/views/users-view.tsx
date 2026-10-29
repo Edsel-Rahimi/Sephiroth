@@ -84,6 +84,7 @@ import {
 import { daysLeftSmart, forecastUsage, type AccessDTO, type UserDTO, type UserStatus } from "@/lib/user-types";
 import { buildShareLink } from "@/lib/share-links";
 import { useToast } from "@/hooks/use-toast";
+import { useCanMutate } from "@/hooks/use-role"; // task 3-b — viewer read-only UI gate
 import { cn } from "@/lib/utils";
 
 /* ============================================================
@@ -328,6 +329,7 @@ function accessShareLink(access: AccessDTO, user: UserDTO): string | null {
 
 export function UsersView() {
   const lang = useAppStore((s) => s.lang);
+  const canMutate = useCanMutate(); // task 3-b — hide mutation buttons for read-only viewers (server still enforces)
   const t = useMemo(() => dictionaries[lang], [lang]);
   const u = t.users;
   const fxc = FEATURE[lang].usersCsv; // v2.7 — CSV import/export strings
@@ -1351,15 +1353,17 @@ export function UsersView() {
                           >
                             <Eye className="h-3.5 w-3.5" aria-hidden="true" />
                           </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={() => setDeleting(user)}
-                            aria-label={u.bulkDelete}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                          </Button>
+                          {canMutate && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              onClick={() => setDeleting(user)}
+                              aria-label={u.bulkDelete}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>

@@ -89,6 +89,7 @@ import { useCoreStore } from "@/lib/store/core-store";
 import { dictionaries } from "@/lib/i18n/dictionaries";
 import { lfmt } from "@/lib/i18n/live-strings";
 import { useToast } from "@/hooks/use-toast";
+import { useCanMutate } from "@/hooks/use-role"; // task 3-b — viewer read-only UI gate
 import { cn } from "@/lib/utils";
 import { buildDokoSummary, buildShareLink, buildTelegramMtpLinks, buildTelegramSocksLinks, buildWgConf, hostOf } from "@/lib/share-links";
 import { genMtpSecret, MTP_DEFAULT_DOMAIN } from "@/lib/mtp-secret";
@@ -1001,6 +1002,7 @@ function SecPicker({
 
 export function InboundsView() {
   const lang = useAppStore((s) => s.lang);
+  const canMutate = useCanMutate(); // task 3-b — hide mutation buttons for read-only viewers (server still enforces)
   const t = useMemo(() => dictionaries[lang], [lang]);
   const { toast } = useToast();
 
@@ -4372,15 +4374,17 @@ export function InboundsView() {
                     </DropdownMenuContent>
                   </DropdownMenu>
 
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setDeleting(row)}
-                    className="h-8 w-8 rounded-full text-muted-foreground hover:bg-chart-5/10 hover:text-chart-5"
-                    aria-label={t.inbounds.deleteAction}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  {canMutate && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setDeleting(row)}
+                      className="h-8 w-8 rounded-full text-muted-foreground hover:bg-chart-5/10 hover:text-chart-5"
+                      aria-label={t.inbounds.deleteAction}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                 </div>
               </div>
             </article>
@@ -4482,15 +4486,17 @@ export function InboundsView() {
                       >
                         <Pencil className="h-3 w-3" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setDeleting(row)}
-                        className="h-7 w-7 rounded-full text-muted-foreground hover:bg-chart-5/10 hover:text-chart-5"
-                        aria-label={t.inbounds.deleteAction}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                      {canMutate && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setDeleting(row)}
+                          className="h-7 w-7 rounded-full text-muted-foreground hover:bg-chart-5/10 hover:text-chart-5"
+                          aria-label={t.inbounds.deleteAction}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      )}
                     </div>
                   </td>
                 </tr>

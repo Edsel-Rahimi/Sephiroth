@@ -4,7 +4,20 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { Lang, ViewId } from "@/lib/i18n/dictionaries";
 
-export type Role = "admin" | "reseller";
+/* task 3-b — fine-grained admin roles layer in additively: "owner" | "admin"
+   | "viewer" are the NEW admin RBAC roles; "reseller" keeps its existing
+   scoped-operator semantics. Legacy single-admin deployments map to "owner". */
+export type Role = "owner" | "admin" | "viewer" | "reseller";
+
+/** Map /api/auth/session `role` (fine-grained) into the store Role.
+ * Unknown/coarse values fall back to "admin" — safe default that keeps
+ * legacy consumers working while the session request resolves. */
+export function roleFromSession(value: unknown): Role {
+  return value === "owner" || value === "viewer" || value === "reseller"
+    ? value
+    : "admin";
+}
+
 export type GlowPref = "on" | "soft" | "off";
 export type ThemeId = "sephiroth" | "jenova" | "masamune" | "terminal" | "oled" | "one-winged";
 export type ThemePreset = ThemeId;

@@ -79,6 +79,7 @@ import { useCoreStore } from "@/lib/store/core-store";
 import { dictionaries, LANGS, LANG_META, type Lang } from "@/lib/i18n/dictionaries";
 import { sfmt } from "@/lib/i18n/sub-dictionary";
 import { useToast } from "@/hooks/use-toast";
+import { useCanMutate } from "@/hooks/use-role"; // task 3-b — viewer read-only UI gate
 import { cn } from "@/lib/utils";
 import { TelegramBotPanel } from "@/components/sephiroth/views/telegram-bot-panel";
 import { TelegramBotSettings } from "@/components/sephiroth/views/telegram-bot-settings"; // Task 23-a — bot card
@@ -89,6 +90,7 @@ import { ReferralCard } from "@/components/sephiroth/views/referral-card"; // Ta
 import { BroadcastCard } from "@/components/sephiroth/views/broadcast-card"; // Task 2-e — broadcast queue card
 import { AbuseCard } from "@/components/sephiroth/views/abuse-card"; // Task 2-e — anti-abuse card
 import { UpdatesCard } from "@/components/sephiroth/views/updates-card"; // Task 3-c — release channel + update check card
+import { AdminsCard } from "@/components/sephiroth/views/admins-card"; // task 3-b — multi-admin RBAC management (owner-only)
 import { SslCard } from "@/components/sephiroth/views/ssl-card"; // Task 23-f — SSL/ACME card
 
 /* ============================================================
@@ -433,6 +435,7 @@ export function SettingsView() {
   const setModule = useAppStore((s) => s.setModule);
   const setModules = useAppStore((s) => s.setModules);
   const coreStatus = useCoreStore((s) => s.status);
+  const canMutate = useCanMutate(); // task 3-b — hide save buttons for read-only viewers (server still enforces)
   const { toast } = useToast();
 
   const t = useMemo(() => dictionaries[lang], [lang]);
@@ -1891,7 +1894,7 @@ docker run -d --name mtproxy --restart=always -p ${mtpPort || "443"}:443 \\
                 </div>
               </div>
               <div className="pt-4">
-                <Button onClick={() => void saveGeneral()} disabled={savingGeneral} className="gap-2">
+                <Button onClick={() => void saveGeneral()} disabled={savingGeneral} hidden={!canMutate} className="gap-2">
                   {savingGeneral ? (
                     <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                   ) : (
@@ -1977,7 +1980,7 @@ docker run -d --name mtproxy --restart=always -p ${mtpPort || "443"}:443 \\
                     <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                     {u.subBrandReset}
                   </Button>
-                  <Button onClick={() => void saveGeneral()} disabled={savingGeneral} className="gap-2">
+                  <Button onClick={() => void saveGeneral()} disabled={savingGeneral} hidden={!canMutate} className="gap-2">
                     {savingGeneral ? (
                       <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                     ) : (
@@ -2098,6 +2101,9 @@ docker run -d --name mtproxy --restart=always -p ${mtpPort || "443"}:443 \\
 
             {/* Task 3-c — release channel (stable/beta) + GitHub update check */}
             <UpdatesCard />
+
+            {/* task 3-b — multi-admin RBAC (owner-only card; honest note for others) */}
+            <AdminsCard />
 
             {/* telegram notifications */}
             <SectionCard icon={Sparkles} title={u.tgNotify}>
@@ -3158,7 +3164,7 @@ docker run -d --name mtproxy --restart=always -p ${mtpPort || "443"}:443 \\
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2 pt-1">
-                    <Button onClick={() => void saveCore()} disabled={savingCore} className="gap-2">
+                    <Button onClick={() => void saveCore()} disabled={savingCore} hidden={!canMutate} className="gap-2">
                       {savingCore ? (
                         <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                       ) : (

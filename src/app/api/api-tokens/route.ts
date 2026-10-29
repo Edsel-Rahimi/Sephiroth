@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db, type ApiToken } from "@/lib/db";
-import { getSession, genApiToken } from "@/lib/auth";
+import { getSession, genApiToken, isReadOnlyActor } from "@/lib/auth"; // task 3-b — viewer read-only
 import { logActivity } from "@/lib/activity";
 
 /* ============================================================
@@ -49,6 +49,10 @@ export async function POST(req: Request) {
     const actor = await getSession(req);
     if (!actor || actor.role !== "admin") {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+    if (isReadOnlyActor(actor)) {
+      // task 3-b — viewers cannot mint API credentials (read-only role)
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
 
     let body: { name?: unknown };

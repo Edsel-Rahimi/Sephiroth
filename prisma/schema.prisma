@@ -16,6 +16,9 @@ model AdminUser {
   passwordHash String // scrypt: "salt:hash"
   recoveryKey  String   @unique // e.g. SEPH-XXXX-XXXX-XXXX
   displayName  String? // friendly name shown in profile
+  role         String   @default("owner") // task 3-b — owner | admin | viewer
+  enabled      Boolean  @default(true) // task 3-b — disabled admins cannot sign in
+  lastLoginAt  DateTime? // task 3-b — last successful sign-in
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }

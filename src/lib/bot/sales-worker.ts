@@ -32,6 +32,8 @@ import {
   isProvisioningClaim,
   logOrderEvent,
   provisionOrderUser,
+  tomanToStars, // task 3-a — pure conversion math
+  tomanToUsdCents, // task 3-a
   transitionOrder,
   // 2-d — cart + discount helpers (pure math lives in orders.ts so it can
   // be exercised without a running worker)
@@ -55,6 +57,7 @@ import {
   type BotLang,
 } from "@/lib/bot/texts";
 import { zarinpalRequest, zarinpalStartPayUrl, zarinpalVerify } from "@/lib/bot/zarinpal";
+import { nowpaymentsCreateInvoice, nowpaymentsInvoiceStatus } from "@/lib/bot/nowpayments"; // task 3-a — crypto invoices
 import { markInterruptedBroadcasts } from "@/lib/bot/broadcast"; // 2-e — boot sweep for stale broadcast jobs
 
 /* ============================================================
@@ -138,6 +141,13 @@ interface WorkerCtx {
   zarinpalMerchant: string;
   salesTemplateId: string;
   salesPayMode: "manual" | "zarinpal";
+  // task 3-a — NowPayments (crypto) + Telegram Stars
+  nowpaymentsEnabled: boolean;
+  nowpaymentsApiKey: string;
+  nowpaymentsSandbox: boolean;
+  nowpaymentsTomanPerUsd: number;
+  starsEnabled: boolean;
+  starsTomanPerStar: number;
 }
 
 async function loadCtx(): Promise<WorkerCtx> {
@@ -161,6 +171,13 @@ async function loadCtx(): Promise<WorkerCtx> {
     zarinpalMerchant: payment.zarinpalMerchant,
     salesTemplateId: tg.salesTemplateId,
     salesPayMode: tg.salesPayMode,
+    // task 3-a — crypto (NowPayments) + Telegram Stars
+    nowpaymentsEnabled: payment.nowpaymentsEnabled,
+    nowpaymentsApiKey: payment.nowpaymentsApiKey,
+    nowpaymentsSandbox: payment.nowpaymentsSandbox,
+    nowpaymentsTomanPerUsd: payment.nowpaymentsTomanPerUsd,
+    starsEnabled: payment.starsEnabled,
+    starsTomanPerStar: payment.starsTomanPerStar,
   };
 }
 
@@ -217,6 +234,11 @@ export async function startSalesWorker(): Promise<void> {
         void verifyAwaitingZarinpal().catch((err) =>
           console.warn("[telegram-bot] zarinpal poll error:", err)
         );
+        // task 3-a — the crypto sweep rides the SAME 60s loop so IPN-less
+        // (or sandbox) setups still complete their awaiting orders
+        void verifyAwaitingNowpayments().catch((err) =>
+          console.warn("[telegram-bot] nowpayments poll error:", err)
+        );
       }, PAY_POLL_MS);
       payTimer.unref?.();
     }
@@ -268,6 +290,12 @@ function ctx0(token: string, proxyUrl: string): WorkerCtx {
     zarinpalMerchant: "",
     salesTemplateId: "",
     salesPayMode: "manual",
+    nowpaymentsEnabled: false,
+    nowpaymentsApiKey: "",
+    nowpaymentsSandbox: false,
+    nowpaymentsTomanPerUsd: 0,
+    starsEnabled: false,
+    starsTomanPerStar: 0,
   };
 }
 
@@ -325,7 +353,7 @@ async function getUpdatesBatch(): Promise<TgUpdate[]> {
   const params = new URLSearchParams({
     timeout: "25",
     offset: String(offset),
-    allowed_updates: '["message","callback_query"]',
+    allowed_updates: '["message","callback_query","pre_checkout_query"]', // task 3-a — Stars pre-checkout
   });
   const url = `${tgApiBase()}/bot${ctx.token}/getUpdates?${params.toString()}`;
   const dispatcher = proxyFor(ctx.proxyUrl);
@@ -382,6 +410,22 @@ interface TgMessage {
   text?: string;
   photo?: { file_id: string }[];
   caption?: string;
+  // task 3-a — Telegram Stars settlement (message subtype)
+  successful_payment?: TgSuccessfulPayment;
+}
+interface TgSuccessfulPayment {
+  currency: string; // "XTR" for Stars
+  total_amount: number; // whole Stars for XTR
+  invoice_payload: string;
+  telegram_payment_charge_id?: string;
+  provider_payment_charge_id?: string;
+}
+interface TgPreCheckout {
+  id: string;
+  from: TgUserFrom;
+  currency: string;
+  total_amount: number;
+  invoice_payload: string;
 }
 interface TgCallback {
   id: string;
@@ -393,6 +437,7 @@ interface TgUpdate {
   update_id: number;
   message?: TgMessage;
   callback_query?: TgCallback;
+  pre_checkout_query?: TgPreCheckout; // task 3-a — Stars pre-checkout
 }
 
 /* ---------- tgUser helpers ---------- */
@@ -668,6 +713,13 @@ async function handleUpdate(update: TgUpdate): Promise<void> {
   const ctx = await loadCtx();
   if (!ctx.token) return;
 
+  // task 3-a — Stars pre-checkout MUST be answered within 10s: handle it
+  // before any other routing (no cart, no gate, minimal lookups).
+  if (update.pre_checkout_query) {
+    await handlePreCheckout(ctx, update.pre_checkout_query);
+    return;
+  }
+
   const cb = update.callback_query;
   const msg = update.message;
   const from = cb?.from ?? msg?.from;
@@ -734,6 +786,13 @@ async function handleMessage(
   // receipt photo for a pending card order?
   if (msg.photo && msg.photo.length > 0) {
     await handleReceiptPhoto(ctx, msg, fromId, chatId, lang);
+    return;
+  }
+
+  // task 3-a — Telegram Stars settlement (successful_payment message subtype,
+  // routed like the receipt-photo subtype above)
+  if (msg.successful_payment) {
+    await handleStarsPayment(ctx, msg, fromId, chatId, lang);
     return;
   }
 
@@ -947,9 +1006,9 @@ async function handleCallback(
     return;
   }
   if (data.startsWith("pay:")) {
-    // pay:<templateId>:z|c|w
+    // pay:<templateId>:z|c|w|n|s  (task 3-a: n = crypto, s = stars)
     const [, orderId, method] = data.split(":");
-    const m = method === "z" ? "zarinpal" : method === "w" ? "wallet" : "card";
+    const m = method === "z" ? "zarinpal" : method === "n" ? "crypto" : method === "s" ? "stars" : method === "w" ? "wallet" : "card";
     await startPayment(ctx, chatId, fromId, lang, orderId, m);
     return;
   }
@@ -969,9 +1028,9 @@ async function handleCallback(
     return;
   }
   if (data.startsWith("rtp:")) {
-    // rtp:<subId>:<index>:z|c|w — launch the renewal payment
+    // rtp:<subId>:<index>:z|c|w|n|s — launch the renewal payment (task 3-a: n = crypto, s = stars)
     const [, subId, idxStr, m] = data.split(":");
-    const method = m === "z" ? "zarinpal" : m === "w" ? "wallet" : "card";
+    const method = m === "z" ? "zarinpal" : m === "n" ? "crypto" : m === "s" ? "stars" : m === "w" ? "wallet" : "card";
     await startRenewPayment(ctx, chatId, fromId, lang, subId, Number(idxStr), method);
     return;
   }
@@ -1040,9 +1099,9 @@ async function handleCallback(
     return;
   }
   if (data.startsWith("cartpay:")) {
-    // cartpay:<z|c|w> — launch the cart payment
+    // cartpay:<z|c|w|n|s> — launch the cart payment (task 3-a: n = crypto, s = stars)
     const m = data.slice("cartpay:".length);
-    const method = m === "z" ? "zarinpal" : m === "w" ? "wallet" : "card";
+    const method = m === "z" ? "zarinpal" : m === "n" ? "crypto" : m === "s" ? "stars" : m === "w" ? "wallet" : "card";
     await startCartPayment(ctx, chatId, fromId, lang, method);
     return;
   }
@@ -1150,6 +1209,14 @@ async function sendTemplateDetail(
     const balance = Math.max(0, Math.floor(Number(tgRowW?.balanceToman ?? 0)));
     if (balance >= tpl.priceToman) {
       rows.push([{ text: t.btnWalletPay, callback_data: `pay:${tpl.id}:w` }]);
+    }
+    // task 3-a — crypto (NowPayments) + Telegram Stars buttons render only
+    // when enabled AND configured (rate set) — never a dead button
+    if (cryptoReady(ctx)) {
+      rows.push([{ text: t.payCrypto, callback_data: `pay:${tpl.id}:n` }]);
+    }
+    if (starsReady(ctx)) {
+      rows.push([{ text: t.payStars, callback_data: `pay:${tpl.id}:s` }]);
     }
     // 2-d — accumulate into the cart instead of paying one item at a time
     rows.push([{ text: t.btnAddCart, callback_data: `cartadd:${tpl.id}` }]);
@@ -1449,6 +1516,14 @@ async function showCartPaymentPicker(
   if (balance >= totals.payable) {
     rows.push([{ text: t.btnWalletPay, callback_data: "cartpay:w" }]);
   }
+  // task 3-a — crypto (NowPayments) + Telegram Stars, same gating as the
+  // single-template picker: enabled + configured or hidden
+  if (cryptoReady(ctx)) {
+    rows.push([{ text: t.payCrypto, callback_data: "cartpay:n" }]);
+  }
+  if (starsReady(ctx)) {
+    rows.push([{ text: t.payStars, callback_data: "cartpay:s" }]);
+  }
   rows.push([{ text: t.backMenu, callback_data: "menu" }]);
   await sendMessage(ctx.token, chatId, summary, { inline_keyboard: rows }, { proxyUrl: ctx.proxyUrl });
 }
@@ -1466,7 +1541,7 @@ async function startCartPayment(
   chatId: string,
   fromId: string,
   lang: BotLang,
-  method: "zarinpal" | "card" | "wallet"
+  method: "zarinpal" | "card" | "wallet" | "crypto" | "stars"
 ): Promise<void> {
   const t = botTexts(lang);
   const cart = getCart(chatId);
@@ -1522,6 +1597,23 @@ async function startCartPayment(
 
   if (method === "wallet") {
     await payWithWalletCart(ctx, chatId, fromId, lang, totals.payable, base, itemsJson);
+    return;
+  }
+
+  // task 3-a — crypto + stars ride the shared launchers (cart = ONE order
+  // for the whole payable, same as the zarinpal/cart branch below)
+  if (method === "crypto") {
+    await launchCryptoOrder(ctx, chatId, fromId, lang, totals.payable, `Sephiroth · ${base.templateName}`, {
+      ...base,
+      itemsJson,
+    });
+    return;
+  }
+  if (method === "stars") {
+    await launchStarsOrder(ctx, chatId, fromId, lang, totals.payable, `Sephiroth · ${base.templateName}`, {
+      ...base,
+      itemsJson,
+    });
     return;
   }
 
@@ -1673,13 +1765,253 @@ async function sendReferralView(ctx: WorkerCtx, chatId: string, fromId: string, 
 
 /* ---------- payments ---------- */
 
+/* ---------- task 3-a — crypto (NowPayments) + Telegram Stars ---------- */
+
+/** True when the crypto button may render: enabled + API key + FX rate set. */
+function cryptoReady(ctx: WorkerCtx): boolean {
+  return ctx.nowpaymentsEnabled && Boolean(ctx.nowpaymentsApiKey) && ctx.nowpaymentsTomanPerUsd > 0;
+}
+
+/** True when the Stars button may render: enabled + Toman-per-star rate set. */
+function starsReady(ctx: WorkerCtx): boolean {
+  return ctx.starsEnabled && ctx.starsTomanPerStar > 0;
+}
+
+/** Shape every launcher accepts — a subset of the tgOrder create data. */
+interface OrderCreateBase {
+  tgId: string;
+  tgUsername?: string;
+  templateId?: string;
+  templateName?: string;
+  amountToman?: number;
+  renewTargetSubId?: string;
+  itemsJson?: string;
+  discountJson?: string;
+}
+
+/**
+ * task 3-a — crypto checkout, shared by shop / cart / renew: create the
+ * awaiting order FIRST, then the NowPayments invoice whose `order_id` carries
+ * the tgOrder id (the IPN callback matches on it and the 60s sweep polls by
+ * invoice id). Honest failure: an invoice error CANCELS the just-created
+ * order (awaiting → canceled is a legal transition) and reports
+ * payUnavailable — never a fake invoice, never a stranded order.
+ * The invoice id is stored in the order's `authority` column (reused as a
+ * generic provider reference for crypto orders; the sweep queries
+ * method=crypto + authority≠"").
+ */
+async function launchCryptoOrder(
+  ctx: WorkerCtx,
+  chatId: string,
+  fromId: string,
+  lang: BotLang,
+  amountToman: number,
+  title: string,
+  createData: OrderCreateBase
+): Promise<void> {
+  const t = botTexts(lang);
+  const cents = tomanToUsdCents(amountToman, ctx.nowpaymentsTomanPerUsd);
+  if (!cryptoReady(ctx) || cents <= 0) {
+    await sendMessage(ctx.token, chatId, t.payUnavailable, menuBackKeyboard(t.backMenu), { proxyUrl: ctx.proxyUrl });
+    return;
+  }
+  const order = await db.tgOrder.create({
+    data: { ...createData, method: "crypto", status: "awaiting_payment" },
+  });
+  const host = ctx.publicHost || "https://t.me";
+  const priceUsd = (cents / 100).toFixed(2);
+  const inv = await nowpaymentsCreateInvoice({
+    apiKey: ctx.nowpaymentsApiKey,
+    sandbox: ctx.nowpaymentsSandbox,
+    priceUsd,
+    orderId: order.id,
+    orderDescription: title,
+    ipnCallbackUrl: `${host}/api/nowpayments/ipn`,
+    successUrl: host,
+    cancelUrl: host,
+  });
+  if (!inv.ok) {
+    await transitionOrder(order.id, "canceled");
+    await logActivity({
+      kind: "payment.crypto.rejected" as unknown as ActivityKind,
+      level: "warn",
+      actor: "telegram-bot",
+      message: `NowPayments invoice failed for ${fromId} (${title}): ${inv.reason} — order ${order.id.slice(-6)} canceled`,
+      meta: { orderId: order.id, amountToman, sandbox: ctx.nowpaymentsSandbox },
+    });
+    await sendMessage(ctx.token, chatId, t.payUnavailable, menuBackKeyboard(t.backMenu), { proxyUrl: ctx.proxyUrl });
+    return;
+  }
+  await db.tgOrder.update({ where: { id: order.id }, data: { authority: inv.invoiceId } });
+  await logOrderEvent(order, "created", `crypto invoice created (NowPayments, ${priceUsd} USD)`);
+  await notifyAdminsNewOrder(ctx, { ...order, authority: inv.invoiceId });
+  await logActivity({
+    kind: "payment.crypto.started" as unknown as ActivityKind,
+    level: "info",
+    actor: "telegram-bot",
+    message: `Crypto invoice opened for order ${order.id.slice(-6)} — ${priceUsd} USD (${amountToman} Toman @ ${ctx.nowpaymentsTomanPerUsd} T/USD${ctx.nowpaymentsSandbox ? ", sandbox" : ""})`,
+    meta: { orderId: order.id, tgId: fromId, invoiceId: inv.invoiceId, sandbox: ctx.nowpaymentsSandbox },
+  });
+  await sendMessage(
+    ctx.token,
+    chatId,
+    fmt(t.payCryptoSent, { usd: priceUsd, price: fmtToman(amountToman) }),
+    {
+      inline_keyboard: [
+        [{ text: t.payCrypto, url: inv.invoiceUrl }],
+        [{ text: "🔄", callback_data: "checkpay" }],
+        [{ text: t.backMenu, callback_data: "menu" }],
+      ],
+    },
+    { proxyUrl: ctx.proxyUrl }
+  );
+}
+
+/**
+ * task 3-a — Stars checkout, shared by shop / cart / renew: the order is
+ * created first, then sendInvoice charges XTR inside Telegram (NO
+ * provider_token for Stars). Settlement arrives as a successful_payment
+ * message → handleStarsPayment; the invoice payload carries the order id.
+ */
+async function launchStarsOrder(
+  ctx: WorkerCtx,
+  chatId: string,
+  fromId: string,
+  lang: BotLang,
+  amountToman: number,
+  title: string,
+  createData: OrderCreateBase
+): Promise<void> {
+  const t = botTexts(lang);
+  const stars = tomanToStars(amountToman, ctx.starsTomanPerStar);
+  if (!starsReady(ctx) || stars <= 0) {
+    await sendMessage(ctx.token, chatId, t.payUnavailable, menuBackKeyboard(t.backMenu), { proxyUrl: ctx.proxyUrl });
+    return;
+  }
+  const order = await db.tgOrder.create({
+    data: { ...createData, method: "stars", status: "awaiting_payment" },
+  });
+  await logOrderEvent(order, "created", `stars invoice sent (${stars} XTR)`);
+  await notifyAdminsNewOrder(ctx, order);
+  await logActivity({
+    kind: "payment.stars.started" as unknown as ActivityKind,
+    level: "info",
+    actor: "telegram-bot",
+    message: `Stars invoice sent for order ${order.id.slice(-6)} — ${stars} XTR (${amountToman} Toman @ ${ctx.starsTomanPerStar} T/★)`,
+    meta: { orderId: order.id, tgId: fromId, stars },
+  });
+  try {
+    await tgCall(ctx.token, "sendInvoice", {
+      chat_id: chatId,
+      title: title.slice(0, 32),
+      description: title.slice(0, 255),
+      payload: `order:${order.id}`, // carried back on pre-checkout + successful_payment
+      currency: "XTR", // Telegram Stars — intentionally NO provider_token
+      prices: [{ label: title.slice(0, 32), amount: stars }],
+    }, { proxyUrl: ctx.proxyUrl });
+  } catch (err) {
+    // invoice never reached the user — cancel honestly
+    await transitionOrder(order.id, "canceled");
+    await logActivity({
+      kind: "payment.stars.rejected" as unknown as ActivityKind,
+      level: "warn",
+      actor: "telegram-bot",
+      message: `Stars sendInvoice failed for ${fromId}: ${err instanceof Error ? err.message : String(err)} — order ${order.id.slice(-6)} canceled`,
+      meta: { orderId: order.id, stars },
+    });
+    await sendMessage(ctx.token, chatId, t.payUnavailable, menuBackKeyboard(t.backMenu), { proxyUrl: ctx.proxyUrl }).catch(() => {});
+    return;
+  }
+  await sendMessage(
+    ctx.token,
+    chatId,
+    fmt(t.payStarsSent, { stars, price: fmtToman(amountToman) }),
+    menuBackKeyboard(t.backMenu),
+    { proxyUrl: ctx.proxyUrl }
+  ).catch(() => {});
+}
+
+/**
+ * task 3-a — answer the Stars pre-checkout within the 10s window: the order
+ * must still exist, be a stars order and be awaiting payment.
+ */
+async function handlePreCheckout(ctx: WorkerCtx, pcq: TgPreCheckout): Promise<void> {
+  const payload = pcq.invoice_payload ?? "";
+  const orderId = payload.startsWith("order:") ? payload.slice(6) : "";
+  const order = orderId ? await db.tgOrder.findUnique({ where: { id: orderId } }) : null;
+  const ok = Boolean(order && order.method === "stars" && order.status === "awaiting_payment");
+  if (!ok) {
+    const langRow = await db.tgUser
+      .findUnique({ where: { tgId: String(pcq.from?.id ?? "") } })
+      .catch(() => null);
+    const t = botTexts(((langRow?.lang as BotLang) ?? ctx.botLang) as BotLang);
+    await tgCall(
+      ctx.token,
+      "answerPreCheckoutQuery",
+      { pre_checkout_query_id: pcq.id, ok: false, error_message: t.starsPreCheckoutFail.slice(0, 255) },
+      { proxyUrl: ctx.proxyUrl }
+    ).catch(() => {});
+    return;
+  }
+  await tgCall(
+    ctx.token,
+    "answerPreCheckoutQuery",
+    { pre_checkout_query_id: pcq.id, ok: true },
+    { proxyUrl: ctx.proxyUrl }
+  ).catch(() => {});
+}
+
+/**
+ * task 3-a — successful_payment settlement (the money-moved message AFTER the
+ * buyer confirmed the Stars popup): idempotent by chargeId, then the SAME
+ * completeAndDeliver choke point every other method funnels through.
+ */
+async function handleStarsPayment(
+  ctx: WorkerCtx,
+  msg: TgMessage,
+  fromId: string,
+  chatId: string,
+  lang: BotLang
+): Promise<void> {
+  const sp = msg.successful_payment;
+  if (!sp) return;
+  const payload = sp.invoice_payload ?? "";
+  const orderId = payload.startsWith("order:") ? payload.slice(6) : "";
+  const order = orderId ? await db.tgOrder.findUnique({ where: { id: orderId } }) : null;
+  if (!order || order.method !== "stars") {
+    console.warn(`[telegram-bot] stars successful_payment without a matching stars order (payload: ${payload.slice(0, 32)})`);
+    return;
+  }
+  // idempotency: a replayed successful_payment must never re-complete —
+  // chargeId is recorded once and the state machine guards the rest
+  if (order.chargeId || order.status !== "awaiting_payment") return;
+  await db.tgOrder.update({
+    where: { id: order.id },
+    data: { chargeId: sp.telegram_payment_charge_id ?? `stars:${order.id}` },
+  });
+  await logActivity({
+    kind: "payment.stars.completed" as unknown as ActivityKind,
+    level: "success",
+    actor: "telegram-bot",
+    message: `Stars payment settled for order ${order.id.slice(-6)} — ${sp.total_amount} XTR (${order.amountToman} Toman)`,
+    meta: {
+      orderId: order.id,
+      tgId: fromId,
+      stars: sp.total_amount,
+      chargeId: (sp.telegram_payment_charge_id ?? "").slice(-8),
+    },
+  });
+  await sendMessage(ctx.token, chatId, botTexts(lang).orderPaid, undefined, { proxyUrl: ctx.proxyUrl }).catch(() => {});
+  await completeAndDeliver(ctx, order.id, "stars");
+}
+
 async function startPayment(
   ctx: WorkerCtx,
   chatId: string,
   fromId: string,
   lang: BotLang,
   templateId: string,
-  method: "zarinpal" | "card" | "wallet"
+  method: "zarinpal" | "card" | "wallet" | "crypto" | "stars"
 ): Promise<void> {
   const t = botTexts(lang);
   const tpl = await db.saleTemplate.findUnique({ where: { id: templateId } });
@@ -1692,6 +2024,28 @@ async function startPayment(
   // v2.8 — wallet: synchronous deduct (see payWithWallet) + instant delivery
   if (method === "wallet") {
     await payWithWallet(ctx, chatId, fromId, lang, tpl, null);
+    return;
+  }
+
+  // task 3-a — crypto (NowPayments invoice) + Telegram Stars (XTR sendInvoice)
+  if (method === "crypto") {
+    await launchCryptoOrder(ctx, chatId, fromId, lang, tpl.priceToman, `Sephiroth · ${tpl.name}`, {
+      tgId: fromId,
+      tgUsername: tgRow?.tgUsername ?? "",
+      templateId: tpl.id,
+      templateName: tpl.name,
+      amountToman: tpl.priceToman,
+    });
+    return;
+  }
+  if (method === "stars") {
+    await launchStarsOrder(ctx, chatId, fromId, lang, tpl.priceToman, `Sephiroth · ${tpl.name}`, {
+      tgId: fromId,
+      tgUsername: tgRow?.tgUsername ?? "",
+      templateId: tpl.id,
+      templateName: tpl.name,
+      amountToman: tpl.priceToman,
+    });
     return;
   }
 
@@ -1993,6 +2347,13 @@ async function sendRenewPaymentPicker(
   if (balance >= tpl.priceToman) {
     rows.push([{ text: t.btnWalletPay, callback_data: `rtp:${subId}:${index}:w` }]);
   }
+  // task 3-a — crypto (NowPayments) + Telegram Stars, same gating
+  if (cryptoReady(ctx)) {
+    rows.push([{ text: t.payCrypto, callback_data: `rtp:${subId}:${index}:n` }]);
+  }
+  if (starsReady(ctx)) {
+    rows.push([{ text: t.payStars, callback_data: `rtp:${subId}:${index}:s` }]);
+  }
   rows.push([{ text: t.backMenu, callback_data: "menu" }]);
   await sendMessage(
     ctx.token,
@@ -2010,7 +2371,7 @@ async function startRenewPayment(
   lang: BotLang,
   subId: string,
   index: number,
-  method: "zarinpal" | "card" | "wallet"
+  method: "zarinpal" | "card" | "wallet" | "crypto" | "stars"
 ): Promise<void> {
   const t = botTexts(lang);
   const resolved = await resolveRenewTarget(ctx, fromId, subId, index);
@@ -2022,6 +2383,30 @@ async function startRenewPayment(
 
   if (method === "wallet") {
     await payWithWallet(ctx, chatId, fromId, lang, tpl, subId);
+    return;
+  }
+
+  // task 3-a — crypto + stars renewals through the shared launchers
+  if (method === "crypto") {
+    await launchCryptoOrder(ctx, chatId, fromId, lang, tpl.priceToman, `Sephiroth · ${tpl.name}`, {
+      tgId: fromId,
+      tgUsername: (await db.tgUser.findUnique({ where: { tgId: fromId } }))?.tgUsername ?? "",
+      templateId: tpl.id,
+      templateName: tpl.name,
+      amountToman: tpl.priceToman,
+      renewTargetSubId: subId,
+    });
+    return;
+  }
+  if (method === "stars") {
+    await launchStarsOrder(ctx, chatId, fromId, lang, tpl.priceToman, `Sephiroth · ${tpl.name}`, {
+      tgId: fromId,
+      tgUsername: (await db.tgUser.findUnique({ where: { tgId: fromId } }))?.tgUsername ?? "",
+      templateId: tpl.id,
+      templateName: tpl.name,
+      amountToman: tpl.priceToman,
+      renewTargetSubId: subId,
+    });
     return;
   }
 
@@ -2444,14 +2829,70 @@ async function verifyAwaitingZarinpal(): Promise<void> {
   }
 }
 
+/**
+ * task 3-a — crypto verify sweep. Rides the SAME 60s payTimer as
+ * verifyAwaitingZarinpal: poll every awaiting crypto order's NowPayments
+ * invoice status so payments complete even when the IPN callback never
+ * arrives (sandbox / firewall / missed hook). "finished" is NowPayments'
+ * final settled state — the only one we credit (confirmed still awaits
+ * the payout, so we keep waiting).
+ */
+async function verifyAwaitingNowpayments(): Promise<void> {
+  if (!status.running) return;
+  const ctx = await loadCtx();
+  if (!ctx.token || !cryptoReady(ctx)) return;
+  const orders = await db.tgOrder.findMany({
+    where: { method: "crypto", status: "awaiting_payment", authority: { not: "" } },
+    orderBy: { createdAt: "asc" },
+    take: 20,
+  });
+  for (const order of orders) {
+    // 60s grace so a just-opened invoice isn't polled before any payment can exist
+    if (Date.now() - new Date(order.createdAt).getTime() < 60_000) continue;
+    const st = await nowpaymentsInvoiceStatus(ctx.nowpaymentsApiKey, ctx.nowpaymentsSandbox, order.authority);
+    if (st.ok && st.paymentStatus === "finished") {
+      await logActivity({
+        kind: "payment.crypto.completed" as unknown as ActivityKind,
+        level: "success",
+        actor: "telegram-bot",
+        message: `Crypto payment finished (sweep) for order ${order.id.slice(-6)} (${order.amountToman} Toman) — completing via crypto`,
+        meta: { orderId: order.id, tgId: order.tgId, method: "crypto", invoiceId: order.authority },
+      });
+      await completeAndDeliver(ctx, order.id, "crypto");
+    }
+  }
+}
+
+/**
+ * task 3-a — IPN route hook: run a finished NowPayments payment through the
+ * SAME completeAndDeliver choke point every bot path uses (provisioning
+ * claim, discount consumption, referral reward, delivery). The route itself
+ * resolves found/not-found/idempotency; this only needs the WorkerCtx.
+ */
+export async function ipnCompleteCryptoOrder(orderId: string): Promise<void> {
+  const ctx = await loadCtx();
+  await completeAndDeliver(ctx, orderId, "crypto");
+}
+
 /* ---------- admin flows ---------- */
 
 async function notifyAdminsNewOrder(ctx: WorkerCtx, order: TgOrder): Promise<void> {
+  // task 3-a — per-method waiting line (was zarinpal-vs-card only)
+  const waiting =
+    order.method === "card"
+      ? "waiting for receipt photo…"
+      : order.method === "zarinpal"
+        ? "awaiting ZarinPal payment…"
+        : order.method === "crypto"
+          ? "awaiting crypto payment (NowPayments)…"
+          : order.method === "stars"
+            ? "awaiting Telegram Stars payment…"
+            : "awaiting payment…";
   const text = [
     `🛒 <b>New order</b> <code>${order.id.slice(-6)}</code>`,
     `user: ${order.tgUsername || order.tgId}`,
     `${order.templateName} · ${fmtToman(order.amountToman)} Toman · ${order.method}`,
-    order.method === "card" ? "waiting for receipt photo…" : "awaiting ZarinPal payment…",
+    waiting,
   ].join("\n");
   await notifyAdmins(ctx, text);
 }

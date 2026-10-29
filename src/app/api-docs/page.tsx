@@ -19,7 +19,7 @@ import { BrandMark } from "@/components/sephiroth/brand";
 import { SwaggerEmbed } from "@/components/sephiroth/swagger-embed";
 import { Button } from "@/components/ui/button";
 import { dictionaries } from "@/lib/i18n/dictionaries";
-import { useAppStore } from "@/lib/store/app-store";
+import { useAppStore, roleFromSession } from "@/lib/store/app-store"; // task 3-b — fine-grained RBAC
 
 type Phase = "loading" | "admin" | "denied";
 
@@ -34,7 +34,10 @@ export default function ApiDocsPage() {
       .then((r) => r.json())
       .then((d: { authenticated?: boolean; role?: string }) => {
         if (!cancelled) {
-          setPhase(d.authenticated && d.role === "admin" ? "admin" : "denied");
+          // task 3-b — session role is fine-grained now: any admin role passes
+          setPhase(
+            d.authenticated && roleFromSession(d.role) !== "reseller" ? "admin" : "denied"
+          );
         }
       })
       .catch(() => {

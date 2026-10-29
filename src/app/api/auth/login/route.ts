@@ -7,6 +7,7 @@ import {
   clientIp,
   ensureSeed,
   lockState,
+  normalizeAdminRole, // task 3-b — fine-grained admin roles
   registerFailure,
   sessionCookieOptions,
   setServerFallbackActor,
@@ -51,7 +52,9 @@ export async function POST(req: Request) {
   let role: "admin" | "reseller" | null = null;
   let resellerId: string | null = null;
 
-  if (admin && verifyPassword(password, admin.passwordHash)) {
+  if (admin && admin.enabled !== false && verifyPassword(password, admin.passwordHash)) {
+    // task 3-b — disabled admins can never sign in (falls through to the
+    // generic invalid-credentials path: no username oracle, lockout applies)
     okUser = admin.username;
     role = "admin";
   } else {
@@ -113,9 +116,16 @@ export async function POST(req: Request) {
   const ttl = remember ? SESSION_TTL_LONG : SESSION_TTL_SHORT;
   const token = await signToken(okUser, ttl);
 
+  // task 3-b — remember the successful sign-in for the admins list
+  if (role === "admin" && admin) {
+    await db.adminUser
+      .update({ where: { id: admin.id }, data: { lastLoginAt: new Date() } })
+      .catch(() => {});
+  }
+
   setServerFallbackActor(
     role === "admin"
-      ? { role: "admin", username: okUser }
+      ? { role: "admin", username: okUser, adminRole: normalizeAdminRole(admin?.role) }
       : { role: "reseller", id: resellerId!, username: okUser }
   );
 

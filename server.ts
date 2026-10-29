@@ -40,6 +40,8 @@ import * as apiAuthRecover from "./src/app/api/auth/recover/route";
 import * as apiAuthRecoveryRotate from "./src/app/api/auth/recovery/rotate/route";
 import * as apiAuthRevokeSessions from "./src/app/api/auth/revoke-sessions/route";
 import * as apiAuthSession from "./src/app/api/auth/session/route";
+import * as apiAdmins from "./src/app/api/admins/route"; // task 3-b — admin management (owner-only RBAC)
+import * as apiAdminsId from "./src/app/api/admins/[id]/route"; // task 3-b — admin item API
 import * as apiHosts from "./src/app/api/hosts/route";
 import * as apiHostsId from "./src/app/api/hosts/[id]/route";
 import * as apiInbounds from "./src/app/api/inbounds/route";
@@ -120,6 +122,7 @@ import * as apiSystemSsl from "./src/app/api/system/ssl/route";
 import * as apiSystemSslInstall from "./src/app/api/system/ssl-install-acme/route";
 import * as apiSystemSslIssue from "./src/app/api/system/ssl-issue/route";
 import * as apiTunnels from "./src/app/api/tunnels/route";
+import * as apiNowpaymentsIpn from "./src/app/api/nowpayments/ipn/route"; // task 3-a — NowPayments IPN callback (public, signature-verified)
 import * as apiUsers from "./src/app/api/users/route";
 import * as apiUsersIpUsage from "./src/app/api/users/ip-usage/route"; // Task 23-g — concurrent-IP usage
 import * as apiUsersResetDevices from "./src/app/api/users/[id]/reset-devices/route"; // Task 23-g — HWID reset
@@ -430,6 +433,8 @@ async function startServer() {
   mountRoute(app, "/api/auth/recovery/rotate", apiAuthRecoveryRotate);
   mountRoute(app, "/api/auth/revoke-sessions", apiAuthRevokeSessions);
   mountRoute(app, "/api/auth/session", apiAuthSession);
+  mountRoute(app, "/api/admins/:id", apiAdminsId); // task 3-b — BEFORE /api/admins
+  mountRoute(app, "/api/admins", apiAdmins); // task 3-b
 
   mountRoute(app, "/api/hosts", apiHosts);
   mountRoute(app, "/api/hosts/:id", apiHostsId);
@@ -513,6 +518,13 @@ async function startServer() {
   mountRoute(app, "/api/telegram/broadcast", apiTelegramBroadcast); // task 2-e
   mountRoute(app, "/api/telegram/abuse", apiTelegramAbuse); // task 2-e
   mountRoute(app, "/api/tunnels", apiTunnels);
+
+  // task 3-a — NowPayments IPN callback. PUBLIC route (no admin guard):
+  // NowPayments servers POST here and trust is established by the
+  // x-nowpayments-sig HMAC-SHA512 signature verified INSIDE the handler
+  // (same pattern as /api/auth/login and /api/sub/*: routes self-authorize,
+  // there is no global express auth middleware to exempt from).
+  mountRoute(app, "/api/nowpayments/ipn", apiNowpaymentsIpn);
 
   mountRoute(app, "/api/users/bulk", apiUsersBulk);
   mountRoute(app, "/api/users/bulk-create", apiUsersBulkCreate); // 26-b — BEFORE :id

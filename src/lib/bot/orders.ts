@@ -327,6 +327,48 @@ export function parseOrderDiscount(order: TgOrder): OrderDiscount | null {
   }
 }
 
+/* ============================================================
+   Task 3-a — currency conversion math (PURE, exported so both the
+   sales worker and the IPN route share ONE rounding rule)
+
+   The panel prices in Toman (integer, no subunit). The two new
+   methods need a config-time FX rate (admin sets it, the bot never
+   guesses):
+   • Crypto (NowPayments): the invoice `price_amount` is USD →
+     convert to USDT *cents* (2dp) with ONE Math.round; the invoice
+     is created from cents/100 so the float never compounds.
+   • Telegram Stars: prices are whole ⭐ → convert with Math.ceil
+     (round UP — the merchant must never be short-changed; the
+     buyer can overpay by at most rate−1 Toman, documented).
+   Rate ≤ 0 (unset) → 0, which callers treat as "method disabled"
+   rather than inventing a rate.
+   ============================================================ */
+
+/**
+ * Toman → USDT cents. Rounding: ONE Math.round at the cents boundary
+ * (amountToman × 100 / rate), inputs floored to integers first.
+ * `rate` = Toman per 1 USD. Returns 0 when the rate is unset (≤ 0).
+ */
+export function tomanToUsdCents(amountToman: number, rate: number): number {
+  const a = Math.max(0, Math.floor(Number(amountToman) || 0));
+  const r = Math.floor(Number(rate) || 0);
+  if (a <= 0 || r <= 0) return 0;
+  return Math.round((a * 100) / r);
+}
+
+/**
+ * Toman → whole Telegram Stars. Rounding: Math.ceil — always round UP
+ * to the next star so the shop never loses money on the remainder
+ * (documented trade-off: the buyer may pay ≤ 1 star extra).
+ * `rate` = Toman per 1 ⭐. Returns 0 when the rate is unset (≤ 0).
+ */
+export function tomanToStars(amountToman: number, rate: number): number {
+  const a = Math.max(0, Math.floor(Number(amountToman) || 0));
+  const r = Math.floor(Number(rate) || 0);
+  if (a <= 0 || r <= 0) return 0;
+  return Math.ceil(a / r);
+}
+
 /**
  * Consume a discount at COMPLETION time (Task 2-d). The findUnique read is
  * the LAST await before the update write — same no-yield discipline as

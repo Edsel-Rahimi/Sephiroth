@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getSession } from "@/lib/auth";
+import { getSession, isReadOnlyActor, isMutatingMethod } from "@/lib/auth"; // task 3-b
 import { logActivity } from "@/lib/activity";
 
 /* ============================================================
@@ -14,6 +14,8 @@ type Ctx = { params: Promise<{ id: string }> };
 async function requireAdmin(req: Request) {
   const actor = await getSession(req);
   if (!actor || actor.role !== "admin") return null;
+  // task 3-b — viewer admins are READ-ONLY; token toggle/revoke rejects (401 via null)
+  if (isReadOnlyActor(actor) && isMutatingMethod(req)) return null;
   return actor;
 }
 

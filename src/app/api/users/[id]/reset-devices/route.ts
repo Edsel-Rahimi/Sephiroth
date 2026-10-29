@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getSession } from "@/lib/auth";
+import { getSession, isReadOnlyActor } from "@/lib/auth"; // task 3-b — viewer read-only
 import { toUserDTO } from "@/lib/users";
 import { logActivity } from "@/lib/activity";
 
@@ -20,6 +20,10 @@ export async function POST(
     const actor = await getSession(req);
     if (!actor) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+    if (isReadOnlyActor(actor)) {
+      // task 3-b — viewer admins are READ-ONLY; mutations reject 403
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
 
     const { id } = await params;

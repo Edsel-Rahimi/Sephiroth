@@ -48,6 +48,12 @@ export interface BotTexts {
   trialLimit: string;
   support: string;
   payUnavailable: string;
+  /* task 3-a — crypto (NowPayments) + Telegram Stars */
+  payCrypto: string;
+  payStars: string;
+  payCryptoSent: string;
+  payStarsSent: string;
+  starsPreCheckoutFail: string;
   checkHint: string;
   rejected: string;
   backMenu: string;
@@ -189,6 +195,11 @@ const FA: BotTexts = {
   trialLimit: "هر کاربر فقط یک‌بار می‌تواند پلن رایگان بگیرد.",
   support: "🆘 پشتیبانی:\n{contact}",
   payUnavailable: "این روش پرداخت فعلاً پیکربندی نشده است. با پشتیبانی تماس بگیرید.",
+  payCrypto: "🪙 پرداخت با کریپتو (USDT)",
+  payStars: "⭐ استارز تلگرام",
+  payCryptoSent: "🪙 <b>پرداخت کریپتو (NowPayments)</b>\nمبلغ: <b>{usd} دلار</b> ({price} تومان)\n\nروی دکمهٔ زیر بزنید تا فاکتور باز شود. پس از تأیید شبکه، سفارش به‌صورت خودکار کامل می‌شود (چند دقیقه طول می‌کشد).",
+  payStarsSent: "⭐ <b>پرداخت با استارز تلگرام</b>\nمبلغ: <b>{stars} ⭐</b> ({price} تومان)\n\nپرداخت را در پنجرهٔ بازشده تأیید کنید؛ اشتراک بلافاصله ارسال می‌شود.",
+  starsPreCheckoutFail: "این سفارش دیگر قابل پرداخت نیست (تکمیل یا لغو شده است).",
   checkHint: "⏳ سفارش شما در انتظار پرداخت است. به‌محض تأیید، لینک اشتراک ارسال می‌شود.",
   rejected: "❌ سفارش شما تأیید نشد. برای بررسی بیشتر با پشتیبانی تماس بگیرید.",
   backMenu: "بازگشت به منو",
@@ -319,6 +330,11 @@ const EN: BotTexts = {
   trialLimit: "Each user can claim the free plan only once.",
   support: "🆘 Support:\n{contact}",
   payUnavailable: "This payment method is not configured yet. Please contact support.",
+  payCrypto: "🪙 Crypto (USDT)",
+  payStars: "⭐ Telegram Stars",
+  payCryptoSent: "🪙 <b>Crypto payment (NowPayments)</b>\nAmount: <b>{usd} USD</b> ({price} Toman)\n\nTap the button below to open the invoice. After the network confirms, your order completes automatically (may take a few minutes).",
+  payStarsSent: "⭐ <b>Telegram Stars payment</b>\nAmount: <b>{stars} ⭐</b> ({price} Toman)\n\nConfirm the payment in the popup — your subscription is delivered right after.",
+  starsPreCheckoutFail: "This order can no longer be paid (already completed or canceled).",
   checkHint: "⏳ Your order is awaiting payment. Your subscription link will arrive as soon as it is verified.",
   rejected: "❌ Your order was not approved. Please contact support for details.",
   backMenu: "Back to menu",
@@ -449,6 +465,11 @@ const AR: BotTexts = {
   trialLimit: "يمكن لكل مستخدم الحصول على الخطة المجانية مرة واحدة فقط.",
   support: "🆘 الدعم:\n{contact}",
   payUnavailable: "طريقة الدفع هذه غير مهيأة بعد. تواصل مع الدعم.",
+  payCrypto: "🪙 الدفع بالعملات الرقمية (USDT)",
+  payStars: "⭐ نجوم تيليجرام",
+  payCryptoSent: "🪙 <b>الدفع بالعملات الرقمية (NowPayments)</b>\nالمبلغ: <b>{usd} دولار</b> ({price} تومان)\n\nاضغط الزر أدناه لفتح الفاتورة. بعد تأكيد الشبكة يكتمل طلبك تلقائياً (قد يستغرق دقائق).",
+  payStarsSent: "⭐ <b>الدفع بنجوم تيليجرام</b>\nالمبلغ: <b>{stars} ⭐</b> ({price} تومان)\n\nأكّد الدفع في النافذة المنبثقة — سيصلك الاشتراك فوراً.",
+  starsPreCheckoutFail: "لم يعد بالإمكان دفع هذا الطلب (اكتمل أو أُلغى مسبقاً).",
   checkHint: "⏳ طلبك بانتظار الدفع. سيصلك رابط الاشتراك فور التحقق.",
   rejected: "❌ لم يُعتمد طلبك. تواصل مع الدعم للتفاصيل.",
   backMenu: "العودة إلى القائمة",
@@ -579,6 +600,11 @@ const ZH: BotTexts = {
   trialLimit: "每位用户只能领取一次免费套餐。",
   support: "🆘 客服：\n{contact}",
   payUnavailable: "该支付方式尚未配置，请联系客服。",
+  payCrypto: "🪙 加密货币支付 (USDT)",
+  payStars: "⭐ Telegram 星星",
+  payCryptoSent: "🪙 <b>加密货币支付（NowPayments）</b>\n金额：<b>{usd} 美元</b>（{price} 托曼）\n\n点击下方按钮打开账单。网络确认后，订单会自动完成（可能需要几分钟）。",
+  payStarsSent: "⭐ <b>Telegram 星星支付</b>\n金额：<b>{stars} ⭐</b>（{price} 托曼）\n\n在弹窗中确认付款，订阅会立即发放。",
+  starsPreCheckoutFail: "该订单已无法支付（已完成或已取消）。",
   checkHint: "⏳ 订单等待付款中，核验通过后订阅链接会立即发送。",
   rejected: "❌ 您的订单未通过审核，详情请联系客服。",
   backMenu: "返回菜单",
@@ -709,6 +735,11 @@ const TR: BotTexts = {
   trialLimit: "Her kullanıcı ücretsiz paketi yalnızca bir kez alabilir.",
   support: "🆘 Destek:\n{contact}",
   payUnavailable: "Bu ödeme yöntemi henüz yapılandırılmamış. Destekle iletişime geçin.",
+  payCrypto: "🪙 Kripto (USDT)",
+  payStars: "⭐ Telegram Yıldızları",
+  payCryptoSent: "🪙 <b>Kripto ödeme (NowPayments)</b>\nTutar: <b>{usd} USD</b> ({price} Toman)\n\nFaturayı açmak için aşağıdaki düğmeye dokunun. Ağ onayladıktan sonra siparişiniz otomatik tamamlanır (birkaç dakika sürebilir).",
+  payStarsSent: "⭐ <b>Telegram Yıldızı ödemesi</b>\nTutar: <b>{stars} ⭐</b> ({price} Toman)\n\nAçılan pencerede ödemeyi onaylayın — aboneliğiniz hemen teslim edilir.",
+  starsPreCheckoutFail: "Bu sipariş artık ödenemez (zaten tamamlandı veya iptal edildi).",
   checkHint: "⏳ Siparişiniz ödeme bekliyor. Doğrulanır doğrulanmaz abonelik bağlantısı gelir.",
   rejected: "❌ Siparişiniz onaylanmadı. Ayrıntı için desteğe başvurun.",
   backMenu: "Menüye dön",
@@ -839,6 +870,11 @@ const RU: BotTexts = {
   trialLimit: "Бесплатный тариф можно получить только один раз.",
   support: "🆘 Поддержка:\n{contact}",
   payUnavailable: "Этот способ оплаты пока не настроен. Обратитесь в поддержку.",
+  payCrypto: "🪙 Криптовалюта (USDT)",
+  payStars: "⭐ Telegram Звёзды",
+  payCryptoSent: "🪙 <b>Оплата криптовалютой (NowPayments)</b>\nСумма: <b>{usd} USD</b> ({price} туманов)\n\nНажмите кнопку ниже, чтобы открыть счёт. После подтверждения сетью заказ завершится автоматически (это может занять несколько минут).",
+  payStarsSent: "⭐ <b>Оплата Telegram Звёздами</b>\nСумма: <b>{stars} ⭐</b> ({price} туманов)\n\nПодтвердите оплату во всплывающем окне — подписка придёт сразу после этого.",
+  starsPreCheckoutFail: "Этот заказ больше нельзя оплатить (уже завершён или отменён).",
   checkHint: "⏳ Заказ ожидает оплаты. Ссылка подписки придёт сразу после подтверждения.",
   rejected: "❌ Ваш заказ не одобрен. Подробности в поддержке.",
   backMenu: "В меню",

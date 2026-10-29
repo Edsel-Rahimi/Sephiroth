@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { requireAdmin } from "@/lib/inbounds";
+import { requireOwner } from "@/lib/auth"; // task 3-b — restore is an owner-only wipe
 
 /* ============================================================
    Sephiroth · Phase 7 — Backup restore (admin, destructive)
@@ -73,10 +73,12 @@ function asNum<T>(raw: unknown, fallback: T): number | T {
 
 export async function POST(req: Request) {
   try {
-    const admin = await requireAdmin(req);
-    if (!admin) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    // task 3-b — restore replaces the whole store: owner-only dangerous wipe
+    const guard = await requireOwner(req);
+    if (!guard.ok) {
+      return NextResponse.json({ error: guard.error }, { status: guard.status });
     }
+    const admin = guard.username;
 
     let body: { confirm?: string; backup?: BackupPayload };
     try {

@@ -10,10 +10,12 @@ export async function GET(req: Request) {
     return NextResponse.json({ authenticated: false, showPreviewHints });
   }
   if (actor.role === "admin") {
+    // task 3-b — admins now carry their fine-grained role
+    // ("owner" | "admin" | "viewer"); resellers keep the legacy "reseller".
     return NextResponse.json({
       authenticated: true,
       username: actor.username,
-      role: "admin",
+      role: actor.adminRole,
       showPreviewHints,
     });
   }

@@ -14,6 +14,12 @@ export interface AdminUser {
   passwordHash: string;
   recoveryKey: string;
   displayName: string | null;
+  /** task 3-b — fine-grained RBAC: "owner" | "admin" | "viewer" (legacy rows = "owner") */
+  role: string;
+  /** task 3-b — disabled admins cannot sign in (sessions die immediately) */
+  enabled: boolean;
+  /** task 3-b — last successful sign-in */
+  lastLoginAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -292,6 +298,10 @@ export interface TgOrder {
    *  the post-discount payable so the whole payment pipeline (zarinpal verify,
    *  wallet debit, admin revenue) stays on one number. */
   discountJson?: string;
+  /** 3-a — Telegram Stars idempotency: telegram_payment_charge_id from the
+   *  successful_payment message. OPTIONAL: stars orders only; absent = not
+   *  settled yet (or a non-stars order). */
+  chargeId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -525,6 +535,15 @@ for (const u of state.clientUser as Array<Record<string, unknown>>) {
   if (u.expiryWarnedAt === undefined) u.expiryWarnedAt = null;
 }
 
+/* task 3-b — backfill admin users created before fine-grained RBAC so every
+   row carries the full scalar set: single-admin deployments become "owner"
+   automatically (no migration), enabled defaults on, lastLogin starts null. */
+for (const a of state.adminUser as Array<Record<string, unknown>>) {
+  if (a.role !== "owner" && a.role !== "admin" && a.role !== "viewer") a.role = "owner";
+  if (typeof a.enabled !== "boolean") a.enabled = true;
+  if (a.lastLoginAt === undefined) a.lastLoginAt = null;
+}
+
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
 function persistStore(): void {
@@ -588,6 +607,9 @@ const DEFAULTS: Record<TableName, () => Record<string, any>> = {
   adminUser: () => ({
     id: cuid(),
     displayName: null,
+    role: "owner", // task 3-b — first/legacy admins are owners (backward compatible)
+    enabled: true,
+    lastLoginAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   }),

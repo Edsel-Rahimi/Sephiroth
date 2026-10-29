@@ -164,6 +164,14 @@ const K = {
   payZarinpalMerchant: "set_pay_zarinpal_merchant",
   payUsdtWallet: "set_pay_usdt_wallet",
   payPricePerGb: "set_pay_price_per_gb",
+  // task 3-a — NowPayments (crypto) + Telegram Stars (XTR) for the sales bot
+  payNowpaymentsEnabled: "set_pay_nowpayments_enabled",
+  payNowpaymentsApiKey: "set_pay_nowpayments_api_key",
+  payNowpaymentsIpnSecret: "set_pay_nowpayments_ipn_secret",
+  payNowpaymentsSandbox: "set_pay_nowpayments_sandbox",
+  payNowpaymentsTomanPerUsd: "set_pay_nowpayments_toman_per_usd",
+  payStarsEnabled: "set_pay_stars_enabled",
+  payStarsTomanPerStar: "set_pay_stars_toman_per_star",
   // top-bar module visibility
   navHosts: "set_nav_hosts",
   navNodes: "set_nav_nodes",
@@ -1116,6 +1124,21 @@ export interface PaymentSettings {
   usdtWallet: string;
   /** Reseller tariff per GB as displayed in the panel (free text, e.g. "1800"). */
   pricePerGb: string;
+  /** task 3-a — NowPayments crypto gateway hook. Default OFF: a NEW method
+   *  only shows in the bot once the admin explicitly enables + configures it. */
+  nowpaymentsEnabled: boolean;
+  /** NowPayments API key — RAW — server-only; masked in the API view. */
+  nowpaymentsApiKey: string;
+  /** NowPayments IPN secret (x-nowpayments-sig HMAC-SHA512 key) — RAW — masked in the API view. */
+  nowpaymentsIpnSecret: string;
+  /** Route invoice creation through api.sandbox.nowpayments.io. */
+  nowpaymentsSandbox: boolean;
+  /** Config-time FX rate: Toman per 1 USD (e.g. 105000). Integer > 0. */
+  nowpaymentsTomanPerUsd: number;
+  /** task 3-a — Telegram Stars (XTR) hook. Default OFF until configured. */
+  starsEnabled: boolean;
+  /** Config rate: Toman per 1 ⭐ (e.g. 7000). Integer > 0. */
+  starsTomanPerStar: number;
 }
 
 const PAYMENT_DEFAULT: PaymentSettings = {
@@ -1127,6 +1150,13 @@ const PAYMENT_DEFAULT: PaymentSettings = {
   zarinpalMerchant: "",
   usdtWallet: "",
   pricePerGb: "",
+  nowpaymentsEnabled: false,
+  nowpaymentsApiKey: "",
+  nowpaymentsIpnSecret: "",
+  nowpaymentsSandbox: false,
+  nowpaymentsTomanPerUsd: 0,
+  starsEnabled: false,
+  starsTomanPerStar: 0,
 };
 
 export async function getPaymentSettings(): Promise<PaymentSettings> {
@@ -1134,6 +1164,9 @@ export async function getPaymentSettings(): Promise<PaymentSettings> {
     K.payCardToCardEnabled, K.payZarinpalEnabled, K.payCryptoEnabled,
     K.payCardNumber, K.payCardHolder, K.payZarinpalMerchant,
     K.payUsdtWallet, K.payPricePerGb,
+    K.payNowpaymentsEnabled, K.payNowpaymentsApiKey, K.payNowpaymentsIpnSecret,
+    K.payNowpaymentsSandbox, K.payNowpaymentsTomanPerUsd,
+    K.payStarsEnabled, K.payStarsTomanPerStar,
   ]);
   return {
     cardToCardEnabled: m.get(K.payCardToCardEnabled) !== "0", // default ON — "0" opts out
@@ -1144,6 +1177,13 @@ export async function getPaymentSettings(): Promise<PaymentSettings> {
     zarinpalMerchant: m.get(K.payZarinpalMerchant) ?? PAYMENT_DEFAULT.zarinpalMerchant,
     usdtWallet: m.get(K.payUsdtWallet) ?? PAYMENT_DEFAULT.usdtWallet,
     pricePerGb: m.get(K.payPricePerGb) ?? PAYMENT_DEFAULT.pricePerGb,
+    nowpaymentsEnabled: m.get(K.payNowpaymentsEnabled) === "1", // default OFF — "1" opts in (task 3-a)
+    nowpaymentsApiKey: m.get(K.payNowpaymentsApiKey) ?? PAYMENT_DEFAULT.nowpaymentsApiKey,
+    nowpaymentsIpnSecret: m.get(K.payNowpaymentsIpnSecret) ?? PAYMENT_DEFAULT.nowpaymentsIpnSecret,
+    nowpaymentsSandbox: m.get(K.payNowpaymentsSandbox) === "1",
+    nowpaymentsTomanPerUsd: Math.max(0, Math.floor(Number(m.get(K.payNowpaymentsTomanPerUsd)) || 0)),
+    starsEnabled: m.get(K.payStarsEnabled) === "1",
+    starsTomanPerStar: Math.max(0, Math.floor(Number(m.get(K.payStarsTomanPerStar)) || 0)),
   };
 }
 
@@ -1174,6 +1214,16 @@ export interface PaymentSettingsView {
   usdtWallet: string; // masked
   usdtWalletConfigured: boolean;
   pricePerGb: string;
+  // task 3-a — NowPayments (crypto) + Telegram Stars; secrets masked
+  nowpaymentsEnabled: boolean;
+  nowpaymentsApiKey: string; // masked
+  nowpaymentsApiKeyConfigured: boolean;
+  nowpaymentsIpnSecret: string; // masked
+  nowpaymentsIpnSecretConfigured: boolean;
+  nowpaymentsSandbox: boolean;
+  nowpaymentsTomanPerUsd: number;
+  starsEnabled: boolean;
+  starsTomanPerStar: number;
 }
 
 export async function getPaymentSettingsView(): Promise<PaymentSettingsView> {
@@ -1190,16 +1240,31 @@ export async function getPaymentSettingsView(): Promise<PaymentSettingsView> {
     usdtWallet: maskSecretValue(pay.usdtWallet),
     usdtWalletConfigured: pay.usdtWallet.trim().length > 0,
     pricePerGb: pay.pricePerGb,
+    nowpaymentsEnabled: pay.nowpaymentsEnabled,
+    nowpaymentsApiKey: maskSecretValue(pay.nowpaymentsApiKey),
+    nowpaymentsApiKeyConfigured: pay.nowpaymentsApiKey.trim().length > 0,
+    nowpaymentsIpnSecret: maskSecretValue(pay.nowpaymentsIpnSecret),
+    nowpaymentsIpnSecretConfigured: pay.nowpaymentsIpnSecret.trim().length > 0,
+    nowpaymentsSandbox: pay.nowpaymentsSandbox,
+    nowpaymentsTomanPerUsd: pay.nowpaymentsTomanPerUsd,
+    starsEnabled: pay.starsEnabled,
+    starsTomanPerStar: pay.starsTomanPerStar,
   };
 }
 
-const PAYMENT_SECRETS = new Set<string>(["cardNumber", "zarinpalMerchant", "usdtWallet"]);
+const PAYMENT_SECRETS = new Set<string>([
+  "cardNumber", "zarinpalMerchant", "usdtWallet",
+  "nowpaymentsApiKey", "nowpaymentsIpnSecret", // task 3-a — same masked-keep semantics
+]);
 
 export async function validatePaymentPatch(body: unknown): Promise<PatchResult<PaymentSettings>> {
   const b = (body ?? {}) as Record<string, unknown>;
   // merge onto the CURRENTLY SAVED values so a partial PUT never wipes fields
   const out: PaymentSettings = { ...(await getPaymentSettings()) };
-  for (const key of ["cardToCardEnabled", "zarinpalEnabled", "cryptoEnabled"] as const) {
+  for (const key of [
+    "cardToCardEnabled", "zarinpalEnabled", "cryptoEnabled",
+    "nowpaymentsEnabled", "nowpaymentsSandbox", "starsEnabled", // task 3-a
+  ] as const) {
     if (b[key] !== undefined) {
       if (typeof b[key] !== "boolean") {
         return { ok: false, fields: [{ field: key, code: "format" }] };
@@ -1207,7 +1272,10 @@ export async function validatePaymentPatch(body: unknown): Promise<PatchResult<P
       out[key] = b[key];
     }
   }
-  for (const key of ["cardNumber", "cardHolder", "zarinpalMerchant", "usdtWallet", "pricePerGb"] as const) {
+  for (const key of [
+    "cardNumber", "cardHolder", "zarinpalMerchant", "usdtWallet", "pricePerGb",
+    "nowpaymentsApiKey", "nowpaymentsIpnSecret", // task 3-a — masked secrets
+  ] as const) {
     if (b[key] !== undefined) {
       const v = String(b[key]).trim();
       if (v.length > 120 || /[\r\n]/.test(v)) {
@@ -1218,6 +1286,19 @@ export async function validatePaymentPatch(body: unknown): Promise<PatchResult<P
       // (including "" = clear) overwrites.
       if (PAYMENT_SECRETS.has(key) && v.includes("•")) continue;
       out[key] = v;
+    }
+  }
+  // task 3-a — config-time FX rates: integer Toman > 0 (0 = unset → the bot
+  // hides the method rather than guessing a rate)
+  for (const key of ["nowpaymentsTomanPerUsd", "starsTomanPerStar"] as const) {
+    if (b[key] !== undefined) {
+      const raw = Number(b[key]);
+      const n = Math.floor(raw);
+      // reject NaN, negatives, fractionals and absurd magnitudes
+      if (!Number.isFinite(raw) || raw < 0 || raw > 1_000_000_000_000 || raw !== n) {
+        return { ok: false, fields: [{ field: key, code: "format" }] };
+      }
+      out[key] = n;
     }
   }
   return { ok: true, data: out };
@@ -1232,6 +1313,14 @@ export async function savePaymentSettings(p: PaymentSettings): Promise<void> {
   await writeSetting(K.payZarinpalMerchant, p.zarinpalMerchant);
   await writeSetting(K.payUsdtWallet, p.usdtWallet);
   await writeSetting(K.payPricePerGb, p.pricePerGb);
+  // task 3-a — NowPayments (crypto) + Telegram Stars
+  await writeSetting(K.payNowpaymentsEnabled, p.nowpaymentsEnabled ? "1" : "0");
+  await writeSetting(K.payNowpaymentsApiKey, p.nowpaymentsApiKey);
+  await writeSetting(K.payNowpaymentsIpnSecret, p.nowpaymentsIpnSecret);
+  await writeSetting(K.payNowpaymentsSandbox, p.nowpaymentsSandbox ? "1" : "0");
+  await writeSetting(K.payNowpaymentsTomanPerUsd, String(Math.max(0, Math.floor(p.nowpaymentsTomanPerUsd || 0))));
+  await writeSetting(K.payStarsEnabled, p.starsEnabled ? "1" : "0");
+  await writeSetting(K.payStarsTomanPerStar, String(Math.max(0, Math.floor(p.starsTomanPerStar || 0))));
 }
 
 /* ---------- ssl / acme (Task 23-f) ---------- */

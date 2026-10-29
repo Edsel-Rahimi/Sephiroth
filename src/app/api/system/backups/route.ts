@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { existsSync, readdirSync, readFileSync, statSync, unlinkSync } from "node:fs";
 import { resolve } from "node:path";
-import { requireAdmin } from "@/lib/inbounds";
+import { requireOwner } from "@/lib/auth"; // task 3-b — backup deletion is owner-only
+import { requireAdmin } from "@/lib/inbounds"; // POST create-backup keeps the admin guard
 import { BACKUPS_DIR, isSafeBackupName, runAutoBackup } from "@/lib/backup-job";
 import { getAutoBackupLastRun } from "@/lib/settings";
 import { logActivity } from "@/lib/activity";
@@ -82,10 +83,12 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  const admin = await requireAdmin(req);
-  if (!admin) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  // task 3-b — deleting backup files is an owner-only dangerous wipe
+  const guard = await requireOwner(req);
+  if (!guard.ok) {
+    return NextResponse.json({ error: guard.error }, { status: guard.status });
   }
+  const admin = guard.username;
   const url = new URL(req.url);
   const name = url.searchParams.get("name") ?? "";
   if (!isSafeBackupName(name)) {
