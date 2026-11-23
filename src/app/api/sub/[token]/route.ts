@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { verifyPassword } from "@/lib/auth";
+import { verifyPassword, clientIp, groupLockState, registerGroupFailure, clearGroupFailures } from "@/lib/auth";
 import {
   groupSubPayload,
   userSubPayload,
@@ -439,6 +439,14 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
 export async function POST(req: Request, ctx: { params: Promise<{ token: string }> }) {
   try {
     const { token } = await ctx.params;
+    const ip = clientIp(req);
+    const gate = groupLockState(token, ip);
+    if (gate.locked) {
+      return NextResponse.json(
+        { error: "locked", retryAfter: gate.retryAfter },
+        { status: 429, headers: { "retry-after": String(gate.retryAfter) } },
+      );
+    }
     let body: { password?: unknown };
     try {
       body = await req.json();
@@ -452,8 +460,16 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
       return NextResponse.json({ error: "not_found" }, { status: 404 });
     }
     if (!group.passwordHash || !verifyPassword(password, group.passwordHash)) {
-      return NextResponse.json({ error: "wrong_password" }, { status: 401 });
+      const fail = registerGroupFailure(token, ip);
+      return NextResponse.json(
+        {
+          error: "wrong_password",
+          ...(fail.locked ? { locked: true, retryAfter: fail.retryAfter } : {}),
+        },
+        { status: 401 },
+      );
     }
+    clearGroupFailures(token, ip);
 
     const fresh = await db.subGroup.findUnique({
       where: { token },

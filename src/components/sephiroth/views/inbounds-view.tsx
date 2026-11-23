@@ -4529,7 +4529,7 @@ export function InboundsView() {
                   <Chip accent>{PROTO_LABEL[form.protocol]}</Chip>
                   <Chip>:{form.port || "—"}</Chip>
                 </span>
-                <DialogDescription className="mt-0.5 block truncate text-[11px] font-normal text-muted-foreground">
+                <DialogDescription className="mt-0.5 line-clamp-2 block text-[11px] font-normal text-muted-foreground">
                   {t.inbounds.dlgSub}
                 </DialogDescription>
               </span>
@@ -4814,7 +4814,7 @@ export function InboundsView() {
       {/* ── quick create dialog (simple-panel mode) ─────────── */}
       <Dialog open={quickOpen} onOpenChange={setQuickOpen}>
         <DialogContent className="glass-strong border-white/10 p-0 sm:max-w-[560px]">
-          <DialogHeader className="border-b border-white/5 px-5 py-4 text-start">
+          <DialogHeader className="border-b border-white/5 px-5 py-4 pe-14 text-start">
             <DialogTitle className="flex items-center gap-3 text-silver">
               <span className="glass flex h-9 w-9 items-center justify-center rounded-xl">
                 <Zap className="h-4 w-4 text-primary" />

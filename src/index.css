@@ -369,19 +369,13 @@ html[dir="rtl"] body {
 }
 .orbit-dot {
   position: absolute;
-  top: -4.5px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 7px;
-  height: 7px;
+  top: 4px;
+  inset-inline-end: 6px;
+  width: 6px;
+  height: 6px;
   border-radius: 999px;
   background: var(--primary);
-  box-shadow: 0 0 12px 1px rgba(34, 216, 238, 0.8);
-}
-html[dir="rtl"] .orbit-dot {
-  left: auto;
-  right: 50%;
-  transform: translateX(50%);
+  box-shadow: 0 0 10px 1px color-mix(in srgb, var(--primary) 75%, transparent);
 }
 
 /* ---------- logo pulse ---------- */

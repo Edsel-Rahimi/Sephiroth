@@ -24,12 +24,11 @@ export async function POST(req: Request) {
   await ensureSeed();
 
   const ip = clientIp(req);
-  const lock = lockState(ip);
-  if (lock.locked) {
-    return NextResponse.json(
-      { error: "locked", retryAfter: lock.retryAfter },
-      { status: 423 }
-    );
+
+  // Login payloads are tiny; anything past 64 KB is abusive (scrypt is costly)
+  const declared = Number(req.headers.get("content-length") ?? "0");
+  if (Number.isFinite(declared) && declared > 65_536) {
+    return NextResponse.json({ error: "payload_too_large" }, { status: 413 });
   }
 
   let body: { username?: unknown; password?: unknown; remember?: unknown; totp?: unknown };
@@ -37,6 +36,17 @@ export async function POST(req: Request) {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "bad_request" }, { status: 400 });
+  }
+  if (JSON.stringify(body).length > 65_536) {
+    return NextResponse.json({ error: "payload_too_large" }, { status: 413 });
+  }
+
+  const lock = lockState(ip, typeof body?.username === "string" ? body.username : undefined);
+  if (lock.locked) {
+    return NextResponse.json(
+      { error: "locked", retryAfter: lock.retryAfter },
+      { status: 423 }
+    );
   }
 
   const username = typeof body.username === "string" ? body.username.trim() : "";
@@ -67,7 +77,7 @@ export async function POST(req: Request) {
   }
 
   if (!okUser || !role) {
-    const fail = registerFailure(ip);
+    const fail = registerFailure(ip, username);
     await logActivity({
       kind: "auth.failed",
       level: "error",
@@ -111,7 +121,7 @@ export async function POST(req: Request) {
     }
   }
 
-  clearFailures(ip);
+  clearFailures(ip, okUser);
 
   const ttl = remember ? SESSION_TTL_LONG : SESSION_TTL_SHORT;
   const token = await signToken(okUser, ttl);

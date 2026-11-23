@@ -35,12 +35,39 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
 
-    const rows = await db.clientUser.findMany({
-      where: actor.role === "reseller" ? { resellerId: actor.id } : {},
-      orderBy: [{ createdAt: "desc" }, { username: "asc" }],
-      include: { accesses: { include: { inbound: true } } },
+    const where = actor.role === "reseller" ? { resellerId: actor.id } : {};
+    const orderBy = [{ createdAt: "desc" as const }, { username: "asc" as const }];
+    const include = { accesses: { include: { inbound: true } } };
+
+    // Pagination is opt-in via ?page=N (with ?pageSize=, capped at 500) so
+    // existing clients that expect the full list keep working unchanged.
+    const url = new URL(req.url);
+    const pageParam = url.searchParams.get("page");
+    if (pageParam === null) {
+      const rows = await db.clientUser.findMany({ where, orderBy, include });
+      return NextResponse.json({ users: rows.map((r) => toUserDTO(r)) });
+    }
+
+    const page = Math.max(1, Number.parseInt(pageParam, 10) || 1);
+    const pageSizeRaw = Number.parseInt(url.searchParams.get("pageSize") ?? "", 10);
+    const pageSize = Math.min(500, Math.max(1, pageSizeRaw || 50));
+    const [rows, total] = await Promise.all([
+      db.clientUser.findMany({
+        where,
+        orderBy,
+        include,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      db.clientUser.count({ where }),
+    ]);
+    return NextResponse.json({
+      users: rows.map((r) => toUserDTO(r)),
+      total,
+      page,
+      pageSize,
+      pages: Math.max(1, Math.ceil(total / pageSize)),
     });
-    return NextResponse.json({ users: rows.map((r) => toUserDTO(r)) });
   } catch (err) {
     console.error("[users:GET]", err);
     return NextResponse.json({ error: "server_error" }, { status: 500 });

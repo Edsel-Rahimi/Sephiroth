@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/inbounds";
 import { listNodes } from "@/lib/net-objects";
 import { pullNodeTraffic, type NodeRow } from "@/lib/nodes-sync";
+import { getCachedNodeTraffic } from "@/lib/node-sync-worker";
 
 /* ============================================================
    Sephiroth · Multi-node — traffic snapshot from a node (admin)
@@ -27,13 +28,18 @@ export async function GET(
     }
 
     const result = await pullNodeTraffic(node as NodeRow);
+    // The 60 s node-sync worker keeps a cached snapshot; if the agent is
+    // briefly unreachable, serve the fresh cache instead of an error.
+    const cached = result.ok ? null : getCachedNodeTraffic(id);
+
     const nodes = await listNodes();
     const dto = nodes.find((n) => n.id === id) ?? null;
 
     return NextResponse.json({
-      ok: result.ok,
-      traffic: result.ok ? result.traffic : null,
-      error: result.ok ? null : result.error,
+      ok: result.ok || cached !== null,
+      traffic: result.ok ? result.traffic : cached,
+      cached: !result.ok && cached !== null ? true : undefined,
+      error: result.ok ? null : (cached ? null : result.error),
       node: dto,
     });
   } catch (err) {

@@ -12,8 +12,8 @@ export function toAdminDTO(row: AdminUser, selfUsername?: string) {
     username: row.username,
     role: normalizeAdminRole(row.role),
     enabled: row.enabled !== false,
-    createdAt: row.createdAt.toISOString(),
-    lastLoginAt: row.lastLoginAt ? row.lastLoginAt.toISOString() : null,
+    createdAt: new Date(row.createdAt).toISOString(),
+    lastLoginAt: row.lastLoginAt ? new Date(row.lastLoginAt).toISOString() : null,
     isSelf: selfUsername !== undefined ? row.username === selfUsername : undefined,
   };
 }

@@ -6,6 +6,7 @@ import {
   timingSafeEqual,
 } from "crypto";
 import { db } from "@/lib/db";
+import { genRecoveryKey } from "@/lib/settings";
 
 /* ============================================================
    Sephiroth · Phase 1 — Auth & Security (server-only)
@@ -117,30 +118,48 @@ export async function verifyToken(
 
 /* ---------- lazy seed ---------- */
 
+/** Strong random password for a first-boot admin (never printed again). */
+export function generateAdminPassword(): string {
+  // 22 chars from a URL-safe alphabet ≈ 128 bits of entropy
+  return randomBytes(18).toString("base64url");
+}
+
 export async function ensureSeed(): Promise<void> {
   await getSecret();
   const existing = await db.adminUser.findFirst();
   if (!existing) {
-    // Deployment-configurable admin credentials (docker-compose env);
-    // falls back to the preview defaults when unset.
     const username = (process.env.SEPHIROTH_ADMIN_USER ?? "").trim() || PREVIEW.username;
-    const password = process.env.SEPHIROTH_ADMIN_PASS ?? PREVIEW.password;
+    const previewMode = process.env.SEPH_PREVIEW_AUTH === "1";
+    const password =
+      process.env.SEPHIROTH_ADMIN_PASS ??
+      (previewMode ? PREVIEW.password : generateAdminPassword());
+    const recoveryKey =
+      previewMode ? PREVIEW.recoveryKey : await genRecoveryKey();
     await db.adminUser.create({
       data: {
         username,
         passwordHash: hashPassword(password),
-        recoveryKey: PREVIEW.recoveryKey,
+        recoveryKey,
         displayName: "Sephiroth Commander",
         role: "owner", // task 3-b — the seeded admin is always the owner
         enabled: true,
       },
     });
+    if (!process.env.SEPHIROTH_ADMIN_PASS && !previewMode) {
+      // One-time console print: the only place the generated credential appears.
+      console.log(
+        `[sephiroth] First boot: no SEPHIROTH_ADMIN_PASS set — generated a random password for "${username}": ${password}`
+      );
+      console.log(
+        "[sephiroth] Set SEPHIROTH_ADMIN_PASS to control the credential; this line is printed only once."
+      );
+    }
   }
 }
 
-/* ---------- brute-force lockout (per client IP, in-memory) ---------- */
+/* ---------- brute-force lockout (per IP and per username, in-memory) ---------- */
 
-interface LockEntry {
+export interface LockEntry {
   count: number;
   until: number; // locked-until timestamp (0 = not locked)
   last: number; // last failure timestamp
@@ -153,55 +172,126 @@ const locks: Map<string, LockEntry> =
   globalLocks.__sephirothLocks ?? new Map();
 globalLocks.__sephirothLocks = locks;
 
+/** Per-username limit — defends against attackers rotating client IPs. */
+const USER_LOCK_LIMIT = LOCK_LIMIT * 4;
+
 export function clientIp(req: Request): string {
   const fwd = req.headers.get("x-forwarded-for");
   if (fwd) return fwd.split(",")[0]!.trim();
   return "local";
 }
 
-export function lockState(
-  ip: string
-): { locked: true; retryAfter: number } | { locked: false } {
-  const entry = locks.get(ip);
-  if (entry && entry.until > Date.now()) {
-    return {
-      locked: true,
-      retryAfter: Math.ceil((entry.until - Date.now()) / 1000),
-    };
-  }
-  return { locked: false };
-}
-
-/** Register a failed attempt. Returns remaining attempts / lock status. */
-export function registerFailure(ip: string): {
-  locked: boolean;
-  attemptsLeft: number;
-  retryAfter?: number;
-} {
-  const now = Date.now();
-  const entry = locks.get(ip);
+function bumpLock(key: string, limit: number, now: number): LockEntry {
+  const entry = locks.get(key);
   const fresh =
     entry && now - entry.last < FAIL_WINDOW_MS
       ? entry
       : { count: 0, until: 0, last: now };
   fresh.count += 1;
   fresh.last = now;
+  if (fresh.count >= limit) fresh.until = now + LOCK_MS;
+  locks.set(key, fresh);
+  return fresh;
+}
 
-  if (fresh.count >= LOCK_LIMIT) {
-    fresh.until = now + LOCK_MS;
-    locks.set(ip, fresh);
+export function lockState(
+  ip: string,
+  username?: string
+): { locked: true; retryAfter: number } | { locked: false } {
+  const now = Date.now();
+  const keys = [ip];
+  if (username) keys.push(`user:${username.toLowerCase()}`);
+  for (const key of keys) {
+    const entry = locks.get(key);
+    if (entry && entry.until > now) {
+      return {
+        locked: true,
+        retryAfter: Math.ceil((entry.until - now) / 1000),
+      };
+    }
+  }
+  return { locked: false };
+}
+
+/** Register a failed attempt. Returns remaining attempts / lock status. */
+export function registerFailure(
+  ip: string,
+  username?: string
+): {
+  locked: boolean;
+  attemptsLeft: number;
+  retryAfter?: number;
+} {
+  const now = Date.now();
+  const byIp = bumpLock(ip, LOCK_LIMIT, now);
+  const byUser =
+    username
+      ? bumpLock(`user:${username.toLowerCase()}`, USER_LOCK_LIMIT, now)
+      : null;
+
+  const locked = byIp.count >= LOCK_LIMIT || !!byUser && byUser.count >= USER_LOCK_LIMIT;
+  if (locked) {
     return {
       locked: true,
       attemptsLeft: 0,
       retryAfter: Math.ceil(LOCK_MS / 1000),
     };
   }
-  locks.set(ip, fresh);
-  return { locked: false, attemptsLeft: LOCK_LIMIT - fresh.count };
+  const left = Math.min(
+    LOCK_LIMIT - byIp.count,
+    byUser ? USER_LOCK_LIMIT - byUser.count : LOCK_LIMIT
+  );
+  return { locked: false, attemptsLeft: left };
 }
 
-export function clearFailures(ip: string): void {
+export function clearFailures(ip: string, username?: string): void {
   locks.delete(ip);
+  if (username) locks.delete(`user:${username.toLowerCase()}`);
+}
+
+/* ---------- public sub-group password lockout (per token + per IP) ---------- */
+
+/**
+ * POST /api/sub/[token] is public: the group password needs the same
+ * brute-force defense as the admin login. Keyed per group token (defends
+ * against attackers rotating client IPs) AND per IP. Success clears only
+ * the token bucket — the IP bucket is shared with the admin-login counter
+ * and is left alone.
+ */
+
+export function groupLockState(
+  token: string,
+  ip: string
+): { locked: true; retryAfter: number } | { locked: false } {
+  const now = Date.now();
+  for (const key of [`subgroup:${token.toLowerCase()}`, ip]) {
+    const entry = locks.get(key);
+    if (entry && entry.until > now) {
+      return {
+        locked: true,
+        retryAfter: Math.ceil((entry.until - now) / 1000),
+      };
+    }
+  }
+  return { locked: false };
+}
+
+/** Failed group-password attempt — same 5 failures → 5 min lock as the login. */
+export function registerGroupFailure(
+  token: string,
+  ip: string
+): { locked: boolean; retryAfter?: number } {
+  const now = Date.now();
+  const byToken = bumpLock(`subgroup:${token.toLowerCase()}`, LOCK_LIMIT, now);
+  bumpLock(ip, LOCK_LIMIT, now);
+  if (byToken.count >= LOCK_LIMIT) {
+    return { locked: true, retryAfter: Math.ceil(LOCK_MS / 1000) };
+  }
+  return { locked: false };
+}
+
+export function clearGroupFailures(token: string, ip: string): void {
+  locks.delete(`subgroup:${token.toLowerCase()}`);
 }
 
 /* ---------- cookie helpers ---------- */

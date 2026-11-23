@@ -120,6 +120,7 @@ import {
 } from "./src/lib/bot/notify"; // Task 23-a — bot notifications
 import { runDailySalesDigest } from "./src/lib/digest-job"; // 26-a — daily sales digest
 import { runSslRenewalTick } from "./src/lib/acme"; // Task 23-f — daily ACME renewal watcher
+import { runNodeSyncTick } from "./src/lib/node-sync-worker"; // multi-node — periodic status/traffic sync
 import * as apiSystemSsl from "./src/app/api/system/ssl/route";
 import * as apiSystemSslInstall from "./src/app/api/system/ssl-install-acme/route";
 import * as apiSystemSslIssue from "./src/app/api/system/ssl-issue/route";
@@ -398,6 +399,16 @@ async function startServer() {
 
   const app = express();
   const httpServer = http.createServer(app);
+
+  // Basic security headers on every response (CSP here only restricts framing;
+  // script/style policy is left to the app so Vite dev inline scripts keep working)
+  app.use((_req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    res.setHeader("Content-Security-Policy", "frame-ancestors 'none'");
+    next();
+  });
 
   // Raw body parser for /api/* so Web Request can consume body stream directly
   app.use("/api", express.raw({ type: "*/*", limit: "25mb" }));
@@ -730,11 +741,16 @@ async function startServer() {
     void runAutoBackup();
     void runSslRenewalTick(); // Task 23-f — day-rollover ACME renewal check
     void runDailySalesDigest(); // 26-a — once-per-24h sales/orders digest
+    void runNodeSyncTick(); // multi-node — refresh node status + traffic cache
   }, 60_000);
   // first auto-backup chance shortly after boot (also primes security settings)
   setTimeout(() => {
     void runAutoBackup();
   }, 20_000);
+  // prime the node sync cache shortly after boot
+  setTimeout(() => {
+    void runNodeSyncTick();
+  }, 15_000);
 
   // Task 23-c — start the Sephiroth Sales Bot worker when settings say
   // botMode=sales + a bot token exists (no-op otherwise; also re-synced on
@@ -757,6 +773,11 @@ async function startServer() {
   // Vite middleware in development. Vite is imported lazily so the
   // production bundle never needs it at runtime.
   const distPath = path.join(process.cwd(), "dist");
+  // Unknown /api paths must never fall through to the SPA shell — the shell
+  // answers 200 text/html and misleads API clients. JSON 404 instead.
+  app.use("/api", (_req, res) => {
+    res.status(404).json({ error: "not_found" });
+  });
   if (process.env.NODE_ENV === "production" || existsSync(distPath)) {
     app.use(express.static(distPath));
     app.get("*", (_req, res) => {

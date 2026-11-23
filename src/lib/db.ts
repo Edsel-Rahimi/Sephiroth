@@ -1,6 +1,7 @@
-import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { randomBytes } from "node:crypto";
+import { DatabaseSync } from "node:sqlite";
 
 function cuid(): string {
   return "c" + Date.now().toString(36) + randomBytes(6).toString("hex");
@@ -466,6 +467,7 @@ type TableName =
 type StoreData = Record<TableName, Record<string, any>[]>;
 
 const STORE_FILE = resolve(process.cwd(), "db", "sephiroth-store.json");
+const DB_FILE = resolve(process.cwd(), "db", "sephiroth-store.db");
 
 function emptyStore(): StoreData {
   return {
@@ -529,19 +531,59 @@ function parseStoreFile(file: string): StoreData | null {
   }
 }
 
+/** PK of a raw store row: every model carries `id`, except serverSetting (keyed). */
+function rowId(row: Record<string, any>): string {
+  return String(row.id ?? row.key ?? "");
+}
+
+let sqliteDb: DatabaseSync | null = null;
+/** Serialized snapshot per row since the last flush — drives the delta upsert. */
+let rowCache = new Map<TableName, Map<string, string>>();
+
+function openStoreDb(): DatabaseSync {
+  if (sqliteDb) return sqliteDb;
+  mkdirSync(dirname(DB_FILE), { recursive: true });
+  const fresh = !existsSync(DB_FILE);
+  const dbh = new DatabaseSync(DB_FILE);
+  dbh.exec("PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;");
+  for (const t of Object.keys(emptyStore()) as TableName[]) {
+    dbh.exec(`CREATE TABLE IF NOT EXISTS "${t}" (id TEXT PRIMARY KEY, data TEXT NOT NULL)`);
+  }
+  sqliteDb = dbh;
+  if (fresh) migrateJsonStoreInto(dbh);
+  return dbh;
+}
+
+/** One-shot JSON → SQLite migration; the JSON file is kept in place as a rollback copy. */
+function migrateJsonStoreInto(dbh: DatabaseSync): void {
+  const legacy = parseStoreFile(STORE_FILE) ?? parseStoreFile(STORE_FILE + ".bak");
+  if (!legacy) return;
+  dbh.exec("BEGIN");
+  try {
+    for (const t of Object.keys(legacy) as TableName[]) {
+      const stmt = dbh.prepare(`INSERT INTO "${t}" (id, data) VALUES (?, ?)`);
+      for (const row of legacy[t]) {
+        const id = rowId(row);
+        if (id) stmt.run(id, JSON.stringify(row));
+      }
+    }
+    dbh.exec("COMMIT");
+    console.error("[db] migrated legacy JSON store into SQLite:", DB_FILE, "(JSON file kept as rollback copy)");
+  } catch (err) {
+    dbh.exec("ROLLBACK");
+    throw err;
+  }
+}
+
 function loadStore(): StoreData {
-  const main = parseStoreFile(STORE_FILE);
-  if (main) return main;
-  // main file missing or corrupt → try the one-generation backup
-  const bak = parseStoreFile(STORE_FILE + ".bak");
-  if (bak) {
-    console.error("[db] main store unreadable — recovered from", STORE_FILE + ".bak");
-    return bak;
+  const dbh = openStoreDb();
+  const base = emptyStore();
+  for (const t of Object.keys(base) as TableName[]) {
+    const rows = dbh.prepare(`SELECT id, data FROM "${t}"`).all() as Array<{ id: string; data: string }>;
+    base[t] = rows.map((r) => reviveDates(JSON.parse(r.data)));
+    rowCache.set(t, new Map(rows.map((r) => [r.id, r.data])));
   }
-  if (existsSync(STORE_FILE)) {
-    console.error("[db] failed to load store file, starting fresh:", STORE_FILE);
-  }
-  return emptyStore();
+  return base;
 }
 
 const state: StoreData = loadStore();
@@ -590,31 +632,55 @@ for (const a of state.adminUser as Array<Record<string, unknown>>) {
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
-function persistStore(): void {
-  if (saveTimer) return;
-  saveTimer = setTimeout(() => {
+/** Delta-flush the in-memory state into SQLite in one transaction (upserts + deletes). */
+export function flushStore(): void {
+  if (saveTimer) {
+    clearTimeout(saveTimer);
     saveTimer = null;
-    try {
-      mkdirSync(dirname(STORE_FILE), { recursive: true });
-      // atomic-ish write: stage into a tmp sibling, keep a one-generation
-      // .bak of the previous live file, then rename onto the live path so a
-      // crash mid-write can never truncate the store.
-      const tmpFile = STORE_FILE + ".tmp";
-      const bakFile = STORE_FILE + ".bak";
-      if (existsSync(STORE_FILE)) {
-        try {
-          copyFileSync(STORE_FILE, bakFile);
-        } catch (bakErr) {
-          console.error("[db] failed to stage .bak (continuing):", bakErr);
+  }
+  if (!sqliteDb) return;
+  const dbh = sqliteDb;
+  dbh.exec("BEGIN");
+  try {
+    for (const t of Object.keys(state) as TableName[]) {
+      const cache = rowCache.get(t) ?? new Map<string, string>();
+      const seen = new Set<string>();
+      const upsert = dbh.prepare(
+        `INSERT INTO "${t}" (id, data) VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data`,
+      );
+      const del = dbh.prepare(`DELETE FROM "${t}" WHERE id = ?`);
+      for (const row of state[t]) {
+        const id = rowId(row);
+        if (!id) continue;
+        const data = JSON.stringify(row);
+        seen.add(id);
+        if (cache.get(id) !== data) {
+          upsert.run(id, data);
+          cache.set(id, data);
         }
       }
-      writeFileSync(tmpFile, JSON.stringify(state, null, 2), "utf8");
-      renameSync(tmpFile, STORE_FILE);
-    } catch (err) {
-      console.error("[db] failed to persist store:", err);
+      for (const id of [...cache.keys()]) {
+        if (!seen.has(id)) {
+          del.run(id);
+          cache.delete(id);
+        }
+      }
+      rowCache.set(t, cache);
     }
-  }, 50);
+    dbh.exec("COMMIT");
+  } catch (err) {
+    dbh.exec("ROLLBACK");
+    console.error("[db] failed to persist store:", err);
+  }
 }
+
+function persistStore(): void {
+  if (saveTimer) return;
+  saveTimer = setTimeout(flushStore, 50);
+}
+
+// SQLite is synchronous — a final flush here closes the 50 ms debounce window on shutdown.
+process.on("exit", flushStore);
 
 const UNIQUE_FIELDS: Partial<Record<TableName, string[]>> = {
   adminUser: ["username", "recoveryKey"],

@@ -137,11 +137,11 @@ function ThroughputHero() {
         />
         <span
           className="absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border-2 border-primary bg-background glow-cyan transition-[inset-inline-start] duration-700"
-          style={{ insetInlineStart: `calc(${Math.max(6, loadPct)}% - 8px)` }}
+          style={{ insetInlineStart: `calc(${Math.min(94, Math.max(6, loadPct))}% - 8px)` }}
         />
         <span
           className="absolute top-1/2 -translate-y-1/2 font-mono text-[10px] tabular-nums text-primary transition-[inset-inline-start] duration-700"
-          style={{ insetInlineStart: `calc(${Math.max(6, loadPct)}% + 12px)` }}
+          style={{ insetInlineStart: `calc(${Math.min(70, Math.max(6, loadPct))}% + 12px)` }}
         >
           {loadPct}%
         </span>
@@ -151,12 +151,11 @@ function ThroughputHero() {
       <div className="mt-5 grid grid-cols-4 divide-x divide-border/60 rounded-xl bg-muted/40 py-3">
         {strip.map((s) => (
           <div key={s.label} className="px-3 text-center first:ps-0 last:pe-0">
-            <p className="truncate text-[9px] text-muted-foreground">{s.label}</p>
+            <p className="truncate text-[9px] text-muted-foreground" title={s.label}>{s.label}</p>
             <p className="mt-0.5 font-mono text-sm font-bold tabular-nums">{s.val}</p>
           </div>
         ))}
       </div>
-      <p className="sr-only">{dict.dash.liveTraffic}</p>
     </D2Card>
   );
 }

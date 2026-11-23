@@ -48,8 +48,8 @@ export function HeaderRow() {
     <>
       {/* welcome header */}
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <div className="mb-2 flex items-center gap-2">
+        <div className="min-w-0 max-w-full flex-1">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/8 px-3 py-1 text-[10px] font-bold tracking-[0.18em] text-primary">
               <span className="h-1 w-1 rounded-full bg-primary glow-cyan" />
               {dict.dash.phaseBadge}
@@ -60,9 +60,9 @@ export function HeaderRow() {
               </span>
             )}
           </div>
-          <h1 className="text-2xl font-bold md:text-[32px] md:leading-tight">
-            <span className="text-muted-foreground">{d2.welcome}</span>{" "}
-            <span className="text-silver">{who}</span>
+          <h1 className="break-words text-2xl font-bold md:text-[32px] md:leading-tight">
+            <span className="inline-block text-muted-foreground">{d2.welcome}</span>{" "}
+            <span className="inline-block max-w-full break-words text-silver">{who}</span>
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">{dict.dash.subtitle}</p>
         </div>

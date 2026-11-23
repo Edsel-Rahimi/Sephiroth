@@ -661,7 +661,7 @@ export function InboundsAutopilot({
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="glass-strong max-h-[92dvh] overflow-y-auto border-white/10 p-0 sm:max-w-[680px]">
-        <DialogHeader className="border-b border-white/5 px-5 py-4 text-start">
+        <DialogHeader className="border-b border-white/5 px-5 py-4 pe-14 text-start">
           <DialogTitle className="flex items-center gap-3 text-silver">
             <span className="glass flex h-9 w-9 items-center justify-center rounded-xl">
               <Rocket className="h-4 w-4 text-[#f59e0b]" aria-hidden="true" />

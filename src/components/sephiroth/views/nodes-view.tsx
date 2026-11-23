@@ -914,14 +914,14 @@ export function NodesView() {
       {/* create / edit dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="glass-strong flex max-h-[90vh] flex-col gap-0 overflow-hidden border-white/10 p-0 sm:max-w-[600px]">
-          <DialogHeader className="border-b border-white/5 px-5 py-4 text-start">
+          <DialogHeader className="border-b border-white/5 px-5 py-4 pe-14 text-start">
             <DialogTitle className="flex items-center gap-3 text-silver">
               <span className="glass flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
                 <Server className="h-4 w-4 text-primary" aria-hidden="true" />
               </span>
               <span className="min-w-0">
                 <span className="block truncate text-base">{editing ? u.edit : u.new}</span>
-                <DialogDescription className="mt-0.5 block truncate text-[11px] font-normal text-muted-foreground">
+                <DialogDescription className="mt-0.5 line-clamp-2 block text-[11px] font-normal text-muted-foreground">
                   {u.subtitle}
                 </DialogDescription>
               </span>
@@ -1078,7 +1078,11 @@ export function NodesView() {
             >
               {t.inbounds.cancel}
             </Button>
-            <Button onClick={() => void saveNode()} disabled={saving} className="gap-2 rounded-full">
+            <Button
+              onClick={() => void saveNode()}
+              disabled={saving}
+              className="gap-2 rounded-full data-[disabled]:opacity-90"
+            >
               {saving ? (
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
               ) : (
@@ -1131,7 +1135,7 @@ export function NodesView() {
       {/* agent info (Refresh) */}
       <Dialog open={infoTarget !== null} onOpenChange={(o) => !o && setInfoTarget(null)}>
         <DialogContent className="glass-strong flex max-h-[90vh] flex-col gap-0 overflow-hidden border-white/10 p-0 sm:max-w-[440px]">
-          <DialogHeader className="border-b border-white/5 px-5 py-4 text-start">
+          <DialogHeader className="border-b border-white/5 px-5 py-4 pe-14 text-start">
             <DialogTitle className="flex items-center gap-3 text-silver">
               <span className="glass flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
                 <RefreshCw className="h-4 w-4 text-primary" aria-hidden="true" />
@@ -1185,7 +1189,7 @@ export function NodesView() {
       {/* node traffic (pull) */}
       <Dialog open={trafficTarget !== null} onOpenChange={(o) => !o && setTrafficTarget(null)}>
         <DialogContent className="glass-strong flex max-h-[90vh] flex-col gap-0 overflow-hidden border-white/10 p-0 sm:max-w-[520px]">
-          <DialogHeader className="border-b border-white/5 px-5 py-4 text-start">
+          <DialogHeader className="border-b border-white/5 px-5 py-4 pe-14 text-start">
             <DialogTitle className="flex items-center gap-3 text-silver">
               <span className="glass flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
                 <ArrowDownUp className="h-4 w-4 text-primary" aria-hidden="true" />

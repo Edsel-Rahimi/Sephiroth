@@ -123,15 +123,19 @@ export function StatPill({ label, pct, color }: { label: string; pct: number; co
   return (
     <div className="min-w-0">
       <p className="mb-1.5 truncate text-[11px] text-muted-foreground">{label}</p>
-      <div className="flex h-6 w-full max-w-32 items-center overflow-hidden rounded-full bg-muted/80 p-1">
-        <div
-          className="flex h-full items-center justify-end rounded-full px-2.5 transition-[width] duration-700"
-          style={{ width: `${Math.max(18, pct)}%`, background: color }}
-        >
-          <span className="font-mono text-[10px] font-bold tabular-nums text-[#041014]">
-            {pct}%
-          </span>
+      <div className="flex items-center gap-2">
+        <div className="h-6 min-w-0 flex-1 overflow-hidden rounded-full bg-muted/80 p-1">
+          <div
+            className="h-full rounded-full transition-[width] duration-700"
+            style={{
+              width: `${Math.min(100, Math.max(6, pct))}%`,
+              background: color,
+            }}
+          />
         </div>
+        <span className="shrink-0 font-mono text-[10px] font-bold tabular-nums text-muted-foreground">
+          {pct}%
+        </span>
       </div>
     </div>
   );
@@ -150,11 +154,11 @@ export function D2Card({
   children: React.ReactNode;
 }) {
   return (
-    <section className={cn("glass hover-glow rounded-2xl p-5", className)}>
+    <section className={cn("glass relative overflow-hidden hover-glow rounded-2xl p-5", className)}>
       {(title || action) && (
         <div className="mb-4 flex items-center justify-between gap-3">
           {title && (
-            <h3 className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <h3 className="min-w-0 truncate text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">
               {title}
             </h3>
           )}

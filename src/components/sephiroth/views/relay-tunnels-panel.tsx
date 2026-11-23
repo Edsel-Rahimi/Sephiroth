@@ -437,7 +437,11 @@ export function RelayTunnelsPanel() {
             <Button variant="outline" onClick={() => setOpen(false)} className="rounded-full">
               {t.cancel}
             </Button>
-            <Button onClick={() => void handleCreate()} disabled={saving} className="gap-2 rounded-full">
+            <Button
+              onClick={() => void handleCreate()}
+              disabled={saving}
+              className="gap-2 rounded-full data-[disabled]:opacity-90"
+            >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
               {t.create}
             </Button>
